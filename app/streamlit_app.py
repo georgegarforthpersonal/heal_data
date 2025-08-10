@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from database.connection import get_db_connection
 from forms.survey_forms import SurveyForm
+from forms.advanced_survey_form import AdvancedSurveyForm
 
 st.set_page_config(
     page_title="Butterfly Survey App",
@@ -16,7 +17,7 @@ def main():
     st.title("🦋 Butterfly Survey App")
     st.sidebar.title("Navigation")
     
-    page = st.sidebar.selectbox("Choose a page", ["Home", "Survey Data", "Database View"])
+    page = st.sidebar.selectbox("Choose a page", ["Home", "Survey Data", "Advanced Survey Form", "Database View"])
     
     if page == "Home":
         st.header("Welcome to Butterfly Survey App")
@@ -56,6 +57,10 @@ def main():
         st.header("Survey Data")
         survey_form = SurveyForm()
         survey_form.render()
+        
+    elif page == "Advanced Survey Form":
+        advanced_form = AdvancedSurveyForm()
+        advanced_form.render()
         
     elif page == "Database View":
         st.header("Database View")

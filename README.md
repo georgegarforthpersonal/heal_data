@@ -1,6 +1,6 @@
 # Heal Butterflies 🦋
 
-A Streamlit web application for tracking butterfly healing and rehabilitation data with PostgreSQL database backend.
+A butterfly tracking application with both Streamlit and Next.js forms for healing and rehabilitation data with PostgreSQL database backend.
 
 ## Features
 
@@ -49,6 +49,41 @@ A Streamlit web application for tracking butterfly healing and rehabilitation da
 
 6. **Open your browser**
    Navigate to `http://localhost:8501` to access the application.
+
+## Next.js Survey Form
+
+### Quick Start
+
+1. **Navigate to the Next.js app directory**
+   ```bash
+   cd butterfly-survey-form
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the PostgreSQL database** (if not already running)
+   ```bash
+   cd .. && docker compose up -d
+   ```
+
+4. **Run the Next.js development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to `http://localhost:3000` to access the Next.js survey form.
+
+### Production Build
+
+To create a production build:
+```bash
+npm run build
+npm start
+```
 
 ## Configuration
 
