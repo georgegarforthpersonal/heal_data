@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import List, Optional, Tuple
 
 from database.connection import get_db_cursor
-from database.models import Survey, Surveyor
+from database.models import Survey, Surveyor, Sighting, Species, Transect
 
 def get_all_surveyors() -> List[Tuple[int, str]]:
     """Get all surveyors for dropdown selection"""
@@ -130,6 +130,114 @@ def get_survey_by_id(survey_id: int) -> Optional[Survey]:
         st.error(f"Error fetching survey: {e}")
         return None
 
+def get_all_species() -> List[Tuple[int, str]]:
+    """Get all species for dropdown selection"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT id, name FROM species ORDER BY name")
+            return cursor.fetchall()
+    except Exception as e:
+        st.error(f"Error fetching species: {e}")
+        return []
+
+def get_all_transects() -> List[Tuple[int, str, int]]:
+    """Get all transects for dropdown selection"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT id, name, number FROM transect ORDER BY number")
+            return cursor.fetchall()
+    except Exception as e:
+        st.error(f"Error fetching transects: {e}")
+        return []
+
+def get_sightings_for_survey(survey_id: int) -> List[Tuple]:
+    """Get all sightings for a specific survey"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT si.id, si.survey_id, si.species_id, si.transect_id, si.count,
+                       sp.name as species_name,
+                       t.number as transect_number, t.name as transect_name
+                FROM sighting si
+                JOIN species sp ON si.species_id = sp.id
+                JOIN transect t ON si.transect_id = t.id
+                WHERE si.survey_id = %s
+                ORDER BY sp.name, t.number
+            """, (survey_id,))
+            return cursor.fetchall()
+    except Exception as e:
+        st.error(f"Error fetching sightings: {e}")
+        return []
+
+def create_sighting(sighting: Sighting) -> bool:
+    """Create a new sighting"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO sighting (survey_id, species_id, transect_id, count)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                sighting.survey_id,
+                sighting.species_id,
+                sighting.transect_id,
+                sighting.count
+            ))
+            return True
+    except Exception as e:
+        st.error(f"Error creating sighting: {e}")
+        return False
+
+def update_sighting(sighting: Sighting) -> bool:
+    """Update an existing sighting"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                UPDATE sighting 
+                SET species_id = %s, transect_id = %s, count = %s
+                WHERE id = %s
+            """, (
+                sighting.species_id,
+                sighting.transect_id,
+                sighting.count,
+                sighting.id
+            ))
+            return True
+    except Exception as e:
+        st.error(f"Error updating sighting: {e}")
+        return False
+
+def delete_sighting(sighting_id: int) -> bool:
+    """Delete a sighting"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("DELETE FROM sighting WHERE id = %s", (sighting_id,))
+            return True
+    except Exception as e:
+        st.error(f"Error deleting sighting: {e}")
+        return False
+
+def get_sighting_by_id(sighting_id: int) -> Optional[Sighting]:
+    """Get a specific sighting by ID"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT id, survey_id, species_id, transect_id, count
+                FROM sighting WHERE id = %s
+            """, (sighting_id,))
+            row = cursor.fetchone()
+            if row:
+                return Sighting(
+                    id=row[0],
+                    survey_id=row[1],
+                    species_id=row[2],
+                    transect_id=row[3],
+                    count=row[4]
+                )
+            return None
+    except Exception as e:
+        st.error(f"Error fetching sighting: {e}")
+        return None
+
 def survey_form(survey: Optional[Survey] = None, key_prefix: str = ""):
     """Render survey form for create/update operations"""
     surveyors = get_all_surveyors()
@@ -235,6 +343,12 @@ def main():
         st.session_state.show_create_form = False
     if "delete_confirm_id" not in st.session_state:
         st.session_state.delete_confirm_id = None
+    if "show_sightings" not in st.session_state:
+        st.session_state.show_sightings = {}
+    if "editing_sighting_id" not in st.session_state:
+        st.session_state.editing_sighting_id = None
+    if "creating_sighting_for_survey" not in st.session_state:
+        st.session_state.creating_sighting_for_survey = None
     
     # Create new survey section
     if st.button("➕ Add New Survey"):
@@ -245,7 +359,7 @@ def main():
     surveys = get_all_surveys()
     
     if surveys:
-        # Column headers in new order: Date, Surveyor, Start, End, Sun, Temp, Actions
+        # Column headers - back to original layout without sightings column
         header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7 = st.columns([1.5, 1.5, 1, 1, 1, 1, 1])
         
         with header_col1:
@@ -265,7 +379,7 @@ def main():
         
         st.divider()
         
-        # Add new survey row if creating - new order: Date, Surveyor, Start, End, Sun, Temp, Actions
+        # Add new survey row if creating
         if st.session_state.show_create_form:
             col1, col2, col3, col4, col5, col6, col7 = st.columns([1.5, 1.5, 1, 1, 1, 1, 1])
             
@@ -353,6 +467,7 @@ def main():
                     if st.button("❌", key="create_cancel", help="Cancel"):
                         st.session_state.show_create_form = False
                         st.rerun()
+            
             
             st.divider()
         
@@ -490,6 +605,192 @@ def main():
                         if st.button("🗑️", key=f"delete_{survey[0]}", help="Delete survey"):
                             st.session_state.delete_confirm_id = survey[0]
                             st.rerun()
+            
+            # Sightings expander - clean hierarchical display
+            survey_id = survey[0]
+            sightings = get_sightings_for_survey(survey_id)
+            sightings_count = len(sightings)
+            
+            # Create descriptive expander label with sighting count
+            expander_label = f"🔍 View Sightings ({sightings_count} recorded)"
+            
+            with st.expander(expander_label):
+                if sightings or st.session_state.creating_sighting_for_survey == survey_id:
+                    # Sightings table headers
+                    sight_col1, sight_col2, sight_col3, sight_col4 = st.columns([2, 2, 1, 1])
+                    with sight_col1:
+                        st.write("**Species**")
+                    with sight_col2:
+                        st.write("**Transect**") 
+                    with sight_col3:
+                        st.write("**Count**")
+                    with sight_col4:
+                        st.write("**Actions**")
+                    
+                    st.divider()
+                    
+                    # Add new sighting row if creating
+                    if st.session_state.creating_sighting_for_survey == survey_id:
+                        sight_col1, sight_col2, sight_col3, sight_col4 = st.columns([2, 2, 1, 1])
+                        
+                        with sight_col1:
+                            species_list = get_all_species()
+                            species_options = {name: species_id for species_id, name in species_list}
+                            selected_species_name = st.selectbox(
+                                "",
+                                options=list(species_options.keys()),
+                                key=f"create_sighting_species_{survey_id}",
+                                label_visibility="collapsed"
+                            )
+                            selected_species_id = species_options[selected_species_name]
+                        
+                        with sight_col2:
+                            transects = get_all_transects()
+                            transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
+                            selected_transect_name = st.selectbox(
+                                "",
+                                options=list(transect_options.keys()),
+                                key=f"create_sighting_transect_{survey_id}",
+                                label_visibility="collapsed"
+                            )
+                            selected_transect_id = transect_options[selected_transect_name]
+                        
+                        with sight_col3:
+                            sighting_count = st.number_input(
+                                "",
+                                min_value=1,
+                                value=1,
+                                key=f"create_sighting_count_{survey_id}",
+                                label_visibility="collapsed"
+                            )
+                        
+                        with sight_col4:
+                            save_col, cancel_col = st.columns([1, 1])
+                            with save_col:
+                                if st.button("💾", key=f"save_sighting_{survey_id}", help="Save sighting"):
+                                    new_sighting = Sighting(
+                                        survey_id=survey_id,
+                                        species_id=selected_species_id,
+                                        transect_id=selected_transect_id,
+                                        count=sighting_count
+                                    )
+                                    if create_sighting(new_sighting):
+                                        st.success("Sighting created!")
+                                        st.session_state.creating_sighting_for_survey = None
+                                        st.rerun()
+                            with cancel_col:
+                                if st.button("❌", key=f"cancel_sighting_{survey_id}", help="Cancel"):
+                                    st.session_state.creating_sighting_for_survey = None
+                                    st.rerun()
+                        
+                        st.divider()
+                    
+                    # Display existing sightings
+                    for sighting in sightings:
+                        is_editing_sighting = st.session_state.editing_sighting_id == sighting[0]
+                        
+                        sight_col1, sight_col2, sight_col3, sight_col4 = st.columns([2, 2, 1, 1])
+                        
+                        with sight_col1:
+                            if is_editing_sighting:
+                                species_list = get_all_species()
+                                species_options = {name: species_id for species_id, name in species_list}
+                                current_species = ""
+                                for name, species_id in species_options.items():
+                                    if species_id == sighting[2]:  # species_id
+                                        current_species = name
+                                        break
+                                
+                                edit_species_name = st.selectbox(
+                                    "",
+                                    options=list(species_options.keys()),
+                                    index=list(species_options.keys()).index(current_species),
+                                    key=f"edit_sighting_species_{sighting[0]}",
+                                    label_visibility="collapsed"
+                                )
+                                edit_species_id = species_options[edit_species_name]
+                            else:
+                                st.write(sighting[5])  # species_name
+                        
+                        with sight_col2:
+                            if is_editing_sighting:
+                                transects = get_all_transects()
+                                transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
+                                current_transect = ""
+                                for transect_desc, transect_id in transect_options.items():
+                                    if transect_id == sighting[3]:  # transect_id
+                                        current_transect = transect_desc
+                                        break
+                                
+                                edit_transect_name = st.selectbox(
+                                    "",
+                                    options=list(transect_options.keys()),
+                                    index=list(transect_options.keys()).index(current_transect),
+                                    key=f"edit_sighting_transect_{sighting[0]}",
+                                    label_visibility="collapsed"
+                                )
+                                edit_transect_id = transect_options[edit_transect_name]
+                            else:
+                                st.write(f"{sighting[6]} - {sighting[7]}")  # transect_number - transect_name
+                        
+                        with sight_col3:
+                            if is_editing_sighting:
+                                edit_count = st.number_input(
+                                    "",
+                                    min_value=1,
+                                    value=sighting[4],  # count
+                                    key=f"edit_sighting_count_{sighting[0]}",
+                                    label_visibility="collapsed"
+                                )
+                            else:
+                                st.write(sighting[4])  # count
+                        
+                        with sight_col4:
+                            if is_editing_sighting:
+                                save_col, cancel_col = st.columns([1, 1])
+                                with save_col:
+                                    if st.button("💾", key=f"save_edit_sighting_{sighting[0]}", help="Save changes"):
+                                        updated_sighting = Sighting(
+                                            id=sighting[0],
+                                            survey_id=sighting[1],
+                                            species_id=edit_species_id,
+                                            transect_id=edit_transect_id,
+                                            count=edit_count
+                                        )
+                                        if update_sighting(updated_sighting):
+                                            st.success("Sighting updated!")
+                                            st.session_state.editing_sighting_id = None
+                                            st.rerun()
+                                with cancel_col:
+                                    if st.button("❌", key=f"cancel_edit_sighting_{sighting[0]}", help="Cancel"):
+                                        st.session_state.editing_sighting_id = None
+                                        st.rerun()
+                            else:
+                                edit_col, delete_col = st.columns([1, 1])
+                                with edit_col:
+                                    if st.button("✏️", key=f"edit_sighting_{sighting[0]}", help="Edit sighting"):
+                                        st.session_state.editing_sighting_id = sighting[0]
+                                        st.session_state.creating_sighting_for_survey = None
+                                        st.rerun()
+                                with delete_col:
+                                    if st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete sighting"):
+                                        if delete_sighting(sighting[0]):
+                                            st.success("Sighting deleted!")
+                                            st.rerun()
+                    
+                    # Add new sighting button
+                    if st.session_state.creating_sighting_for_survey != survey_id:
+                        if st.button(f"➕ Add Sighting", key=f"add_sighting_{survey_id}"):
+                            st.session_state.creating_sighting_for_survey = survey_id
+                            st.session_state.editing_sighting_id = None
+                            st.rerun()
+                else:
+                    # No sightings - show helpful message and add button
+                    st.info("No sightings recorded for this survey yet.")
+                    if st.button(f"➕ Add First Sighting", key=f"add_first_sighting_{survey_id}"):
+                        st.session_state.creating_sighting_for_survey = survey_id
+                        st.session_state.editing_sighting_id = None
+                        st.rerun()
         
     # Show delete confirmation popup if needed
     if st.session_state.delete_confirm_id is not None:
