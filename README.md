@@ -1,22 +1,18 @@
 # Heal Butterflies 🦋
 
-A butterfly tracking application with both Streamlit and Next.js forms for healing and rehabilitation data with PostgreSQL database backend.
+A simple butterfly survey tracking application with Streamlit interface and PostgreSQL database backend.
 
 ## Features
 
-- **User Management**: Add and manage users who record butterfly data
-- **Butterfly Records**: Track butterfly species, status, location, and notes
 - **Database Integration**: PostgreSQL backend with automated table creation
-- **Interactive Forms**: Easy-to-use Streamlit forms for data entry
-- **Record Viewing**: Browse all butterfly records with filtering
+- **Simple Interface**: Minimal Streamlit application ready for customization
+- **Survey Data Models**: Pre-built data models for surveys, species, transects, and sightings
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
 - Docker and Docker Compose
-- pip
 
 ### Installation
 
@@ -25,75 +21,38 @@ A butterfly tracking application with both Streamlit and Next.js forms for heali
    cd heal_butterflies
    ```
 
-2. **Create and activate a virtual environment**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install Python dependencies**
-   ```bash
-    pip install --only-binary=psycopg2-binary -r requirements.txt
-   ```
-
-4. **Start the PostgreSQL database**
+2. **Start both the database and Streamlit application**
    ```bash
    docker compose up -d
    ```
-   This will start PostgreSQL on port 5432 and automatically create the required tables.
+   This will:
+   - Start PostgreSQL on port 5432 with automatic table creation
+   - Build and start the Streamlit app on port 8501
 
-5. **Run the Streamlit application**
-   ```bash
-   streamlit run app/streamlit_app.py
-   ```
-
-6. **Open your browser**
+3. **Open your browser**
    Navigate to `http://localhost:8501` to access the application.
 
-## Next.js Survey Form
+## Database Management
 
-### Quick Start
-
-1. **Navigate to the Next.js app directory**
-   ```bash
-   cd butterfly-survey-form
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Start the PostgreSQL database** (if not already running)
-   ```bash
-   cd .. && docker compose up -d
-   ```
-
-4. **Run the Next.js development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser**
-   Navigate to `http://localhost:3000` to access the Next.js survey form.
-
-### Production Build
-
-To create a production build:
+**Stop all services:**
 ```bash
-npm run build
-npm start
+docker compose down
+```
+
+**Reset the database (removes all data):**
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+**View logs:**
+```bash
+docker compose logs postgres    # Database logs
+docker compose logs streamlit   # App logs
+docker compose logs             # All logs
 ```
 
 ## Configuration
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and modify if needed:
-
-```bash
-cp .env.example .env
-```
 
 Default database settings:
 - Host: localhost
@@ -102,40 +61,12 @@ Default database settings:
 - User: postgres
 - Password: password
 
-### Database Management
-
-**Stop the database:**
-```bash
-docker-compose down
-```
-
-**Reset the database (removes all data):**
-```bash
-docker-compose down -v
-docker-compose up -d
-```
-
-**View database logs:**
-```bash
-docker-compose logs postgres
-```
-
-## Usage
-
-### Adding Users
-1. Navigate to "User Forms" → "Add User" tab
-2. Enter name and email
-3. Click "Add User"
-
-### Recording Butterfly Data
-1. Go to "User Forms" → "Add Butterfly Record" tab
-2. Fill in species, status, location, and notes
-3. Select the user who made the record
-4. Click "Add Record"
-
-### Viewing Records
-1. Visit "User Forms" → "View Records" tab
-2. Browse all butterfly records with expandable details
+You can customize these by setting environment variables:
+- `DB_HOST`
+- `DB_PORT` 
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
 
 ## Project Structure
 
@@ -143,29 +74,25 @@ docker-compose logs postgres
 heal_butterflies/
 ├── app/
 │   ├── streamlit_app.py      # Main application entry point
-│   ├── forms/
-│   │   └── user_forms.py     # Form components and logic
-│   ├── database/
-│   │   ├── connection.py     # Database connection utilities
-│   │   ├── models.py         # Data models and schemas
-│   │   └── migrations/       # Future database migrations
-│   └── utils/                # Utility functions
+│   └── database/
+│       ├── connection.py     # Database connection utilities
+│       ├── models.py         # Data models and schemas
+│       └── migrations/       # Future database migrations
 ├── requirements.txt          # Python dependencies
 ├── docker-compose.yml        # PostgreSQL configuration
-├── init.sql                 # Database initialization
-└── .env.example             # Environment variables template
+└── init.sql                 # Database initialization
 ```
 
 ## Development
 
-### Adding New Features
-1. Create new form components in `app/forms/`
-2. Add database models to `app/database/models.py`
-3. Update the main app in `app/streamlit_app.py`
+The application includes pre-built data models for:
+- **Surveyors**: People conducting butterfly surveys
+- **Species**: Butterfly species being tracked
+- **Transects**: Survey areas/routes
+- **Surveys**: Individual survey sessions
+- **Sightings**: Butterfly observations during surveys
 
-### Database Changes
-- Add migration scripts to `app/database/migrations/`
-- Update table schemas in `init.sql` for fresh installations
+Build upon the simple Streamlit app in `app/streamlit_app.py` to add your custom functionality.
 
 ## Troubleshooting
 

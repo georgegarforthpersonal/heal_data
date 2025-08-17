@@ -15,5 +15,20 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
 
+  streamlit:
+    build: .
+    container_name: heal_butterflies_app
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: heal_butterflies
+      DB_USER: postgres
+      DB_PASSWORD: password
+    ports:
+      - "8501:8501"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 volumes:
   postgres_data:
