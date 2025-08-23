@@ -1,4 +1,4 @@
-Condi# Heal Butterflies 🦋
+# Heal Butterflies 🦋
 
 A simple butterfly survey tracking application with Streamlit interface and PostgreSQL database backend.
 

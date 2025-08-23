@@ -171,7 +171,7 @@ def get_sightings_for_survey(survey_id: int) -> List[Tuple]:
                 JOIN species sp ON si.species_id = sp.id
                 JOIN transect t ON si.transect_id = t.id
                 WHERE si.survey_id = %s
-                ORDER BY sp.name, t.number
+                ORDER BY t.number, sp.name
             """, (survey_id,))
             return cursor.fetchall()
     except Exception as e:
@@ -263,6 +263,8 @@ def main():
         st.session_state.creating_sighting_for_survey = None
     if "survey_search" not in st.session_state:
         st.session_state.survey_search = ""
+    if "delete_sighting_confirm_id" not in st.session_state:
+        st.session_state.delete_sighting_confirm_id = None
     
     # Get all surveys
     surveys = get_all_surveys()
@@ -650,9 +652,8 @@ def main():
                                     st.rerun()
                             with action_col2:
                                 if st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete Sighting"):
-                                    if delete_sighting(sighting[0]):
-                                        st.success("Sighting deleted!")
-                                        st.rerun()
+                                    st.session_state.delete_sighting_confirm_id = sighting[0]
+                                    st.rerun()
             else:
                 st.info("No sightings recorded yet. Click 'Add New Sighting' to get started.")
     
@@ -692,6 +693,52 @@ def main():
                         st.rerun()
             
             delete_confirmation()
+    
+    # Delete sighting confirmation dialog
+    if st.session_state.delete_sighting_confirm_id is not None:
+        # Find the sighting to delete
+        sighting_to_delete = None
+        if st.session_state.selected_survey_id:
+            sightings = get_sightings_for_survey(st.session_state.selected_survey_id)
+            for sighting in sightings:
+                if sighting[0] == st.session_state.delete_sighting_confirm_id:
+                    sighting_to_delete = sighting
+                    break
+        
+        if sighting_to_delete:
+            @st.dialog("⚠️ Confirm Sighting Deletion")
+            def delete_sighting_confirmation():
+                st.write(f"Are you sure you want to delete this sighting?")
+                
+                # Show the sighting details
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write("**Species:**")
+                    st.write(sighting_to_delete[5])  # species_name
+                with col2:
+                    st.write("**Transect:**")
+                    st.write(f"{sighting_to_delete[6]} - {sighting_to_delete[7]}")  # transect_number - transect_name
+                with col3:
+                    st.write("**Count:**")
+                    st.write(f"**{sighting_to_delete[4]}**")  # count
+                
+                st.warning("⚠️ **This action cannot be undone**")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("🗑️ Yes, Delete", type="primary", use_container_width=True):
+                        if delete_sighting(st.session_state.delete_sighting_confirm_id):
+                            st.success("Sighting deleted successfully!")
+                            st.session_state.delete_sighting_confirm_id = None
+                            st.rerun()
+                        else:
+                            st.error("Failed to delete sighting")
+                with col2:
+                    if st.button("❌ Cancel", use_container_width=True):
+                        st.session_state.delete_sighting_confirm_id = None
+                        st.rerun()
+            
+            delete_sighting_confirmation()
 
 if __name__ == "__main__":
     main()
