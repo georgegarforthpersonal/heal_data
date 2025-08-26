@@ -32,17 +32,23 @@ def get_all_surveys() -> List[Tuple]:
         with get_db_cursor() as cursor:
             cursor.execute("""
                 SELECT s.id, s.date, s.start_time, s.end_time, s.sun_percentage, 
-                       s.temperature_celsius, s.conditions_met, s.surveyor_id,
+                       s.temperature_celsius, s.conditions_met, 
+                       STRING_AGG(DISTINCT ss.surveyor_id::text, ',') as surveyor_ids,
                        COALESCE(
-                           CASE 
-                               WHEN sv.last_name IS NULL OR trim(sv.last_name) = '' 
-                               THEN trim(sv.first_name)
-                               ELSE trim(sv.first_name) || ' ' || trim(sv.last_name)
-                           END, 
+                           STRING_AGG(DISTINCT 
+                               CASE 
+                                   WHEN sv.last_name IS NULL OR trim(sv.last_name) = '' 
+                                   THEN trim(sv.first_name)
+                                   ELSE trim(sv.first_name) || ' ' || trim(sv.last_name)
+                               END, 
+                               ', '
+                           ), 
                            'No surveyor'
                        ) as surveyor_name
                 FROM survey s
-                LEFT JOIN surveyor sv ON s.surveyor_id = sv.id
+                LEFT JOIN survey_surveyor ss ON s.id = ss.survey_id
+                LEFT JOIN surveyor sv ON ss.surveyor_id = sv.id
+                GROUP BY s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met
                 ORDER BY s.date DESC, s.start_time DESC
             """)
             return cursor.fetchall()
@@ -61,9 +67,10 @@ def create_survey(survey: Survey) -> Optional[int]:
     """Create a new survey and return its ID"""
     try:
         with get_db_cursor() as cursor:
+            # Insert survey first
             cursor.execute("""
-                INSERT INTO survey (date, start_time, end_time, sun_percentage, temperature_celsius, conditions_met, surveyor_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO survey (date, start_time, end_time, sun_percentage, temperature_celsius, conditions_met)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
                 survey.date,
@@ -71,11 +78,22 @@ def create_survey(survey: Survey) -> Optional[int]:
                 survey.end_time,
                 survey.sun_percentage,
                 survey.temperature_celsius,
-                survey.conditions_met,
-                survey.surveyor_id
+                survey.conditions_met
             ))
             result = cursor.fetchone()
-            return result[0] if result else None
+            survey_id = result[0] if result else None
+            
+            # Insert surveyor associations if provided
+            if survey_id and survey.surveyor_ids:
+                for surveyor_id in survey.surveyor_ids:
+                    if surveyor_id:  # Skip None values
+                        cursor.execute("""
+                            INSERT INTO survey_surveyor (survey_id, surveyor_id)
+                            VALUES (%s, %s)
+                            ON CONFLICT (survey_id, surveyor_id) DO NOTHING
+                        """, (survey_id, surveyor_id))
+            
+            return survey_id
     except Exception as e:
         st.error(f"Error creating survey: {e}")
         return None
@@ -84,10 +102,11 @@ def update_survey(survey: Survey) -> bool:
     """Update an existing survey"""
     try:
         with get_db_cursor() as cursor:
+            # Update survey data
             cursor.execute("""
                 UPDATE survey 
                 SET date = %s, start_time = %s, end_time = %s, sun_percentage = %s, 
-                    temperature_celsius = %s, conditions_met = %s, surveyor_id = %s
+                    temperature_celsius = %s, conditions_met = %s
                 WHERE id = %s
             """, (
                 survey.date,
@@ -96,9 +115,23 @@ def update_survey(survey: Survey) -> bool:
                 survey.sun_percentage,
                 survey.temperature_celsius,
                 survey.conditions_met,
-                survey.surveyor_id,
                 survey.id
             ))
+            
+            # Update surveyor associations
+            # First, remove existing associations
+            cursor.execute("DELETE FROM survey_surveyor WHERE survey_id = %s", (survey.id,))
+            
+            # Then add new associations if provided
+            if survey.surveyor_ids:
+                for surveyor_id in survey.surveyor_ids:
+                    if surveyor_id:  # Skip None values
+                        cursor.execute("""
+                            INSERT INTO survey_surveyor (survey_id, surveyor_id)
+                            VALUES (%s, %s)
+                            ON CONFLICT (survey_id, surveyor_id) DO NOTHING
+                        """, (survey.id, surveyor_id))
+            
             return True
     except Exception as e:
         st.error(f"Error updating survey: {e}")
@@ -119,8 +152,12 @@ def get_survey_by_id(survey_id: int) -> Optional[Survey]:
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT id, date, start_time, end_time, sun_percentage, temperature_celsius, conditions_met, surveyor_id
-                FROM survey WHERE id = %s
+                SELECT s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met,
+                       ARRAY_AGG(ss.surveyor_id) FILTER (WHERE ss.surveyor_id IS NOT NULL) as surveyor_ids
+                FROM survey s
+                LEFT JOIN survey_surveyor ss ON s.id = ss.survey_id
+                WHERE s.id = %s
+                GROUP BY s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met
             """, (survey_id,))
             row = cursor.fetchone()
             if row:
@@ -132,7 +169,7 @@ def get_survey_by_id(survey_id: int) -> Optional[Survey]:
                     sun_percentage=row[4],
                     temperature_celsius=row[5],
                     conditions_met=row[6],
-                    surveyor_id=row[7]
+                    surveyor_ids=row[7] if row[7] and row[7][0] is not None else []
                 )
             return None
     except Exception as e:
@@ -322,7 +359,7 @@ def main():
                 sun_percentage = st.slider("Sun Percentage (%)", 0, 100, 50)
             
             with col2:
-                selected_surveyor = st.selectbox("Surveyor", options=list(surveyor_options.keys()))
+                selected_surveyors = st.multiselect("Surveyors", options=list(surveyor_options.keys()))
                 end_time = st.time_input("End Time", value=time(10, 0))
                 temperature = st.number_input("Temperature (°C)", -50.0, 60.0, 20.0, 0.1)
             
@@ -334,6 +371,7 @@ def main():
                 if start_time >= end_time:
                     st.error("Start time must be before end time.")
                 else:
+                    surveyor_ids = [surveyor_options[name] for name in selected_surveyors if surveyor_options[name] is not None]
                     new_survey = Survey(
                         date=survey_date,
                         start_time=start_time,
@@ -341,7 +379,7 @@ def main():
                         sun_percentage=sun_percentage,
                         temperature_celsius=Decimal(str(temperature)),
                         conditions_met=conditions_met,
-                        surveyor_id=surveyor_options[selected_surveyor]
+                        surveyor_ids=surveyor_ids if surveyor_ids else []
                     )
                     
                     new_survey_id = create_survey(new_survey)
@@ -400,15 +438,14 @@ def main():
                             surveyor_options = {f"{name}": surveyor_id for surveyor_id, name in surveyors}
                             surveyor_options["No surveyor"] = None
                             
-                            current_surveyor = "No surveyor"
+                            current_surveyors = []
                             for name, surveyor_id in surveyor_options.items():
-                                if surveyor_id == survey_obj.surveyor_id:
-                                    current_surveyor = name
-                                    break
+                                if surveyor_id in (survey_obj.surveyor_ids or []):
+                                    current_surveyors.append(name)
                             
-                            new_surveyor = st.selectbox("Surveyor", options=list(surveyor_options.keys()), 
-                                                      index=list(surveyor_options.keys()).index(current_surveyor),
-                                                      label_visibility="collapsed")
+                            new_surveyors = st.multiselect("Surveyors", options=list(surveyor_options.keys()), 
+                                                           default=current_surveyors,
+                                                           label_visibility="collapsed")
                         
                         with col3:
                             time_col1, time_col2 = st.columns([1, 1])
@@ -437,6 +474,7 @@ def main():
                             if new_start_time >= new_end_time:
                                 st.error("Start time must be before end time.")
                             else:
+                                surveyor_ids = [surveyor_options[name] for name in new_surveyors if surveyor_options[name] is not None]
                                 updated_survey = Survey(
                                     id=survey_obj.id,
                                     date=new_date,
@@ -445,7 +483,7 @@ def main():
                                     sun_percentage=new_sun,
                                     temperature_celsius=Decimal(str(new_temp)),
                                     conditions_met=new_conditions,
-                                    surveyor_id=surveyor_options[new_surveyor]
+                                    surveyor_ids=surveyor_ids if surveyor_ids else []
                                 )
                                 
                                 if update_survey(updated_survey):
@@ -479,9 +517,11 @@ def main():
                 col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 1.5, 1, 1, 1.5, 2])
                 
                 date_str = selected_survey[1].strftime("%b %d, %Y")
-                time_str = f"{selected_survey[2].strftime('%H:%M')}-{selected_survey[3].strftime('%H:%M')}"
-                temp_str = f"{float(selected_survey[5]):.1f}°C"
-                sun_str = f"{selected_survey[4]}%"
+                start_time = selected_survey[2].strftime('%H:%M') if selected_survey[2] else "N/A"
+                end_time = selected_survey[3].strftime('%H:%M') if selected_survey[3] else "N/A"
+                time_str = f"{start_time}-{end_time}"
+                temp_str = f"{float(selected_survey[5]):.1f}°C" if selected_survey[5] is not None else "N/A"
+                sun_str = f"{selected_survey[4]}%" if selected_survey[4] is not None else "N/A"
                 conditions_icon = "✅" if selected_survey[6] else "❌"
                 
                 with col1:

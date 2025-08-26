@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS surveyor (
 
 CREATE TABLE IF NOT EXISTS species (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE
+    name VARCHAR(255) NOT NULL,
+    conservation_status VARCHAR(50),
+    type VARCHAR(50) NOT NULL DEFAULT 'butterfly',
+    UNIQUE(name, type)
 );
 
 CREATE TABLE IF NOT EXISTS transect (
@@ -20,12 +23,19 @@ CREATE TABLE IF NOT EXISTS transect (
 CREATE TABLE IF NOT EXISTS survey (
     id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
+    start_time TIME,
+    end_time TIME,
     sun_percentage INTEGER CHECK (sun_percentage >= 0 AND sun_percentage <= 100),
     temperature_celsius DECIMAL(5,2),
     conditions_met BOOLEAN NOT NULL DEFAULT FALSE,
-    surveyor_id INTEGER REFERENCES surveyor(id) ON DELETE SET NULL
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS survey_surveyor (
+    id SERIAL PRIMARY KEY,
+    survey_id INTEGER REFERENCES survey(id) ON DELETE CASCADE,
+    surveyor_id INTEGER REFERENCES surveyor(id) ON DELETE CASCADE,
+    UNIQUE(survey_id, surveyor_id)
 );
 
 CREATE TABLE IF NOT EXISTS sighting (
@@ -35,22 +45,3 @@ CREATE TABLE IF NOT EXISTS sighting (
     transect_id INTEGER REFERENCES transect(id) ON DELETE CASCADE,
     count INTEGER NOT NULL DEFAULT 1 CHECK (count > 0)
 );
-
--- Insert sample data
-INSERT INTO surveyor (first_name, last_name) VALUES 
-    ('John', 'Doe'),
-    ('Jane', 'Smith')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO species (name) VALUES 
-    ('Monarch Butterfly'),
-    ('Painted Lady'),
-    ('Red Admiral'),
-    ('Cabbage White')
-ON CONFLICT (name) DO NOTHING;
-
-INSERT INTO transect (number, name) VALUES 
-    (1, 'Meadow Path'),
-    (2, 'Forest Edge'),
-    (3, 'Garden Border')
-ON CONFLICT DO NOTHING;
