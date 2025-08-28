@@ -33,6 +33,7 @@ class Survey:
     conditions_met: bool = False
     surveyor_ids: Optional[List[int]] = None
     notes: Optional[str] = None
+    type: str = "butterfly"
 
 @dataclass
 class Sighting:
@@ -78,7 +79,8 @@ class DatabaseTables:
         sun_percentage INTEGER CHECK (sun_percentage >= 0 AND sun_percentage <= 100),
         temperature_celsius DECIMAL(5,2),
         conditions_met BOOLEAN NOT NULL DEFAULT FALSE,
-        notes TEXT
+        notes TEXT,
+        type VARCHAR(50) NOT NULL DEFAULT 'butterfly'
     );
     """
     

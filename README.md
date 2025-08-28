@@ -30,3 +30,8 @@ docker compose up
 ```bash
 docker compose down
 ```
+
+## Running Scripts
+```bash
+./run-script script.py
+```

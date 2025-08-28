@@ -32,7 +32,7 @@ def get_all_surveys() -> List[Tuple]:
         with get_db_cursor() as cursor:
             cursor.execute("""
                 SELECT s.id, s.date, s.start_time, s.end_time, s.sun_percentage, 
-                       s.temperature_celsius, s.conditions_met, 
+                       s.temperature_celsius, s.conditions_met, s.type,
                        STRING_AGG(DISTINCT ss.surveyor_id::text, ',') as surveyor_ids,
                        COALESCE(
                            STRING_AGG(DISTINCT 
@@ -48,7 +48,7 @@ def get_all_surveys() -> List[Tuple]:
                 FROM survey s
                 LEFT JOIN survey_surveyor ss ON s.id = ss.survey_id
                 LEFT JOIN surveyor sv ON ss.surveyor_id = sv.id
-                GROUP BY s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met
+                GROUP BY s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met, s.type
                 ORDER BY s.date DESC, s.start_time DESC
             """)
             return cursor.fetchall()
@@ -59,9 +59,10 @@ def get_all_surveys() -> List[Tuple]:
 def format_survey_display_text(survey: Tuple, sightings_count: int) -> str:
     """Format survey for sidebar display"""
     date_str = survey[1].strftime("%b %d, %Y")
-    surveyor_name = survey[8]
+    surveyor_name = survey[9]  # Updated index after adding type field
+    survey_type = survey[7].title()  # type field
     
-    return f"{date_str} • {surveyor_name}"
+    return f"{date_str} • {surveyor_name} ({survey_type})"
 
 def create_survey(survey: Survey) -> Optional[int]:
     """Create a new survey and return its ID"""
@@ -69,8 +70,8 @@ def create_survey(survey: Survey) -> Optional[int]:
         with get_db_cursor() as cursor:
             # Insert survey first
             cursor.execute("""
-                INSERT INTO survey (date, start_time, end_time, sun_percentage, temperature_celsius, conditions_met)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO survey (date, start_time, end_time, sun_percentage, temperature_celsius, conditions_met, type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
                 survey.date,
@@ -78,7 +79,8 @@ def create_survey(survey: Survey) -> Optional[int]:
                 survey.end_time,
                 survey.sun_percentage,
                 survey.temperature_celsius,
-                survey.conditions_met
+                survey.conditions_met,
+                survey.type
             ))
             result = cursor.fetchone()
             survey_id = result[0] if result else None
@@ -106,7 +108,7 @@ def update_survey(survey: Survey) -> bool:
             cursor.execute("""
                 UPDATE survey 
                 SET date = %s, start_time = %s, end_time = %s, sun_percentage = %s, 
-                    temperature_celsius = %s, conditions_met = %s
+                    temperature_celsius = %s, conditions_met = %s, type = %s
                 WHERE id = %s
             """, (
                 survey.date,
@@ -115,6 +117,7 @@ def update_survey(survey: Survey) -> bool:
                 survey.sun_percentage,
                 survey.temperature_celsius,
                 survey.conditions_met,
+                survey.type,
                 survey.id
             ))
             
@@ -152,12 +155,12 @@ def get_survey_by_id(survey_id: int) -> Optional[Survey]:
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met,
+                SELECT s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met, s.type,
                        ARRAY_AGG(ss.surveyor_id) FILTER (WHERE ss.surveyor_id IS NOT NULL) as surveyor_ids
                 FROM survey s
                 LEFT JOIN survey_surveyor ss ON s.id = ss.survey_id
                 WHERE s.id = %s
-                GROUP BY s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met
+                GROUP BY s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met, s.type
             """, (survey_id,))
             row = cursor.fetchone()
             if row:
@@ -169,7 +172,8 @@ def get_survey_by_id(survey_id: int) -> Optional[Survey]:
                     sun_percentage=row[4],
                     temperature_celsius=row[5],
                     conditions_met=row[6],
-                    surveyor_ids=row[7] if row[7] and row[7][0] is not None else []
+                    type=row[7],
+                    surveyor_ids=row[8] if row[8] and row[8][0] is not None else []
                 )
             return None
     except Exception as e:
@@ -284,60 +288,11 @@ def get_sighting_by_id(sighting_id: int) -> Optional[Sighting]:
         st.error(f"Error fetching sighting: {e}")
         return None
 
-def main():
-    st.set_page_config(page_title="Butterfly Survey Management", layout="wide")
-    
-    # Initialize session state - default to create new survey
-    if "selected_survey_id" not in st.session_state:
-        st.session_state.selected_survey_id = "new"
-    if "editing_survey_id" not in st.session_state:
-        st.session_state.editing_survey_id = None
-    if "delete_confirm_id" not in st.session_state:
-        st.session_state.delete_confirm_id = None
-    if "editing_sighting_id" not in st.session_state:
-        st.session_state.editing_sighting_id = None
-    if "creating_sighting_for_survey" not in st.session_state:
-        st.session_state.creating_sighting_for_survey = None
-    if "survey_search" not in st.session_state:
-        st.session_state.survey_search = ""
-    if "delete_sighting_confirm_id" not in st.session_state:
-        st.session_state.delete_sighting_confirm_id = None
+def main_content():
+    """Render the main survey interface content"""
     
     # Get all surveys
     surveys = get_all_surveys()
-    
-    # Sidebar for survey navigation
-    with st.sidebar:
-        # Create New Survey button at top
-        if st.button("➕ Create New Survey", use_container_width=True, type="primary"):
-            st.session_state.selected_survey_id = "new"
-            st.session_state.editing_survey_id = None
-            st.session_state.editing_sighting_id = None
-            st.session_state.creating_sighting_for_survey = None
-            st.rerun()
-        
-        # Survey list (no separator or heading) 
-        if surveys:
-            for survey in surveys:
-                sightings_count = len(get_sightings_for_survey(survey[0]))
-                display_text = format_survey_display_text(survey, sightings_count)
-                
-                # Check if this is the selected survey
-                is_selected = st.session_state.selected_survey_id == survey[0]
-                button_type = "primary" if is_selected else "secondary"
-                
-                if st.button(display_text, key=f"survey_{survey[0]}", use_container_width=True, type=button_type):
-                    if not is_selected:
-                        st.session_state.selected_survey_id = survey[0]
-                        st.session_state.editing_survey_id = None
-                        st.session_state.editing_sighting_id = None
-                        st.session_state.creating_sighting_for_survey = None
-                        st.rerun()
-        else:
-            st.info("No surveys found. Create your first survey using the button above.")
-            if st.session_state.selected_survey_id != "new":
-                st.session_state.selected_survey_id = "new"
-        
     
     # Main content area (no title to save space)
     
@@ -357,6 +312,7 @@ def main():
                 survey_date = st.date_input("Survey Date", value=date.today())
                 start_time = st.time_input("Start Time", value=time(9, 0))
                 sun_percentage = st.slider("Sun Percentage (%)", 0, 100, 50)
+                survey_type = st.selectbox("Survey Type", options=["butterfly", "bird"], index=0)
             
             with col2:
                 selected_surveyors = st.multiselect("Surveyors", options=list(surveyor_options.keys()))
@@ -379,6 +335,7 @@ def main():
                         sun_percentage=sun_percentage,
                         temperature_celsius=Decimal(str(temperature)),
                         conditions_met=conditions_met,
+                        type=survey_type,
                         surveyor_ids=surveyor_ids if surveyor_ids else []
                     )
                     
@@ -411,7 +368,7 @@ def main():
                 if survey_obj:
                     with st.form("edit_survey_form"):
                         # Survey edit header
-                        header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7 = st.columns([2, 2, 1.5, 1, 1, 1.5, 2])
+                        header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7, header_col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
                         with header_col1:
                             st.write("**Date**")
                         with header_col2:
@@ -423,12 +380,14 @@ def main():
                         with header_col5:
                             st.write("**Sun**")
                         with header_col6:
-                            st.write("**Conditions Met**")
+                            st.write("**Conditions**")
                         with header_col7:
+                            st.write("**Type**")
+                        with header_col8:
                             st.write("**Actions**")
                         
                         # Edit form row
-                        col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 1.5, 1, 1, 1.5, 2])
+                        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
                         
                         with col1:
                             new_date = st.date_input("Date", value=survey_obj.date, label_visibility="collapsed")
@@ -464,6 +423,11 @@ def main():
                             new_conditions = st.checkbox("✓", value=survey_obj.conditions_met, label_visibility="collapsed")
                         
                         with col7:
+                            type_options = ["butterfly", "bird"]
+                            current_type_index = type_options.index(survey_obj.type) if survey_obj.type in type_options else 0
+                            new_type = st.selectbox("Type", options=type_options, index=current_type_index, label_visibility="collapsed")
+                        
+                        with col8:
                             action_col1, action_col2 = st.columns([1, 1])
                             with action_col1:
                                 submitted = st.form_submit_button("💾", help="Save Changes")
@@ -483,6 +447,7 @@ def main():
                                     sun_percentage=new_sun,
                                     temperature_celsius=Decimal(str(new_temp)),
                                     conditions_met=new_conditions,
+                                    type=new_type,
                                     surveyor_ids=surveyor_ids if surveyor_ids else []
                                 )
                                 
@@ -497,7 +462,7 @@ def main():
             else:
                 # Display survey in table format matching sightings
                 # Survey details header
-                header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7 = st.columns([2, 2, 1.5, 1, 1, 1.5, 2])
+                header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7, header_col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
                 with header_col1:
                     st.write("**Date**")
                 with header_col2:
@@ -509,12 +474,14 @@ def main():
                 with header_col5:
                     st.write("**Sun**")
                 with header_col6:
-                    st.write("**Conditions Met**")
+                    st.write("**Conditions**")
                 with header_col7:
+                    st.write("**Type**")
+                with header_col8:
                     st.write("**Actions**")
                 
                 # Survey data row
-                col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 1.5, 1, 1, 1.5, 2])
+                col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
                 
                 date_str = selected_survey[1].strftime("%b %d, %Y")
                 start_time = selected_survey[2].strftime('%H:%M') if selected_survey[2] else "N/A"
@@ -527,7 +494,7 @@ def main():
                 with col1:
                     st.write(date_str)
                 with col2:
-                    st.write(selected_survey[8])
+                    st.write(selected_survey[9])
                 with col3:
                     st.write(time_str)
                 with col4:
@@ -537,6 +504,8 @@ def main():
                 with col6:
                     st.write(conditions_icon)
                 with col7:
+                    st.write(selected_survey[7].title())  # Survey type
+                with col8:
                     action_col1, action_col2 = st.columns([1, 1])
                     with action_col1:
                         if st.button("✏️", key="edit_survey_btn", help="Edit Survey"):
@@ -709,7 +678,7 @@ def main():
         if survey_to_delete:
             @st.dialog("⚠️ Confirm Survey Deletion")
             def delete_confirmation():
-                st.write(f"Are you sure you want to delete the survey from **{survey_to_delete[1]}** by **{survey_to_delete[8]}**?")
+                st.write(f"Are you sure you want to delete the survey from **{survey_to_delete[1]}** by **{survey_to_delete[9]}**?")
                 
                 st.write("**This will permanently delete:**")
                 st.write("- The survey record")
@@ -779,6 +748,63 @@ def main():
                         st.rerun()
             
             delete_sighting_confirmation()
+
+def main():
+    st.set_page_config(page_title="Butterfly Survey Management", layout="wide")
+    
+    # Initialize session state - default to create new survey
+    if "selected_survey_id" not in st.session_state:
+        st.session_state.selected_survey_id = "new"
+    if "editing_survey_id" not in st.session_state:
+        st.session_state.editing_survey_id = None
+    if "delete_confirm_id" not in st.session_state:
+        st.session_state.delete_confirm_id = None
+    if "editing_sighting_id" not in st.session_state:
+        st.session_state.editing_sighting_id = None
+    if "creating_sighting_for_survey" not in st.session_state:
+        st.session_state.creating_sighting_for_survey = None
+    if "survey_search" not in st.session_state:
+        st.session_state.survey_search = ""
+    if "delete_sighting_confirm_id" not in st.session_state:
+        st.session_state.delete_sighting_confirm_id = None
+    
+    # Get all surveys
+    surveys = get_all_surveys()
+    
+    # Sidebar for survey navigation
+    with st.sidebar:
+        # Create New Survey button at top
+        if st.button("➕ Create New Survey", use_container_width=True, type="primary"):
+            st.session_state.selected_survey_id = "new"
+            st.session_state.editing_survey_id = None
+            st.session_state.editing_sighting_id = None
+            st.session_state.creating_sighting_for_survey = None
+            st.rerun()
+        
+        # Survey list (no separator or heading) 
+        if surveys:
+            for survey in surveys:
+                sightings_count = len(get_sightings_for_survey(survey[0]))
+                display_text = format_survey_display_text(survey, sightings_count)
+                
+                # Check if this is the selected survey
+                is_selected = st.session_state.selected_survey_id == survey[0]
+                button_type = "primary" if is_selected else "secondary"
+                
+                if st.button(display_text, key=f"survey_{survey[0]}", use_container_width=True, type=button_type):
+                    if not is_selected:
+                        st.session_state.selected_survey_id = survey[0]
+                        st.session_state.editing_survey_id = None
+                        st.session_state.editing_sighting_id = None
+                        st.session_state.creating_sighting_for_survey = None
+                        st.rerun()
+        else:
+            st.info("No surveys found. Create your first survey using the button above.")
+            if st.session_state.selected_survey_id != "new":
+                st.session_state.selected_survey_id = "new"
+    
+    # Call the main content function
+    main_content()
 
 if __name__ == "__main__":
     main()
