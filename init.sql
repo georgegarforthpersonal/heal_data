@@ -27,8 +27,9 @@ CREATE TABLE IF NOT EXISTS survey (
     end_time TIME,
     sun_percentage INTEGER CHECK (sun_percentage >= 0 AND sun_percentage <= 100),
     temperature_celsius DECIMAL(5,2),
-    conditions_met BOOLEAN NOT NULL DEFAULT FALSE,
-    notes TEXT
+    conditions_met BOOLEAN,
+    notes TEXT,
+    type VARCHAR(50) NOT NULL DEFAULT 'butterfly'
 );
 
 CREATE TABLE IF NOT EXISTS survey_surveyor (
