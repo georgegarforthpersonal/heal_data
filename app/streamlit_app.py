@@ -1,3 +1,5 @@
+from email.policy import default
+
 import streamlit as st
 import psycopg2
 from datetime import date, time, datetime
@@ -289,18 +291,13 @@ def get_sighting_by_id(sighting_id: int) -> Optional[Sighting]:
         return None
 
 def main_content():
-    """Render the main survey interface content"""
+    """Render the main survey interface content with vertical expandable layout"""
     
     # Get all surveys
     surveys = get_all_surveys()
     
-    # Main content area (no title to save space)
-    
-    # Main content based on selection
-    if st.session_state.selected_survey_id == "new" or not surveys:
-        # Show create survey form
-        st.subheader("➕ Create New Survey")
-        
+    # Create New Survey - Always at the top
+    with st.expander("➕ Create New Survey", expanded=st.session_state.get("new_survey_expanded", False)):
         surveyors = get_all_surveyors()
         surveyor_options = {f"{name}": surveyor_id for surveyor_id, name in surveyors}
         surveyor_options["No surveyor"] = None
@@ -342,126 +339,95 @@ def main_content():
                     new_survey_id = create_survey(new_survey)
                     if new_survey_id:
                         st.success("Survey created successfully!")
-                        st.session_state.selected_survey_id = new_survey_id
-                        st.session_state.editing_survey_id = None
-                        st.session_state.editing_sighting_id = None
-                        st.session_state.creating_sighting_for_survey = None
+                        st.session_state.new_survey_expanded = False
                         st.rerun()
     
-    elif st.session_state.selected_survey_id:
-        # Show selected survey details
-        selected_survey = None
+    # Filter/Search bar
+    st.write("") # Small spacing
+    col1, col2, col3 = st.columns([1,1,1])
+    with col1:
+        surveyors = get_all_surveyors()
+        surveyor_filter_options = [name for _, name in surveyors]
+        surveyor_filter = st.selectbox("Filter by Surveyor", ["All"] + surveyor_filter_options)
+
+    with col2:
+        survey_types = ["All", "Butterfly", "Bird"]
+        type_filter = st.selectbox("Survey Type", survey_types)
+    
+    with col3:
+        date_options = ["All time", "Last 3 months", "Last month", "Last week"]
+        date_filter = st.selectbox("Date Range", date_options, index=2)
+    
+    # Filter surveys based on search and filters
+    filtered_surveys = []
+    if surveys:
         for survey in surveys:
-            if survey[0] == st.session_state.selected_survey_id:
-                selected_survey = survey
-                break
-        
-        if selected_survey:
-            # Survey details section - no header to save space
+
+            if surveyor_filter != "All":
+                surveyor_names = [name.strip().lower() for name in survey[9].split(",")]
+                if surveyor_filter.lower() not in surveyor_names:
+                    continue
+
+            # Type filter
+            if type_filter != "All" and survey[7].lower() != type_filter.lower():
+                continue
             
-            # Check if editing
-            is_editing = st.session_state.editing_survey_id == selected_survey[0]
+            # Date filter (basic implementation)
+            if date_filter != "All time":
+                from datetime import timedelta
+                cutoff_date = date.today()
+                if date_filter == "Last week":
+                    cutoff_date -= timedelta(days=7)
+                elif date_filter == "Last month":
+                    cutoff_date -= timedelta(days=30)
+                elif date_filter == "Last 3 months":
+                    cutoff_date -= timedelta(days=90)
+                
+                if survey[1] < cutoff_date:
+                    continue
             
-            if is_editing:
-                # Edit mode in table format
-                survey_obj = get_survey_by_id(selected_survey[0])
-                if survey_obj:
-                    with st.form("edit_survey_form"):
-                        # Survey edit header
-                        header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7, header_col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
-                        with header_col1:
-                            st.write("**Date**")
-                        with header_col2:
-                            st.write("**Surveyor**")
-                        with header_col3:
-                            st.write("**Time**")
-                        with header_col4:
-                            st.write("**Temp**")
-                        with header_col5:
-                            st.write("**Sun**")
-                        with header_col6:
-                            st.write("**Conditions**")
-                        with header_col7:
-                            st.write("**Type**")
-                        with header_col8:
-                            st.write("**Actions**")
-                        
-                        # Edit form row
-                        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
-                        
-                        with col1:
-                            new_date = st.date_input("Date", value=survey_obj.date, label_visibility="collapsed")
-                        
-                        with col2:
-                            surveyors = get_all_surveyors()
-                            surveyor_options = {f"{name}": surveyor_id for surveyor_id, name in surveyors}
-                            surveyor_options["No surveyor"] = None
-                            
-                            current_surveyors = []
-                            for name, surveyor_id in surveyor_options.items():
-                                if surveyor_id in (survey_obj.surveyor_ids or []):
-                                    current_surveyors.append(name)
-                            
-                            new_surveyors = st.multiselect("Surveyors", options=list(surveyor_options.keys()), 
-                                                           default=current_surveyors,
-                                                           label_visibility="collapsed")
-                        
-                        with col3:
-                            time_col1, time_col2 = st.columns([1, 1])
-                            with time_col1:
-                                new_start_time = st.time_input("Start", value=survey_obj.start_time, label_visibility="collapsed")
-                            with time_col2:
-                                new_end_time = st.time_input("End", value=survey_obj.end_time, label_visibility="collapsed")
-                        
-                        with col4:
-                            new_temp = st.number_input("Temp", -50.0, 60.0, float(survey_obj.temperature_celsius), 0.1, label_visibility="collapsed")
-                        
-                        with col5:
-                            new_sun = st.number_input("Sun%", 0, 100, survey_obj.sun_percentage, label_visibility="collapsed")
-                        
-                        with col6:
-                            new_conditions = st.checkbox("✓", value=survey_obj.conditions_met, label_visibility="collapsed")
-                        
-                        with col7:
-                            type_options = ["butterfly", "bird"]
-                            current_type_index = type_options.index(survey_obj.type) if survey_obj.type in type_options else 0
-                            new_type = st.selectbox("Type", options=type_options, index=current_type_index, label_visibility="collapsed")
-                        
-                        with col8:
-                            action_col1, action_col2 = st.columns([1, 1])
-                            with action_col1:
-                                submitted = st.form_submit_button("💾", help="Save Changes")
-                            with action_col2:
-                                cancelled = st.form_submit_button("❌", help="Cancel")
-                        
-                        if submitted:
-                            if new_start_time >= new_end_time:
-                                st.error("Start time must be before end time.")
-                            else:
-                                surveyor_ids = [surveyor_options[name] for name in new_surveyors if surveyor_options[name] is not None]
-                                updated_survey = Survey(
-                                    id=survey_obj.id,
-                                    date=new_date,
-                                    start_time=new_start_time,
-                                    end_time=new_end_time,
-                                    sun_percentage=new_sun,
-                                    temperature_celsius=Decimal(str(new_temp)),
-                                    conditions_met=new_conditions,
-                                    type=new_type,
-                                    surveyor_ids=surveyor_ids if surveyor_ids else []
-                                )
-                                
-                                if update_survey(updated_survey):
-                                    st.success("Survey updated successfully!")
-                                    st.session_state.editing_survey_id = None
-                                    st.rerun()
-                        
-                        if cancelled:
-                            st.session_state.editing_survey_id = None
-                            st.rerun()
-            else:
-                # Display survey in table format matching sightings
-                # Survey details header
+            filtered_surveys.append(survey)
+    
+    # Survey List - Each as an expander
+    if filtered_surveys:
+        st.write("---")
+        for survey in filtered_surveys:
+            sightings_count = len(get_sightings_for_survey(survey[0]))
+            
+            # Format the expander title
+            date_str = survey[1].strftime("%b %d, %Y")
+            surveyor_name = survey[9] if survey[9] != 'No surveyor' else 'Unknown'
+            survey_type = survey[7].title()
+            
+            expander_title = f"{date_str} • {surveyor_name} ({survey_type}) • {sightings_count} sightings"
+            
+            # Determine if this survey should be expanded (maintain state)
+            is_expanded = st.session_state.get(f"survey_expanded_{survey[0]}", False)
+            
+            with st.expander(expander_title, expanded=is_expanded):
+                # Store expansion state
+                if f"survey_expanded_{survey[0]}" not in st.session_state:
+                    st.session_state[f"survey_expanded_{survey[0]}"] = is_expanded
+                
+                # Survey details and editing within the expander
+                render_survey_content(survey)
+    else:
+        if surveyors or type_filter != "All" or date_filter != "All time":
+            st.info("No surveys match your current filters.")
+        else:
+            st.info("No surveys found. Create your first survey using the form above!")
+
+def render_survey_content(survey):
+    """Render the content for a single survey within its expander"""
+    # Check if editing
+    is_editing = st.session_state.editing_survey_id == survey[0]
+    
+    if is_editing:
+        # Edit mode in table format
+        survey_obj = get_survey_by_id(survey[0])
+        if survey_obj:
+            with st.form(f"edit_survey_form_{survey[0]}"):
+                # Survey edit header
                 header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7, header_col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
                 with header_col1:
                     st.write("**Date**")
@@ -480,191 +446,285 @@ def main_content():
                 with header_col8:
                     st.write("**Actions**")
                 
-                # Survey data row
+                # Edit form row
                 col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
                 
-                date_str = selected_survey[1].strftime("%b %d, %Y")
-                start_time = selected_survey[2].strftime('%H:%M') if selected_survey[2] else "N/A"
-                end_time = selected_survey[3].strftime('%H:%M') if selected_survey[3] else "N/A"
-                time_str = f"{start_time}-{end_time}"
-                temp_str = f"{float(selected_survey[5]):.1f}°C" if selected_survey[5] is not None else "N/A"
-                sun_str = f"{selected_survey[4]}%" if selected_survey[4] is not None else "N/A"
-                conditions_icon = "✅" if selected_survey[6] else "❌"
-                
                 with col1:
-                    st.write(date_str)
+                    new_date = st.date_input("Date", value=survey_obj.date, label_visibility="collapsed")
+                
                 with col2:
-                    st.write(selected_survey[9])
+                    surveyors = get_all_surveyors()
+                    surveyor_options = {f"{name}": surveyor_id for surveyor_id, name in surveyors}
+                    surveyor_options["No surveyor"] = None
+                    
+                    current_surveyors = []
+                    for name, surveyor_id in surveyor_options.items():
+                        if surveyor_id in (survey_obj.surveyor_ids or []):
+                            current_surveyors.append(name)
+                    
+                    new_surveyors = st.multiselect("Surveyors", options=list(surveyor_options.keys()), 
+                                                   default=current_surveyors,
+                                                   label_visibility="collapsed")
+                
                 with col3:
-                    st.write(time_str)
+                    time_col1, time_col2 = st.columns([1, 1])
+                    with time_col1:
+                        new_start_time = st.time_input("Start", value=survey_obj.start_time, label_visibility="collapsed")
+                    with time_col2:
+                        new_end_time = st.time_input("End", value=survey_obj.end_time, label_visibility="collapsed")
+                
                 with col4:
-                    st.write(temp_str)
+                    new_temp = st.number_input("Temp", -50.0, 60.0, float(survey_obj.temperature_celsius), 0.1, label_visibility="collapsed")
+                
                 with col5:
-                    st.write(sun_str)
+                    new_sun = st.number_input("Sun%", 0, 100, survey_obj.sun_percentage, label_visibility="collapsed")
+                
                 with col6:
-                    st.write(conditions_icon)
+                    new_conditions = st.checkbox("✓", value=survey_obj.conditions_met, label_visibility="collapsed")
+                
                 with col7:
-                    st.write(selected_survey[7].title())  # Survey type
+                    type_options = ["butterfly", "bird"]
+                    current_type_index = type_options.index(survey_obj.type) if survey_obj.type in type_options else 0
+                    new_type = st.selectbox("Type", options=type_options, index=current_type_index, label_visibility="collapsed")
+                
                 with col8:
                     action_col1, action_col2 = st.columns([1, 1])
                     with action_col1:
-                        if st.button("✏️", key="edit_survey_btn", help="Edit Survey"):
-                            st.session_state.editing_survey_id = selected_survey[0]
-                            st.rerun()
+                        submitted = st.form_submit_button("💾", help="Save Changes")
                     with action_col2:
-                        if st.button("🗑️", key="delete_survey_btn", help="Delete Survey"):
-                            st.session_state.delete_confirm_id = selected_survey[0]
+                        cancelled = st.form_submit_button("❌", help="Cancel")
+                
+                if submitted:
+                    if new_start_time >= new_end_time:
+                        st.error("Start time must be before end time.")
+                    else:
+                        surveyor_ids = [surveyor_options[name] for name in new_surveyors if surveyor_options[name] is not None]
+                        updated_survey = Survey(
+                            id=survey_obj.id,
+                            date=new_date,
+                            start_time=new_start_time,
+                            end_time=new_end_time,
+                            sun_percentage=new_sun,
+                            temperature_celsius=Decimal(str(new_temp)),
+                            conditions_met=new_conditions,
+                            type=new_type,
+                            surveyor_ids=surveyor_ids if surveyor_ids else []
+                        )
+                        
+                        if update_survey(updated_survey):
+                            st.success("Survey updated successfully!")
+                            st.session_state.editing_survey_id = None
                             st.rerun()
+                
+                if cancelled:
+                    st.session_state.editing_survey_id = None
+                    st.rerun()
+    else:
+        # Display survey in table format matching sightings
+        # Survey details header
+        header_col1, header_col2, header_col3, header_col4, header_col5, header_col6, header_col7, header_col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
+        with header_col1:
+            st.write("**Date**")
+        with header_col2:
+            st.write("**Surveyor**")
+        with header_col3:
+            st.write("**Time**")
+        with header_col4:
+            st.write("**Temp**")
+        with header_col5:
+            st.write("**Sun**")
+        with header_col6:
+            st.write("**Conditions**")
+        with header_col7:
+            st.write("**Type**")
+        with header_col8:
+            st.write("**Actions**")
+        
+        # Survey data row
+        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([1.5, 1.5, 1.5, 1, 1, 1, 1.5, 1.5])
+        
+        date_str = survey[1].strftime("%b %d, %Y")
+        start_time = survey[2].strftime('%H:%M') if survey[2] else "N/A"
+        end_time = survey[3].strftime('%H:%M') if survey[3] else "N/A"
+        time_str = f"{start_time}-{end_time}"
+        temp_str = f"{float(survey[5]):.1f}°C" if survey[5] is not None else "N/A"
+        sun_str = f"{survey[4]}%" if survey[4] is not None else "N/A"
+        conditions_icon = "✅" if survey[6] else "❌"
+        
+        with col1:
+            st.write(date_str)
+        with col2:
+            st.write(survey[9])
+        with col3:
+            st.write(time_str)
+        with col4:
+            st.write(temp_str)
+        with col5:
+            st.write(sun_str)
+        with col6:
+            st.write(conditions_icon)
+        with col7:
+            st.write(survey[7].title())  # Survey type
+        with col8:
+            action_col1, action_col2 = st.columns([1, 1])
+            with action_col1:
+                if st.button("✏️", key=f"edit_survey_btn_{survey[0]}", help="Edit Survey"):
+                    st.session_state.editing_survey_id = survey[0]
+                    st.rerun()
+            with action_col2:
+                if st.button("🗑️", key=f"delete_survey_btn_{survey[0]}", help="Delete Survey"):
+                    st.session_state.delete_confirm_id = survey[0]
+                    st.rerun()
+
+    st.divider()
+    
+    # Sightings section
+    sightings = get_sightings_for_survey(survey[0])
+    
+    # Add sighting button
+    if st.session_state.creating_sighting_for_survey != survey[0]:
+        if st.button("➕ Add New Sighting", key=f"add_sighting_btn_{survey[0]}"):
+            st.session_state.creating_sighting_for_survey = survey[0]
+            st.session_state.editing_sighting_id = None
+            st.rerun()
+    
+    # Create new sighting form
+    if st.session_state.creating_sighting_for_survey == survey[0]:
+        with st.form(f"create_sighting_form_{survey[0]}"):
+            col1, col2, col3 = st.columns(3)
             
-            st.divider()
+            with col1:
+                species_list = get_all_species()
+                species_options = {name: species_id for species_id, name in species_list}
+                selected_species = st.selectbox("Species", options=list(species_options.keys()))
             
-            # Sightings section
-            sightings = get_sightings_for_survey(selected_survey[0])
+            with col2:
+                transects = get_all_transects()
+                transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
+                selected_transect = st.selectbox("Transect", options=list(transect_options.keys()))
             
-            # Add sighting button
-            if st.session_state.creating_sighting_for_survey != selected_survey[0]:
-                if st.button("➕ Add New Sighting", key="add_sighting_btn"):
-                    st.session_state.creating_sighting_for_survey = selected_survey[0]
-                    st.session_state.editing_sighting_id = None
+            with col3:
+                sighting_count = st.number_input("Count", min_value=1, value=1)
+            
+            col_save, col_cancel = st.columns([1, 1])
+            with col_save:
+                submitted = st.form_submit_button("💾 Save Sighting", type="primary")
+            with col_cancel:
+                cancelled = st.form_submit_button("❌ Cancel")
+            
+            if submitted:
+                new_sighting = Sighting(
+                    survey_id=survey[0],
+                    species_id=species_options[selected_species],
+                    transect_id=transect_options[selected_transect],
+                    count=sighting_count
+                )
+                if create_sighting(new_sighting):
+                    st.success("Sighting added successfully!")
+                    st.session_state.creating_sighting_for_survey = None
                     st.rerun()
             
-            # Create new sighting form
-            if st.session_state.creating_sighting_for_survey == selected_survey[0]:
-                with st.form("create_sighting_form"):
-                    col1, col2, col3 = st.columns(3)
+            if cancelled:
+                st.session_state.creating_sighting_for_survey = None
+                st.rerun()
+    
+    # Display sightings in compact table format
+    if sightings:
+        # Table header
+        header_col1, header_col2, header_col3, header_col4 = st.columns([3, 2, 1, 2])
+        with header_col1:
+            st.write("**Species**")
+        with header_col2:
+            st.write("**Transect**")
+        with header_col3:
+            st.write("**Count**")
+        with header_col4:
+            st.write("**Actions**")
+        
+        for sighting in sightings:
+            is_editing_sighting = st.session_state.editing_sighting_id == sighting[0]
+            
+            if is_editing_sighting:
+                # Edit sighting form
+                with st.form(f"edit_sighting_form_{sighting[0]}"):
+                    col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
                     
                     with col1:
                         species_list = get_all_species()
                         species_options = {name: species_id for species_id, name in species_list}
-                        selected_species = st.selectbox("Species", options=list(species_options.keys()))
+                        current_species = ""
+                        for name, species_id in species_options.items():
+                            if species_id == sighting[2]:
+                                current_species = name
+                                break
+                        
+                        edit_species = st.selectbox("Species", options=list(species_options.keys()), 
+                                                  index=list(species_options.keys()).index(current_species),
+                                                  key=f"edit_species_{sighting[0]}", label_visibility="collapsed")
                     
                     with col2:
                         transects = get_all_transects()
                         transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
-                        selected_transect = st.selectbox("Transect", options=list(transect_options.keys()))
+                        current_transect = ""
+                        for transect_desc, transect_id in transect_options.items():
+                            if transect_id == sighting[3]:
+                                current_transect = transect_desc
+                                break
+                        
+                        edit_transect = st.selectbox("Transect", options=list(transect_options.keys()),
+                                                   index=list(transect_options.keys()).index(current_transect),
+                                                   key=f"edit_transect_{sighting[0]}", label_visibility="collapsed")
                     
                     with col3:
-                        sighting_count = st.number_input("Count", min_value=1, value=1)
+                        edit_count = st.number_input("Count", min_value=1, value=sighting[4],
+                                                   key=f"edit_count_{sighting[0]}", label_visibility="collapsed")
                     
-                    col_save, col_cancel = st.columns([1, 1])
-                    with col_save:
-                        submitted = st.form_submit_button("💾 Save Sighting", type="primary")
-                    with col_cancel:
-                        cancelled = st.form_submit_button("❌ Cancel")
-                    
-                    if submitted:
-                        new_sighting = Sighting(
-                            survey_id=selected_survey[0],
-                            species_id=species_options[selected_species],
-                            transect_id=transect_options[selected_transect],
-                            count=sighting_count
-                        )
-                        if create_sighting(new_sighting):
-                            st.success("Sighting added successfully!")
+                    with col4:
+                        action_col1, action_col2 = st.columns([1, 1])
+                        with action_col1:
+                            submitted = st.form_submit_button("💾", help="Save Changes")
+                        with action_col2:
+                            cancelled = st.form_submit_button("❌", help="Cancel")
+                        
+                        if submitted:
+                            updated_sighting = Sighting(
+                                id=sighting[0],
+                                survey_id=sighting[1],
+                                species_id=species_options[edit_species],
+                                transect_id=transect_options[edit_transect],
+                                count=edit_count
+                            )
+                            if update_sighting(updated_sighting):
+                                st.success("Sighting updated!")
+                                st.session_state.editing_sighting_id = None
+                                st.rerun()
+                        
+                        if cancelled:
+                            st.session_state.editing_sighting_id = None
+                            st.rerun()
+            else:
+                # Display sighting in compact row
+                col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
+                
+                with col1:
+                    st.write(sighting[5])  # species_name
+                with col2:
+                    st.write(f"{sighting[6]} - {sighting[7]}")  # transect_number - transect_name
+                with col3:
+                    st.write(f"**{sighting[4]}**")  # count
+                with col4:
+                    action_col1, action_col2 = st.columns([1, 1])
+                    with action_col1:
+                        if st.button("✏️", key=f"edit_sighting_{sighting[0]}", help="Edit Sighting"):
+                            st.session_state.editing_sighting_id = sighting[0]
                             st.session_state.creating_sighting_for_survey = None
                             st.rerun()
-                    
-                    if cancelled:
-                        st.session_state.creating_sighting_for_survey = None
-                        st.rerun()
-            
-            # Display sightings in compact table format
-            if sightings:
-                # Table header
-                header_col1, header_col2, header_col3, header_col4 = st.columns([3, 2, 1, 2])
-                with header_col1:
-                    st.write("**Species**")
-                with header_col2:
-                    st.write("**Transect**")
-                with header_col3:
-                    st.write("**Count**")
-                with header_col4:
-                    st.write("**Actions**")
-                
-                for sighting in sightings:
-                    is_editing_sighting = st.session_state.editing_sighting_id == sighting[0]
-                    
-                    if is_editing_sighting:
-                        # Edit sighting form
-                        with st.form(f"edit_sighting_form_{sighting[0]}"):
-                            col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
-                            
-                            with col1:
-                                species_list = get_all_species()
-                                species_options = {name: species_id for species_id, name in species_list}
-                                current_species = ""
-                                for name, species_id in species_options.items():
-                                    if species_id == sighting[2]:
-                                        current_species = name
-                                        break
-                                
-                                edit_species = st.selectbox("Species", options=list(species_options.keys()), 
-                                                          index=list(species_options.keys()).index(current_species),
-                                                          key=f"edit_species_{sighting[0]}", label_visibility="collapsed")
-                            
-                            with col2:
-                                transects = get_all_transects()
-                                transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
-                                current_transect = ""
-                                for transect_desc, transect_id in transect_options.items():
-                                    if transect_id == sighting[3]:
-                                        current_transect = transect_desc
-                                        break
-                                
-                                edit_transect = st.selectbox("Transect", options=list(transect_options.keys()),
-                                                           index=list(transect_options.keys()).index(current_transect),
-                                                           key=f"edit_transect_{sighting[0]}", label_visibility="collapsed")
-                            
-                            with col3:
-                                edit_count = st.number_input("Count", min_value=1, value=sighting[4],
-                                                           key=f"edit_count_{sighting[0]}", label_visibility="collapsed")
-                            
-                            with col4:
-                                action_col1, action_col2 = st.columns([1, 1])
-                                with action_col1:
-                                    submitted = st.form_submit_button("💾", help="Save Changes")
-                                with action_col2:
-                                    cancelled = st.form_submit_button("❌", help="Cancel")
-                                
-                                if submitted:
-                                    updated_sighting = Sighting(
-                                        id=sighting[0],
-                                        survey_id=sighting[1],
-                                        species_id=species_options[edit_species],
-                                        transect_id=transect_options[edit_transect],
-                                        count=edit_count
-                                    )
-                                    if update_sighting(updated_sighting):
-                                        st.success("Sighting updated!")
-                                        st.session_state.editing_sighting_id = None
-                                        st.rerun()
-                                
-                                if cancelled:
-                                    st.session_state.editing_sighting_id = None
-                                    st.rerun()
-                    else:
-                        # Display sighting in compact row
-                        col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
-                        
-                        with col1:
-                            st.write(sighting[5])  # species_name
-                        with col2:
-                            st.write(f"{sighting[6]} - {sighting[7]}")  # transect_number - transect_name
-                        with col3:
-                            st.write(f"**{sighting[4]}**")  # count
-                        with col4:
-                            action_col1, action_col2 = st.columns([1, 1])
-                            with action_col1:
-                                if st.button("✏️", key=f"edit_sighting_{sighting[0]}", help="Edit Sighting"):
-                                    st.session_state.editing_sighting_id = sighting[0]
-                                    st.session_state.creating_sighting_for_survey = None
-                                    st.rerun()
-                            with action_col2:
-                                if st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete Sighting"):
-                                    st.session_state.delete_sighting_confirm_id = sighting[0]
-                                    st.rerun()
-            else:
-                st.info("No sightings recorded yet. Click 'Add New Sighting' to get started.")
+                    with action_col2:
+                        if st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete Sighting"):
+                            st.session_state.delete_sighting_confirm_id = sighting[0]
+                            st.rerun()
+    else:
+        st.info("No sightings recorded yet. Click 'Add New Sighting' to get started.")
     
     
     # Delete confirmation dialog
@@ -752,9 +812,7 @@ def main_content():
 def main():
     st.set_page_config(page_title="Butterfly Survey Management", layout="wide")
     
-    # Initialize session state - default to create new survey
-    if "selected_survey_id" not in st.session_state:
-        st.session_state.selected_survey_id = "new"
+    # Initialize session state
     if "editing_survey_id" not in st.session_state:
         st.session_state.editing_survey_id = None
     if "delete_confirm_id" not in st.session_state:
@@ -767,41 +825,11 @@ def main():
         st.session_state.survey_search = ""
     if "delete_sighting_confirm_id" not in st.session_state:
         st.session_state.delete_sighting_confirm_id = None
+    if "new_survey_expanded" not in st.session_state:
+        st.session_state.new_survey_expanded = False
     
-    # Get all surveys
-    surveys = get_all_surveys()
-    
-    # Sidebar for survey navigation
-    with st.sidebar:
-        # Create New Survey button at top
-        if st.button("➕ Create New Survey", use_container_width=True, type="primary"):
-            st.session_state.selected_survey_id = "new"
-            st.session_state.editing_survey_id = None
-            st.session_state.editing_sighting_id = None
-            st.session_state.creating_sighting_for_survey = None
-            st.rerun()
-        
-        # Survey list (no separator or heading) 
-        if surveys:
-            for survey in surveys:
-                sightings_count = len(get_sightings_for_survey(survey[0]))
-                display_text = format_survey_display_text(survey, sightings_count)
-                
-                # Check if this is the selected survey
-                is_selected = st.session_state.selected_survey_id == survey[0]
-                button_type = "primary" if is_selected else "secondary"
-                
-                if st.button(display_text, key=f"survey_{survey[0]}", use_container_width=True, type=button_type):
-                    if not is_selected:
-                        st.session_state.selected_survey_id = survey[0]
-                        st.session_state.editing_survey_id = None
-                        st.session_state.editing_sighting_id = None
-                        st.session_state.creating_sighting_for_survey = None
-                        st.rerun()
-        else:
-            st.info("No surveys found. Create your first survey using the button above.")
-            if st.session_state.selected_survey_id != "new":
-                st.session_state.selected_survey_id = "new"
+    # Page title
+    st.title("🦋 Butterfly Survey Management")
     
     # Call the main content function
     main_content()
