@@ -321,21 +321,27 @@ def get_survey_by_id(survey_id: int) -> Optional[Survey]:
         st.error(f"Error fetching survey: {e}")
         return None
 
-def get_all_species() -> List[Tuple[int, str]]:
-    """Get all species for dropdown selection"""
+def get_all_species(survey_type: str = None) -> List[Tuple[int, str]]:
+    """Get all species for dropdown selection, optionally filtered by type"""
     try:
         with get_db_cursor() as cursor:
-            cursor.execute("SELECT id, name FROM species ORDER BY name")
+            if survey_type:
+                cursor.execute("SELECT id, name FROM species WHERE type = %s ORDER BY name", (survey_type,))
+            else:
+                cursor.execute("SELECT id, name FROM species ORDER BY name")
             return cursor.fetchall()
     except Exception as e:
         st.error(f"Error fetching species: {e}")
         return []
 
-def get_all_transects() -> List[Tuple[int, str, int]]:
-    """Get all transects for dropdown selection"""
+def get_all_transects(survey_type: str = None) -> List[Tuple[int, str, int]]:
+    """Get all transects for dropdown selection, optionally filtered by type"""
     try:
         with get_db_cursor() as cursor:
-            cursor.execute("SELECT id, name, number FROM transect ORDER BY number")
+            if survey_type:
+                cursor.execute("SELECT id, name, number FROM transect WHERE type = %s ORDER BY number", (survey_type,))
+            else:
+                cursor.execute("SELECT id, name, number FROM transect ORDER BY number")
             return cursor.fetchall()
     except Exception as e:
         st.error(f"Error fetching transects: {e}")
@@ -519,12 +525,12 @@ def render_tab_content(survey_type):
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    species_list = get_all_species()
+                    species_list = get_all_species(survey_type)
                     species_options = {name: species_id for species_id, name in species_list}
                     selected_species = st.selectbox("Species", options=list(species_options.keys()))
                 
                 with col2:
-                    transects = get_all_transects()
+                    transects = get_all_transects(survey_type)
                     transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
                     selected_transect = st.selectbox("Transect", options=list(transect_options.keys()))
                 
@@ -907,12 +913,12 @@ def render_survey_content(survey):
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                species_list = get_all_species()
+                species_list = get_all_species(survey[7])  # survey[7] is the survey type
                 species_options = {name: species_id for species_id, name in species_list}
                 selected_species = st.selectbox("Species", options=list(species_options.keys()))
             
             with col2:
-                transects = get_all_transects()
+                transects = get_all_transects(survey[7])  # survey[7] is the survey type
                 transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
                 selected_transect = st.selectbox("Transect", options=list(transect_options.keys()))
             
@@ -963,7 +969,7 @@ def render_survey_content(survey):
                     col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
                     
                     with col1:
-                        species_list = get_all_species()
+                        species_list = get_all_species(survey[7])  # survey[7] is the survey type
                         species_options = {name: species_id for species_id, name in species_list}
                         current_species = ""
                         for name, species_id in species_options.items():
@@ -976,7 +982,7 @@ def render_survey_content(survey):
                                                   key=f"edit_species_{sighting[0]}", label_visibility="collapsed")
                     
                     with col2:
-                        transects = get_all_transects()
+                        transects = get_all_transects(survey[7])  # survey[7] is the survey type
                         transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
                         current_transect = ""
                         for transect_desc, transect_id in transect_options.items():

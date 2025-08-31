@@ -21,6 +21,7 @@ class Transect:
     id: Optional[int] = None
     number: int = 0
     name: str = ""
+    type: str = "butterfly"
 
 @dataclass
 class Survey:
@@ -66,7 +67,8 @@ class DatabaseTables:
     CREATE TABLE IF NOT EXISTS transect (
         id SERIAL PRIMARY KEY,
         number INTEGER NOT NULL,
-        name VARCHAR(255) NOT NULL
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(50) NOT NULL DEFAULT 'butterfly'
     );
     """
     
