@@ -763,7 +763,7 @@ def render_survey_content(survey):
     survey_fields = get_survey_fields(survey_type)
     
     # Check if editing
-    is_editing = st.session_state.editing_survey_id == survey[0]
+    is_editing = st.session_state.get("editing_survey_id") == survey[0]
     
     if is_editing:
         # Edit mode with dynamic fields based on survey type
@@ -888,14 +888,14 @@ def render_survey_content(survey):
     sightings = get_sightings_for_survey(survey[0])
     
     # Add sighting button
-    if st.session_state.creating_sighting_for_survey != survey[0]:
+    if st.session_state.get("creating_sighting_for_survey") != survey[0]:
         if st.button("➕ Add New Sighting", key=f"add_sighting_btn_{survey[0]}"):
             st.session_state.creating_sighting_for_survey = survey[0]
             st.session_state.editing_sighting_id = None
             st.rerun()
     
     # Create new sighting form
-    if st.session_state.creating_sighting_for_survey == survey[0]:
+    if st.session_state.get("creating_sighting_for_survey") == survey[0]:
         with st.form(f"create_sighting_form_{survey[0]}"):
             col1, col2, col3 = st.columns(3)
             
@@ -948,7 +948,7 @@ def render_survey_content(survey):
             st.write("**Actions**")
         
         for sighting in sightings:
-            is_editing_sighting = st.session_state.editing_sighting_id == sighting[0]
+            is_editing_sighting = st.session_state.get("editing_sighting_id") == sighting[0]
             
             if is_editing_sighting:
                 # Edit sighting form
@@ -1034,12 +1034,12 @@ def render_survey_content(survey):
     
     
     # Delete confirmation dialog
-    if st.session_state.delete_confirm_id is not None:
+    if st.session_state.get("delete_confirm_id") is not None:
         # Get the survey to delete from database
         survey_to_delete = None
         all_surveys = get_all_surveys()
         for survey in all_surveys:
-            if survey[0] == st.session_state.delete_confirm_id:
+            if survey[0] == st.session_state.get("delete_confirm_id"):
                 survey_to_delete = survey
                 break
         
@@ -1072,13 +1072,13 @@ def render_survey_content(survey):
             delete_confirmation()
     
     # Delete sighting confirmation dialog
-    if st.session_state.delete_sighting_confirm_id is not None:
+    if st.session_state.get("delete_sighting_confirm_id") is not None:
         # Find the sighting to delete
         sighting_to_delete = None
-        if st.session_state.selected_survey_id:
-            sightings = get_sightings_for_survey(st.session_state.selected_survey_id)
+        if st.session_state.get("selected_survey_id"):
+            sightings = get_sightings_for_survey(st.session_state.get("selected_survey_id"))
             for sighting in sightings:
-                if sighting[0] == st.session_state.delete_sighting_confirm_id:
+                if sighting[0] == st.session_state.get("delete_sighting_confirm_id"):
                     sighting_to_delete = sighting
                     break
         
@@ -1137,9 +1137,6 @@ def show():
     if "new_survey_expanded_bird" not in st.session_state:
         st.session_state["new_survey_expanded_bird"] = False
 
-    # Page title
-    st.title("Surveys")
-    
     # Create tabs for different survey types
     bird_tab, butterfly_tab = st.tabs(["🐦 Bird Surveys", "🦋 Butterfly Surveys"])
 
