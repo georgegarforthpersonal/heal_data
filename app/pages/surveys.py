@@ -442,27 +442,55 @@ def render_tab_content(survey_type):
     all_surveys = get_all_surveys()
     surveys = [survey for survey in all_surveys if survey[7].lower() == survey_type.lower()]
     
-    # Create New Survey - Always at the top using custom collapsible section
-    expander_state = st.session_state.get(f"new_survey_expanded_{survey_type}", False)
+    # Filter/Search bar at the top
+    col1, col2 = st.columns([1,1])
+    with col1:
+        surveyors = get_all_surveyors()
+        surveyor_filter_options = [name for _, name in surveyors]
+        surveyor_filter = st.selectbox("Filter by Surveyor", ["All"] + surveyor_filter_options, key=f"surveyor_filter_{survey_type}")
+    
+    with col2:
+        date_options = ["All time", "Last 3 months", "Last month", "Last week"]
+        date_filter = st.selectbox("Date Range", date_options, index=1, key=f"date_filter_{survey_type}")
+    
+    # Filter surveys based on filters
+    filtered_surveys = []
+    if surveys:
+        for survey in surveys:
+            if surveyor_filter != "All":
+                surveyor_names = [name.strip().lower() for name in survey[10].split(",")]
+                if surveyor_filter.lower() not in surveyor_names:
+                    continue
+            
+            # Date filter (basic implementation)
+            if date_filter != "All time":
+                from datetime import timedelta
+                cutoff_date = date.today()
+                if date_filter == "Last week":
+                    cutoff_date -= timedelta(days=7)
+                elif date_filter == "Last month":
+                    cutoff_date -= timedelta(days=30)
+                elif date_filter == "Last 3 months":
+                    cutoff_date -= timedelta(days=90)
+                
+                if survey[1] < cutoff_date:
+                    continue
+            
+            filtered_surveys.append(survey)
+    
+    st.write("")  # Spacing
+    
+    # Create New Survey as first item in the list
+    create_expanded = st.session_state.get(f"new_survey_expanded_{survey_type}", False)
     
     # Force expander to be collapsed if we just created a survey
     if st.session_state.get(f"just_created_survey_{survey_type}", False):
-        expander_state = False
+        create_expanded = False
         st.session_state[f"new_survey_expanded_{survey_type}"] = False
         del st.session_state[f"just_created_survey_{survey_type}"]
     
-    # Custom expandable section with manual control
-    col1, col2 = st.columns([0.05, 0.95])
-    with col1:
-        if st.button("➕" if not expander_state else "➖", key=f"expand_toggle_{survey_type}", help="Click to expand/collapse"):
-            st.session_state[f"new_survey_expanded_{survey_type}"] = not expander_state
-            st.rerun()
-    
-    with col2:
-        st.markdown(f"### Create New {survey_type.title()} Survey")
-    
-    # Show content only if expanded
-    if expander_state:
+    # Create New Survey expander
+    with st.expander(f"➕ Create New {survey_type.title()} Survey", expanded=create_expanded):
         # Add visual separator
         st.markdown("---")
         
@@ -689,49 +717,8 @@ def render_tab_content(survey_type):
         # Clear the flag so message doesn't persist
         del st.session_state[success_flag_key]
     
-    # Previous Surveys Section
-    st.markdown("---")  # Visual separator
-    st.markdown(f"## 📋 Previous {survey_type.title()} Surveys")
-    
-    # Filter/Search bar
-    col1, col2 = st.columns([1,1])
-    with col1:
-        surveyors = get_all_surveyors()
-        surveyor_filter_options = [name for _, name in surveyors]
-        surveyor_filter = st.selectbox("Filter by Surveyor", ["All"] + surveyor_filter_options, key=f"surveyor_filter_{survey_type}")
-    
-    with col2:
-        date_options = ["All time", "Last 3 months", "Last month", "Last week"]
-        date_filter = st.selectbox("Date Range", date_options, index=2, key=f"date_filter_{survey_type}")
-    
-    # Filter surveys based on search and filters
-    filtered_surveys = []
-    if surveys:
-        for survey in surveys:
-            if surveyor_filter != "All":
-                surveyor_names = [name.strip().lower() for name in survey[10].split(",")]
-                if surveyor_filter.lower() not in surveyor_names:
-                    continue
-            
-            # Date filter (basic implementation)
-            if date_filter != "All time":
-                from datetime import timedelta
-                cutoff_date = date.today()
-                if date_filter == "Last week":
-                    cutoff_date -= timedelta(days=7)
-                elif date_filter == "Last month":
-                    cutoff_date -= timedelta(days=30)
-                elif date_filter == "Last 3 months":
-                    cutoff_date -= timedelta(days=90)
-                
-                if survey[1] < cutoff_date:
-                    continue
-            
-            filtered_surveys.append(survey)
-    
-    # Survey List - Each as an expander
+    # Historical Surveys - Each as an expander
     if filtered_surveys:
-        st.write("")  # Small spacing
         for survey in filtered_surveys:
             sightings_count = len(get_sightings_for_survey(survey[0]))
             
@@ -755,7 +742,7 @@ def render_tab_content(survey_type):
         if surveyor_filter != "All" or date_filter != "All time":
             st.info(f"No {survey_type} surveys match your current filters.")
         else:
-            st.info(f"No {survey_type} surveys found. Create your first {survey_type} survey using the form above!")
+            st.info(f"No {survey_type} surveys found. Create your first {survey_type} survey using the expander above!")
 
 def render_survey_content(survey):
     """Render the content for a single survey within its expander"""
