@@ -480,269 +480,49 @@ def render_tab_content(survey_type):
     
     st.write("")  # Spacing
     
-    # Create New Survey as first item in the list
-    create_expanded = st.session_state.get(f"new_survey_expanded_{survey_type}", False)
-    
-    # Force expander to be collapsed if we just created a survey
-    if st.session_state.get(f"just_created_survey_{survey_type}", False):
-        create_expanded = False
-        st.session_state[f"new_survey_expanded_{survey_type}"] = False
-        del st.session_state[f"just_created_survey_{survey_type}"]
-    
+    # Create New Survey as first item in the list - using edit survey interface
+    create_survey_id = f"new_survey_{survey_type}"
+
+    # Create a fake survey tuple for the new survey (using edit interface)
+    default_date = date.today()
+
+    # Create a mock survey tuple that matches the expected format for render_survey_content
+    # (id, date, start_time, end_time, sun_percentage, temperature_celsius, conditions_met, type, notes, created_at, surveyor_names)
+    new_survey_mock = (
+        create_survey_id,  # id
+        default_date,      # date
+        None,              # start_time
+        None,              # end_time
+        None,              # sun_percentage
+        None,              # temperature_celsius
+        None,              # conditions_met
+        survey_type,       # type
+        None,              # notes
+        None,              # created_at
+        'No surveyor'      # surveyor_names
+    )
+
     # Create New Survey expander
-    with st.expander(f"➕ Create New {survey_type.title()} Survey", expanded=create_expanded):
-        # Add visual separator
-        st.markdown("---")
-        
-        surveyors = get_all_surveyors()
-        surveyor_options = {f"{name}": surveyor_id for surveyor_id, name in surveyors}
-        surveyor_options["No surveyor"] = None
-        
-        # Initialize sightings in session state if not exists
-        sightings_key = f"new_sightings_{survey_type}"
-        if sightings_key not in st.session_state:
-            st.session_state[sightings_key] = []
-        
-        # State for creating new sightings in the create form
-        creating_sighting_key = f"creating_sighting_new_{survey_type}"
-        
-        # Survey Details Section (no form, just inputs)
-        st.subheader("Survey Details")
-        
-        # Get configured fields for this survey type
-        survey_fields = get_survey_fields(survey_type)
-        
-        # Store form data in session state
-        form_data_key = f"create_form_data_{survey_type}"
-        if form_data_key not in st.session_state:
-            st.session_state[form_data_key] = {}
-        
-        # Render fields in a responsive layout
-        col1, col2 = st.columns(2)
-        col_index = 0
-        
-        for field_name in survey_fields:
-            current_col = col1 if col_index % 2 == 0 else col2
-            
-            with current_col:
-                if field_name == "surveyors":
-                    selected_surveyors, surveyor_options = render_survey_field(field_name, survey_type, surveyors)
-                    st.session_state[form_data_key][field_name] = selected_surveyors
-                    st.session_state[form_data_key]["_surveyor_options"] = surveyor_options
-                else:
-                    field_value = render_survey_field(field_name, survey_type, surveyors)
-                    st.session_state[form_data_key][field_name] = field_value
-            
-            col_index += 1
-        
-        # Sightings section (outside the form, matching existing pattern)
-        st.divider()
-        
-        # Display existing sightings for this form
-        current_sightings = st.session_state[sightings_key]
-        
-        # Add sighting button
-        if creating_sighting_key not in st.session_state or not st.session_state[creating_sighting_key]:
-            if st.button("➕ Add New Sighting", key=f"add_sighting_btn_new_{survey_type}"):
-                st.session_state[creating_sighting_key] = True
-                st.rerun()
-        
-        # Create new sighting form (matching existing UX)
-        if st.session_state.get(creating_sighting_key, False):
-            with st.form(f"create_sighting_form_new_{survey_type}"):
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    species_list = get_all_species(survey_type)
-                    species_options = {name: species_id for species_id, name in species_list}
-                    selected_species = st.selectbox("Species", options=list(species_options.keys()))
-                
-                with col2:
-                    transects = get_all_transects(survey_type)
-                    transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
-                    selected_transect = st.selectbox("Transect", options=list(transect_options.keys()))
-                
-                with col3:
-                    sighting_count = st.number_input("Count", min_value=1, value=1)
-                
-                col_save, col_cancel = st.columns([1, 1])
-                with col_save:
-                    submitted = st.form_submit_button("💾 Save Sighting", type="primary")
-                with col_cancel:
-                    cancelled = st.form_submit_button("❌ Cancel")
-                
-                if submitted:
-                    # Add to the session state sightings list
-                    new_sighting_data = {
-                        "species_id": species_options[selected_species],
-                        "transect_id": transect_options[selected_transect],
-                        "count": sighting_count,
-                        "species_name": selected_species,
-                        "transect_display": selected_transect
-                    }
-                    st.session_state[sightings_key].append(new_sighting_data)
-                    st.session_state[creating_sighting_key] = False
-                    st.success("Sighting added!")
-                    st.rerun()
-                
-                if cancelled:
-                    st.session_state[creating_sighting_key] = False
-                    st.rerun()
-        
-        # Display current sightings in table format
-        if current_sightings:
-            # Table header
-            header_col1, header_col2, header_col3, header_col4 = st.columns([3, 2, 1, 2])
-            with header_col1:
-                st.write("**Species**")
-            with header_col2:
-                st.write("**Transect**")
-            with header_col3:
-                st.write("**Count**")
-            with header_col4:
-                st.write("**Actions**")
-            
-            for i, sighting in enumerate(current_sightings):
-                col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
-                
-                with col1:
-                    st.write(sighting["species_name"])
-                with col2:
-                    st.write(sighting["transect_display"])
-                with col3:
-                    st.write(f"**{sighting['count']}**")
-                with col4:
-                    if st.button("🗑️", key=f"delete_new_sighting_{survey_type}_{i}", help="Delete Sighting"):
-                        st.session_state[sightings_key].pop(i)
-                        st.rerun()
-        else:
-            st.info("No sightings added yet. Click 'Add New Sighting' to get started.")
-        
-        # Create Survey Button (after sightings section)
-        st.divider()
-        
-        # Validate form data before showing create button
-        form_data = st.session_state.get(form_data_key, {})
-        date_filled = form_data.get('date') is not None
-        surveyors_filled = (
-            form_data.get('surveyors') is not None and 
-            len(form_data.get('surveyors', [])) > 0
-        )
-        required_fields_filled = date_filled and surveyors_filled
-        
-        if required_fields_filled:
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                if st.button("🦋 Create Survey", key=f"create_survey_btn_{survey_type}", type="primary", use_container_width=True):
-                    # Create the survey from session state data
-                    survey_data = st.session_state[form_data_key]
-                    
-                    # Convert surveyor names to IDs
-                    surveyor_options = survey_data.get("_surveyor_options", {})
-                    selected_surveyor_names = survey_data.get('surveyors', [])
-                    surveyor_ids = [surveyor_options.get(name) for name in selected_surveyor_names if surveyor_options.get(name) is not None]
-                    
-                    # Create survey object
-                    survey = Survey(
-                        id=None,
-                        date=survey_data['date'],
-                        start_time=survey_data.get('start_time'),
-                        end_time=survey_data.get('end_time'),
-                        sun_percentage=survey_data.get('sun_percentage'),
-                        temperature_celsius=survey_data.get('temperature'),
-                        conditions_met=survey_data.get('conditions_met'),
-                        surveyor_ids=surveyor_ids,
-                        type=survey_type,
-                        notes=survey_data.get('notes')
-                    )
-                    
-                    # Create survey in database
-                    survey_id = create_survey(survey)
-                    if survey_id:
-                        # Add sightings to the new survey
-                        current_sightings = st.session_state[sightings_key]
-                        for sighting_data in current_sightings:
-                            sighting = Sighting(
-                                id=None,
-                                survey_id=survey_id,
-                                species_id=sighting_data["species_id"],
-                                transect_id=sighting_data["transect_id"],
-                                count=sighting_data["count"]
-                            )
-                            create_sighting(sighting)
-                        
-                        # Set flags to force expander collapse and show success
-                        st.session_state[f"new_survey_expanded_{survey_type}"] = False
-                        st.session_state[f"just_created_survey_{survey_type}"] = True
-                        st.session_state[f"survey_created_success_{survey_type}"] = True
-                        
-                        # Clear form data and sightings
-                        if form_data_key in st.session_state:
-                            del st.session_state[form_data_key]
-                        if sightings_key in st.session_state:
-                            del st.session_state[sightings_key]
-                        if creating_sighting_key in st.session_state:
-                            del st.session_state[creating_sighting_key]
-                        
-                        # Clear all form field keys from session state
-                        form_field_keys = [
-                            f"new_survey_{survey_type}_date",
-                            f"new_survey_{survey_type}_surveyors", 
-                            f"new_survey_{survey_type}_start_time",
-                            f"new_survey_{survey_type}_end_time",
-                            f"new_survey_{survey_type}_sun_percentage",
-                            f"new_survey_{survey_type}_temperature",
-                            f"new_survey_{survey_type}_conditions_met",
-                            f"new_survey_{survey_type}_notes"
-                        ]
-                        for key in form_field_keys:
-                            if key in st.session_state:
-                                del st.session_state[key]
-                        
-                        # Collapse all historic survey expanders
-                        all_surveys = get_all_surveys()
-                        for survey in all_surveys:
-                            if f"survey_expanded_{survey[0]}" in st.session_state:
-                                st.session_state[f"survey_expanded_{survey[0]}"] = False
-                        
-                        # Rerun to refresh the display
-                        st.rerun()
-        else:
-            st.warning("⚠️ Please fill in all required survey details (date and surveyor) before creating the survey.")
-    
+    with st.expander(f"➕ Create New {survey_type.title()} Survey"):
+        # Check for success message
+        success_key = f"survey_success_{create_survey_id}"
+        if st.session_state.get(success_key, False):
+            st.success("✅ **Survey created successfully!**")
+            # Clear the success flag so it doesn't show again
+            del st.session_state[success_key]
+
+        # Use the same render function as edit surveys, but treat it as always in edit mode
+        render_survey_content(new_survey_mock)
+
     # Display success message if survey was just created
     success_flag_key = f"survey_created_success_{survey_type}"
     if st.session_state.get(success_flag_key, False):
         st.success(f"✅ {survey_type.title()} survey created successfully!")
         # Clear the flag so message doesn't persist
         del st.session_state[success_flag_key]
-    
+
     # Historical Surveys - Each as an expander
     if filtered_surveys:
-        # Track expansion timestamps to implement accordion behavior
-        import time
-
-        all_survey_ids = [survey[0] for survey in filtered_surveys]
-        current_time = time.time()
-
-        # Check for newly expanded surveys and implement accordion behavior
-        for survey_id in all_survey_ids:
-            expansion_key = f"survey_expanded_{survey_id}"
-            timestamp_key = f"survey_expand_time_{survey_id}"
-
-            is_currently_expanded = st.session_state.get(expansion_key, False)
-            previous_timestamp = st.session_state.get(timestamp_key, 0)
-
-            # If this survey is expanded and we haven't recorded a recent timestamp
-            if is_currently_expanded and (current_time - previous_timestamp > 1):
-                # This survey was just expanded - record timestamp and collapse others
-                st.session_state[timestamp_key] = current_time
-
-                # Collapse all other surveys
-                for other_id in all_survey_ids:
-                    if other_id != survey_id:
-                        st.session_state[f"survey_expanded_{other_id}"] = False
-
         for survey in filtered_surveys:
             sightings_count = len(get_sightings_for_survey(survey[0]))
 
@@ -752,11 +532,8 @@ def render_tab_content(survey_type):
 
             expander_title = f"{date_str} • {surveyor_name} • {sightings_count} sightings"
 
-            # Determine if this survey should be expanded
-            survey_id = survey[0]
-            is_expanded = st.session_state.get(f"survey_expanded_{survey_id}", False)
-
-            with st.expander(expander_title, expanded=is_expanded):
+            # Use default Streamlit expander behavior
+            with st.expander(expander_title):
                 # Survey details and editing within the expander
                 render_survey_content(survey)
     else:
@@ -770,10 +547,18 @@ def render_survey_content(survey):
     survey_type = survey[7].lower()  # Get survey type from the survey data
     survey_fields = get_survey_fields(survey_type)
 
+    # Check if this is a mock survey (new survey creation)
+    is_mock_survey = str(survey[0]).startswith("new_survey_")
+
     # Success message will be shown at bottom of container
 
     # Check if editing
     is_editing = st.session_state.get("editing_survey_id") == survey[0]
+
+    # For new surveys (mock surveys), always show as editing
+    if is_mock_survey:
+        is_editing = True
+
 
     
     # Display survey in dynamic table format based on survey type
@@ -792,7 +577,23 @@ def render_survey_content(survey):
 
     if is_editing:
         # Edit mode - show editable fields
-        survey_obj = get_survey_by_id(survey[0])
+        if is_mock_survey:
+            # For mock surveys (new survey creation), create a mock survey object
+            survey_obj = Survey(
+                id=None,
+                date=survey[1],
+                start_time=survey[2],
+                end_time=survey[3],
+                sun_percentage=survey[4],
+                temperature_celsius=survey[5],
+                conditions_met=survey[6],
+                type=survey[7],
+                notes=survey[8],
+                surveyor_ids=[]
+            )
+        else:
+            survey_obj = get_survey_by_id(survey[0])
+
         if survey_obj:
             surveyors = get_all_surveyors()
 
@@ -816,7 +617,7 @@ def render_survey_content(survey):
     st.divider()
     
     # Sightings section
-    sightings = get_sightings_for_survey(survey[0])
+    sightings = [] if is_mock_survey else get_sightings_for_survey(survey[0])
     
     # Sightings will be displayed below
     
@@ -1034,18 +835,31 @@ def render_survey_content(survey):
         col1, col2, col3 = st.columns([1, 1, 1])
 
         with col1:
-            if st.button("💾 Save Changes", type="primary", use_container_width=True, key=f"save_changes_btn_{survey[0]}"):
-                # Get current survey object
-                survey_obj = get_survey_by_id(survey[0])
-                if survey_obj:
+            # Check if this is a new survey creation or existing survey update
+            is_new_survey = str(survey[0]).startswith("new_survey_")
+            button_text = "🦋 Create Survey" if is_new_survey else "💾 Save Changes"
+
+            if st.button(button_text, type="primary", use_container_width=True, key=f"save_changes_btn_{survey[0]}"):
+                if is_new_survey:
+                    # Handle new survey creation
+                    survey_type = survey[7].lower()
+                    surveyors = get_all_surveyors()
+                    survey_obj = None  # No existing survey object for new surveys
+                else:
+                    # Get current survey object for existing survey
+                    survey_obj = get_survey_by_id(survey[0])
+
+                if is_new_survey or survey_obj:
                     # Collect all survey field values from session state
                     surveyors = get_all_surveyors()
 
                     # Build form data from current widget states
                     form_data = {}
+                    # Always use survey[0] for key generation since that's what was used when creating the form fields
+                    survey_id_for_key = survey[0]
 
                     for field_name in survey_fields:
-                        key = f"edit_survey_{survey_type}_{survey_obj.id}_{field_name}"
+                        key = f"edit_survey_{survey_type}_{survey_id_for_key}_{field_name}"
                         if field_name == "surveyors":
                             # Special handling for surveyors - read directly from session state
                             if key in st.session_state:
@@ -1072,31 +886,58 @@ def render_survey_content(survey):
 
                     if not time_error:
                         # Process surveyor selection
-                        surveyor_ids = survey_obj.surveyor_ids or []
+                        surveyor_ids = []
+                        if not is_new_survey and survey_obj:
+                            surveyor_ids = survey_obj.surveyor_ids or []
+
                         if "surveyors" in form_data and "_surveyor_options" in form_data:
                             selected_surveyors = form_data["surveyors"]
                             surveyor_options = form_data["_surveyor_options"]
                             surveyor_ids = [surveyor_options[name] for name in selected_surveyors if surveyor_options[name] is not None]
 
-                        # Create updated survey object
-                        updated_survey = Survey(
-                            id=survey_obj.id,
-                            date=form_data.get("date", survey_obj.date),
-                            start_time=form_data.get("start_time", survey_obj.start_time),
-                            end_time=form_data.get("end_time", survey_obj.end_time),
-                            sun_percentage=form_data.get("sun_percentage", survey_obj.sun_percentage),
-                            temperature_celsius=Decimal(str(form_data["temperature"])) if "temperature" in form_data else survey_obj.temperature_celsius,
-                            conditions_met=form_data.get("conditions_met", survey_obj.conditions_met),
-                            notes=form_data.get("notes", survey_obj.notes),
-                            type=survey_type,
-                            surveyor_ids=surveyor_ids
-                        )
+                        if is_new_survey:
+                            # Create new survey object
+                            from decimal import Decimal
+                            new_survey = Survey(
+                                id=None,
+                                date=form_data.get("date", survey[1]),
+                                start_time=form_data.get("start_time"),
+                                end_time=form_data.get("end_time"),
+                                sun_percentage=form_data.get("sun_percentage"),
+                                temperature_celsius=Decimal(str(form_data["temperature"])) if "temperature" in form_data else None,
+                                conditions_met=form_data.get("conditions_met"),
+                                notes=form_data.get("notes"),
+                                type=survey_type,
+                                surveyor_ids=surveyor_ids
+                            )
+                            # Create survey in database
+                            created_survey_id = create_survey(new_survey)
+                            operation_success = created_survey_id is not None
+                            actual_survey_id = created_survey_id
+                        else:
+                            # Create updated survey object
+                            from decimal import Decimal
+                            updated_survey = Survey(
+                                id=survey_obj.id,
+                                date=form_data.get("date", survey_obj.date),
+                                start_time=form_data.get("start_time", survey_obj.start_time),
+                                end_time=form_data.get("end_time", survey_obj.end_time),
+                                sun_percentage=form_data.get("sun_percentage", survey_obj.sun_percentage),
+                                temperature_celsius=Decimal(str(form_data["temperature"])) if "temperature" in form_data else survey_obj.temperature_celsius,
+                                conditions_met=form_data.get("conditions_met", survey_obj.conditions_met),
+                                notes=form_data.get("notes", survey_obj.notes),
+                                type=survey_type,
+                                surveyor_ids=surveyor_ids
+                            )
+                            # Update existing survey
+                            operation_success = update_survey(updated_survey)
+                            actual_survey_id = survey[0]
 
-                        # Update survey
-                        if update_survey(updated_survey):
-                            # First handle pending deletions
+                        # If survey creation/update was successful
+                        if operation_success:
+                            # First handle pending deletions (only for existing surveys)
                             pending_deletions_key = f"pending_sighting_deletions_{survey[0]}"
-                            pending_deletions = st.session_state.get(pending_deletions_key, set())
+                            pending_deletions = st.session_state.get(pending_deletions_key, set()) if not is_new_survey else set()
 
                             for sighting_id in pending_deletions:
                                 if not delete_sighting(sighting_id):
@@ -1133,7 +974,7 @@ def render_survey_content(survey):
                                         transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
 
                                         new_sighting = Sighting(
-                                            survey_id=survey[0],
+                                            survey_id=actual_survey_id,
                                             species_id=species_options[selected_species],
                                             transect_id=transect_options[selected_transect],
                                             count=st.session_state[count_key]
@@ -1141,7 +982,7 @@ def render_survey_content(survey):
                                     else:
                                         # Use original values if widgets haven't been created yet
                                         new_sighting = Sighting(
-                                            survey_id=pending_sighting["survey_id"],
+                                            survey_id=actual_survey_id,
                                             species_id=pending_sighting["species_id"],
                                             transect_id=pending_sighting["transect_id"],
                                             count=pending_sighting["count"]
@@ -1191,9 +1032,28 @@ def render_survey_content(survey):
                                 if f"pending_sighting_additions_{survey[0]}" in st.session_state:
                                     del st.session_state[f"pending_sighting_additions_{survey[0]}"]
 
-                                # Set success state and maintain expanded state
-                                st.session_state[f"survey_success_{survey[0]}"] = True
-                                st.session_state[f"survey_expanded_{survey[0]}"] = True
+                                if is_new_survey:
+                                    # For new surveys, set success flag
+                                    st.session_state[f"survey_created_success_{survey_type}"] = True
+
+                                    # Clear all new survey form data
+                                    form_keys_to_clear = [
+                                        f"edit_survey_{survey_type}_{survey[0]}_date",
+                                        f"edit_survey_{survey_type}_{survey[0]}_surveyors",
+                                        f"edit_survey_{survey_type}_{survey[0]}_start_time",
+                                        f"edit_survey_{survey_type}_{survey[0]}_end_time",
+                                        f"edit_survey_{survey_type}_{survey[0]}_sun_percentage",
+                                        f"edit_survey_{survey_type}_{survey[0]}_temperature",
+                                        f"edit_survey_{survey_type}_{survey[0]}_conditions_met",
+                                        f"edit_survey_{survey_type}_{survey[0]}_notes"
+                                    ]
+                                    for key in form_keys_to_clear:
+                                        if key in st.session_state:
+                                            del st.session_state[key]
+                                else:
+                                    # For existing surveys, set success state
+                                    st.session_state[f"survey_success_{survey[0]}"] = True
+
                                 st.session_state.editing_survey_id = None
                                 st.rerun()
                         else:
