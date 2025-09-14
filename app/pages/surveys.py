@@ -719,23 +719,44 @@ def render_tab_content(survey_type):
     
     # Historical Surveys - Each as an expander
     if filtered_surveys:
+        # Track expansion timestamps to implement accordion behavior
+        import time
+
+        all_survey_ids = [survey[0] for survey in filtered_surveys]
+        current_time = time.time()
+
+        # Check for newly expanded surveys and implement accordion behavior
+        for survey_id in all_survey_ids:
+            expansion_key = f"survey_expanded_{survey_id}"
+            timestamp_key = f"survey_expand_time_{survey_id}"
+
+            is_currently_expanded = st.session_state.get(expansion_key, False)
+            previous_timestamp = st.session_state.get(timestamp_key, 0)
+
+            # If this survey is expanded and we haven't recorded a recent timestamp
+            if is_currently_expanded and (current_time - previous_timestamp > 1):
+                # This survey was just expanded - record timestamp and collapse others
+                st.session_state[timestamp_key] = current_time
+
+                # Collapse all other surveys
+                for other_id in all_survey_ids:
+                    if other_id != survey_id:
+                        st.session_state[f"survey_expanded_{other_id}"] = False
+
         for survey in filtered_surveys:
             sightings_count = len(get_sightings_for_survey(survey[0]))
-            
+
             # Format the expander title
             date_str = survey[1].strftime("%b %d, %Y")
             surveyor_name = survey[10] if survey[10] != 'No surveyor' else 'Unknown'
-            
+
             expander_title = f"{date_str} • {surveyor_name} • {sightings_count} sightings"
-            
-            # Determine if this survey should be expanded (maintain state)
-            is_expanded = st.session_state.get(f"survey_expanded_{survey[0]}", False)
-            
+
+            # Determine if this survey should be expanded
+            survey_id = survey[0]
+            is_expanded = st.session_state.get(f"survey_expanded_{survey_id}", False)
+
             with st.expander(expander_title, expanded=is_expanded):
-                # Store expansion state
-                if f"survey_expanded_{survey[0]}" not in st.session_state:
-                    st.session_state[f"survey_expanded_{survey[0]}"] = is_expanded
-                
                 # Survey details and editing within the expander
                 render_survey_content(survey)
     else:
