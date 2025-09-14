@@ -187,9 +187,9 @@ def setup_transects(cursor):
     cursor.execute("DELETE FROM transect WHERE name IN ('Southern', 'Northern', 'Eastern')")
     
     transects = [
-        (10, 'Southern'),  # Use high numbers to avoid conflicts
-        (11, 'Northern'),
-        (12, 'Eastern')
+        (1, 'Southern'),  # Use high numbers to avoid conflicts
+        (2, 'Northern'),
+        (3, 'Eastern')
     ]
     
     for number, name in transects:
