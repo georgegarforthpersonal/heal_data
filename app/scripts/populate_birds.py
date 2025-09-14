@@ -146,6 +146,10 @@ def extract_surveyors_from_text(surveyor_text: str) -> List[str]:
 
 def parse_date_value(date_val) -> Optional[date]:
     """Parse various date formats from Excel."""
+
+    if date_val == datetime(2002, 3, 15):
+        return date(2025, 3, 15)
+
     if pd.isna(date_val):
         return None
     

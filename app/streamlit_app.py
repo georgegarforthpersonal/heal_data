@@ -1,5 +1,12 @@
 import streamlit as st
+import sys
+import os
+
+# Add the app directory to the path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from pages import surveys, dashboard
+from dashboards.unified_dashboard import render_dashboard
 
 st.set_page_config(
     page_title="Wildlife Survey Management", 
@@ -47,7 +54,7 @@ elif selected_tab == "Dashboard":
     bird_dashboard_tab, butterfly_dashboard_tab = st.tabs(["🐦 Birds", "🦋 Butterflies"])
     
     with bird_dashboard_tab:
-        st.write("Bird Dashboard content coming soon...")
-    
+        render_dashboard("bird")
+
     with butterfly_dashboard_tab:
-        st.write("Butterfly Dashboard content coming soon...")
+        render_dashboard("butterfly")
