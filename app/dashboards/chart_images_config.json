@@ -1,0 +1,32 @@
+{
+  "chart_images": [
+    {
+      "species_type": "bird",
+      "x_axis_position": 0.86,
+      "y_axis_position": 0.77,
+      "file_path": "images/turtledove.jpg",
+      "caption": "Turtle Dove"
+    },
+    {
+      "species_type": "bird",
+      "x_axis_position": 0.47,
+      "y_axis_position": 0.41,
+      "file_path": "images/hawfinch.jpg",
+      "caption": "Hawfinch"
+    },
+        {
+      "species_type": "bird",
+      "x_axis_position": 0.67,
+      "y_axis_position": 0.55,
+      "file_path": "images/goshawk.jpg",
+      "caption": "Goshawk"
+    },
+    {
+      "species_type": "bird",
+      "x_axis_position": 0.26,
+      "y_axis_position": 0.27,
+      "file_path": "images/spotted_flycatcher.jpg",
+      "caption": "Spotted Flycatcher"
+    }
+  ]
+}
