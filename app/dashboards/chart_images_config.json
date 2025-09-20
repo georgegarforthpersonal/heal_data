@@ -2,31 +2,71 @@
   "chart_images": [
     {
       "species_type": "bird",
-      "x_axis_position": 0.86,
-      "y_axis_position": 0.77,
+      "x_axis_position": 0.85,
+      "y_axis_position": 0.75,
       "file_path": "images/turtledove.jpg",
-      "caption": "Turtle Dove"
+      "caption": "Turtle Dove",
+      "dotted_line": {
+        "x1": 0.85,
+        "y1": 0.79,
+        "x2": 0.85,
+        "y2": 0.92,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y"
+      }
     },
     {
       "species_type": "bird",
       "x_axis_position": 0.47,
-      "y_axis_position": 0.41,
+      "y_axis_position": 0.39,
       "file_path": "images/hawfinch.jpg",
-      "caption": "Hawfinch"
+      "caption": "Hawfinch",
+      "dotted_line": {
+        "x1": 0.478,
+        "y1": 0.45,
+        "x2": 0.478,
+        "y2": 0.58,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y"
+      }
     },
-        {
+    {
       "species_type": "bird",
       "x_axis_position": 0.67,
       "y_axis_position": 0.55,
       "file_path": "images/goshawk.jpg",
-      "caption": "Goshawk"
+      "caption": "Goshawk",
+      "dotted_line": {
+        "x1": 0.665,
+        "y1": 0.61,
+        "x2": 0.665,
+        "y2": 0.74,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y"
+      }
     },
     {
       "species_type": "bird",
-      "x_axis_position": 0.26,
-      "y_axis_position": 0.27,
+      "x_axis_position": 0.30,
+      "y_axis_position": 0.22,
       "file_path": "images/spotted_flycatcher.jpg",
-      "caption": "Spotted Flycatcher"
+      "caption": "Spotted Flycatcher",
+      "dotted_line": {
+        "x1": 0.292,
+        "y1": 0.29,
+        "x2": 0.292,
+        "y2": 0.42,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y"
+      }
     }
   ]
 }

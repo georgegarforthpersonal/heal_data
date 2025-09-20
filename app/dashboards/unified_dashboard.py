@@ -550,6 +550,38 @@ def create_cumulative_species_chart(sightings: List[dict], timescale: str, speci
                     xanchor="center",
                     yanchor="top"
                 )
+
+                # Add dotted line between two points if specified
+                if 'dotted_line' in image_config:
+                    line_config = image_config['dotted_line']
+
+                    # Get coordinates for both points
+                    x1 = line_config.get('x1')
+                    y1 = line_config.get('y1')
+                    x2 = line_config.get('x2')
+                    y2 = line_config.get('y2')
+
+                    # Get coordinate system references (default to paper)
+                    x1_ref = line_config.get('x1_ref', 'paper')
+                    y1_ref = line_config.get('y1_ref', 'paper')
+                    x2_ref = line_config.get('x2_ref', 'paper')
+                    y2_ref = line_config.get('y2_ref', 'paper')
+
+                    if all(coord is not None for coord in [x1, y1, x2, y2]):
+                        # Add dotted line as a shape
+                        fig.add_shape(
+                            type="line",
+                            x0=x1, y0=y1,
+                            x1=x2, y1=y2,
+                            xref=x1_ref, yref=y1_ref,
+                            line=dict(
+                                color=line_config.get('color', '#666666'),
+                                width=line_config.get('width', 2),
+                                dash=line_config.get('style', 'dot')
+                            ),
+                            opacity=line_config.get('opacity', 0.7)
+                        )
+
             except Exception as e:
                 # If image loading fails, continue without the image
                 print(f"Could not load image {image_config.get('file_path', 'unknown')}: {e}")
