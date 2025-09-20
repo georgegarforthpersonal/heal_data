@@ -7,6 +7,9 @@ import plotly.graph_objects as go
 from collections import defaultdict
 import sys
 import os
+import base64
+from PIL import Image, ImageDraw, ImageFilter
+import io
 
 # Add the parent directory to the path so we can import from app
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -422,7 +425,7 @@ def create_total_sightings_chart(sightings: List[dict]):
     return fig
 
 
-def create_cumulative_species_chart(sightings: List[dict], timescale: str):
+def create_cumulative_species_chart(sightings: List[dict], timescale: str, include_image: bool = False):
     """Create a chart showing cumulative unique species over time."""
     if not sightings:
         return None
@@ -472,13 +475,83 @@ def create_cumulative_species_chart(sightings: List[dict], timescale: str):
         )
     ])
 
+    # Add turtle dove image if requested
+    if include_image:
+        try:
+            # Get the path to the turtle dove image
+            image_path = os.path.join(os.path.dirname(__file__), 'turtle_dove.jpg')
+
+            # Create circular cropped image with PIL
+            def create_circular_image(image_path, size=150):
+                # Open and resize image
+                img = Image.open(image_path).convert("RGBA")
+                img = img.resize((size, size), Image.Resampling.LANCZOS)
+
+                # Create circular mask
+                mask = Image.new('L', (size, size), 0)
+                draw = ImageDraw.Draw(mask)
+                draw.ellipse((0, 0, size, size), fill=255)
+
+                # Apply mask to image
+                output = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+                output.paste(img, (0, 0))
+                output.putalpha(mask)
+
+                return output
+
+            # Create circular image
+            circular_img = create_circular_image(image_path, 150)
+
+            # Convert to base64
+            buffer = io.BytesIO()
+            circular_img.save(buffer, format="PNG")
+            img_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+            # Add the circular image using paper coordinates
+            fig.add_layout_image(
+                dict(
+                    source=f"data:image/png;base64,{img_base64}",
+                    xref="paper",
+                    yref="paper",
+                    x=0.7,  # 70% across the chart
+                    y=0.65,  # 65% up the chart
+                    sizex=0.2,  # 20% of chart width
+                    sizey=0.2,  # 20% of chart height
+                    xanchor="center",
+                    yanchor="middle",
+                    opacity=1.0,
+                    layer="below"
+                )
+            )
+
+            # Add "Turtle Dove" text below the image
+            fig.add_annotation(
+                x=0.7,
+                y=0.5,  # Below the image
+                text="Turtle Dove",
+                showarrow=False,
+                font=dict(size=12, color="#333333"),
+                xref="paper",
+                yref="paper",
+                xanchor="center",
+                yanchor="top"
+            )
+        except Exception as e:
+            # If image loading fails, continue without the image
+            print(f"Could not load turtle dove image: {e}")
+            if include_image:
+                st.error(f"Could not load turtle dove image: {e}")
+
     fig.update_layout(
         title=f"Cumulative Unique Species Over Time ({timescale})",
         xaxis_title="Period",
         yaxis_title="Cumulative Unique Species Count",
-        xaxis={'tickangle': 45},
+        xaxis={'tickangle': 45, 'showgrid': False},
+        yaxis={'showgrid': False},
         height=500,
-        showlegend=False
+        showlegend=False,
+        plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
+        paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
     )
 
     return fig
@@ -658,8 +731,8 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                         if fig:
                             st.plotly_chart(fig, use_container_width=True)
 
-                            # Create and display cumulative species chart
-                            cumulative_fig = create_cumulative_species_chart(trend_sightings, timescale)
+                            # Create and display cumulative species chart (without image)
+                            cumulative_fig = create_cumulative_species_chart(trend_sightings, timescale, include_image=False)
                             if cumulative_fig:
                                 st.plotly_chart(cumulative_fig, use_container_width=True)
 
@@ -770,6 +843,30 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
             st.info("Please check the database connection and try again.")
 
 
+def render_report(species: Literal["bird", "butterfly"]):
+    """Render the report chart for the specified species"""
+    # Load the sightings data
+    with st.spinner(f"Loading {species} sightings data..."):
+        try:
+            sightings = get_sightings(species)
+
+            if sightings:
+                # Create cumulative species chart with image for birds, without for butterflies (for now)
+                include_image = (species == "bird")
+                cumulative_fig = create_cumulative_species_chart(sightings, "Monthly", include_image=include_image)
+                if cumulative_fig:
+                    st.plotly_chart(cumulative_fig, use_container_width=True)
+                else:
+                    st.info(f"No data available to show the {species} report chart.")
+            else:
+                st.error(f"❌ No {species} sightings could be loaded from the database.")
+                st.info(f"Please check that you have {species} survey data in the database.")
+
+        except Exception as e:
+            st.error(f"❌ Error loading {species} data: {str(e)}")
+            st.info("Please check the database connection and try again.")
+
+
 def main(species: Literal["bird", "butterfly"]):
     """Main function to render the dashboard with authentication"""
     # Set page config based on species
@@ -788,4 +885,14 @@ def main(species: Literal["bird", "butterfly"]):
     st.title(f"{icons[species]} Heal Somerset {species.title()} Survey Dashboard")
     st.markdown(f"Welcome to the {species} sightings analysis dashboard for Heal Somerset.")
 
-    render_dashboard(species)
+    # Create top-level navigation tabs
+    main_tab1, main_tab2, main_tab3 = st.tabs(["📊 Surveys", "📈 Dashboard", "📋 Report"])
+
+    with main_tab1:
+        st.info("Surveys functionality - to be implemented")
+
+    with main_tab2:
+        render_dashboard(species)
+
+    with main_tab3:
+        render_report(species)
