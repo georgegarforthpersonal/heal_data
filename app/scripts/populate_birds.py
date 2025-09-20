@@ -76,11 +76,12 @@ def get_species_colors(excel_path: str) -> Dict[str, str]:
                 if cell.value and isinstance(cell.value, str):
                     species_name = str(cell.value).strip()
                     if species_name and species_name not in ['Species', 'Amber List', 'Green List', 'Red List']:
+                        normalized_name = normalize_species_name(species_name)
                         fill = cell.fill
                         if fill and fill.patternType and fill.fgColor and hasattr(fill.fgColor, 'rgb'):
                             color_rgb = fill.fgColor.rgb
                             if color_rgb and color_rgb in color_mapping:
-                                species_colors[species_name] = color_mapping[color_rgb]
+                                species_colors[normalized_name] = color_mapping[color_rgb]
         
         wb.close()
         
@@ -93,9 +94,9 @@ def normalize_field_section(field_section: str) -> str:
     """Normalize field section names."""
     if pd.isna(field_section) or not isinstance(field_section, str):
         return 'Southern'  # Default
-    
+
     field_section = field_section.lower().strip()
-    
+
     if 'south' in field_section:
         return 'Southern'
     elif 'north' in field_section:
@@ -104,6 +105,24 @@ def normalize_field_section(field_section: str) -> str:
         return 'Eastern'
     else:
         return 'Southern'
+
+def normalize_species_name(species_name: str) -> str:
+    """Normalize species names to handle duplicates and variants."""
+    if pd.isna(species_name) or not isinstance(species_name, str):
+        return species_name
+
+    species_name = species_name.strip()
+
+    # Species name mappings to normalize duplicates
+    species_mappings = {
+        'Heron': 'Grey Heron',
+        'Domestic Mallard': 'Mallard',
+        'Mallard Duck': 'Mallard',
+        'Mallard duck': 'Mallard',
+        'Partridge,red leg': 'Red-legged Partridge'
+    }
+
+    return species_mappings.get(species_name, species_name)
 
 def extract_surveyors_from_text(surveyor_text: str) -> List[str]:
     """Extract individual surveyor names from text."""
@@ -289,7 +308,8 @@ def extract_and_import_birds(excel_file: str):
                 if pd.notna(species_name) and isinstance(species_name, str):
                     species_name = species_name.strip()
                     if species_name and species_name not in ['Species', 'Amber List', 'Green List', 'Red List']:
-                        all_species.add(species_name)
+                        normalized_name = normalize_species_name(species_name)
+                        all_species.add(normalized_name)
             
             # Extract survey data and sightings
             dates_row = df.iloc[1, :].values
@@ -319,9 +339,10 @@ def extract_and_import_birds(excel_file: str):
                     species_name = species_col.iloc[row_idx] if row_idx < len(species_col) else None
                     if pd.isna(species_name) or not isinstance(species_name, str):
                         continue
-                    
+
                     species_name = species_name.strip()
-                    if species_name not in all_species:
+                    normalized_name = normalize_species_name(species_name)
+                    if normalized_name not in all_species:
                         continue
                     
                     if col_idx < len(df.columns) and row_idx < len(df):
@@ -331,7 +352,7 @@ def extract_and_import_birds(excel_file: str):
                                 count = int(float(str(count_value)))
                                 if count > 0:
                                     all_sightings.append({
-                                        'species_name': species_name,
+                                        'species_name': normalized_name,
                                         'date': parsed_date,
                                         'field_section': field_section,
                                         'count': count,
