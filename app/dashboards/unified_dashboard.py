@@ -378,6 +378,112 @@ def create_yearly_species_chart(sightings: List[dict]):
     return fig
 
 
+def create_total_sightings_chart(sightings: List[dict]):
+    """Create a chart showing total sightings count by survey date."""
+    if not sightings:
+        return None
+
+    # Group sightings by date and sum counts
+    survey_data = defaultdict(int)
+
+    for sighting in sightings:
+        survey_data[sighting['date']] += sighting['count']
+
+    # Convert to list of tuples for sorting and plotting
+    survey_counts = [(date, count) for date, count in survey_data.items()]
+    survey_counts.sort(key=lambda x: x[0])  # Sort chronologically
+
+    if not survey_counts:
+        return None
+
+    dates = [item[0] for item in survey_counts]
+    counts = [item[1] for item in survey_counts]
+
+    # Create plotly bar chart
+    fig = go.Figure(data=[
+        go.Bar(
+            x=dates,
+            y=counts,
+            marker_color='#9467bd',
+            text=counts,
+            textposition='auto'
+        )
+    ])
+
+    fig.update_layout(
+        title="Total Sightings by Survey Date",
+        xaxis_title="Survey Date",
+        yaxis_title="Total Sightings Count",
+        xaxis={'tickangle': 45},
+        height=500,
+        showlegend=False
+    )
+
+    return fig
+
+
+def create_cumulative_species_chart(sightings: List[dict], timescale: str):
+    """Create a chart showing cumulative unique species over time."""
+    if not sightings:
+        return None
+
+    # Group sightings by time period and collect unique species
+    time_data = defaultdict(set)
+
+    for sighting in sightings:
+        if timescale == "Monthly":
+            time_key = sighting['date'].strftime('%Y-%m')
+        elif timescale == "Quarterly":
+            year = sighting['date'].year
+            quarter = (sighting['date'].month - 1) // 3 + 1
+            time_key = f"{year} Q{quarter}"
+        else:  # Yearly
+            time_key = str(sighting['date'].year)
+
+        time_data[time_key].add(sighting['species_name'])
+
+    # Sort periods chronologically
+    sorted_periods = sorted(time_data.keys())
+
+    # Calculate cumulative unique species
+    cumulative_species = set()
+    cumulative_data = []
+
+    for period in sorted_periods:
+        cumulative_species.update(time_data[period])
+        cumulative_data.append((period, len(cumulative_species)))
+
+    if not cumulative_data:
+        return None
+
+    periods = [item[0] for item in cumulative_data]
+    cumulative_counts = [item[1] for item in cumulative_data]
+
+    # Create plotly line chart
+    fig = go.Figure(data=[
+        go.Scatter(
+            x=periods,
+            y=cumulative_counts,
+            mode='lines+markers',
+            line=dict(color='#17becf', width=3),
+            marker=dict(size=8),
+            text=cumulative_counts,
+            textposition='top center'
+        )
+    ])
+
+    fig.update_layout(
+        title=f"Cumulative Unique Species Over Time ({timescale})",
+        xaxis_title="Period",
+        yaxis_title="Cumulative Unique Species Count",
+        xaxis={'tickangle': 45},
+        height=500,
+        showlegend=False
+    )
+
+    return fig
+
+
 def render_dashboard(species: Literal["bird", "butterfly"]):
     """Render the dashboard content (without authentication and page config)"""
     # Load the sightings data
@@ -398,7 +504,7 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                 all_conservation_statuses = ["Green", "Amber", "Red"] if has_conservation_data else []
 
                 # Create tabs for different views
-                tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "🔍 Species Detail", "📈 Time Trends", "📋 Raw Data"])
+                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Overview", "🔍 Species Detail", "📊 Total Species", "📈 Total Sightings", "📋 Raw Data"])
 
                 with tab1:
                     st.header("Survey Overview")
@@ -495,7 +601,7 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                             st.info("No sightings data available for the selected species.")
 
                 with tab3:
-                    st.header("Time Trends")
+                    st.header("Total Species")
 
                     # Controls for time trends
                     col1, col2 = st.columns(2)
@@ -552,21 +658,27 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                         if fig:
                             st.plotly_chart(fig, use_container_width=True)
 
+                            # Create and display cumulative species chart
+                            cumulative_fig = create_cumulative_species_chart(trend_sightings, timescale)
+                            if cumulative_fig:
+                                st.plotly_chart(cumulative_fig, use_container_width=True)
+
                             # Show breakdown table
                             st.subheader(f"{timescale} Breakdown")
 
-                            # Create table data with new species tracking (no truncation)
+                            # Create table data with new species tracking and cumulative count
                             table_data = []
                             seen_species = set()
                             for period, species_set in sorted(time_data.items()):
                                 new_species = species_set - seen_species
+                                seen_species.update(species_set)
                                 table_data.append({
                                     period_name: period,
                                     "Unique Species": len(species_set),
+                                    "Cumulative Species": len(seen_species),
                                     "New Species": ", ".join(sorted(new_species)) if new_species else "None",
                                     "Species List": ", ".join(sorted(species_set)[:5]) + ("..." if len(species_set) > 5 else "")
                                 })
-                                seen_species.update(species_set)
 
                             if table_data:
                                 trends_df = pd.DataFrame(table_data)
@@ -577,6 +689,49 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                         st.info("No data available for the selected conservation status filters.")
 
                 with tab4:
+                    st.header("Total Sightings")
+
+                    # Conservation status filter for total sightings
+                    if has_conservation_data:
+                        selected_conservation_sightings = st.multiselect(
+                            "Conservation Status:",
+                            all_conservation_statuses,
+                            default=all_conservation_statuses,
+                            key=f"{species}_conservation_sightings"
+                        )
+                    else:
+                        selected_conservation_sightings = None
+
+                    # Filter sightings by conservation status
+                    sightings_filtered = sightings
+                    if selected_conservation_sightings and has_conservation_data:
+                        sightings_filtered = [s for s in sightings if s['conservation_status'] in selected_conservation_sightings]
+
+                    if sightings_filtered:
+                        # Create total sightings chart
+                        fig = create_total_sightings_chart(sightings_filtered)
+                        if fig:
+                            st.plotly_chart(fig, use_container_width=True)
+
+                            # Show summary statistics
+                            total_surveys = len(set(s['date'] for s in sightings_filtered))
+                            total_sightings = sum(s['count'] for s in sightings_filtered)
+                            avg_sightings = total_sightings / total_surveys if total_surveys > 0 else 0
+
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Total Surveys", total_surveys)
+                            with col2:
+                                st.metric("Total Sightings", total_sightings)
+                            with col3:
+                                st.metric("Avg Sightings/Survey", f"{avg_sightings:.1f}")
+
+                        else:
+                            st.info("No data available to show total sightings.")
+                    else:
+                        st.info("No data available for the selected conservation status filters.")
+
+                with tab5:
                     st.header("Raw Sightings Data")
 
                     # Convert to DataFrame for display
