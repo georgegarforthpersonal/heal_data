@@ -588,12 +588,12 @@ def create_cumulative_species_chart(sightings: List[dict], timescale: str, speci
                 st.error(f"Could not load image {image_config.get('file_path', 'unknown')}: {e}")
 
     fig.update_layout(
-        title=f"Cumulative Unique Species Over Time ({timescale})",
-        xaxis_title="Period",
-        yaxis_title="Cumulative Unique Species Count",
+        title=f"Cumulative Species ({timescale})",
+        xaxis_title=None,
+        yaxis_title="Species Count",
         xaxis={'tickangle': 45, 'showgrid': False},
         yaxis={'showgrid': False},
-        height=500,
+        height=600,
         showlegend=False,
         plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
         paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
