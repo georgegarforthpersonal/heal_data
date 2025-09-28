@@ -911,6 +911,314 @@ def render_report(species: Literal["bird", "butterfly"]):
             st.info("Please check the database connection and try again.")
 
 
+def create_combined_species_chart():
+    """Create a combined chart showing cumulative species for birds, butterflies, and reptiles"""
+    try:
+        # Load bird and butterfly data from database
+        bird_sightings = get_sightings("bird")
+        butterfly_sightings = get_sightings("butterfly")
+
+        # Hardcoded reptile sightings data
+        reptile_sightings = [
+            {
+                'date': datetime(2024, 6, 30).date(),
+                'species_name': 'Grass Snake',
+                'conservation_status': 'Green',
+                'count': 1,
+                'transect_name': 'Hardcoded',
+                'surveyors': 'Survey Team',
+                'notes': ''
+            },
+            {
+                'date': datetime(2024, 8, 6).date(),
+                'species_name': 'Common Lizard',
+                'conservation_status': 'Green',
+                'count': 1,
+                'transect_name': 'Hardcoded',
+                'surveyors': 'Survey Team',
+                'notes': ''
+            },
+            {
+                'date': datetime(2024, 9, 30).date(),
+                'species_name': 'Slow Worm',
+                'conservation_status': 'Green',
+                'count': 1,
+                'transect_name': 'Hardcoded',
+                'surveyors': 'Survey Team',
+                'notes': ''
+            }
+        ]
+
+        # Function to calculate cumulative species data for a given dataset
+        def calculate_cumulative_data(sightings, species_type_name):
+            if not sightings:
+                return [], []
+
+            # Group sightings by month and collect unique species
+            monthly_data = defaultdict(set)
+            for sighting in sightings:
+                month_key = sighting['date'].strftime('%Y-%m')
+                monthly_data[month_key].add(sighting['species_name'])
+
+            # Sort periods chronologically
+            sorted_periods = sorted(monthly_data.keys())
+
+            # Calculate cumulative unique species
+            cumulative_species = set()
+            periods = []
+            cumulative_counts = []
+
+            for period in sorted_periods:
+                cumulative_species.update(monthly_data[period])
+                periods.append(period)
+                cumulative_counts.append(len(cumulative_species))
+
+            # Extend to August 2025 with the final cumulative count
+            if periods and cumulative_counts:
+                final_count = cumulative_counts[-1]
+                last_period = periods[-1]
+
+                # Generate monthly periods from the last data point to 2025-08
+                from datetime import datetime
+                last_date = datetime.strptime(last_period, '%Y-%m')
+                target_date = datetime(2025, 8, 1)
+
+                current_date = datetime(last_date.year, last_date.month, 1)
+
+                while current_date < target_date:
+                    current_date = current_date.replace(month=current_date.month + 1) if current_date.month < 12 else current_date.replace(year=current_date.year + 1, month=1)
+                    period_str = current_date.strftime('%Y-%m')
+                    if period_str not in periods and current_date <= target_date:
+                        periods.append(period_str)
+                        cumulative_counts.append(final_count)
+
+            return periods, cumulative_counts
+
+        # Calculate data for each species type
+        bird_periods, bird_counts = calculate_cumulative_data(bird_sightings, "Birds")
+        butterfly_periods, butterfly_counts = calculate_cumulative_data(butterfly_sightings, "Butterflies")
+
+        # Create the combined chart
+        fig = go.Figure()
+
+        # Add bird line
+        if bird_periods and bird_counts:
+            fig.add_trace(go.Scatter(
+                x=bird_periods,
+                y=bird_counts,
+                mode='lines',
+                name='Birds',
+                line=dict(color='#2E7D32', width=3)  # Green
+            ))
+
+        # Add butterfly line
+        if butterfly_periods and butterfly_counts:
+            fig.add_trace(go.Scatter(
+                x=butterfly_periods,
+                y=butterfly_counts,
+                mode='lines',
+                name='Butterflies',
+                line=dict(color='#F57C00', width=3)  # Orange
+            ))
+
+
+        # Add configurable markers with images from configuration file
+        try:
+            markers_config_path = os.path.join(os.path.dirname(__file__), 'chart_markers_config.json')
+            with open(markers_config_path, 'r') as f:
+                markers_config = json.load(f)
+
+            marker_config = markers_config.get('markers', [])
+
+        except Exception as e:
+            print(f"Could not load markers config: {e}")
+            marker_config = []
+
+        for marker in marker_config:
+            species_type = marker.get("species_type")
+            marker_x_pos = marker.get("marker_x_position")
+            file_path = marker.get("file_path")
+            caption = marker.get("caption")
+            image_x = marker.get("image_x")
+            image_y = marker.get("image_y")
+
+            # Get the appropriate data based on species type
+            if species_type == "bird" and bird_periods and bird_counts:
+                periods, counts = bird_periods, bird_counts
+                color = '#2E7D32'
+                name = 'Birds'
+            elif species_type == "butterfly" and butterfly_periods and butterfly_counts:
+                periods, counts = butterfly_periods, butterfly_counts
+                color = '#F57C00'
+                name = 'Butterflies'
+            else:
+                continue
+
+            # Calculate the marker position on the line
+            if periods and counts and marker_x_pos is not None:
+                # Convert marker_x_position (0.0 to 1.0) to actual period index
+                target_index = int(marker_x_pos * (len(periods) - 1))
+                target_index = max(0, min(target_index, len(periods) - 1))
+
+                target_period = periods[target_index]
+                target_count = counts[target_index]
+
+                # Add marker at the calculated position
+                fig.add_trace(go.Scatter(
+                    x=[target_period],
+                    y=[target_count],
+                    mode='markers',
+                    marker=dict(
+                        color=color,
+                        size=12,
+                        symbol='circle',
+                        line=dict(width=2, color='white')
+                    ),
+                    showlegend=False,
+                    hovertemplate=f'<b>{name}</b><br>Date: %{{x}}<br>Species Count: %{{y}}<extra></extra>'
+                ))
+
+            # Add image at specified coordinates if file_path is provided
+            if file_path and image_x is not None and image_y is not None:
+                try:
+                    # Get the path to the image
+                    image_path = os.path.join(os.path.dirname(__file__), file_path)
+
+                    # Create circular cropped image with PIL
+                    def create_circular_image(image_path, size=120):
+                        # Open and resize image
+                        img = Image.open(image_path).convert("RGBA")
+                        img = img.resize((size, size), Image.Resampling.LANCZOS)
+
+                        # Create circular mask
+                        mask = Image.new('L', (size, size), 0)
+                        draw = ImageDraw.Draw(mask)
+                        draw.ellipse((0, 0, size, size), fill=255)
+
+                        # Apply mask to image
+                        output = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+                        output.paste(img, (0, 0))
+                        output.putalpha(mask)
+
+                        return output
+
+                    # Create circular image
+                    circular_img = create_circular_image(image_path, 120)
+
+                    # Convert to base64
+                    buffer = io.BytesIO()
+                    circular_img.save(buffer, format="PNG")
+                    img_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+                    # Add the circular image using paper coordinates at specified position
+                    fig.add_layout_image(
+                        dict(
+                            source=f"data:image/png;base64,{img_base64}",
+                            xref="paper",
+                            yref="paper",
+                            x=image_x,
+                            y=image_y,
+                            sizex=0.16,    # 16% of chart width
+                            sizey=0.16,    # 16% of chart height
+                            xanchor="center",
+                            yanchor="middle",
+                            opacity=1.0,
+                            layer="above"
+                        )
+                    )
+
+                    # Add caption below the image if provided
+                    if caption:
+                        fig.add_annotation(
+                            x=image_x,
+                            y=image_y - 0.07,
+                            text=caption,
+                            showarrow=False,
+                            font=dict(size=12, color="#333333"),
+                            xref="paper",
+                            yref="paper",
+                            xanchor="center",
+                            yanchor="top"
+                        )
+
+                except Exception as e:
+                    print(f"Could not load image {file_path}: {e}")
+
+
+        fig.update_layout(
+            title="Combined Cumulative Species Count (Monthly)",
+            xaxis_title=None,
+            yaxis_title="Species Count",
+            xaxis={
+                'tickangle': 0,
+                'showgrid': False,
+                'tickvals': ['2024-01', '2024-07', '2025-01', '2025-07'],
+                'ticktext': ['Jan 2024', 'Jul 2024', 'Jan 2025', 'Jul 2025'],
+                'tickfont': {'size': 14}
+            },
+            yaxis={'showgrid': False, 'tickfont': {'size': 14}},
+            font={'size': 14},
+            height=900,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.05,
+                xanchor="right",
+                x=1
+            ),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+
+        return fig
+
+    except Exception as e:
+        print(f"Error creating combined chart: {e}")
+        return None
+
+
+def render_reptile_report():
+    """Render the report chart for reptiles using hardcoded data"""
+    # Hardcoded reptile sightings data
+    reptile_sightings = [
+        {
+            'date': datetime(2024, 6, 30).date(),
+            'species_name': 'Grass Snake',
+            'conservation_status': 'Green',
+            'count': 1,
+            'transect_name': 'Hardcoded',
+            'surveyors': 'Survey Team',
+            'notes': ''
+        },
+        {
+            'date': datetime(2024, 8, 6).date(),
+            'species_name': 'Common Lizard',
+            'conservation_status': 'Green',
+            'count': 1,
+            'transect_name': 'Hardcoded',
+            'surveyors': 'Survey Team',
+            'notes': ''
+        },
+        {
+            'date': datetime(2024, 9, 30).date(),
+            'species_name': 'Slow Worm',
+            'conservation_status': 'Green',
+            'count': 1,
+            'transect_name': 'Hardcoded',
+            'surveyors': 'Survey Team',
+            'notes': ''
+        }
+    ]
+
+    # Create cumulative species chart with hardcoded reptile data
+    cumulative_fig = create_cumulative_species_chart(reptile_sightings, "Monthly", species_type="reptile")
+    if cumulative_fig:
+        st.plotly_chart(cumulative_fig, use_container_width=True)
+    else:
+        st.info("No data available to show the reptile report chart.")
+
+
 def main(species: Literal["bird", "butterfly"]):
     """Main function to render the dashboard with authentication"""
     # Set page config based on species

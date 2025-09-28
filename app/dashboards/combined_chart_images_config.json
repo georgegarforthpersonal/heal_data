@@ -1,0 +1,130 @@
+{
+  "chart_images": [
+    {
+      "species_type": "bird",
+      "x_axis_position": 0.25,
+      "y_axis_position": 0.80,
+      "file_path": "images/turtledove.jpg",
+      "caption": "Turtle Dove",
+      "dotted_line": {
+        "x1": 0.25,
+        "y1": 0.74,
+        "x2": "2024-01",
+        "y2": 45,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y",
+        "color": "#2E7D32",
+        "width": 2,
+        "style": "dot",
+        "opacity": 0.7
+      }
+    },
+    {
+      "species_type": "bird",
+      "x_axis_position": 0.45,
+      "y_axis_position": 0.85,
+      "file_path": "images/hawfinch.jpg",
+      "caption": "Hawfinch",
+      "dotted_line": {
+        "x1": 0.45,
+        "y1": 0.79,
+        "x2": "2024-05",
+        "y2": 50,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y",
+        "color": "#2E7D32",
+        "width": 2,
+        "style": "dot",
+        "opacity": 0.7
+      }
+    },
+    {
+      "species_type": "bird",
+      "x_axis_position": 0.65,
+      "y_axis_position": 0.75,
+      "file_path": "images/goshawk.jpg",
+      "caption": "Goshawk",
+      "dotted_line": {
+        "x1": 0.65,
+        "y1": 0.69,
+        "x2": "2024-08",
+        "y2": 55,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y",
+        "color": "#2E7D32",
+        "width": 2,
+        "style": "dot",
+        "opacity": 0.7
+      }
+    },
+    {
+      "species_type": "bird",
+      "x_axis_position": 0.85,
+      "y_axis_position": 0.80,
+      "file_path": "images/spotted_flycatcher.jpg",
+      "caption": "Spotted Flycatcher",
+      "dotted_line": {
+        "x1": 0.85,
+        "y1": 0.74,
+        "x2": "2024-11",
+        "y2": 60,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y",
+        "color": "#2E7D32",
+        "width": 2,
+        "style": "dot",
+        "opacity": 0.7
+      }
+    },
+    {
+      "species_type": "butterfly",
+      "x_axis_position": 0.35,
+      "y_axis_position": 0.45,
+      "file_path": "images/marbeled_white.png",
+      "caption": "Marbled White",
+      "dotted_line": {
+        "x1": 0.35,
+        "y1": 0.39,
+        "x2": "2024-06",
+        "y2": 25,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y",
+        "color": "#F57C00",
+        "width": 2,
+        "style": "dot",
+        "opacity": 0.7
+      }
+    },
+    {
+      "species_type": "reptile",
+      "x_axis_position": 0.55,
+      "y_axis_position": 0.25,
+      "file_path": "images/slowworm.png",
+      "caption": "Slow Worm",
+      "dotted_line": {
+        "x1": 0.55,
+        "y1": 0.31,
+        "x2": "2024-09",
+        "y2": 3,
+        "x1_ref": "paper",
+        "y1_ref": "paper",
+        "x2_ref": "x",
+        "y2_ref": "y",
+        "color": "#C62828",
+        "width": 2,
+        "style": "dot",
+        "opacity": 0.7
+      }
+    }
+  ]
+}
