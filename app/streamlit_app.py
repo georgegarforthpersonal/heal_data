@@ -6,7 +6,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from pages import surveys, dashboard
-from dashboards.unified_dashboard import render_dashboard, render_report, render_reptile_report, create_combined_species_chart
+from dashboards.unified_dashboard import render_dashboard, create_combined_species_chart
 
 st.set_page_config(
     page_title="Wildlife Survey Management", 
@@ -60,28 +60,12 @@ elif selected_tab == "Dashboard":
         render_dashboard("butterfly")
 
 elif selected_tab == "Report":
-    # Show both birds and butterflies reports on the same page
-    st.header("Species Reports")
+    # Show combined species report
+    st.header("Combined Species Report")
 
-    # Combined chart at the top
-    st.subheader("📊 Combined Species Overview")
+    # Combined chart
     combined_fig = create_combined_species_chart()
     if combined_fig:
         st.plotly_chart(combined_fig, use_container_width=True)
     else:
         st.error("Unable to load combined species chart")
-
-    # Individual sections below
-    st.divider()
-
-    # Birds section
-    st.subheader("🐦 Birds")
-    render_report("bird")
-
-    # Butterflies section
-    st.subheader("🦋 Butterflies")
-    render_report("butterfly")
-
-    # Reptiles section
-    st.subheader("🦎 Reptiles")
-    render_reptile_report()

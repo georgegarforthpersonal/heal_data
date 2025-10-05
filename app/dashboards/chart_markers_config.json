@@ -13,7 +13,7 @@
       "species_type": "bird",
       "file_path": "images/hawfinch.jpg",
       "image_x": 0.53,
-      "image_y": 0.71,
+      "image_y": 0.68,
       "caption": "Hawfinch"
     },
     {
@@ -36,9 +36,9 @@
       "marker_x_position": 0.76,
       "species_type": "butterfly",
       "file_path": "images/marbeled_white.png",
-      "image_x": 0.79,
-      "image_y": 0.38,
-      "caption": "Marbled White"
+      "image_x": 0.76,
+      "image_y": 0.40,
+      "caption": "Marbled<br>White"
     },
     {
       "marker_x_position": 0.5,
@@ -54,8 +54,8 @@
       "species_type": "butterfly",
       "file_path": "images/purple_hairstreak.jpg",
       "image_x": 0.92,
-      "image_y": 0.38,
-      "caption": "Purple hairstreak"
+      "image_y": 0.42,
+      "caption": "Purple<br>Hairstreak"
     }
   ]
 }

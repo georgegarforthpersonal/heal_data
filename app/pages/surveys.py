@@ -532,7 +532,6 @@ def render_tab_content(survey_type):
 
             expander_title = f"{date_str} • {surveyor_name} • {sightings_count} sightings"
 
-            # Use default Streamlit expander behavior
             with st.expander(expander_title):
                 # Survey details and editing within the expander
                 render_survey_content(survey)
@@ -579,8 +578,9 @@ def render_survey_content(survey):
         # Edit mode - show editable fields
         if is_mock_survey:
             # For mock surveys (new survey creation), create a mock survey object
+            # Use survey[0] as the id to ensure keys match when reading back
             survey_obj = Survey(
-                id=None,
+                id=survey[0],
                 date=survey[1],
                 start_time=survey[2],
                 end_time=survey[3],
@@ -633,7 +633,7 @@ def render_survey_content(survey):
         with header_col1:
             st.write("**Species**")
         with header_col2:
-            st.write("**Transect**")
+            st.write("**Location**")
         with header_col3:
             st.write("**Count**")
         with header_col4:
@@ -768,7 +768,7 @@ def render_survey_content(survey):
                                 transect_index = None  # No default selection
                             st.selectbox("Transect", options=transect_options,
                                        index=transect_index,
-                                       placeholder="Select Transect...",
+                                       placeholder="Select Location...",
                                        key=f"edit_pending_transect_{pending_sighting['temp_id']}",
                                        label_visibility="collapsed")
 
@@ -859,7 +859,9 @@ def render_survey_content(survey):
                     survey_id_for_key = survey[0]
 
                     for field_name in survey_fields:
+                        # Use the same key format as render_survey_field_for_edit
                         key = f"edit_survey_{survey_type}_{survey_id_for_key}_{field_name}"
+
                         if field_name == "surveyors":
                             # Special handling for surveyors - read directly from session state
                             if key in st.session_state:

@@ -190,8 +190,8 @@ def create_species_chart(sightings: List[dict]):
     return fig
 
 
-def create_sighting_timeline(sightings: List[dict], selected_species: List[str], species_type: str):
-    """Create a timeline chart showing individual sighting dates for selected species."""
+def create_sighting_timeline(sightings: List[dict], selected_species: List[str], species_type: str, timescale: str = "Daily"):
+    """Create a timeline chart showing sighting aggregations for selected species by timescale."""
     if not selected_species:
         return None
 
@@ -201,28 +201,41 @@ def create_sighting_timeline(sightings: List[dict], selected_species: List[str],
     if not filtered_sightings:
         return None
 
-    # Group by species and date, summing counts
+    # Group by species and time period based on timescale
     timeline_data = defaultdict(lambda: defaultdict(int))
+
     for sighting in filtered_sightings:
-        timeline_data[sighting['species_name']][sighting['date']] += sighting['count']
+        if timescale == "Monthly":
+            period = sighting['date'].strftime('%Y-%m')
+        elif timescale == "Quarterly":
+            year = sighting['date'].year
+            quarter = (sighting['date'].month - 1) // 3 + 1
+            period = f"{year} Q{quarter}"
+        elif timescale == "Yearly":
+            period = str(sighting['date'].year)
+        else:  # Daily (default)
+            period = sighting['date']
+
+        timeline_data[sighting['species_name']][period] += sighting['count']
 
     # Create DataFrame for plotting
     plot_data = []
-    for species_name, dates in timeline_data.items():
-        for date_val, total_count in dates.items():
+    for species_name, periods in timeline_data.items():
+        for period_val, total_count in periods.items():
             plot_data.append({
                 'Species': species_name,
-                'Date': date_val,
+                'Period': period_val,
                 'Count': total_count
             })
 
     df = pd.DataFrame(plot_data)
-    df = df.sort_values('Date')
+    df = df.sort_values('Period')
 
-    # Create bar chart
-    fig = px.bar(df, x='Date', y='Count', color='Species',
-                 title=f"Sighting Dates Timeline",
-                 labels={'Count': f'{species_type.title()}s Counted', 'Date': 'Survey Date'})
+    # Create bar chart with appropriate labels
+    period_label = "Survey Date" if timescale == "Daily" else timescale.rstrip('ly')
+    fig = px.bar(df, x='Period', y='Count', color='Species',
+                 title=f"Sightings by {timescale} Period",
+                 labels={'Count': f'{species_type.title()}s Counted', 'Period': period_label})
 
     fig.update_layout(height=400, xaxis={'tickangle': 45})
 
@@ -622,9 +635,96 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                 all_conservation_statuses = ["Green", "Amber", "Red"] if has_conservation_data else []
 
                 # Create tabs for different views
-                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Overview", "🔍 Species Detail", "📊 Total Species", "📈 Total Sightings", "📋 Raw Data"])
+                tab1, tab2, tab3, tab4 = st.tabs(["📊 Total Species", "📊 Overview", "🔍 Species Detail", "📋 Raw Data"])
 
                 with tab1:
+                    st.header("Total Species")
+
+                    # Controls for time trends
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        timescale = st.selectbox(
+                            "Select Time Scale:",
+                            ["Monthly", "Quarterly", "Yearly"],
+                            key=f"{species}_timescale"
+                        )
+
+                    with col2:
+                        # Conservation status filter
+                        if has_conservation_data:
+                            selected_conservation_trends = st.multiselect(
+                                "Conservation Status:",
+                                all_conservation_statuses,
+                                default=all_conservation_statuses,
+                                key=f"{species}_conservation_trends"
+                            )
+                        else:
+                            selected_conservation_trends = None
+
+                    # Filter sightings by conservation status
+                    trend_sightings = sightings
+                    if selected_conservation_trends and has_conservation_data:
+                        trend_sightings = [s for s in sightings if s['conservation_status'] in selected_conservation_trends]
+
+                    if trend_sightings:
+                        # Create and display cumulative species chart FIRST
+                        cumulative_fig = create_cumulative_species_chart(trend_sightings, timescale, species_type="none")
+                        if cumulative_fig:
+                            st.plotly_chart(cumulative_fig, use_container_width=True)
+
+                        # Generate appropriate chart based on timescale
+                        if timescale == "Monthly":
+                            fig = create_monthly_species_chart(trend_sightings)
+                            time_data = defaultdict(set)
+                            for sighting in trend_sightings:
+                                year_month = sighting['date'].strftime('%Y-%m')
+                                time_data[year_month].add(sighting['species_name'])
+                            period_name = "Month"
+                        elif timescale == "Quarterly":
+                            fig = create_quarterly_species_chart(trend_sightings)
+                            time_data = defaultdict(set)
+                            for sighting in trend_sightings:
+                                year = sighting['date'].year
+                                quarter = (sighting['date'].month - 1) // 3 + 1
+                                quarter_key = f"{year} Q{quarter}"
+                                time_data[quarter_key].add(sighting['species_name'])
+                            period_name = "Quarter"
+                        else:  # Yearly
+                            fig = create_yearly_species_chart(trend_sightings)
+                            time_data = defaultdict(set)
+                            for sighting in trend_sightings:
+                                year = str(sighting['date'].year)
+                                time_data[year].add(sighting['species_name'])
+                            period_name = "Year"
+
+                        if fig:
+                            st.plotly_chart(fig, use_container_width=True)
+
+                            # Show breakdown table (without Species List column)
+                            st.subheader(f"{timescale} Breakdown")
+
+                            # Create table data with new species tracking and cumulative count
+                            table_data = []
+                            seen_species = set()
+                            for period, species_set in sorted(time_data.items()):
+                                new_species = species_set - seen_species
+                                seen_species.update(species_set)
+                                table_data.append({
+                                    period_name: period,
+                                    "Unique Species": len(species_set),
+                                    "Cumulative Species": len(seen_species),
+                                    "New Species": ", ".join(sorted(new_species)) if new_species else "None"
+                                })
+
+                            if table_data:
+                                trends_df = pd.DataFrame(table_data)
+                                st.dataframe(trends_df, use_container_width=True, hide_index=True)
+                        else:
+                            st.info(f"No data available to show {timescale.lower()} trends.")
+                    else:
+                        st.info("No data available for the selected conservation status filters.")
+
+                with tab2:
                     st.header("Survey Overview")
 
                     # Filters - adjust layout based on whether conservation status filter is shown
@@ -674,8 +774,15 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                     else:
                         st.warning("No data available for the selected filters.")
 
-                with tab2:
+                with tab3:
                     st.header("Species Details & Timeline")
+
+                    # Add timescale selector
+                    timescale_detail = st.selectbox(
+                        "Select Time Scale:",
+                        ["Monthly", "Quarterly", "Yearly"],
+                        key=f"{species}_detail_timescale"
+                    )
 
                     # Species selector (multi-select) with species-specific defaults
                     all_species = sorted(list(set(s['species_name'] for s in sightings)))
@@ -691,165 +798,52 @@ def render_dashboard(species: Literal["bird", "butterfly"]):
                                                       key=f"{species}_species_select")
 
                     if selected_species:
-                        # Create summary table for selected species
-                        species_summary_data = []
-                        for species_name in selected_species:
-                            species_sightings = [s for s in sightings if s['species_name'] == species_name]
+                        # Group sightings by timescale for all selected species
+                        if timescale_detail == "Monthly":
+                            time_groups = defaultdict(lambda: defaultdict(int))
+                            for s in sightings:
+                                if s['species_name'] in selected_species:
+                                    year_month = s['date'].strftime('%Y-%m')
+                                    time_groups[year_month][s['species_name']] += s['count']
+                            period_name = "Month"
+                        elif timescale_detail == "Quarterly":
+                            time_groups = defaultdict(lambda: defaultdict(int))
+                            for s in sightings:
+                                if s['species_name'] in selected_species:
+                                    year = s['date'].year
+                                    quarter = (s['date'].month - 1) // 3 + 1
+                                    quarter_key = f"{year} Q{quarter}"
+                                    time_groups[quarter_key][s['species_name']] += s['count']
+                            period_name = "Quarter"
+                        else:  # Yearly
+                            time_groups = defaultdict(lambda: defaultdict(int))
+                            for s in sightings:
+                                if s['species_name'] in selected_species:
+                                    year = str(s['date'].year)
+                                    time_groups[year][s['species_name']] += s['count']
+                            period_name = "Year"
 
-                            if species_sightings:
-                                row_data = {
-                                    "Species": species_name,
-                                    "Total Sightings": sum(s['count'] for s in species_sightings)
-                                }
-                                # Only add conservation status if there's meaningful data
-                                if has_conservation_data:
-                                    row_data["Conservation Status"] = species_sightings[0]['conservation_status']
-                                species_summary_data.append(row_data)
+                        # Create detailed breakdown table showing sightings by period
+                        if time_groups:
+                            table_data = []
+                            for period in sorted(time_groups.keys()):
+                                row_data = {period_name: period}
+                                for species_name in selected_species:
+                                    row_data[species_name] = time_groups[period].get(species_name, 0)
+                                table_data.append(row_data)
 
-                        # Display summary table
-                        if species_summary_data:
-                            summary_df = pd.DataFrame(species_summary_data)
-                            st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                            if table_data:
+                                detail_df = pd.DataFrame(table_data)
+                                st.dataframe(detail_df, use_container_width=True, hide_index=True)
 
-                        # Sighting dates timeline chart
-                        timeline_fig = create_sighting_timeline(sightings, selected_species, species)
+                        # Sighting dates timeline chart (aggregated by timescale)
+                        timeline_fig = create_sighting_timeline(sightings, selected_species, species, timescale_detail)
                         if timeline_fig:
                             st.plotly_chart(timeline_fig, use_container_width=True)
                         else:
                             st.info("No sightings data available for the selected species.")
 
-                with tab3:
-                    st.header("Total Species")
-
-                    # Controls for time trends
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        timescale = st.selectbox(
-                            "Select Time Scale:",
-                            ["Monthly", "Quarterly", "Yearly"],
-                            key=f"{species}_timescale"
-                        )
-
-                    with col2:
-                        # Conservation status filter
-                        if has_conservation_data:
-                            selected_conservation_trends = st.multiselect(
-                                "Conservation Status:",
-                                all_conservation_statuses,
-                                default=all_conservation_statuses,
-                                key=f"{species}_conservation_trends"
-                            )
-                        else:
-                            selected_conservation_trends = None
-
-                    # Filter sightings by conservation status
-                    trend_sightings = sightings
-                    if selected_conservation_trends and has_conservation_data:
-                        trend_sightings = [s for s in sightings if s['conservation_status'] in selected_conservation_trends]
-
-                    if trend_sightings:
-                        # Generate appropriate chart based on timescale
-                        if timescale == "Monthly":
-                            fig = create_monthly_species_chart(trend_sightings)
-                            time_data = defaultdict(set)
-                            for sighting in trend_sightings:
-                                year_month = sighting['date'].strftime('%Y-%m')
-                                time_data[year_month].add(sighting['species_name'])
-                            period_name = "Month"
-                        elif timescale == "Quarterly":
-                            fig = create_quarterly_species_chart(trend_sightings)
-                            time_data = defaultdict(set)
-                            for sighting in trend_sightings:
-                                year = sighting['date'].year
-                                quarter = (sighting['date'].month - 1) // 3 + 1
-                                quarter_key = f"{year} Q{quarter}"
-                                time_data[quarter_key].add(sighting['species_name'])
-                            period_name = "Quarter"
-                        else:  # Yearly
-                            fig = create_yearly_species_chart(trend_sightings)
-                            time_data = defaultdict(set)
-                            for sighting in trend_sightings:
-                                year = str(sighting['date'].year)
-                                time_data[year].add(sighting['species_name'])
-                            period_name = "Year"
-
-                        if fig:
-                            st.plotly_chart(fig, use_container_width=True)
-
-                            # Create and display cumulative species chart (without image)
-                            cumulative_fig = create_cumulative_species_chart(trend_sightings, timescale, species_type="none")
-                            if cumulative_fig:
-                                st.plotly_chart(cumulative_fig, use_container_width=True)
-
-                            # Show breakdown table
-                            st.subheader(f"{timescale} Breakdown")
-
-                            # Create table data with new species tracking and cumulative count
-                            table_data = []
-                            seen_species = set()
-                            for period, species_set in sorted(time_data.items()):
-                                new_species = species_set - seen_species
-                                seen_species.update(species_set)
-                                table_data.append({
-                                    period_name: period,
-                                    "Unique Species": len(species_set),
-                                    "Cumulative Species": len(seen_species),
-                                    "New Species": ", ".join(sorted(new_species)) if new_species else "None",
-                                    "Species List": ", ".join(sorted(species_set)[:5]) + ("..." if len(species_set) > 5 else "")
-                                })
-
-                            if table_data:
-                                trends_df = pd.DataFrame(table_data)
-                                st.dataframe(trends_df, use_container_width=True, hide_index=True)
-                        else:
-                            st.info(f"No data available to show {timescale.lower()} trends.")
-                    else:
-                        st.info("No data available for the selected conservation status filters.")
-
                 with tab4:
-                    st.header("Total Sightings")
-
-                    # Conservation status filter for total sightings
-                    if has_conservation_data:
-                        selected_conservation_sightings = st.multiselect(
-                            "Conservation Status:",
-                            all_conservation_statuses,
-                            default=all_conservation_statuses,
-                            key=f"{species}_conservation_sightings"
-                        )
-                    else:
-                        selected_conservation_sightings = None
-
-                    # Filter sightings by conservation status
-                    sightings_filtered = sightings
-                    if selected_conservation_sightings and has_conservation_data:
-                        sightings_filtered = [s for s in sightings if s['conservation_status'] in selected_conservation_sightings]
-
-                    if sightings_filtered:
-                        # Create total sightings chart
-                        fig = create_total_sightings_chart(sightings_filtered)
-                        if fig:
-                            st.plotly_chart(fig, use_container_width=True)
-
-                            # Show summary statistics
-                            total_surveys = len(set(s['date'] for s in sightings_filtered))
-                            total_sightings = sum(s['count'] for s in sightings_filtered)
-                            avg_sightings = total_sightings / total_surveys if total_surveys > 0 else 0
-
-                            col1, col2, col3 = st.columns(3)
-                            with col1:
-                                st.metric("Total Surveys", total_surveys)
-                            with col2:
-                                st.metric("Total Sightings", total_sightings)
-                            with col3:
-                                st.metric("Avg Sightings/Survey", f"{avg_sightings:.1f}")
-
-                        else:
-                            st.info("No data available to show total sightings.")
-                    else:
-                        st.info("No data available for the selected conservation status filters.")
-
-                with tab5:
                     st.header("Raw Sightings Data")
 
                     # Convert to DataFrame for display
@@ -912,42 +906,11 @@ def render_report(species: Literal["bird", "butterfly"]):
 
 
 def create_combined_species_chart():
-    """Create a combined chart showing cumulative species for birds, butterflies, and reptiles"""
+    """Create a combined chart showing cumulative species for birds and butterflies"""
     try:
         # Load bird and butterfly data from database
         bird_sightings = get_sightings("bird")
         butterfly_sightings = get_sightings("butterfly")
-
-        # Hardcoded reptile sightings data
-        reptile_sightings = [
-            {
-                'date': datetime(2024, 6, 30).date(),
-                'species_name': 'Grass Snake',
-                'conservation_status': 'Green',
-                'count': 1,
-                'transect_name': 'Hardcoded',
-                'surveyors': 'Survey Team',
-                'notes': ''
-            },
-            {
-                'date': datetime(2024, 8, 6).date(),
-                'species_name': 'Common Lizard',
-                'conservation_status': 'Green',
-                'count': 1,
-                'transect_name': 'Hardcoded',
-                'surveyors': 'Survey Team',
-                'notes': ''
-            },
-            {
-                'date': datetime(2024, 9, 30).date(),
-                'species_name': 'Slow Worm',
-                'conservation_status': 'Green',
-                'count': 1,
-                'transect_name': 'Hardcoded',
-                'surveyors': 'Survey Team',
-                'notes': ''
-            }
-        ]
 
         # Function to calculate cumulative species data for a given dataset
         def calculate_cumulative_data(sightings, species_type_name):
@@ -1134,7 +1097,7 @@ def create_combined_species_chart():
                             y=image_y - 0.07,
                             text=caption,
                             showarrow=False,
-                            font=dict(size=12, color="#333333"),
+                            font=dict(size=18, color="#333333"),
                             xref="paper",
                             yref="paper",
                             xanchor="center",
@@ -1146,18 +1109,18 @@ def create_combined_species_chart():
 
 
         fig.update_layout(
-            title="Combined Cumulative Species Count (Monthly)",
+            title=dict(text="Combined Cumulative Species Count (Monthly)", font=dict(size=24)),
             xaxis_title=None,
-            yaxis_title="Species Count",
+            yaxis_title=dict(text="Species Count", font=dict(size=22)),
             xaxis={
                 'tickangle': 0,
                 'showgrid': False,
                 'tickvals': ['2024-01', '2024-07', '2025-01', '2025-07'],
                 'ticktext': ['Jan 2024', 'Jul 2024', 'Jan 2025', 'Jul 2025'],
-                'tickfont': {'size': 14}
+                'tickfont': {'size': 20}
             },
-            yaxis={'showgrid': False, 'tickfont': {'size': 14}},
-            font={'size': 14},
+            yaxis={'showgrid': False, 'tickfont': {'size': 20}},
+            font={'size': 20},
             height=900,
             showlegend=True,
             legend=dict(
@@ -1165,7 +1128,8 @@ def create_combined_species_chart():
                 yanchor="top",
                 y=-0.05,
                 xanchor="right",
-                x=1
+                x=1,
+                font=dict(size=18)
             ),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
@@ -1178,45 +1142,6 @@ def create_combined_species_chart():
         return None
 
 
-def render_reptile_report():
-    """Render the report chart for reptiles using hardcoded data"""
-    # Hardcoded reptile sightings data
-    reptile_sightings = [
-        {
-            'date': datetime(2024, 6, 30).date(),
-            'species_name': 'Grass Snake',
-            'conservation_status': 'Green',
-            'count': 1,
-            'transect_name': 'Hardcoded',
-            'surveyors': 'Survey Team',
-            'notes': ''
-        },
-        {
-            'date': datetime(2024, 8, 6).date(),
-            'species_name': 'Common Lizard',
-            'conservation_status': 'Green',
-            'count': 1,
-            'transect_name': 'Hardcoded',
-            'surveyors': 'Survey Team',
-            'notes': ''
-        },
-        {
-            'date': datetime(2024, 9, 30).date(),
-            'species_name': 'Slow Worm',
-            'conservation_status': 'Green',
-            'count': 1,
-            'transect_name': 'Hardcoded',
-            'surveyors': 'Survey Team',
-            'notes': ''
-        }
-    ]
-
-    # Create cumulative species chart with hardcoded reptile data
-    cumulative_fig = create_cumulative_species_chart(reptile_sightings, "Monthly", species_type="reptile")
-    if cumulative_fig:
-        st.plotly_chart(cumulative_fig, use_container_width=True)
-    else:
-        st.info("No data available to show the reptile report chart.")
 
 
 def main(species: Literal["bird", "butterfly"]):
