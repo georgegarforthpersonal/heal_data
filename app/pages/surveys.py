@@ -145,18 +145,19 @@ def get_survey_field_display_value(field_name: str, survey):
     else:
         return "N/A"
 
+@st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_all_surveyors() -> List[Tuple[int, str]]:
     """Get all surveyors for dropdown selection"""
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT id, 
-                CASE 
-                    WHEN last_name IS NULL OR trim(last_name) = '' 
+                SELECT id,
+                CASE
+                    WHEN last_name IS NULL OR trim(last_name) = ''
                     THEN trim(first_name)
                     ELSE trim(first_name) || ' ' || trim(last_name)
-                END as full_name 
-                FROM surveyor 
+                END as full_name
+                FROM surveyor
                 ORDER BY first_name, last_name
             """)
             return cursor.fetchall()
@@ -321,6 +322,7 @@ def get_survey_by_id(survey_id: int) -> Optional[Survey]:
         st.error(f"Error fetching survey: {e}")
         return None
 
+@st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_all_species(survey_type: str = None) -> List[Tuple[int, str]]:
     """Get all species for dropdown selection, optionally filtered by type"""
     try:
@@ -334,6 +336,7 @@ def get_all_species(survey_type: str = None) -> List[Tuple[int, str]]:
         st.error(f"Error fetching species: {e}")
         return []
 
+@st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_all_transects(survey_type: str = None) -> List[Tuple[int, str, int]]:
     """Get all transects for dropdown selection, optionally filtered by type"""
     try:
@@ -719,12 +722,12 @@ def render_survey_content(survey):
                         # Show "undo delete" button if marked for deletion
                         if st.button("↶", key=f"undo_delete_sighting_{sighting[0]}", help="Undo Delete"):
                             st.session_state[pending_deletions_key].remove(sighting[0])
-                            st.rerun()
+                            # No rerun needed - Streamlit auto-reruns on button click
                     else:
                         # Show delete button if not marked for deletion
                         if st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete Sighting"):
                             st.session_state[pending_deletions_key].add(sighting[0])
-                            st.rerun()
+                            # No rerun needed - Streamlit auto-reruns on button click
             else:
                 # Display mode - show read-only values
                 with col1:
@@ -780,7 +783,7 @@ def render_survey_content(survey):
                         with col4:
                             if st.button("🗑️", key=f"remove_pending_sighting_{pending_sighting['temp_id']}", help="Delete Sighting"):
                                 st.session_state[pending_additions_key].pop(i)
-                                st.rerun()
+                                # No rerun needed - Streamlit auto-reruns on button click
                     else:
                         # Display mode - show read-only values
                         with col1:
@@ -818,7 +821,7 @@ def render_survey_content(survey):
             }
 
             st.session_state[pending_additions_key].append(new_sighting_data)
-            st.rerun()
+            # No rerun needed - Streamlit auto-reruns on button click
 
     # Edit Survey / Save/Discard buttons
     st.divider()
@@ -829,7 +832,7 @@ def render_survey_content(survey):
         with col1:
             if st.button("✏️ Edit Survey", type="primary", use_container_width=True, key=f"edit_survey_btn_{survey[0]}"):
                 st.session_state.editing_survey_id = survey[0]
-                st.rerun()
+                # No rerun needed - Streamlit auto-reruns on button click
     else:
         # Show Save/Discard buttons when in edit mode
         col1, col2, col3 = st.columns([1, 1, 1])
