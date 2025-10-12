@@ -29,9 +29,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Main title
-st.title("Heal Somerset - Survey Management")
-
 # Top-level navigation using segmented control
 selected_tab = st.segmented_control(
     None,
