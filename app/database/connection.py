@@ -18,24 +18,35 @@ def get_connection_pool():
 
     if _connection_pool is None:
         try:
-            # Try to get credentials from Streamlit secrets first (for cloud deployment)
-            if STREAMLIT_AVAILABLE and hasattr(st, 'secrets') and 'database' in st.secrets:
-                connection_params = {
-                    'host': st.secrets['database']['DB_HOST'],
-                    'port': st.secrets['database']['DB_PORT'],
-                    'database': st.secrets['database']['DB_NAME'],
-                    'user': st.secrets['database']['DB_USER'],
-                    'password': st.secrets['database']['DB_PASSWORD']
-                }
+            connection_params = None
 
-                # Add SSL mode if specified
-                if 'DB_SSLMODE' in st.secrets['database']:
-                    connection_params['sslmode'] = st.secrets['database']['DB_SSLMODE']
-            else:
-                # Fall back to environment variables (for local/Docker deployment)
+            # Try to get credentials from Streamlit secrets first (for cloud deployment)
+            if STREAMLIT_AVAILABLE:
+                try:
+                    # Check if secrets.toml exists before accessing
+                    if hasattr(st, 'secrets'):
+                        secrets_dict = dict(st.secrets)
+                        if 'database' in secrets_dict:
+                            connection_params = {
+                                'host': st.secrets['database']['DB_HOST'],
+                                'port': int(st.secrets['database']['DB_PORT']),
+                                'database': st.secrets['database']['DB_NAME'],
+                                'user': st.secrets['database']['DB_USER'],
+                                'password': st.secrets['database']['DB_PASSWORD']
+                            }
+
+                            # Add SSL mode if specified
+                            if 'DB_SSLMODE' in st.secrets['database']:
+                                connection_params['sslmode'] = st.secrets['database']['DB_SSLMODE']
+                except Exception:
+                    # Secrets not available, fall through to env vars
+                    pass
+
+            # Fall back to environment variables if secrets not found
+            if connection_params is None:
                 connection_params = {
                     'host': os.getenv('DB_HOST', 'localhost'),
-                    'port': os.getenv('DB_PORT', '5432'),
+                    'port': int(os.getenv('DB_PORT', '5432')),
                     'database': os.getenv('DB_NAME', 'heal_butterflies'),
                     'user': os.getenv('DB_USER', 'postgres'),
                     'password': os.getenv('DB_PASSWORD', 'password')
@@ -46,15 +57,17 @@ def get_connection_pool():
                 if sslmode:
                     connection_params['sslmode'] = sslmode
 
-            # Create connection pool with 2-10 connections
+            # Create connection pool with 1-5 connections (reduced for reliability)
             _connection_pool = pool.SimpleConnectionPool(
-                minconn=2,
-                maxconn=10,
+                minconn=1,
+                maxconn=5,
                 **connection_params
             )
-            print("Database connection pool created successfully")
+            print("✅ Database connection pool created successfully")
         except Exception as e:
-            print(f"Error creating connection pool: {e}")
+            print(f"❌ Error creating connection pool: {e}")
+            import traceback
+            traceback.print_exc()
             _connection_pool = None
 
     return _connection_pool

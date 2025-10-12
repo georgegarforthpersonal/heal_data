@@ -165,6 +165,7 @@ def get_all_surveyors() -> List[Tuple[int, str]]:
         st.error(f"Error fetching surveyors: {e}")
         return []
 
+@st.cache_data  # Cache indefinitely, manually invalidate on changes
 def get_all_surveys() -> List[Tuple]:
     """Get all surveys with surveyor names"""
     try:
@@ -224,7 +225,7 @@ def create_survey(survey: Survey) -> Optional[int]:
             ))
             result = cursor.fetchone()
             survey_id = result[0] if result else None
-            
+
             # Insert surveyor associations if provided
             if survey_id and survey.surveyor_ids:
                 for surveyor_id in survey.surveyor_ids:
@@ -234,7 +235,10 @@ def create_survey(survey: Survey) -> Optional[int]:
                             VALUES (%s, %s)
                             ON CONFLICT (survey_id, surveyor_id) DO NOTHING
                         """, (survey_id, surveyor_id))
-            
+
+            # Clear cache after creating survey
+            get_all_surveys.clear()
+
             return survey_id
     except Exception as e:
         st.error(f"Error creating survey: {e}")
@@ -246,8 +250,8 @@ def update_survey(survey: Survey) -> bool:
         with get_db_cursor() as cursor:
             # Update survey data
             cursor.execute("""
-                UPDATE survey 
-                SET date = %s, start_time = %s, end_time = %s, sun_percentage = %s, 
+                UPDATE survey
+                SET date = %s, start_time = %s, end_time = %s, sun_percentage = %s,
                     temperature_celsius = %s, conditions_met = %s, type = %s, notes = %s
                 WHERE id = %s
             """, (
@@ -261,11 +265,11 @@ def update_survey(survey: Survey) -> bool:
                 survey.notes,
                 survey.id
             ))
-            
+
             # Update surveyor associations
             # First, remove existing associations
             cursor.execute("DELETE FROM survey_surveyor WHERE survey_id = %s", (survey.id,))
-            
+
             # Then add new associations if provided
             if survey.surveyor_ids:
                 for surveyor_id in survey.surveyor_ids:
@@ -275,7 +279,10 @@ def update_survey(survey: Survey) -> bool:
                             VALUES (%s, %s)
                             ON CONFLICT (survey_id, surveyor_id) DO NOTHING
                         """, (survey.id, surveyor_id))
-            
+
+            # Clear cache after updating survey
+            get_all_surveys.clear()
+
             return True
     except Exception as e:
         st.error(f"Error updating survey: {e}")
@@ -286,6 +293,10 @@ def delete_survey(survey_id: int) -> bool:
     try:
         with get_db_cursor() as cursor:
             cursor.execute("DELETE FROM survey WHERE id = %s", (survey_id,))
+
+            # Clear cache after deleting survey
+            get_all_surveys.clear()
+
             return True
     except Exception as e:
         st.error(f"Error deleting survey: {e}")
