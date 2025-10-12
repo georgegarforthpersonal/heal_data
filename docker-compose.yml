@@ -1,36 +1,13 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: heal_butterflies_db
-    environment:
-      POSTGRES_DB: heal_butterflies
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: unless-stopped
-
   streamlit:
     build: .
     container_name: heal_butterflies_app
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: heal_butterflies
-      DB_USER: postgres
-      DB_PASSWORD: password
+    env_file:
+      - .env
     ports:
       - "8501:8501"
     volumes:
       - ./app:/app/app
-    depends_on:
-      - postgres
     restart: unless-stopped
-
-volumes:
-  postgres_data:

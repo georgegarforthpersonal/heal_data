@@ -5,13 +5,20 @@ from contextlib import contextmanager
 def get_db_connection():
     """Create and return a database connection"""
     try:
-        conn = psycopg2.connect(
-            host=os.getenv('DB_HOST', 'localhost'),
-            port=os.getenv('DB_PORT', '5432'),
-            database=os.getenv('DB_NAME', 'heal_butterflies'),
-            user=os.getenv('DB_USER', 'postgres'),
-            password=os.getenv('DB_PASSWORD', 'password')
-        )
+        connection_params = {
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': os.getenv('DB_PORT', '5432'),
+            'database': os.getenv('DB_NAME', 'heal_butterflies'),
+            'user': os.getenv('DB_USER', 'postgres'),
+            'password': os.getenv('DB_PASSWORD', 'password')
+        }
+
+        # Add SSL mode if specified (required for Neon)
+        sslmode = os.getenv('DB_SSLMODE')
+        if sslmode:
+            connection_params['sslmode'] = sslmode
+
+        conn = psycopg2.connect(**connection_params)
         return conn
     except psycopg2.Error as e:
         print(f"Error connecting to database: {e}")
