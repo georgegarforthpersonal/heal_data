@@ -5,7 +5,7 @@ import os
 # Add the app directory to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from pages import surveys, dashboard
+from pages import surveys
 from dashboards.unified_dashboard import render_dashboard, create_combined_species_chart
 
 st.set_page_config(
