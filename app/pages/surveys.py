@@ -361,6 +361,7 @@ def get_all_transects(survey_type: str = None) -> List[Tuple[int, str, int]]:
         st.error(f"Error fetching transects: {e}")
         return []
 
+@st.cache_data  # Cache sightings, manually invalidate on changes
 def get_sightings_for_survey(survey_id: int) -> List[Tuple]:
     """Get all sightings for a specific survey"""
     try:
@@ -393,6 +394,10 @@ def create_sighting(sighting: Sighting) -> bool:
                 sighting.transect_id,
                 sighting.count
             ))
+
+            # Clear sightings cache for this survey
+            get_sightings_for_survey.clear()
+
             return True
     except Exception as e:
         st.error(f"Error creating sighting: {e}")
@@ -403,7 +408,7 @@ def update_sighting(sighting: Sighting) -> bool:
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                UPDATE sighting 
+                UPDATE sighting
                 SET species_id = %s, transect_id = %s, count = %s
                 WHERE id = %s
             """, (
@@ -412,6 +417,10 @@ def update_sighting(sighting: Sighting) -> bool:
                 sighting.count,
                 sighting.id
             ))
+
+            # Clear sightings cache
+            get_sightings_for_survey.clear()
+
             return True
     except Exception as e:
         st.error(f"Error updating sighting: {e}")
@@ -422,6 +431,10 @@ def delete_sighting(sighting_id: int) -> bool:
     try:
         with get_db_cursor() as cursor:
             cursor.execute("DELETE FROM sighting WHERE id = %s", (sighting_id,))
+
+            # Clear sightings cache
+            get_sightings_for_survey.clear()
+
             return True
     except Exception as e:
         st.error(f"Error deleting sighting: {e}")
