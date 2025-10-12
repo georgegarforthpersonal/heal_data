@@ -454,7 +454,7 @@ def render_tab_content(survey_type):
     
     with col2:
         date_options = ["All time", "Last 3 months", "Last month", "Last week"]
-        date_filter = st.selectbox("Date Range", date_options, index=1, key=f"date_filter_{survey_type}")
+        date_filter = st.selectbox("Date Range", date_options, index=2, key=f"date_filter_{survey_type}")
     
     # Filter surveys based on filters
     filtered_surveys = []
