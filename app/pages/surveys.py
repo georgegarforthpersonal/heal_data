@@ -148,6 +148,7 @@ def get_survey_field_display_value(field_name: str, survey):
 @st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_all_surveyors() -> List[Tuple[int, str]]:
     """Get all surveyors for dropdown selection"""
+    print("🟢 [CACHE MISS] Fetching all surveyors from database...")
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
@@ -169,20 +170,21 @@ def get_all_surveyors() -> List[Tuple[int, str]]:
 def get_all_surveys() -> List[Tuple]:
     """Get all surveys with surveyor names"""
     try:
+        print("🔵 [CACHE MISS] Fetching all surveys from database...")
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT s.id, s.date, s.start_time, s.end_time, s.sun_percentage, 
+                SELECT s.id, s.date, s.start_time, s.end_time, s.sun_percentage,
                        s.temperature_celsius, s.conditions_met, s.type, s.notes,
                        STRING_AGG(DISTINCT ss.surveyor_id::text, ',') as surveyor_ids,
                        COALESCE(
-                           STRING_AGG(DISTINCT 
-                               CASE 
-                                   WHEN sv.last_name IS NULL OR trim(sv.last_name) = '' 
+                           STRING_AGG(DISTINCT
+                               CASE
+                                   WHEN sv.last_name IS NULL OR trim(sv.last_name) = ''
                                    THEN trim(sv.first_name)
                                    ELSE trim(sv.first_name) || ' ' || trim(sv.last_name)
-                               END, 
+                               END,
                                ', '
-                           ), 
+                           ),
                            'No surveyor'
                        ) as surveyor_name
                 FROM survey s
@@ -191,7 +193,9 @@ def get_all_surveys() -> List[Tuple]:
                 GROUP BY s.id, s.date, s.start_time, s.end_time, s.sun_percentage, s.temperature_celsius, s.conditions_met, s.type, s.notes
                 ORDER BY s.date DESC, s.start_time DESC
             """)
-            return cursor.fetchall()
+            result = cursor.fetchall()
+            print(f"✅ Fetched {len(result)} surveys")
+            return result
     except Exception as e:
         st.error(f"Error fetching surveys: {e}")
         return []
@@ -361,10 +365,33 @@ def get_all_transects(survey_type: str = None) -> List[Tuple[int, str, int]]:
         st.error(f"Error fetching transects: {e}")
         return []
 
+@st.cache_data  # Cache sightings counts, manually invalidate on changes
+def get_sightings_counts_for_surveys(survey_ids: Tuple[int]) -> dict:
+    """Get sightings counts for multiple surveys in a single query"""
+    try:
+        if not survey_ids:
+            return {}
+        print(f"🟡 [CACHE MISS] Fetching sightings counts for {len(survey_ids)} surveys...")
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT survey_id, COUNT(*) as sighting_count
+                FROM sighting
+                WHERE survey_id = ANY(%s)
+                GROUP BY survey_id
+            """, (list(survey_ids),))
+            result = cursor.fetchall()
+            counts_dict = {row[0]: row[1] for row in result}
+            print(f"✅ Fetched sightings counts for {len(counts_dict)} surveys")
+            return counts_dict
+    except Exception as e:
+        st.error(f"Error fetching sightings counts: {e}")
+        return {}
+
 @st.cache_data  # Cache sightings, manually invalidate on changes
 def get_sightings_for_survey(survey_id: int) -> List[Tuple]:
     """Get all sightings for a specific survey"""
     try:
+        print(f"🟡 [CACHE MISS] Fetching sightings for survey {survey_id}...")
         with get_db_cursor() as cursor:
             cursor.execute("""
                 SELECT si.id, si.survey_id, si.species_id, si.transect_id, si.count,
@@ -376,7 +403,9 @@ def get_sightings_for_survey(survey_id: int) -> List[Tuple]:
                 WHERE si.survey_id = %s
                 ORDER BY t.number, sp.name
             """, (survey_id,))
-            return cursor.fetchall()
+            result = cursor.fetchall()
+            print(f"✅ Fetched {len(result)} sightings for survey {survey_id}")
+            return result
     except Exception as e:
         st.error(f"Error fetching sightings: {e}")
         return []
@@ -395,8 +424,9 @@ def create_sighting(sighting: Sighting) -> bool:
                 sighting.count
             ))
 
-            # Clear sightings cache for this survey
+            # Clear sightings caches
             get_sightings_for_survey.clear()
+            get_sightings_counts_for_surveys.clear()
 
             return True
     except Exception as e:
@@ -418,8 +448,9 @@ def update_sighting(sighting: Sighting) -> bool:
                 sighting.id
             ))
 
-            # Clear sightings cache
+            # Clear sightings caches
             get_sightings_for_survey.clear()
+            get_sightings_counts_for_surveys.clear()
 
             return True
     except Exception as e:
@@ -432,8 +463,9 @@ def delete_sighting(sighting_id: int) -> bool:
         with get_db_cursor() as cursor:
             cursor.execute("DELETE FROM sighting WHERE id = %s", (sighting_id,))
 
-            # Clear sightings cache
+            # Clear sightings caches
             get_sightings_for_survey.clear()
+            get_sightings_counts_for_surveys.clear()
 
             return True
     except Exception as e:
@@ -464,7 +496,9 @@ def get_sighting_by_id(sighting_id: int) -> Optional[Sighting]:
 
 def render_tab_content(survey_type):
     """Render the survey interface content for a specific survey type"""
-    
+
+    print(f"🔴 [RENDER] render_tab_content() called for {survey_type}")
+
     # Get all surveys filtered by type
     all_surveys = get_all_surveys()
     surveys = [survey for survey in all_surveys if survey[7].lower() == survey_type.lower()]
@@ -550,8 +584,12 @@ def render_tab_content(survey_type):
 
     # Historical Surveys - Each as an expander
     if filtered_surveys:
+        # Fetch sightings counts for all surveys in a single query
+        survey_ids = tuple([survey[0] for survey in filtered_surveys])
+        sightings_counts = get_sightings_counts_for_surveys(survey_ids)
+
         for survey in filtered_surveys:
-            sightings_count = len(get_sightings_for_survey(survey[0]))
+            sightings_count = sightings_counts.get(survey[0], 0)
 
             # Format the expander title
             date_str = survey[1].strftime("%b %d, %Y")
@@ -570,6 +608,7 @@ def render_tab_content(survey_type):
 
 def render_survey_content(survey):
     """Render the content for a single survey within its expander"""
+    print(f"🟣 [RENDER] render_survey_content() called for survey {survey[0]}")
     survey_type = survey[7].lower()  # Get survey type from the survey data
     survey_fields = get_survey_fields(survey_type)
 
