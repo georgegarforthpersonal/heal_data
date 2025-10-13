@@ -709,8 +709,6 @@ def render_survey_content(survey):
 
         # Display existing sightings
         for sighting in sightings:
-            col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
-
             # Check if this sighting is marked for deletion
             is_marked_for_deletion = sighting[0] in st.session_state[pending_deletions_key]
 
@@ -727,6 +725,8 @@ def render_survey_content(survey):
                 }
                 </style>
                 """, unsafe_allow_html=True)
+
+            col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
 
             if is_editing:
                 # Edit mode - show editable fields for sightings
@@ -770,24 +770,18 @@ def render_survey_content(survey):
                                       key=f"edit_count_{sighting[0]}", label_visibility="collapsed")
 
                 with col4:
-                    # Initialize pending deletions set if not exists
-                    pending_deletions_key = f"pending_sighting_deletions_{survey[0]}"
-                    if pending_deletions_key not in st.session_state:
-                        st.session_state[pending_deletions_key] = set()
-
-                    # Check if this sighting is marked for deletion
-                    is_marked_for_deletion = sighting[0] in st.session_state[pending_deletions_key]
-
                     if is_marked_for_deletion:
                         # Show "undo delete" button if marked for deletion
-                        if st.button("↶", key=f"undo_delete_sighting_{sighting[0]}", help="Undo Delete"):
+                        def undo_delete():
                             st.session_state[pending_deletions_key].remove(sighting[0])
-                            # No rerun needed - Streamlit auto-reruns on button click
+
+                        st.button("↶", key=f"undo_delete_sighting_{sighting[0]}", help="Undo Delete", on_click=undo_delete)
                     else:
                         # Show delete button if not marked for deletion
-                        if st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete Sighting"):
+                        def mark_for_delete():
                             st.session_state[pending_deletions_key].add(sighting[0])
-                            # No rerun needed - Streamlit auto-reruns on button click
+
+                        st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete Sighting", on_click=mark_for_delete)
             else:
                 # Display mode - show read-only values
                 with col1:
@@ -853,9 +847,10 @@ def render_survey_content(survey):
                                           label_visibility="collapsed")
 
                         with col4:
-                            if st.button("🗑️", key=f"remove_pending_sighting_{pending_sighting['temp_id']}", help="Delete Sighting"):
-                                st.session_state[pending_additions_key].pop(i)
-                                # No rerun needed - Streamlit auto-reruns on button click
+                            def remove_pending(index=i):
+                                st.session_state[pending_additions_key].pop(index)
+
+                            st.button("🗑️", key=f"remove_pending_sighting_{pending_sighting['temp_id']}", help="Delete Sighting", on_click=remove_pending)
                     else:
                         # Display mode - show read-only values
                         with col1:
