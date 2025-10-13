@@ -78,6 +78,7 @@ def get_db_connection():
         conn_pool = get_connection_pool()
         if conn_pool:
             conn = conn_pool.getconn()
+
             # Validate the connection before returning it
             if conn and conn.closed:
                 print("⚠️ Got closed connection from pool, removing it")
@@ -87,6 +88,21 @@ def get_db_connection():
                     pass
                 # Try to get a fresh connection
                 conn = conn_pool.getconn()
+
+            # Additional health check - test the connection with a simple query
+            if conn and not conn.closed:
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT 1")
+                except (psycopg2.InterfaceError, psycopg2.OperationalError) as e:
+                    print(f"⚠️ Connection health check failed: {e}, getting new connection")
+                    try:
+                        conn_pool.putconn(conn, close=True)
+                    except:
+                        pass
+                    # Get a fresh connection
+                    conn = conn_pool.getconn()
+
             return conn
         return None
     except Exception as e:
