@@ -146,22 +146,28 @@ def get_survey_field_display_value(field_name: str, survey):
 def get_all_surveyors() -> List[Tuple[int, str]]:
     """Get all surveyors for dropdown selection"""
     print("🟢 [CACHE MISS] Fetching all surveyors from database...")
-    try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT id,
-                CASE
-                    WHEN last_name IS NULL OR trim(last_name) = ''
-                    THEN trim(first_name)
-                    ELSE trim(first_name) || ' ' || trim(last_name)
-                END as full_name
-                FROM surveyor
-                ORDER BY first_name, last_name
-            """)
-            return cursor.fetchall()
-    except Exception as e:
-        st.error(f"Error fetching surveyors: {e}")
-        return []
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute("""
+                    SELECT id,
+                    CASE
+                        WHEN last_name IS NULL OR trim(last_name) = ''
+                        THEN trim(first_name)
+                        ELSE trim(first_name) || ' ' || trim(last_name)
+                    END as full_name
+                    FROM surveyor
+                    ORDER BY first_name, last_name
+                """)
+                return cursor.fetchall()
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"⚠️ Retry {attempt + 1}/{max_retries}: Error fetching surveyors: {e}")
+                continue
+            st.error(f"Error fetching surveyors: {e}")
+            return []
+    return []
 
 @st.cache_data  # Cache indefinitely, manually invalidate on changes
 def get_all_surveys() -> List[Tuple]:
