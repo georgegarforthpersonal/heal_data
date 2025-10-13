@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, date, time
+from datetime import date, time
 from typing import Optional, List
 from decimal import Decimal
 

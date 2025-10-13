@@ -1,14 +1,11 @@
-from email.policy import default
-
 import streamlit as st
 import psycopg2
-from datetime import date, time, datetime
-from decimal import Decimal
+from datetime import date, time
 from typing import List, Optional, Tuple
 
 from database.connection import get_db_cursor
-from database.models import Survey, Surveyor, Sighting, Species, Transect
-from survey_config import get_survey_fields, get_field_config, is_field_required
+from database.models import Survey, Sighting
+from survey_config import get_survey_fields, get_field_config
 
 def render_survey_field(field_name: str, survey_type: str, surveyors: List[Tuple[int, str]] = None):
     """Render a single survey field based on its configuration."""
@@ -816,27 +813,39 @@ def render_survey_content(survey):
                             species_list = get_all_species(survey[7])
                             species_options = [name for species_id, name in species_list]
                             try:
-                                species_index = species_options.index(pending_sighting["species_name"])
-                            except ValueError:
+                                species_index = species_options.index(pending_sighting["species_name"]) if pending_sighting["species_name"] else None
+                            except (ValueError, TypeError):
                                 species_index = None  # No default selection
-                            st.selectbox("Species", options=species_options,
+
+                            selected_species = st.selectbox("Species", options=species_options,
                                        index=species_index,
                                        placeholder="Select Species...",
                                        key=f"edit_pending_species_{pending_sighting['temp_id']}",
                                        label_visibility="collapsed")
 
+                            # Update the pending sighting data with the selected species
+                            if selected_species and pending_sighting["species_name"] != selected_species:
+                                pending_sighting["species_name"] = selected_species
+                                st.session_state[pending_additions_key][i] = pending_sighting
+
                         with col2:
                             transects = get_all_transects(survey[7])
                             transect_options = [f"{number} - {name}" for transect_id, name, number in transects]
                             try:
-                                transect_index = transect_options.index(pending_sighting["transect_display"])
-                            except ValueError:
+                                transect_index = transect_options.index(pending_sighting["transect_display"]) if pending_sighting["transect_display"] else None
+                            except (ValueError, TypeError):
                                 transect_index = None  # No default selection
-                            st.selectbox("Transect", options=transect_options,
+
+                            selected_transect = st.selectbox("Transect", options=transect_options,
                                        index=transect_index,
                                        placeholder="Select Location...",
                                        key=f"edit_pending_transect_{pending_sighting['temp_id']}",
                                        label_visibility="collapsed")
+
+                            # Update the pending sighting data with the selected transect
+                            if selected_transect and pending_sighting["transect_display"] != selected_transect:
+                                pending_sighting["transect_display"] = selected_transect
+                                st.session_state[pending_additions_key][i] = pending_sighting
 
                         with col3:
                             st.number_input("Count", min_value=1, value=pending_sighting["count"],
@@ -869,8 +878,9 @@ def render_survey_content(survey):
             if pending_additions_key not in st.session_state:
                 st.session_state[pending_additions_key] = []
 
-            # Generate a temporary ID for the pending sighting
-            temp_id = f"temp_{len(st.session_state[pending_additions_key]) + 1}"
+            # Generate a temporary ID for the pending sighting using timestamp to ensure uniqueness
+            import time
+            temp_id = f"temp_{int(time.time() * 1000)}_{len(st.session_state[pending_additions_key])}"
 
             # Add a blank sighting with None values for species/transect (will use placeholders)
             new_sighting_data = {
@@ -884,7 +894,7 @@ def render_survey_content(survey):
             }
 
             st.session_state[pending_additions_key].append(new_sighting_data)
-            # No rerun needed - Streamlit auto-reruns on button click
+            st.rerun()  # Explicitly trigger rerun to show the new sighting immediately
 
     # Edit Survey / Save/Discard buttons
     st.divider()
@@ -903,9 +913,8 @@ def render_survey_content(survey):
         with col1:
             # Check if this is a new survey creation or existing survey update
             is_new_survey = str(survey[0]).startswith("new_survey_")
-            button_text = "🦋 Create Survey" if is_new_survey else "💾 Save Changes"
 
-            if st.button(button_text, type="primary", use_container_width=True, key=f"save_changes_btn_{survey[0]}"):
+            if st.button("💾 Save Survey", type="primary", use_container_width=True, key=f"save_changes_btn_{survey[0]}"):
                 if is_new_survey:
                     # Handle new survey creation
                     survey_type = survey[7].lower()
@@ -1141,9 +1150,6 @@ def render_survey_content(survey):
 
                 st.session_state.editing_survey_id = None
                 st.rerun()
-
-        with col3:
-            st.write("*Editing mode active*")
 
     # Check for success message and display it at bottom
     success_key = f"survey_success_{survey[0]}"

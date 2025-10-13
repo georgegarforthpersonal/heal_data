@@ -57,10 +57,10 @@ def get_connection_pool():
                 if sslmode:
                     connection_params['sslmode'] = sslmode
 
-            # Create connection pool with 1-5 connections (reduced for reliability)
+            # Create connection pool with 2-10 connections
             _connection_pool = pool.SimpleConnectionPool(
-                minconn=1,
-                maxconn=5,
+                minconn=2,
+                maxconn=10,
                 **connection_params
             )
             print("✅ Database connection pool created successfully")
@@ -77,7 +77,17 @@ def get_db_connection():
     try:
         conn_pool = get_connection_pool()
         if conn_pool:
-            return conn_pool.getconn()
+            conn = conn_pool.getconn()
+            # Validate the connection before returning it
+            if conn and conn.closed:
+                print("⚠️ Got closed connection from pool, removing it")
+                try:
+                    conn_pool.putconn(conn, close=True)
+                except:
+                    pass
+                # Try to get a fresh connection
+                conn = conn_pool.getconn()
+            return conn
         return None
     except Exception as e:
         print(f"Error getting connection from pool: {e}")
@@ -97,15 +107,39 @@ def get_db_cursor():
     """Context manager for database operations with connection pooling"""
     conn = get_db_connection()
     if conn:
+        cursor = None
         try:
+            # Check if connection is still open before creating cursor
+            if conn.closed:
+                raise psycopg2.InterfaceError("Connection is closed")
+
             cursor = conn.cursor()
             yield cursor
             conn.commit()
+        except (psycopg2.InterfaceError, psycopg2.OperationalError) as e:
+            # Connection-related errors - close the bad connection
+            print(f"⚠️ Connection error: {e}")
+            if not conn.closed:
+                conn.rollback()
+            # Mark connection as closed so it's removed from pool
+            try:
+                conn_pool = get_connection_pool()
+                if conn_pool:
+                    conn_pool.putconn(conn, close=True)
+            except:
+                pass
+            raise Exception(f"Database connection error: {e}")
         except Exception as e:
-            conn.rollback()
+            if not conn.closed:
+                conn.rollback()
             raise e
         finally:
-            cursor.close()
-            return_db_connection(conn)  # Return to pool instead of closing
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if not conn.closed:
+                return_db_connection(conn)  # Return to pool instead of closing
     else:
         raise Exception("Failed to connect to database")
