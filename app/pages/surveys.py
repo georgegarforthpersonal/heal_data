@@ -499,18 +499,18 @@ def render_tab_content(survey_type):
     # Get all surveys filtered by type
     all_surveys = get_all_surveys()
     surveys = [survey for survey in all_surveys if survey[7].lower() == survey_type.lower()]
-    
+
     # Filter/Search bar at the top
     col1, col2 = st.columns([1,1])
     with col1:
         surveyors = get_all_surveyors()
         surveyor_filter_options = [name for _, name in surveyors]
         surveyor_filter = st.selectbox("Filter by Surveyor", ["All"] + surveyor_filter_options, key=f"surveyor_filter_{survey_type}")
-    
+
     with col2:
         date_options = ["All time", "Last 3 months", "Last month", "Last week"]
         date_filter = st.selectbox("Date Range", date_options, index=2, key=f"date_filter_{survey_type}")
-    
+
     # Filter surveys based on filters
     filtered_surveys = []
     if surveys:
@@ -519,7 +519,7 @@ def render_tab_content(survey_type):
                 surveyor_names = [name.strip().lower() for name in survey[10].split(",")]
                 if surveyor_filter.lower() not in surveyor_names:
                     continue
-            
+
             # Date filter (basic implementation)
             if date_filter != "All time":
                 from datetime import timedelta
@@ -530,16 +530,22 @@ def render_tab_content(survey_type):
                     cutoff_date -= timedelta(days=30)
                 elif date_filter == "Last 3 months":
                     cutoff_date -= timedelta(days=90)
-                
+
                 if survey[1] < cutoff_date:
                     continue
-            
+
             filtered_surveys.append(survey)
-    
+
     st.write("")  # Spacing
-    
+
+    # Initialize a counter for new surveys if it doesn't exist
+    counter_key = f"new_survey_counter_{survey_type}"
+    if counter_key not in st.session_state:
+        st.session_state[counter_key] = 0
+
     # Create New Survey as first item in the list - using edit survey interface
-    create_survey_id = f"new_survey_{survey_type}"
+    # Use a unique ID based on the counter to ensure form fields don't retain old values
+    create_survey_id = f"new_survey_{survey_type}_{st.session_state[counter_key]}"
 
     # Create a fake survey tuple for the new survey (using edit interface)
     default_date = date.today()
@@ -560,8 +566,18 @@ def render_tab_content(survey_type):
         'No surveyor'      # surveyor_names
     )
 
+    # Check if any form fields exist for this new survey (indicates user has started filling it out)
+    # This will keep the expander open while they're working on it
+    form_keys_exist = any(
+        f"edit_survey_{survey_type}_{create_survey_id}_{field}" in st.session_state
+        for field in ["date", "surveyors", "start_time", "end_time", "temperature", "notes"]
+    )
+
+    # Keep expander open if user has started filling out the form
+    keep_expanded = form_keys_exist
+
     # Create New Survey expander
-    with st.expander(f"➕ Create New {survey_type.title()} Survey"):
+    with st.expander(f"➕ Create New {survey_type.title()} Survey", expanded=keep_expanded):
         # Check for success message
         success_key = f"survey_success_{create_survey_id}"
         if st.session_state.get(success_key, False):
@@ -1108,6 +1124,10 @@ def render_survey_content(survey):
                                     # For new surveys, set success flag
                                     st.session_state[f"survey_created_success_{survey_type}"] = True
 
+                                    # Increment the counter to generate a new unique ID for the next survey
+                                    counter_key = f"new_survey_counter_{survey_type}"
+                                    st.session_state[counter_key] = st.session_state.get(counter_key, 0) + 1
+
                                     # Clear all new survey form data
                                     form_keys_to_clear = [
                                         f"edit_survey_{survey_type}_{survey[0]}_date",
@@ -1133,6 +1153,29 @@ def render_survey_content(survey):
 
         with col2:
             if st.button("❌ Discard Changes", use_container_width=True, key=f"discard_changes_btn_{survey[0]}"):
+                # Check if this is a new survey
+                is_new_survey = str(survey[0]).startswith("new_survey_")
+
+                if is_new_survey:
+                    # For new surveys, increment the counter to reset the form with blank fields
+                    counter_key = f"new_survey_counter_{survey_type}"
+                    st.session_state[counter_key] = st.session_state.get(counter_key, 0) + 1
+
+                    # Clear all new survey form data
+                    form_keys_to_clear = [
+                        f"edit_survey_{survey_type}_{survey[0]}_date",
+                        f"edit_survey_{survey_type}_{survey[0]}_surveyors",
+                        f"edit_survey_{survey_type}_{survey[0]}_start_time",
+                        f"edit_survey_{survey_type}_{survey[0]}_end_time",
+                        f"edit_survey_{survey_type}_{survey[0]}_sun_percentage",
+                        f"edit_survey_{survey_type}_{survey[0]}_temperature",
+                        f"edit_survey_{survey_type}_{survey[0]}_conditions_met",
+                        f"edit_survey_{survey_type}_{survey[0]}_notes"
+                    ]
+                    for key in form_keys_to_clear:
+                        if key in st.session_state:
+                            del st.session_state[key]
+
                 # Clear pending deletions to restore sightings
                 pending_deletions_key = f"pending_sighting_deletions_{survey[0]}"
                 if pending_deletions_key in st.session_state:
