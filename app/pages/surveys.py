@@ -572,18 +572,11 @@ def render_tab_content(survey_type):
         'No surveyor'      # surveyor_names
     )
 
-    # Check if any form fields exist for this new survey (indicates user has started filling it out)
-    # This will keep the expander open while they're working on it
-    form_keys_exist = any(
-        f"edit_survey_{survey_type}_{create_survey_id}_{field}" in st.session_state
-        for field in ["date", "surveyors", "start_time", "end_time", "temperature", "notes"]
-    )
-
-    # Keep expander open if user has started filling out the form
-    keep_expanded = form_keys_exist
+    # Accordion behavior: Check if this survey is the currently active one
+    is_active = st.session_state.get("active_survey_id") == create_survey_id
 
     # Create New Survey expander
-    with st.expander(f"➕ Create New {survey_type.title()} Survey", expanded=keep_expanded):
+    with st.expander(f"➕ Create New {survey_type.title()} Survey", expanded=is_active):
         # Check for success message
         success_key = f"survey_success_{create_survey_id}"
         if st.session_state.get(success_key, False):
@@ -616,7 +609,10 @@ def render_tab_content(survey_type):
 
             expander_title = f"{date_str} • {surveyor_name} • {sightings_count} sightings"
 
-            with st.expander(expander_title):
+            # Accordion behavior: Check if this survey is the currently active one
+            is_active = st.session_state.get("active_survey_id") == survey[0]
+
+            with st.expander(expander_title, expanded=is_active):
                 # Survey details and editing within the expander
                 render_survey_content(survey)
     else:
@@ -936,6 +932,7 @@ def render_survey_content(survey):
         with col1:
             if st.button("✏️ Edit Survey", type="primary", use_container_width=True, key=f"edit_survey_btn_{survey[0]}"):
                 st.session_state.editing_survey_id = survey[0]
+                st.session_state.active_survey_id = survey[0]  # Set as active for accordion behavior
                 st.rerun()
     else:
         # Show Save/Discard buttons when in edit mode
@@ -1167,6 +1164,7 @@ def render_survey_content(survey):
                                     st.session_state[f"survey_success_{survey[0]}"] = True
 
                                 st.session_state.editing_survey_id = None
+                                st.session_state.active_survey_id = None  # Clear active survey for accordion behavior
                                 st.rerun()
                         else:
                             st.error("Failed to update survey")
@@ -1207,6 +1205,7 @@ def render_survey_content(survey):
                     del st.session_state[pending_additions_key]
 
                 st.session_state.editing_survey_id = None
+                st.session_state.active_survey_id = None  # Clear active survey for accordion behavior
                 st.rerun()
 
     # Check for success message and display it at bottom
@@ -1261,6 +1260,8 @@ def show():
     # Initialize session state
     if "editing_survey_id" not in st.session_state:
         st.session_state.editing_survey_id = None
+    if "active_survey_id" not in st.session_state:
+        st.session_state.active_survey_id = None
     if "delete_confirm_id" not in st.session_state:
         st.session_state.delete_confirm_id = None
     if "editing_sighting_id" not in st.session_state:
