@@ -897,15 +897,31 @@ def render_survey_content(survey):
             import time
             temp_id = f"temp_{int(time.time() * 1000)}_{len(st.session_state[pending_additions_key])}"
 
-            # Add a blank sighting with None values for species/transect (will use placeholders)
+            # Determine default location from most recent sighting
+            default_transect_id = None
+            default_transect_display = None
+
+            # Check if there are existing sightings or pending additions to inherit location from
+            if sightings:
+                # Use the last sighting's location
+                last_sighting = sightings[-1]
+                default_transect_id = last_sighting[3]  # transect_id
+                default_transect_display = f"{last_sighting[6]} - {last_sighting[7]}"  # "number - name"
+            elif pending_additions:
+                # Use the last pending addition's location
+                last_pending = pending_additions[-1]
+                default_transect_id = last_pending["transect_id"]
+                default_transect_display = last_pending["transect_display"]
+
+            # Add a blank sighting with inherited location or None values
             new_sighting_data = {
                 "temp_id": temp_id,
                 "survey_id": survey[0],
                 "species_id": None,
-                "transect_id": None,
+                "transect_id": default_transect_id,
                 "count": 1,
                 "species_name": None,
-                "transect_display": None
+                "transect_display": default_transect_display
             }
 
             st.session_state[pending_additions_key].append(new_sighting_data)
