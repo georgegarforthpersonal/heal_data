@@ -739,8 +739,6 @@ def render_survey_content(survey):
                 st.markdown("""
                 <style>
                 .deleted-sighting {
-                    opacity: 0.5;
-                    text-decoration: line-through;
                     background-color: #ffebee;
                     padding: 5px;
                     border-radius: 5px;
@@ -754,7 +752,7 @@ def render_survey_content(survey):
                 # Edit mode - show editable fields for sightings
                 with col1:
                     if is_marked_for_deletion:
-                        st.markdown(f'<div class="deleted-sighting">~~{sighting[5]}~~</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="deleted-sighting">{sighting[5]}</div>', unsafe_allow_html=True)
                     else:
                         species_list = get_all_species(survey[7])  # survey[7] is the survey type
                         species_options = {name: species_id for species_id, name in species_list}
@@ -770,7 +768,7 @@ def render_survey_content(survey):
 
                 with col2:
                     if is_marked_for_deletion:
-                        st.markdown(f'<div class="deleted-sighting">~~{sighting[6]} - {sighting[7]}~~</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="deleted-sighting">{sighting[6]} - {sighting[7]}</div>', unsafe_allow_html=True)
                     else:
                         transects = get_all_transects(survey[7])  # survey[7] is the survey type
                         transect_options = {f"{number} - {name}": transect_id for transect_id, name, number in transects}
@@ -786,7 +784,7 @@ def render_survey_content(survey):
 
                 with col3:
                     if is_marked_for_deletion:
-                        st.markdown(f'<div class="deleted-sighting">~~{sighting[4]}~~</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="deleted-sighting">{sighting[4]}</div>', unsafe_allow_html=True)
                     else:
                         st.number_input("Count", min_value=1, value=sighting[4],
                                       key=f"edit_count_{sighting[0]}", label_visibility="collapsed")
@@ -797,7 +795,7 @@ def render_survey_content(survey):
                         def undo_delete():
                             st.session_state[pending_deletions_key].remove(sighting[0])
 
-                        st.button("↶", key=f"undo_delete_sighting_{sighting[0]}", help="Undo Delete", on_click=undo_delete)
+                        st.button("↩️", key=f"undo_delete_sighting_{sighting[0]}", help="Undo Delete", on_click=undo_delete)
                     else:
                         # Show delete button if not marked for deletion
                         def mark_for_delete():
