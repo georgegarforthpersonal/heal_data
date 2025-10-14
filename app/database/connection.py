@@ -118,6 +118,10 @@ def return_db_connection(conn):
     except Exception as e:
         print(f"Error returning connection to pool: {e}")
 
+def get_connection():
+    """Get a database connection (alias for get_db_connection for convenience)"""
+    return get_db_connection()
+
 @contextmanager
 def get_db_cursor():
     """Context manager for database operations with connection pooling"""
