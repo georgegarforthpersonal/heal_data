@@ -818,7 +818,7 @@ def render_survey_content(survey):
         # Display all pending new sightings in a single container
         if pending_additions:
             with st.container(border=True):
-                st.caption("🆕 Pending Additions")
+                # st.caption("🆕 Pending Additions")
 
                 for i, pending_sighting in enumerate(pending_additions):
                     col1, col2, col3, col4 = st.columns([3, 2, 1, 2])
