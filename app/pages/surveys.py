@@ -936,7 +936,7 @@ def render_survey_content(survey):
         with col1:
             if st.button("✏️ Edit Survey", type="primary", use_container_width=True, key=f"edit_survey_btn_{survey[0]}"):
                 st.session_state.editing_survey_id = survey[0]
-                # No rerun needed - Streamlit auto-reruns on button click
+                st.rerun()
     else:
         # Show Save/Discard buttons when in edit mode
         col1, col2, col3 = st.columns([1, 1, 1])
