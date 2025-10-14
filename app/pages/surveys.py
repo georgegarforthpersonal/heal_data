@@ -792,14 +792,14 @@ def render_survey_content(survey):
                 with col4:
                     if is_marked_for_deletion:
                         # Show "undo delete" button if marked for deletion
-                        def undo_delete():
-                            st.session_state[pending_deletions_key].remove(sighting[0])
+                        def undo_delete(sighting_id=sighting[0]):
+                            st.session_state[pending_deletions_key].remove(sighting_id)
 
                         st.button("↩️", key=f"undo_delete_sighting_{sighting[0]}", help="Undo Delete", on_click=undo_delete)
                     else:
                         # Show delete button if not marked for deletion
-                        def mark_for_delete():
-                            st.session_state[pending_deletions_key].add(sighting[0])
+                        def mark_for_delete(sighting_id=sighting[0]):
+                            st.session_state[pending_deletions_key].add(sighting_id)
 
                         st.button("🗑️", key=f"delete_sighting_{sighting[0]}", help="Delete Sighting", on_click=mark_for_delete)
             else:
