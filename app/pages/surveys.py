@@ -655,26 +655,20 @@ def render_survey_content(survey):
         is_editing = True
 
 
-    
-    # Display survey in dynamic table format based on survey type
-    col_widths = [2] * len(survey_fields)  # Equal width columns
 
-    # Header row with dynamic fields
-    header_cols = st.columns(col_widths)
-    for i, field_name in enumerate(survey_fields):
-        config = get_field_config(survey_type, field_name)
-        label = config.get("label", field_name.title())
-        with header_cols[i]:
-            st.write(f"**{label}**")
+    # Display survey in dynamic format based on survey type
+    # Each field gets its own column with label and input paired together
+    # This ensures labels stay with inputs on mobile when columns stack
 
-    # Survey data row with dynamic fields
-    data_cols = st.columns(col_widths)
+    field_cols = st.columns(len(survey_fields))
+
+    # Get survey object once if editing
+    survey_obj = None
+    surveyors = None
 
     if is_editing:
-        # Edit mode - show editable fields
         if is_mock_survey:
             # For mock surveys (new survey creation), create a mock survey object
-            # Use survey[0] as the id to ensure keys match when reading back
             survey_obj = Survey(
                 id=survey[0],
                 date=survey[1],
@@ -693,16 +687,22 @@ def render_survey_content(survey):
         if survey_obj:
             surveyors = get_all_surveyors()
 
-            for i, field_name in enumerate(survey_fields):
-                with data_cols[i]:
-                    if field_name == "surveyors":
-                        render_survey_field_for_edit(field_name, survey_type, survey_obj, surveyors)
-                    else:
-                        render_survey_field_for_edit(field_name, survey_type, survey_obj, surveyors)
-    else:
-        # Display mode - show read-only values
-        for i, field_name in enumerate(survey_fields):
-            with data_cols[i]:
+    # Render each field with its label and input/display value paired in same column
+    for i, field_name in enumerate(survey_fields):
+        with field_cols[i]:
+            # Show label
+            config = get_field_config(survey_type, field_name)
+            label = config.get("label", field_name.title())
+            st.write(f"**{label}**")
+
+            # Show input or display value
+            if is_editing and survey_obj:
+                if field_name == "surveyors":
+                    render_survey_field_for_edit(field_name, survey_type, survey_obj, surveyors)
+                else:
+                    render_survey_field_for_edit(field_name, survey_type, survey_obj, surveyors)
+            else:
+                # Display mode - show read-only values
                 display_value = get_survey_field_display_value(field_name, survey)
                 if field_name == "notes":
                     # Use text area for better multi-line display of notes
@@ -724,7 +724,12 @@ def render_survey_content(survey):
 
     # Display table if we have existing sightings or pending additions
     if sightings or pending_additions:
-        # Table header
+        # Initialize pending deletions set if not exists
+        pending_deletions_key = f"pending_sighting_deletions_{survey[0]}"
+        if pending_deletions_key not in st.session_state:
+            st.session_state[pending_deletions_key] = set()
+
+        # Single header row for all sightings
         header_col1, header_col2, header_col3, header_col4 = st.columns([3, 2, 1, 2])
         with header_col1:
             st.write("**Species**")
@@ -734,11 +739,6 @@ def render_survey_content(survey):
             st.write("**Count**")
         with header_col4:
             st.write("**Actions**")
-
-        # Initialize pending deletions set if not exists
-        pending_deletions_key = f"pending_sighting_deletions_{survey[0]}"
-        if pending_deletions_key not in st.session_state:
-            st.session_state[pending_deletions_key] = set()
 
         # Display existing sightings
         for sighting in sightings:
