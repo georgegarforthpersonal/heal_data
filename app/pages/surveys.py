@@ -573,10 +573,25 @@ def render_tab_content(survey_type):
     )
 
     # Accordion behavior: Check if this survey is the currently active one
-    is_active = st.session_state.get("active_survey_id") == create_survey_id
+    active_survey_id = st.session_state.get("active_survey_id")
+    editing_survey_id = st.session_state.get("editing_survey_id")
 
-    # Create New Survey expander
+    # Check if a survey was just created (success flag is set)
+    just_created = st.session_state.get(f"survey_created_success_{survey_type}", False)
+
+    # Keep create survey open only if it's explicitly set as active
+    # This ensures it starts collapsed on first load but stays open during interaction
+    is_active = active_survey_id == create_survey_id
+
     with st.expander(f"➕ Create New {survey_type.title()} Survey", expanded=is_active):
+        # If the expander is being rendered (user opened it or it's active),
+        # and it's not currently set as active, set it now
+        # BUT only if no other survey is active/being edited
+        if not is_active and active_survey_id is None and editing_survey_id is None:
+            st.session_state.active_survey_id = create_survey_id
+            # Note: This won't take effect until next rerun, but widgets inside will
+            # trigger a rerun when interacted with, and then it will stay open
+
         # Check for success message
         success_key = f"survey_success_{create_survey_id}"
         if st.session_state.get(success_key, False):
