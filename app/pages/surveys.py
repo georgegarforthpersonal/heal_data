@@ -595,7 +595,7 @@ def render_tab_content(survey_type):
         # Check for success message
         success_key = f"survey_success_{create_survey_id}"
         if st.session_state.get(success_key, False):
-            st.success("✅ **Survey created successfully!**")
+            st.toast("**Survey created successfully!**", icon="✅", duration="short")
             # Clear the success flag so it doesn't show again
             del st.session_state[success_key]
 
@@ -605,7 +605,7 @@ def render_tab_content(survey_type):
     # Display success message if survey was just created
     success_flag_key = f"survey_created_success_{survey_type}"
     if st.session_state.get(success_flag_key, False):
-        st.success(f"✅ {survey_type.title()} survey created successfully!")
+        st.toast(f"{survey_type.title()} survey created successfully!", icon="✅", duration="short")
         # Clear the flag so message doesn't persist
         del st.session_state[success_flag_key]
 
@@ -1226,7 +1226,7 @@ def render_survey_content(survey):
     # Check for success message and display it at bottom
     success_key = f"survey_success_{survey[0]}"
     if st.session_state.get(success_key, False):
-        st.success("✅ **Survey changes saved successfully!**")
+        st.toast("**Survey changes saved successfully!**", icon="✅", duration="short")
         # Clear the success flag so it doesn't show again
         del st.session_state[success_key]
 
@@ -1256,7 +1256,7 @@ def render_survey_content(survey):
                 with col1:
                     if st.button("🗑️ Yes, Delete", type="primary", use_container_width=True):
                         if delete_survey(st.session_state.delete_confirm_id):
-                            st.success("Survey deleted successfully!")
+                            st.toast("Survey deleted successfully!", icon="✅", duration="short")
                             st.session_state.delete_confirm_id = None
                             st.session_state.selected_survey_id = None
                             st.rerun()
