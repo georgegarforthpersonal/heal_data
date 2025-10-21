@@ -9,10 +9,43 @@ from pages import surveys
 from dashboards.unified_dashboard import render_dashboard, create_combined_species_chart
 
 st.set_page_config(
-    page_title="Wildlife Survey Management", 
+    page_title="Wildlife Survey Management",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Authentication
+def check_password():
+    """Returns True if the user has entered the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if (st.session_state["username"] == "heal" and
+            st.session_state["password"] == "nightingale"):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store password
+            del st.session_state["username"]  # Don't store username
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if password is validated
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show login form
+    st.title("Wildlife Survey Management Login")
+    st.text_input("Username", key="username")
+    st.text_input("Password", type="password", key="password")
+    st.button("Login", on_click=password_entered)
+
+    if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+        st.error("Username or password incorrect")
+
+    return False
+
+# Check authentication before showing app
+if not check_password():
+    st.stop()
 
 # Hide sidebar completely
 st.markdown("""
