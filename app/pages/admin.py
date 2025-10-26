@@ -29,10 +29,15 @@ def add_surveyor(first_name: str, last_name: str) -> bool:
                 RETURNING id
             """, (first_name.strip(), last_name.strip()))
             surveyor_id = cursor.fetchone()[0]
-            st.success(f"✅ Successfully added surveyor: {first_name} {last_name} (ID: {surveyor_id})")
             # Clear both admin and surveys caches
             get_all_surveyors_admin.clear()
             get_all_surveyors.clear()
+            # Set success flag for toast message
+            st.session_state["surveyor_added_success"] = {
+                "first_name": first_name,
+                "last_name": last_name,
+                "surveyor_id": surveyor_id
+            }
             return True
     except Exception as e:
         st.error(f"❌ Error adding surveyor: {e}")
@@ -56,10 +61,11 @@ def delete_surveyor(surveyor_id: int, surveyor_name: str) -> bool:
             cursor.execute("""
                 DELETE FROM surveyor WHERE id = %s
             """, (surveyor_id,))
-            st.success(f"✅ Successfully deleted surveyor: {surveyor_name}")
             # Clear both admin and surveys caches
             get_all_surveyors_admin.clear()
             get_all_surveyors.clear()
+            # Set success flag for toast message
+            st.session_state["surveyor_deleted_success"] = surveyor_name
             return True
     except Exception as e:
         st.error(f"❌ Error deleting surveyor: {e}")
@@ -68,6 +74,18 @@ def delete_surveyor(surveyor_id: int, surveyor_name: str) -> bool:
 def render_admin_page():
     """Render the admin page with surveyor management"""
     st.header("Surveyors")
+
+    # Show toast messages for success operations
+    if "surveyor_added_success" in st.session_state:
+        info = st.session_state["surveyor_added_success"]
+        surveyor_name = f"{info['first_name']} {info['last_name']}"
+        st.toast(f"Successfully added surveyor: {surveyor_name}", icon="✅", duration="short")
+        del st.session_state["surveyor_added_success"]
+
+    if "surveyor_deleted_success" in st.session_state:
+        surveyor_name = st.session_state["surveyor_deleted_success"]
+        st.toast(f"Successfully deleted surveyor: {surveyor_name}", icon="✅", duration="short")
+        del st.session_state["surveyor_deleted_success"]
 
     # Information section
     st.markdown("""
