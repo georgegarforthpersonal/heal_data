@@ -35,24 +35,51 @@ python3 app/scripts/populate_birds.py
 
 ## 💻 Local Development
 
-**Start the app:**
+### First Time Setup
+
+1. **Start local database and populate with data:**
 ```bash
-docker compose up
+docker compose up -d db
+./run-script populate_butterflies.py
+./run-script populate_birds.py
 ```
 
-**Access the app:**
-Open http://localhost:8501
-
-**Populate data:**
+2. **Start the app:**
 ```bash
-./run-script populate_butterflies.py  # Import butterfly data
-./run-script populate_birds.py        # Import bird data
+docker compose up app
 ```
 
-**Stop the app:**
+3. **Access the app:**
+Open http://localhost:8501 (no login required in dev)
+
+### Daily Development
+
+**Run against local database (dev):**
+```bash
+docker compose up app          # Starts app + local DB
+```
+
+**Run against production database:**
+```bash
+docker compose up app-prod     # Connects to Neon prod DB
+```
+
+**Repopulate data (dev only):**
+```bash
+./run-script populate_butterflies.py
+./run-script populate_birds.py
+```
+
+**Stop everything:**
 ```bash
 docker compose down
 ```
+
+### Environment Details
+
+- **Dev** (`.env.dev`): Local PostgreSQL, no login required
+- **Prod** (`.env.prod`): Neon cloud DB, login: heal/nightingale
+- **Safety**: Populate scripts cannot run against production
 
 ---
 
