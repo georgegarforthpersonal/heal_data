@@ -2,6 +2,7 @@ import streamlit as st
 from typing import List, Tuple, Optional
 from database.connection import get_db_cursor
 import pandas as pd
+from pages.surveys import get_all_surveyors
 
 @st.cache_data(ttl=60)  # Cache for 1 minute
 def get_all_surveyors_admin() -> List[Tuple]:
@@ -29,8 +30,9 @@ def add_surveyor(first_name: str, last_name: str) -> bool:
             """, (first_name.strip(), last_name.strip()))
             surveyor_id = cursor.fetchone()[0]
             st.success(f"✅ Successfully added surveyor: {first_name} {last_name} (ID: {surveyor_id})")
-            # Clear the cache
+            # Clear both admin and surveys caches
             get_all_surveyors_admin.clear()
+            get_all_surveyors.clear()
             return True
     except Exception as e:
         st.error(f"❌ Error adding surveyor: {e}")
@@ -55,8 +57,9 @@ def delete_surveyor(surveyor_id: int, surveyor_name: str) -> bool:
                 DELETE FROM surveyor WHERE id = %s
             """, (surveyor_id,))
             st.success(f"✅ Successfully deleted surveyor: {surveyor_name}")
-            # Clear the cache
+            # Clear both admin and surveys caches
             get_all_surveyors_admin.clear()
+            get_all_surveyors.clear()
             return True
     except Exception as e:
         st.error(f"❌ Error deleting surveyor: {e}")
@@ -141,15 +144,18 @@ def render_admin_page():
 
                 selected_surveyor = st.selectbox(
                     "Select surveyor to delete:",
-                    options=list(surveyor_options.keys()),
+                    options=["Choose a surveyor..."] + list(surveyor_options.keys()),
                     key="delete_surveyor_select"
                 )
 
                 delete_btn = st.form_submit_button("🗑️ Delete Surveyor", type="secondary", use_container_width=True)
 
                 if delete_btn:
-                    surveyor_id, surveyor_name = surveyor_options[selected_surveyor]
-                    if delete_surveyor(surveyor_id, surveyor_name):
-                        st.rerun()
+                    if selected_surveyor == "Choose a surveyor...":
+                        st.error("❌ Please select a surveyor to delete")
+                    else:
+                        surveyor_id, surveyor_name = surveyor_options[selected_surveyor]
+                        if delete_surveyor(surveyor_id, surveyor_name):
+                            st.rerun()
         else:
             st.info("No surveyors to delete.")
