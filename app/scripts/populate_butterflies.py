@@ -21,6 +21,13 @@ DB_CONFIG = {
     'password': os.getenv('DB_PASSWORD', 'password')
 }
 
+# Safety check: NEVER allow this script to run against production
+if os.getenv('ENV', '').lower() == 'production':
+    print("❌ ERROR: This script cannot run against production database!")
+    print("   populate_butterflies.py must ONLY be run against dev database")
+    print("   Current ENV:", os.getenv('ENV'))
+    exit(1)
+
 # Number word to digit mapping
 NUMBER_WORDS = {
     'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,

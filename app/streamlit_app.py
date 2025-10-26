@@ -18,6 +18,10 @@ st.set_page_config(
 def check_password():
     """Returns True if the user has entered the correct password."""
 
+    # Skip authentication in dev environment
+    if os.getenv('ENV', '').lower() == 'dev':
+        return True
+
     def password_entered():
         """Checks whether a password entered by the user is correct."""
         if (st.session_state["username"] == "heal" and
