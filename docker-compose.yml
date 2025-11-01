@@ -39,5 +39,19 @@ services:
       - ./app:/app/app
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./app-v2/frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: heal_butterflies_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./app-v2/frontend/src:/app/src
+      - ./app-v2/frontend/public:/app/public
+      - ./app-v2/frontend/index.html:/app/index.html
+    restart: unless-stopped
+
 volumes:
   postgres_data:

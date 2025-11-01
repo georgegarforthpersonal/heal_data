@@ -72,3 +72,8 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
