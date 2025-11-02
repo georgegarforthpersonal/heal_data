@@ -1,6 +1,18 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, IconButton } from '@mui/material';
+import { Edit, Delete } from '@mui/icons-material';
 
 export function SurveysPage() {
+  // Handler functions - will connect to API later
+  const handleEdit = (surveyId: number) => {
+    console.log('Edit survey:', surveyId);
+    // TODO: Open edit dialog or navigate to edit page
+  };
+
+  const handleDelete = (surveyId: number) => {
+    console.log('Delete survey:', surveyId);
+    // TODO: Show confirmation dialog, then delete
+  };
+
   // Mock data - will come from API later
   const surveys = [
     {
@@ -52,6 +64,7 @@ export function SurveysPage() {
               <TableCell>Surveyors</TableCell>
               <TableCell>Sightings</TableCell>
               <TableCell>Location</TableCell>
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -74,7 +87,7 @@ export function SurveysPage() {
                     {survey.sightings.map((sighting, idx) => (
                       <Chip
                         key={idx}
-                        label={`${sighting.type === 'butterflies' ? '🦋' : '🐦'} ${sighting.count}`}
+                        label={`${sighting.type === 'butterflies' ? '🦋' : '🦉'} ${sighting.count}`}
                         size="small"
                         variant="outlined"
                         color={sighting.type === 'butterflies' ? 'secondary' : 'primary'}
@@ -83,6 +96,24 @@ export function SurveysPage() {
                   </Stack>
                 </TableCell>
                 <TableCell>{survey.location}</TableCell>
+                <TableCell align="right">
+                  {/* Action buttons - inline for now. Extract to SurveyActions component if used elsewhere */}
+                  <IconButton
+                    size="small"
+                    onClick={() => handleEdit(survey.id)}
+                    aria-label="edit survey"
+                  >
+                    <Edit fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDelete(survey.id)}
+                    aria-label="delete survey"
+                    color="error"
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
