@@ -1,34 +1,35 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack } from '@mui/material';
 
 export function SurveysPage() {
   // Mock data - will come from API later
   const surveys = [
     {
       id: 1,
-      title: 'Meadow Butterfly Survey',
-      location: 'Heal Rewilding Site A',
       date: 'Oct 25, 2025',
-      status: 'Completed',
-      butterflies: 45,
-      birds: 23,
+      surveyors: ['John Smith', 'Jane Doe'],
+      location: 'Heal Rewilding Site A',
+      sightings: [
+        { type: 'butterflies', count: 45 },
+        { type: 'birds', count: 23 },
+      ],
     },
     {
       id: 2,
-      title: 'Woodland Bird Count',
-      location: 'Heal Rewilding Site B',
       date: 'Oct 28, 2025',
-      status: 'In Progress',
-      butterflies: 12,
-      birds: 67,
+      surveyors: ['Mike Johnson'],
+      location: 'Heal Rewilding Site B',
+      sightings: [
+        { type: 'butterflies', count: 12 },
+      ],
     },
     {
       id: 3,
-      title: 'Spring Migration Survey',
-      location: 'Heal Rewilding Site C',
       date: 'Oct 30, 2025',
-      status: 'Completed',
-      butterflies: 89,
-      birds: 156,
+      surveyors: ['Sarah Williams', 'Tom Brown', 'Emily Davis'],
+      location: 'Heal Rewilding Site C',
+      sightings: [
+        { type: 'birds', count: 156 },
+      ],
     },
   ];
 
@@ -47,12 +48,10 @@ export function SurveysPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Survey Title</TableCell>
-              <TableCell>Location</TableCell>
               <TableCell>Date</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Butterflies</TableCell>
-              <TableCell align="right">Birds</TableCell>
+              <TableCell>Surveyors</TableCell>
+              <TableCell>Sightings</TableCell>
+              <TableCell>Location</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -61,22 +60,29 @@ export function SurveysPage() {
                 key={survey.id}
                 sx={{ '&:hover': { bgcolor: 'action.hover' } }}
               >
-                <TableCell>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    {survey.title}
-                  </Typography>
-                </TableCell>
-                <TableCell>{survey.location}</TableCell>
                 <TableCell>{survey.date}</TableCell>
                 <TableCell>
-                  <Chip
-                    label={survey.status}
-                    color={survey.status === 'Completed' ? 'success' : 'info'}
-                    size="small"
-                  />
+                  {/* Show first surveyor, then "+N more" if there are more */}
+                  {survey.surveyors.length === 1
+                    ? survey.surveyors[0]
+                    : `${survey.surveyors[0]} +${survey.surveyors.length - 1} more`
+                  }
                 </TableCell>
-                <TableCell align="right">{survey.butterflies}</TableCell>
-                <TableCell align="right">{survey.birds}</TableCell>
+                <TableCell>
+                  {/* Chips for each sighting type - only shows non-zero values */}
+                  <Stack direction="row" spacing={1}>
+                    {survey.sightings.map((sighting, idx) => (
+                      <Chip
+                        key={idx}
+                        label={`${sighting.type === 'butterflies' ? '🦋' : '🐦'} ${sighting.count}`}
+                        size="small"
+                        variant="outlined"
+                        color={sighting.type === 'butterflies' ? 'secondary' : 'primary'}
+                      />
+                    ))}
+                  </Stack>
+                </TableCell>
+                <TableCell>{survey.location}</TableCell>
               </TableRow>
             ))}
           </TableBody>
