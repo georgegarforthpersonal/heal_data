@@ -1,5 +1,6 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, IconButton, Button, Avatar, AvatarGroup, Tooltip } from '@mui/material';
-import { Edit, Delete, CalendarToday, Person, Visibility, LocationOn, MoreHoriz, Assignment } from '@mui/icons-material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip } from '@mui/material';
+import { CalendarToday, Person, Visibility, LocationOn, Assignment } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
 
@@ -8,6 +9,7 @@ import { notionColors, tableSizing } from '../theme';
  * - Date, surveyors (avatar stack), sightings (chips with icons), and location
  * - Edit and delete actions per row
  * - Notion-style design with clean, minimal aesthetics
+ * - Clickable rows that navigate to survey detail pages
  *
  * Following DEVELOPMENT.md conventions:
  * - Built inline first (no premature component extraction)
@@ -15,18 +17,14 @@ import { notionColors, tableSizing } from '../theme';
  * - Mock data ready to be replaced with API calls
  */
 export function SurveysPage() {
+  const navigate = useNavigate();
+
   // ============================================================================
   // Event Handlers - Will connect to API later
   // ============================================================================
 
-  const handleEdit = (surveyId: number) => {
-    console.log('Edit survey:', surveyId);
-    // TODO: Open edit dialog or navigate to edit page
-  };
-
-  const handleDelete = (surveyId: number) => {
-    console.log('Delete survey:', surveyId);
-    // TODO: Show confirmation dialog, then delete
+  const handleRowClick = (surveyId: number) => {
+    navigate(`/surveys/${surveyId}`);
   };
 
   // ============================================================================
@@ -280,6 +278,9 @@ export function SurveysPage() {
         </Stack>
 
         {/* Actions - New survey button */}
+        {/* TODO: Add RBAC permission check - only show this button to admin users */}
+        {/* When implementing: const { hasPermission } = useAuth(); */}
+        {/* Then conditionally render: {hasPermission('create_survey') && <Button.../>} */}
         <Stack direction="row" justifyContent="flex-end" alignItems="center">
           <Button
             variant="contained"
@@ -373,23 +374,6 @@ export function SurveysPage() {
                   <span>Location</span>
                 </Stack>
               </TableCell>
-              <TableCell
-                align="right"
-                sx={{
-                  fontWeight: 500,
-                  fontSize: tableSizing.header.fontSize,
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px',
-                  py: tableSizing.header.py,
-                  px: tableSizing.header.px,
-                }}
-              >
-                <Stack direction="row" alignItems="center" spacing={0.5} justifyContent="flex-end">
-                  <MoreHoriz sx={{ fontSize: tableSizing.header.iconSize }} />
-                  <span>Actions</span>
-                </Stack>
-              </TableCell>
             </TableRow>
           </TableHead>
 
@@ -398,6 +382,7 @@ export function SurveysPage() {
             {surveys.map((survey) => (
               <TableRow
                 key={survey.id}
+                onClick={() => handleRowClick(survey.id)}
                 sx={{
                   '&:hover': { bgcolor: 'grey.50' },
                   cursor: 'pointer',
@@ -480,40 +465,6 @@ export function SurveysPage() {
                 {/* Location Column */}
                 <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
                   {survey.location}
-                </TableCell>
-
-                {/* Actions Column - Edit and Delete */}
-                <TableCell align="right" sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(survey.id);
-                    }}
-                    aria-label="edit survey"
-                    sx={{
-                      color: 'text.secondary',
-                      padding: tableSizing.actionIcon.padding,
-                      '&:hover': { bgcolor: 'success.lighter', color: 'success.main' }
-                    }}
-                  >
-                    <Edit sx={{ fontSize: tableSizing.actionIcon.size }} />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(survey.id);
-                    }}
-                    aria-label="delete survey"
-                    sx={{
-                      color: 'text.secondary',
-                      padding: tableSizing.actionIcon.padding,
-                      '&:hover': { bgcolor: 'error.lighter', color: 'error.main' }
-                    }}
-                  >
-                    <Delete sx={{ fontSize: tableSizing.actionIcon.size }} />
-                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
