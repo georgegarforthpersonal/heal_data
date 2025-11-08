@@ -218,19 +218,6 @@ export function SurveyDetailPage() {
         ) : (
           <Stack direction="row" spacing={1}>
             <Button
-              variant="outlined"
-              color="error"
-              startIcon={<Delete />}
-              onClick={handleDelete}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                boxShadow: 'none'
-              }}
-            >
-              Delete
-            </Button>
-            <Button
               variant="contained"
               startIcon={<Edit />}
               onClick={handleEditClick}
@@ -242,6 +229,19 @@ export function SurveyDetailPage() {
               }}
             >
               Edit Survey
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<Delete />}
+              onClick={handleDelete}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: 'none'
+              }}
+            >
+              Delete
             </Button>
           </Stack>
         )}
