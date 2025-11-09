@@ -1,7 +1,9 @@
 version: '3.8'
 
 services:
+  # Local PostgreSQL database - only for development
   db:
+    profiles: ["dev"]
     image: postgres:15
     container_name: heal_butterflies_db
     environment:
@@ -15,7 +17,9 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
 
+  # Legacy Streamlit app (dev mode)
   app:
+    profiles: ["streamlit-dev"]
     build: .
     container_name: heal_butterflies_app_dev
     env_file:
@@ -28,7 +32,9 @@ services:
     depends_on:
       - db
 
+  # Legacy Streamlit app (prod mode)
   app-prod:
+    profiles: ["streamlit-prod"]
     build: .
     container_name: heal_butterflies_app_prod
     env_file:
@@ -51,6 +57,53 @@ services:
       - ./app-v2/frontend/src:/app/src
       - ./app-v2/frontend/public:/app/public
       - ./app-v2/frontend/index.html:/app/index.html
+    restart: unless-stopped
+
+  # Development API - connects to local PostgreSQL container
+  api:
+    profiles: ["dev"]
+    build:
+      context: ./app-v2/backend
+      dockerfile: Dockerfile
+    container_name: heal_butterflies_api
+    env_file:
+      - .env.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app-v2/backend:/app
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  # Staging API - connects to Neon staging database
+  api-staging:
+    profiles: ["staging"]
+    build:
+      context: ./app-v2/backend
+      dockerfile: Dockerfile
+    container_name: heal_butterflies_api
+    env_file:
+      - .env.staging
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app-v2/backend:/app
+    restart: unless-stopped
+
+  # Production API - connects to Neon production database
+  api-prod:
+    profiles: ["prod"]
+    build:
+      context: ./app-v2/backend
+      dockerfile: Dockerfile
+    container_name: heal_butterflies_api
+    env_file:
+      - .env.prod
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app-v2/backend:/app
     restart: unless-stopped
 
 volumes:

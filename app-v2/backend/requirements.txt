@@ -1,0 +1,18 @@
+# FastAPI Backend Dependencies
+
+# Web framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Database
+psycopg2-binary>=2.9.7
+sqlmodel>=0.0.14
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Testing
+requests>=2.31.0  # For testing API endpoints
+
+# Development tools (optional)
+# httpx>=0.26.0  # For testing API endpoints

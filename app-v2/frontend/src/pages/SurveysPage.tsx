@@ -1,26 +1,75 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert } from '@mui/material';
 import { CalendarToday, Person, Visibility, LocationOn, Assignment } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
+import { useState, useEffect } from 'react';
+import { surveysAPI, surveyorsAPI } from '../services/api';
+import type { Survey, Surveyor } from '../services/api';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
- * - Date, surveyors (avatar stack), sightings (chips with icons), and location
- * - Edit and delete actions per row
+ * - Date, surveyors (avatar stack), species breakdown (chips with icons), and type
  * - Notion-style design with clean, minimal aesthetics
  * - Clickable rows that navigate to survey detail pages
+ *
+ * Species Breakdown Feature:
+ * - Each survey shows species_breakdown from the API (e.g., [{type: "bird", count: 20}])
+ * - Icons automatically displayed based on species type:
+ *   - butterfly → ButterflyIcon (🦋)
+ *   - bird → BirdIcon (🐦)
+ *   - fungi → MushroomIcon (🍄)
+ * - Supports multiple species per survey (e.g., "🦋45 🐦23 🍄18")
+ * - Note: survey.type field is deprecated, use species_breakdown instead
  *
  * Following DEVELOPMENT.md conventions:
  * - Built inline first (no premature component extraction)
  * - Uses MUI components with theme integration
- * - Mock data ready to be replaced with API calls
+ * - Connected to real API (src/services/api.ts)
  */
 export function SurveysPage() {
   const navigate = useNavigate();
 
   // ============================================================================
-  // Event Handlers - Will connect to API later
+  // State Management
+  // ============================================================================
+
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // ============================================================================
+  // Data Fetching
+  // ============================================================================
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch surveys and surveyors in parallel
+        const [surveysData, surveyorsData] = await Promise.all([
+          surveysAPI.getAll(),
+          surveyorsAPI.getAll(),
+        ]);
+
+        setSurveys(surveysData);
+        setSurveyors(surveyorsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load surveys');
+        console.error('Error fetching data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // ============================================================================
+  // Event Handlers
   // ============================================================================
 
   const handleRowClick = (surveyId: number) => {
@@ -32,14 +81,34 @@ export function SurveysPage() {
   // ============================================================================
 
   /**
+   * Get surveyor name from ID
+   */
+  const getSurveyorName = (id: number): string => {
+    const surveyor = surveyors.find(s => s.id === id);
+    if (!surveyor) return 'Unknown';
+    return `${surveyor.first_name} ${surveyor.last_name}`.trim() || surveyor.first_name;
+  };
+
+  /**
    * Extracts initials from a full name (e.g., "John Smith" → "JS")
    */
   const getInitials = (name: string): string => {
-    const parts = name.split(' ');
+    const parts = name.trim().split(' ').filter(p => p.length > 0);
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-    return parts[0][0].toUpperCase();
+    if (parts.length === 1 && parts[0].length > 0) {
+      return parts[0][0].toUpperCase();
+    }
+    return '?';
+  };
+
+  /**
+   * Format date from YYYY-MM-DD to readable format
+   */
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   /**
@@ -50,214 +119,32 @@ export function SurveysPage() {
     return { bgcolor: notionColors.gray.background, color: notionColors.gray.text };
   };
 
-  /**
-   * Capitalizes first letter of a string (e.g., "butterflies" → "Butterflies")
-   */
-  const capitalize = (str: string): string => {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
-
-  // ============================================================================
-  // Mock Data - Will come from API later
-  // TODO: Replace with API call: const { data: surveys } = useSurveys();
-  // ============================================================================
-
-  const surveys = [
-    {
-      id: 1,
-      date: 'Oct 25, 2025',
-      surveyors: ['John Smith', 'Jane Doe'],
-      location: 'Northern',
-      sightings: [
-        { type: 'butterflies', count: 45 },
-        { type: 'birds', count: 23 },
-        { type: 'fungi', count: 18 },
-      ],
-    },
-    {
-      id: 2,
-      date: 'Oct 28, 2025',
-      surveyors: ['Mike Johnson'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'butterflies', count: 12 },
-      ],
-    },
-    {
-      id: 3,
-      date: 'Oct 30, 2025',
-      surveyors: ['Sarah Williams', 'Tom Brown', 'Emily Davis', 'Michael Johnson', 'Jessica Lee', 'David Martinez', 'Lisa Anderson'],
-      location: 'Southern',
-      sightings: [
-        { type: 'birds', count: 156 },
-        { type: 'fungi', count: 42 },
-      ],
-    },
-    {
-      id: 4,
-      date: 'Nov 1, 2025',
-      surveyors: ['Alice Cooper'],
-      location: 'Northern',
-      sightings: [
-        { type: 'butterflies', count: 28 },
-        { type: 'birds', count: 67 },
-      ],
-    },
-    {
-      id: 5,
-      date: 'Nov 2, 2025',
-      surveyors: ['Bob Wilson', 'Carol Davis'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'butterflies', count: 89 },
-      ],
-    },
-    {
-      id: 6,
-      date: 'Nov 3, 2025',
-      surveyors: ['David Lee'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'birds', count: 34 },
-      ],
-    },
-    {
-      id: 7,
-      date: 'Nov 5, 2025',
-      surveyors: ['Emma Thomas', 'Frank Harris'],
-      location: 'Southern',
-      sightings: [
-        { type: 'butterflies', count: 51 },
-        { type: 'birds', count: 92 },
-        { type: 'fungi', count: 27 },
-      ],
-    },
-    {
-      id: 8,
-      date: 'Nov 7, 2025',
-      surveyors: ['Grace Martin'],
-      location: 'Northern',
-      sightings: [
-        { type: 'butterflies', count: 76 },
-      ],
-    },
-    {
-      id: 9,
-      date: 'Nov 8, 2025',
-      surveyors: ['Henry Clark', 'Iris Walker', 'Jack Robinson'],
-      location: 'Southern',
-      sightings: [
-        { type: 'birds', count: 143 },
-      ],
-    },
-    {
-      id: 10,
-      date: 'Nov 10, 2025',
-      surveyors: ['Karen White'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'butterflies', count: 33 },
-        { type: 'birds', count: 58 },
-      ],
-    },
-    {
-      id: 11,
-      date: 'Nov 12, 2025',
-      surveyors: ['Liam Brown', 'Maya Singh'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'butterflies', count: 104 },
-      ],
-    },
-    {
-      id: 12,
-      date: 'Nov 14, 2025',
-      surveyors: ['Nathan Green'],
-      location: 'Northern',
-      sightings: [
-        { type: 'birds', count: 71 },
-        { type: 'fungi', count: 35 },
-      ],
-    },
-    {
-      id: 13,
-      date: 'Nov 15, 2025',
-      surveyors: ['Olivia Turner', 'Paul Adams'],
-      location: 'Southern',
-      sightings: [
-        { type: 'butterflies', count: 62 },
-        { type: 'birds', count: 119 },
-      ],
-    },
-    {
-      id: 14,
-      date: 'Nov 17, 2025',
-      surveyors: ['Quinn Foster'],
-      location: 'Southern',
-      sightings: [
-        { type: 'butterflies', count: 47 },
-      ],
-    },
-    {
-      id: 15,
-      date: 'Nov 19, 2025',
-      surveyors: ['Rachel Murphy', 'Sam Collins', 'Tina Brooks', 'Uma Patel', 'Vincent Wong', 'Sophie Chen'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'birds', count: 87 },
-      ],
-    },
-    {
-      id: 16,
-      date: 'Nov 20, 2025',
-      surveyors: ['Victor Chen'],
-      location: 'Northern',
-      sightings: [
-        { type: 'fungi', count: 56 },
-      ],
-    },
-    {
-      id: 17,
-      date: 'Nov 22, 2025',
-      surveyors: ['Wendy Gray', 'Xavier Bell'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'butterflies', count: 38 },
-      ],
-    },
-    {
-      id: 18,
-      date: 'Nov 24, 2025',
-      surveyors: ['Yara Mitchell'],
-      location: 'Southern',
-      sightings: [
-        { type: 'birds', count: 205 },
-      ],
-    },
-    {
-      id: 19,
-      date: 'Nov 26, 2025',
-      surveyors: ['Zoe Parker', 'Aaron Scott'],
-      location: 'Southern',
-      sightings: [
-        { type: 'butterflies', count: 81 },
-        { type: 'fungi', count: 29 },
-      ],
-    },
-    {
-      id: 20,
-      date: 'Nov 28, 2025',
-      surveyors: ['Blake Reed'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'butterflies', count: 55 },
-      ],
-    },
-  ];
-
   // ============================================================================
   // Render
   // ============================================================================
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 4 }}>
@@ -370,8 +257,8 @@ export function SurveysPage() {
                 }}
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <LocationOn sx={{ fontSize: tableSizing.header.iconSize }} />
-                  <span>Location</span>
+                  <Visibility sx={{ fontSize: tableSizing.header.iconSize }} />
+                  <span>Type</span>
                 </Stack>
               </TableCell>
             </TableRow>
@@ -379,73 +266,71 @@ export function SurveysPage() {
 
           {/* Table Body - Survey Rows */}
           <TableBody>
-            {surveys.map((survey) => (
-              <TableRow
-                key={survey.id}
-                onClick={() => handleRowClick(survey.id)}
-                sx={{
-                  '&:hover': { bgcolor: 'grey.50' },
-                  cursor: 'pointer',
-                  borderBottom: '1px solid',
-                  borderColor: 'divider'
-                }}
-              >
-                {/* Date Column */}
-                <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize }}>
-                  {survey.date}
-                </TableCell>
+            {surveys.map((survey) => {
+              const surveyorNames = survey.surveyor_ids.map(id => getSurveyorName(id));
 
-                {/* Surveyors Column - Avatar Stack */}
-                <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    <AvatarGroup
-                      max={4}
-                      sx={{
-                        '& .MuiAvatar-root': {
-                          width: tableSizing.avatar.size,
-                          height: tableSizing.avatar.size,
-                          fontSize: tableSizing.avatar.fontSize,
-                          bgcolor: 'text.secondary',
-                          border: '2px solid white',
-                        }
-                      }}
-                    >
-                      {survey.surveyors.map((surveyor, idx) => (
-                        <Tooltip key={idx} title={surveyor} arrow>
-                          <Avatar alt={surveyor}>
-                            {getInitials(surveyor)}
-                          </Avatar>
-                        </Tooltip>
-                      ))}
-                    </AvatarGroup>
-                  </Box>
-                </TableCell>
+              return (
+                <TableRow
+                  key={survey.id}
+                  onClick={() => handleRowClick(survey.id)}
+                  sx={{
+                    '&:hover': { bgcolor: 'grey.50' },
+                    cursor: 'pointer',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                >
+                  {/* Date Column */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize }}>
+                    {formatDate(survey.date)}
+                  </TableCell>
 
-                {/* Sightings Column - Chips with Icons */}
-                <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
-                  <Stack direction="row" spacing={0.75}>
-                    {survey.sightings.map((sighting, idx) => {
-                      const colors = getSightingColors();
+                  {/* Surveyors Column - Avatar Stack */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      <AvatarGroup
+                        max={4}
+                        sx={{
+                          '& .MuiAvatar-root': {
+                            width: tableSizing.avatar.size,
+                            height: tableSizing.avatar.size,
+                            fontSize: tableSizing.avatar.fontSize,
+                            bgcolor: 'text.secondary',
+                            border: '2px solid white',
+                          }
+                        }}
+                      >
+                        {surveyorNames.map((name, idx) => (
+                          <Tooltip key={idx} title={name} arrow>
+                            <Avatar alt={name}>
+                              {getInitials(name)}
+                            </Avatar>
+                          </Tooltip>
+                        ))}
+                      </AvatarGroup>
+                    </Box>
+                  </TableCell>
 
-                      // Select icon based on sighting type
-                      const icon = sighting.type === 'butterflies'
-                        ? <ButterflyIcon sx={{ fontSize: tableSizing.chip.iconSize, mr: 0.5 }} />
-                        : sighting.type === 'birds'
-                        ? <BirdIcon sx={{ fontSize: tableSizing.chip.iconSize, mr: 0.5 }} />
-                        : <MushroomIcon sx={{ fontSize: tableSizing.chip.iconSize, mr: 0.5 }} />;
+                  {/* Sightings Column - Species breakdown with icons */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
+                    <Stack direction="row" spacing={1}>
+                      {survey.species_breakdown.map((sighting, idx) => {
+                        // Select icon based on species type
+                        const Icon = sighting.type === 'butterfly'
+                          ? ButterflyIcon
+                          : sighting.type === 'bird'
+                          ? BirdIcon
+                          : MushroomIcon;
 
-                      return (
-                        <Tooltip key={idx} title={`${capitalize(sighting.type)} - ${sighting.count}`} arrow>
+                        return (
                           <Chip
-                            label={
-                              <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
-                                {icon} {sighting.count}
-                              </Box>
-                            }
+                            key={idx}
+                            icon={<Icon sx={{ fontSize: '16px !important', ml: '6px !important' }} />}
+                            label={sighting.count}
                             size="small"
                             sx={{
-                              bgcolor: colors.bgcolor,
-                              color: colors.color,
+                              bgcolor: notionColors.gray.background,
+                              color: notionColors.gray.text,
                               fontWeight: 500,
                               fontSize: tableSizing.chip.fontSize,
                               height: tableSizing.chip.height,
@@ -456,18 +341,36 @@ export function SurveysPage() {
                               }
                             }}
                           />
-                        </Tooltip>
-                      );
-                    })}
-                  </Stack>
-                </TableCell>
+                        );
+                      })}
+                      {survey.species_breakdown.length === 0 && (
+                        <Chip
+                          label="0 sightings"
+                          size="small"
+                          sx={{
+                            bgcolor: notionColors.gray.background,
+                            color: notionColors.gray.text,
+                            fontWeight: 500,
+                            fontSize: tableSizing.chip.fontSize,
+                            height: tableSizing.chip.height,
+                            borderRadius: '4px',
+                            '& .MuiChip-label': {
+                              px: 1,
+                              py: 0
+                            }
+                          }}
+                        />
+                      )}
+                    </Stack>
+                  </TableCell>
 
-                {/* Location Column */}
-                <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
-                  {survey.location}
-                </TableCell>
-              </TableRow>
-            ))}
+                  {/* Type Column */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
+                    {survey.type.charAt(0).toUpperCase() + survey.type.slice(1)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
