@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect } from 'react';
-import { surveysAPI, surveyorsAPI } from '../services/api';
-import type { Survey, Surveyor } from '../services/api';
+import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
+import type { Survey, Surveyor, Location } from '../services/api';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
@@ -36,6 +36,7 @@ export function SurveysPage() {
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,14 +50,16 @@ export function SurveysPage() {
         setLoading(true);
         setError(null);
 
-        // Fetch surveys and surveyors in parallel
-        const [surveysData, surveyorsData] = await Promise.all([
+        // Fetch surveys, surveyors, and locations in parallel
+        const [surveysData, surveyorsData, locationsData] = await Promise.all([
           surveysAPI.getAll(),
           surveyorsAPI.getAll(),
+          locationsAPI.getAll(),
         ]);
 
         setSurveys(surveysData);
         setSurveyors(surveyorsData);
+        setLocations(locationsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load surveys');
         console.error('Error fetching data:', err);
@@ -87,6 +90,14 @@ export function SurveysPage() {
     const surveyor = surveyors.find(s => s.id === id);
     if (!surveyor) return 'Unknown';
     return `${surveyor.first_name} ${surveyor.last_name}`.trim() || surveyor.first_name;
+  };
+
+  /**
+   * Get location name from ID
+   */
+  const getLocationName = (id: number): string => {
+    const location = locations.find(l => l.id === id);
+    return location?.name || 'Unknown';
   };
 
   /**
@@ -257,8 +268,8 @@ export function SurveysPage() {
                 }}
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <Visibility sx={{ fontSize: tableSizing.header.iconSize }} />
-                  <span>Type</span>
+                  <LocationOn sx={{ fontSize: tableSizing.header.iconSize }} />
+                  <span>Location</span>
                 </Stack>
               </TableCell>
             </TableRow>
@@ -364,9 +375,9 @@ export function SurveysPage() {
                     </Stack>
                   </TableCell>
 
-                  {/* Type Column */}
+                  {/* Location Column */}
                   <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
-                    {survey.type.charAt(0).toUpperCase() + survey.type.slice(1)}
+                    {getLocationName(survey.location_id)}
                   </TableCell>
                 </TableRow>
               );

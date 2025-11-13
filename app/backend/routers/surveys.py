@@ -81,7 +81,8 @@ async def get_surveys(db: Session = Depends(get_db)):
                 "temperature_celsius": survey.temperature_celsius,
                 "conditions_met": survey.conditions_met,
                 "notes": survey.notes,
-                "survey_type": survey.type,
+                "type": survey.type,
+                "location_id": survey.location_id,
                 "surveyor_ids": surveyor_ids_list,
                 "sightings_count": sightings_count or 0,
                 "species_breakdown": species_breakdown
@@ -127,7 +128,8 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
         "temperature_celsius": survey.temperature_celsius,
         "conditions_met": survey.conditions_met,
         "notes": survey.notes,
-        "survey_type": survey.type,
+        "type": survey.type,
+        "location_id": survey.location_id,
         "surveyor_ids": surveyor_ids_list
     }
 
@@ -300,29 +302,24 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
     if not survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
-    # Get sightings with species and location names
+    # Get sightings with species names (location comes from survey)
     sightings = db.query(
         Sighting.id,
         Sighting.survey_id,
         Sighting.species_id,
-        Sighting.location_id,
         Sighting.count,
-        Species.name.label('species_name'),
-        Location.name.label('location_name')
+        Species.name.label('species_name')
     ).join(Species, Sighting.species_id == Species.id)\
-     .join(Location, Sighting.location_id == Location.id)\
      .filter(Sighting.survey_id == survey_id)\
-     .order_by(Species.name, Location.name)\
+     .order_by(Species.name)\
      .all()
 
     return [{
         "id": row.id,
         "survey_id": row.survey_id,
         "species_id": row.species_id,
-        "location_id": row.location_id,
         "count": row.count,
-        "species_name": row.species_name,
-        "location_name": row.location_name
+        "species_name": row.species_name
     } for row in sightings]
 
 
@@ -350,25 +347,21 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
     db_sighting = Sighting(
         survey_id=survey_id,
         species_id=sighting.species_id,
-        location_id=sighting.location_id,
         count=sighting.count
     )
     db.add(db_sighting)
     db.commit()
     db.refresh(db_sighting)
 
-    # Get species and location names
+    # Get species name
     species = db.query(Species).filter(Species.id == sighting.species_id).first()
-    location = db.query(Location).filter(Location.id == sighting.location_id).first()
 
     return {
         "id": db_sighting.id,
         "survey_id": db_sighting.survey_id,
         "species_id": db_sighting.species_id,
-        "location_id": db_sighting.location_id,
         "count": db_sighting.count,
-        "species_name": species.name if species else None,
-        "location_name": location.name if location else None
+        "species_name": species.name if species else None
     }
 
 
@@ -407,18 +400,15 @@ async def update_sighting(survey_id: int, sighting_id: int, sighting: SightingUp
     db.commit()
     db.refresh(db_sighting)
 
-    # Get species and location names
+    # Get species name
     species = db.query(Species).filter(Species.id == db_sighting.species_id).first()
-    location = db.query(Location).filter(Location.id == db_sighting.location_id).first()
 
     return {
         "id": db_sighting.id,
         "survey_id": db_sighting.survey_id,
         "species_id": db_sighting.species_id,
-        "location_id": db_sighting.location_id,
         "count": db_sighting.count,
-        "species_name": species.name if species else None,
-        "location_name": location.name if location else None
+        "species_name": species.name if species else None
     }
 
 

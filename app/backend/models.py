@@ -145,7 +145,7 @@ class Location(LocationBase, table=True):
     )
 
     # Relationships
-    sightings: List["Sighting"] = Relationship(back_populates="location")
+    surveys: List["Survey"] = Relationship(back_populates="location")
 
 
 class LocationCreate(LocationBase):
@@ -179,6 +179,7 @@ class SurveyBase(SQLModel):
     conditions_met: Optional[bool] = Field(None, description="Whether survey conditions were met")
     notes: Optional[str] = Field(None, description="Additional notes")
     type: str = Field(default="butterfly", max_length=50, description="Type of survey")
+    location_id: int = Field(gt=0, foreign_key="location.id", description="Location ID")
 
 
 class Survey(SurveyBase, table=True):
@@ -195,6 +196,7 @@ class Survey(SurveyBase, table=True):
     # Relationships
     surveyors: List["Surveyor"] = Relationship(back_populates="surveys", link_model=SurveySurveyor)
     sightings: List["Sighting"] = Relationship(back_populates="survey", cascade_delete=True)
+    location: "Location" = Relationship(back_populates="surveys")
 
 
 class SurveyCreate(SurveyBase):
@@ -212,6 +214,7 @@ class SurveyUpdate(SQLModel):
     conditions_met: Optional[bool] = None
     notes: Optional[str] = None
     type: Optional[str] = Field(None, max_length=50)
+    location_id: Optional[int] = Field(None, gt=0)
     surveyor_ids: Optional[List[int]] = None
 
 
@@ -240,7 +243,6 @@ class SurveyWithSightingsCount(SurveyRead):
 class SightingBase(SQLModel):
     """Base sighting fields"""
     species_id: int = Field(gt=0, foreign_key="species.id", description="Species ID")
-    location_id: int = Field(gt=0, foreign_key="location.id", description="Location ID")
     count: int = Field(gt=0, description="Number of individuals sighted")
 
 
@@ -259,7 +261,6 @@ class Sighting(SightingBase, table=True):
     # Relationships
     survey: "Survey" = Relationship(back_populates="sightings")
     species: "Species" = Relationship(back_populates="sightings")
-    location: "Location" = Relationship(back_populates="sightings")
 
 
 class SightingCreate(SightingBase):
@@ -270,7 +271,6 @@ class SightingCreate(SightingBase):
 class SightingUpdate(SQLModel):
     """Model for updating a sighting (all fields optional)"""
     species_id: Optional[int] = Field(None, gt=0)
-    location_id: Optional[int] = Field(None, gt=0)
     count: Optional[int] = Field(None, gt=0)
 
 
@@ -281,6 +281,5 @@ class SightingRead(SightingBase):
 
 
 class SightingWithDetails(SightingRead):
-    """Sighting with species and location details"""
+    """Sighting with species details"""
     species_name: Optional[str] = None
-    location_name: Optional[str] = None

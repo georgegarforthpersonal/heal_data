@@ -55,7 +55,7 @@ export interface Species {
   type: string;
 }
 
-export interface Transect {
+export interface Location {
   id: number;
   number: number;
   name: string;
@@ -81,6 +81,7 @@ export interface Survey {
   conditions_met: boolean | null;
   notes: string | null;
   type: string; // DEPRECATED - use species_breakdown instead
+  location_id: number;
   surveyor_ids: number[];
   sightings_count: number; // Total count across all species
   species_breakdown: SpeciesTypeCount[]; // Breakdown by species type
@@ -94,10 +95,8 @@ export interface Sighting {
   id: number;
   survey_id: number;
   species_id: number;
-  transect_id: number;
   count: number;
   species_name?: string;
-  transect_name?: string;
 }
 
 // ============================================================================
@@ -266,50 +265,50 @@ export const speciesAPI = {
 };
 
 // ============================================================================
-// API Methods - Transects
+// API Methods - Locations
 // ============================================================================
 
-export const transectsAPI = {
+export const locationsAPI = {
   /**
-   * Get all transects
+   * Get all locations
    */
-  getAll: (surveyType?: string): Promise<Transect[]> => {
+  getAll: (surveyType?: string): Promise<Location[]> => {
     const query = surveyType ? `?survey_type=${surveyType}` : '';
-    return fetchAPI(`/transects${query}`);
+    return fetchAPI(`/locations${query}`);
   },
 
   /**
-   * Get a specific transect by ID
+   * Get a specific location by ID
    */
-  getById: (id: number): Promise<Transect> => {
-    return fetchAPI(`/transects/${id}`);
+  getById: (id: number): Promise<Location> => {
+    return fetchAPI(`/locations/${id}`);
   },
 
   /**
-   * Create a new transect
+   * Create a new location
    */
-  create: (transect: Partial<Transect>): Promise<Transect> => {
-    return fetchAPI('/transects', {
+  create: (location: Partial<Location>): Promise<Location> => {
+    return fetchAPI('/locations', {
       method: 'POST',
-      body: JSON.stringify(transect),
+      body: JSON.stringify(location),
     });
   },
 
   /**
-   * Update an existing transect
+   * Update an existing location
    */
-  update: (id: number, transect: Partial<Transect>): Promise<Transect> => {
-    return fetchAPI(`/transects/${id}`, {
+  update: (id: number, location: Partial<Location>): Promise<Location> => {
+    return fetchAPI(`/locations/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(transect),
+      body: JSON.stringify(location),
     });
   },
 
   /**
-   * Delete a transect
+   * Delete a location
    */
   delete: (id: number): Promise<void> => {
-    return fetchAPI(`/transects/${id}`, {
+    return fetchAPI(`/locations/${id}`, {
       method: 'DELETE',
     });
   },

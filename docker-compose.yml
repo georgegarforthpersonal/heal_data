@@ -26,9 +26,9 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./app-v2/frontend/src:/app/src
-      - ./app-v2/frontend/public:/app/public
-      - ./app-v2/frontend/index.html:/app/index.html
+      - ./app/frontend/src:/app/src
+      - ./app/frontend/public:/app/public
+      - ./app/frontend/index.html:/app/index.html
     restart: unless-stopped
 
   # Development API - connects to local PostgreSQL container
@@ -43,7 +43,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./app-v2/backend:/app
+      - ./app/backend:/app
     restart: unless-stopped
     depends_on:
       - db
@@ -60,7 +60,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./app-v2/backend:/app
+      - ./app/backend:/app
     restart: unless-stopped
 
   # Production API - connects to Neon production database
@@ -75,7 +75,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./app-v2/backend:/app
+      - ./app/backend:/app
     restart: unless-stopped
 
 volumes:
