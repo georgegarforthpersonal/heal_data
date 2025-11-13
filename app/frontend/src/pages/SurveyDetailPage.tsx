@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Box, Typography, Paper, Stack, Breadcrumbs, Link, Chip, Button, Divider } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Typography, Paper, Stack, Breadcrumbs, Link, Chip, Button, Divider, CircularProgress, Alert } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowBack, Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, WbSunny, Thermostat, CheckCircle } from '@mui/icons-material';
+import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
+import type { SurveyDetail, Sighting, Surveyor, Location, Species } from '../services/api';
 
 /**
  * SurveyDetailPage displays detailed information about a single survey
@@ -25,85 +27,124 @@ export function SurveyDetailPage() {
   const [isEditMode, setIsEditMode] = useState(startInEditMode);
 
   // ============================================================================
-  // Mock Data - Will come from API later
-  // TODO: Replace with API call: const { data: survey } = useSurvey(id);
+  // State Management
   // ============================================================================
 
-  // Find survey from mock data (matching the data from SurveysPage)
-  const mockSurveys = [
-    {
-      id: 1,
-      date: 'Oct 25, 2025',
-      surveyors: ['John Smith', 'Jane Doe'],
-      location: 'Northern',
-      sightings: [
-        { type: 'butterflies', count: 45 },
-        { type: 'birds', count: 23 },
-        { type: 'fungi', count: 18 },
-      ],
-      // Additional survey details
-      startTime: '09:00',
-      endTime: '12:30',
-      temperature: 22.5,
-      sunPercentage: 80,
-      conditionsMet: true,
-      notes: 'Great weather for surveying. Spotted several rare species in the northern transect area.',
-    },
-    {
-      id: 2,
-      date: 'Oct 28, 2025',
-      surveyors: ['Mike Johnson'],
-      location: 'Eastern',
-      sightings: [
-        { type: 'butterflies', count: 12 },
-      ],
-      startTime: '10:00',
-      endTime: '11:30',
-      temperature: 18.0,
-      sunPercentage: 60,
-      conditionsMet: true,
-      notes: '',
-    },
-  ];
+  const [survey, setSurvey] = useState<SurveyDetail | null>(null);
+  const [sightings, setSightings] = useState<Sighting[]>([]);
+  const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [species, setSpecies] = useState<Species[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const survey = mockSurveys.find(s => s.id === Number(id));
+  // ============================================================================
+  // Data Fetching
+  // ============================================================================
 
-  // Mock sightings data for this survey
-  const mockSightings = Number(id) === 1 ? [
-    { id: 1, species: 'Red Admiral', transect: 'Transect 1 - North Field', count: 12 },
-    { id: 2, species: 'Peacock', transect: 'Transect 1 - North Field', count: 8 },
-    { id: 3, species: 'Small Tortoiseshell', transect: 'Transect 2 - South Meadow', count: 15 },
-    { id: 4, species: 'Comma', transect: 'Transect 2 - South Meadow', count: 6 },
-    { id: 5, species: 'Painted Lady', transect: 'Transect 3 - East Woods', count: 4 },
-    { id: 6, species: 'Small White', transect: 'Transect 1 - North Field', count: 22 },
-    { id: 7, species: 'Large White', transect: 'Transect 2 - South Meadow', count: 11 },
-    { id: 8, species: 'Green-veined White', transect: 'Transect 3 - East Woods', count: 9 },
-    { id: 9, species: 'Orange Tip', transect: 'Transect 1 - North Field', count: 7 },
-    { id: 10, species: 'Brimstone', transect: 'Transect 2 - South Meadow', count: 3 },
-    { id: 11, species: 'Common Blue', transect: 'Transect 4 - West Garden', count: 18 },
-    { id: 12, species: 'Holly Blue', transect: 'Transect 4 - West Garden', count: 5 },
-    { id: 13, species: 'Meadow Brown', transect: 'Transect 1 - North Field', count: 28 },
-    { id: 14, species: 'Gatekeeper', transect: 'Transect 2 - South Meadow', count: 14 },
-    { id: 15, species: 'Ringlet', transect: 'Transect 3 - East Woods', count: 10 },
-    { id: 16, species: 'Speckled Wood', transect: 'Transect 3 - East Woods', count: 19 },
-    { id: 17, species: 'Marbled White', transect: 'Transect 1 - North Field', count: 13 },
-    { id: 18, species: 'Small Skipper', transect: 'Transect 2 - South Meadow', count: 8 },
-    { id: 19, species: 'Large Skipper', transect: 'Transect 4 - West Garden', count: 6 },
-    { id: 20, species: 'Essex Skipper', transect: 'Transect 1 - North Field', count: 4 },
-    { id: 21, species: 'Small Copper', transect: 'Transect 2 - South Meadow', count: 11 },
-    { id: 22, species: 'Brown Argus', transect: 'Transect 3 - East Woods', count: 7 },
-    { id: 23, species: 'Wall Brown', transect: 'Transect 4 - West Garden', count: 5 },
-  ] : [
-    { id: 1, species: 'Red Admiral', transect: 'Transect 1 - North Field', count: 5 },
-    { id: 2, species: 'Peacock', transect: 'Transect 2 - South Meadow', count: 7 },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        setError('No survey ID provided');
+        setLoading(false);
+        return;
+      }
 
-  // If survey not found, show error
-  if (!survey) {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all data in parallel
+        const [surveyData, sightingsData, surveyorsData, locationsData, speciesData] = await Promise.all([
+          surveysAPI.getById(Number(id)),
+          surveysAPI.getSightings(Number(id)),
+          surveyorsAPI.getAll(),
+          locationsAPI.getAll(),
+          speciesAPI.getAll(),
+        ]);
+
+        setSurvey(surveyData);
+        setSightings(sightingsData);
+        setSurveyors(surveyorsData);
+        setLocations(locationsData);
+        setSpecies(speciesData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load survey details');
+        console.error('Error fetching survey:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  // ============================================================================
+  // Helper Functions
+  // ============================================================================
+
+  /**
+   * Get surveyor name from ID
+   */
+  const getSurveyorName = (id: number): string => {
+    const surveyor = surveyors.find(s => s.id === id);
+    if (!surveyor) return 'Unknown';
+    return `${surveyor.first_name} ${surveyor.last_name}`.trim() || surveyor.first_name;
+  };
+
+  /**
+   * Get location name from ID
+   */
+  const getLocationName = (id: number): string => {
+    const location = locations.find(l => l.id === id);
+    return location?.name || 'Unknown';
+  };
+
+  /**
+   * Get species name from ID
+   */
+  const getSpeciesName = (id: number): string => {
+    const speciesItem = species.find(s => s.id === id);
+    return speciesItem?.name || 'Unknown';
+  };
+
+  /**
+   * Format date from YYYY-MM-DD to readable format
+   */
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  /**
+   * Format time from HH:MM:SS to HH:MM
+   */
+  const formatTime = (timeStr: string | null): string => {
+    if (!timeStr) return 'N/A';
+    return timeStr.substring(0, 5); // Extract HH:MM from HH:MM:SS
+  };
+
+  // ============================================================================
+  // Loading and Error States
+  // ============================================================================
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show error state or survey not found
+  if (error || !survey) {
     return (
       <Box sx={{ p: 4 }}>
-        <Typography variant="h4">Survey not found</Typography>
-        <Button onClick={() => navigate('/surveys')} sx={{ mt: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || 'Survey not found'}
+        </Alert>
+        <Button variant="contained" onClick={() => navigate('/surveys')}>
           Back to Surveys
         </Button>
       </Box>
@@ -166,7 +207,7 @@ export function SurveyDetailPage() {
           Surveys
         </Link>
         <Typography color="text.primary">
-          {survey.date} • {survey.surveyors.join(', ')}
+          {formatDate(survey.date)} • {survey.surveyor_ids.map(getSurveyorName).join(', ')}
         </Typography>
       </Breadcrumbs>
 
@@ -271,7 +312,7 @@ export function SurveyDetailPage() {
                   Date
                 </Typography>
               </Stack>
-              <Typography variant="body1">{survey.date}</Typography>
+              <Typography variant="body1">{formatDate(survey.date)}</Typography>
             </Box>
 
             <Box>
@@ -279,7 +320,7 @@ export function SurveyDetailPage() {
                 Time
               </Typography>
               <Typography variant="body1">
-                {survey.startTime} - {survey.endTime}
+                {formatTime(survey.start_time)} - {formatTime(survey.end_time)}
               </Typography>
             </Box>
           </Stack>
@@ -294,7 +335,7 @@ export function SurveyDetailPage() {
                 Surveyors
               </Typography>
             </Stack>
-            <Typography variant="body1">{survey.surveyors.join(', ')}</Typography>
+            <Typography variant="body1">{survey.surveyor_ids.map(getSurveyorName).join(', ')}</Typography>
           </Box>
 
           <Divider />
@@ -308,7 +349,7 @@ export function SurveyDetailPage() {
                   Location
                 </Typography>
               </Stack>
-              <Typography variant="body1">{survey.location}</Typography>
+              <Typography variant="body1">{getLocationName(survey.location_id)}</Typography>
             </Box>
 
             <Box>
@@ -318,7 +359,9 @@ export function SurveyDetailPage() {
                   Temperature
                 </Typography>
               </Stack>
-              <Typography variant="body1">{survey.temperature}°C</Typography>
+              <Typography variant="body1">
+                {survey.temperature_celsius ? `${survey.temperature_celsius}°C` : 'N/A'}
+              </Typography>
             </Box>
 
             <Box>
@@ -328,7 +371,9 @@ export function SurveyDetailPage() {
                   Sun
                 </Typography>
               </Stack>
-              <Typography variant="body1">{survey.sunPercentage}%</Typography>
+              <Typography variant="body1">
+                {survey.sun_percentage !== null ? `${survey.sun_percentage}%` : 'N/A'}
+              </Typography>
             </Box>
 
             <Box>
@@ -339,11 +384,11 @@ export function SurveyDetailPage() {
                 </Typography>
               </Stack>
               <Chip
-                label={survey.conditionsMet ? 'Yes' : 'No'}
+                label={survey.conditions_met ? 'Yes' : 'No'}
                 size="small"
                 sx={{
-                  bgcolor: survey.conditionsMet ? 'success.lighter' : 'error.lighter',
-                  color: survey.conditionsMet ? 'success.main' : 'error.main',
+                  bgcolor: survey.conditions_met ? 'success.lighter' : 'error.lighter',
+                  color: survey.conditions_met ? 'success.main' : 'error.main',
                   fontWeight: 500,
                   height: 24
                 }}
@@ -377,7 +422,7 @@ export function SurveyDetailPage() {
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Sightings ({mockSightings.length})
+            Sightings ({sightings.length})
           </Typography>
           <Button
             variant="outlined"
@@ -393,13 +438,13 @@ export function SurveyDetailPage() {
         </Stack>
 
         {/* Sightings Table */}
-        {mockSightings.length > 0 ? (
+        {sightings.length > 0 ? (
           <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
             {/* Table Header */}
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 2fr 1fr 100px',
+                gridTemplateColumns: '3fr 1fr 100px',
                 gap: 2,
                 p: 1.5,
                 bgcolor: 'grey.50',
@@ -411,9 +456,6 @@ export function SurveyDetailPage() {
                 SPECIES
               </Typography>
               <Typography variant="body2" fontWeight={600} color="text.secondary">
-                LOCATION
-              </Typography>
-              <Typography variant="body2" fontWeight={600} color="text.secondary">
                 COUNT
               </Typography>
               <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="right">
@@ -422,22 +464,21 @@ export function SurveyDetailPage() {
             </Box>
 
             {/* Table Rows */}
-            {mockSightings.map((sighting, index) => (
+            {sightings.map((sighting, index) => (
               <Box
                 key={sighting.id}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: '2fr 2fr 1fr 100px',
+                  gridTemplateColumns: '3fr 1fr 100px',
                   gap: 2,
                   p: 1.5,
-                  borderBottom: index < mockSightings.length - 1 ? '1px solid' : 'none',
+                  borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
                   borderColor: 'divider',
                   '&:hover': { bgcolor: 'grey.50' }
                 }}
               >
-                <Typography variant="body2">{sighting.species}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {sighting.transect}
+                <Typography variant="body2">
+                  {sighting.species_name || getSpeciesName(sighting.species_id)}
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
                   {sighting.count}

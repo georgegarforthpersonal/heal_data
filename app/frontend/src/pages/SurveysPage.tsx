@@ -122,14 +122,6 @@ export function SurveysPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  /**
-   * Returns Notion-style gray colors for all sighting chips
-   * Keeps visual focus on icons rather than colors
-   */
-  const getSightingColors = () => {
-    return { bgcolor: notionColors.gray.background, color: notionColors.gray.text };
-  };
-
   // ============================================================================
   // Render
   // ============================================================================
