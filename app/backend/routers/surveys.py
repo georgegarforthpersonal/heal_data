@@ -155,7 +155,8 @@ async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
             temperature_celsius=survey.temperature_celsius,
             conditions_met=survey.conditions_met,
             notes=survey.notes,
-            type=survey.survey_type
+            type=survey.type,
+            location_id=survey.location_id
         )
         db.add(db_survey)
         db.flush()  # Get the ID without committing
@@ -181,6 +182,7 @@ async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
             "conditions_met": db_survey.conditions_met,
             "notes": db_survey.notes,
             "survey_type": db_survey.type,
+            "location_id": db_survey.location_id,
             "surveyor_ids": survey.surveyor_ids
         }
 

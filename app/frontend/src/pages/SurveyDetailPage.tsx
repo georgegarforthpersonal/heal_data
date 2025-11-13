@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Stack, Breadcrumbs, Link, Chip, Button, Divider, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Paper, Stack, Breadcrumbs, Link, Button, Divider, CircularProgress, Alert } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowBack, Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, WbSunny, Thermostat, CheckCircle } from '@mui/icons-material';
+import { ArrowBack, Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species } from '../services/api';
 
@@ -114,14 +114,6 @@ export function SurveyDetailPage() {
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  /**
-   * Format time from HH:MM:SS to HH:MM
-   */
-  const formatTime = (timeStr: string | null): string => {
-    if (!timeStr) return 'N/A';
-    return timeStr.substring(0, 5); // Extract HH:MM from HH:MM:SS
   };
 
   // ============================================================================
@@ -303,27 +295,16 @@ export function SurveyDetailPage() {
         </Typography>
 
         <Stack spacing={2}>
-          {/* Date and Time */}
-          <Stack direction="row" spacing={4} flexWrap="wrap">
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                <CalendarToday sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                  Date
-                </Typography>
-              </Stack>
-              <Typography variant="body1">{formatDate(survey.date)}</Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mb: 0.5 }}>
-                Time
+          {/* Date */}
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+              <CalendarToday sx={{ fontSize: 18, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                Date
               </Typography>
-              <Typography variant="body1">
-                {formatTime(survey.start_time)} - {formatTime(survey.end_time)}
-              </Typography>
-            </Box>
-          </Stack>
+            </Stack>
+            <Typography variant="body1">{formatDate(survey.date)}</Typography>
+          </Box>
 
           <Divider />
 
@@ -340,61 +321,16 @@ export function SurveyDetailPage() {
 
           <Divider />
 
-          {/* Location and Weather */}
-          <Stack direction="row" spacing={4} flexWrap="wrap">
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                  Location
-                </Typography>
-              </Stack>
-              <Typography variant="body1">{getLocationName(survey.location_id)}</Typography>
-            </Box>
-
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                <Thermostat sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                  Temperature
-                </Typography>
-              </Stack>
-              <Typography variant="body1">
-                {survey.temperature_celsius ? `${survey.temperature_celsius}°C` : 'N/A'}
+          {/* Location */}
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+              <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                Location
               </Typography>
-            </Box>
-
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                <WbSunny sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                  Sun
-                </Typography>
-              </Stack>
-              <Typography variant="body1">
-                {survey.sun_percentage !== null ? `${survey.sun_percentage}%` : 'N/A'}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                <CheckCircle sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                  Conditions Met
-                </Typography>
-              </Stack>
-              <Chip
-                label={survey.conditions_met ? 'Yes' : 'No'}
-                size="small"
-                sx={{
-                  bgcolor: survey.conditions_met ? 'success.lighter' : 'error.lighter',
-                  color: survey.conditions_met ? 'success.main' : 'error.main',
-                  fontWeight: 500,
-                  height: 24
-                }}
-              />
-            </Box>
-          </Stack>
+            </Stack>
+            <Typography variant="body1">{getLocationName(survey.location_id)}</Typography>
+          </Box>
 
           {/* Notes */}
           {survey.notes && (

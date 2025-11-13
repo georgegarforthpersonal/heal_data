@@ -6,6 +6,7 @@ import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect } from 'react';
 import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
 import type { Survey, Surveyor, Location } from '../services/api';
+import { CreateSurveyModal } from '../components/surveys/CreateSurveyModal';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
@@ -39,6 +40,7 @@ export function SurveysPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // ============================================================================
   // Data Fetching
@@ -77,6 +79,18 @@ export function SurveysPage() {
 
   const handleRowClick = (surveyId: number) => {
     navigate(`/surveys/${surveyId}`);
+  };
+
+  const handleCreateClick = () => {
+    setCreateModalOpen(true);
+  };
+
+  const handleCreateSuccess = (newSurvey: Survey) => {
+    // Close modal
+    setCreateModalOpen(false);
+
+    // Navigate to the new survey's detail page
+    navigate(`/surveys/${newSurvey.id}`);
   };
 
   // ============================================================================
@@ -175,6 +189,7 @@ export function SurveysPage() {
           <Button
             variant="contained"
             size="medium"
+            onClick={handleCreateClick}
             sx={{
               textTransform: 'none',
               fontWeight: 600,
@@ -377,6 +392,15 @@ export function SurveysPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Create Survey Modal */}
+      <CreateSurveyModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={handleCreateSuccess}
+        locations={locations}
+        surveyors={surveyors}
+      />
     </Box>
   );
 }
