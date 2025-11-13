@@ -143,17 +143,3 @@ docker exec heal_butterflies_api env | grep DB_HOST
 # staging: DB_HOST=ep-snowy-base...
 # prod:    DB_HOST=ep-bold-lab...
 ```
-
-## Legacy Streamlit App
-
-The old Streamlit app can still be run using:
-
-```bash
-# Streamlit with dev database
-docker compose --profile streamlit-dev up -d
-
-# Streamlit with prod database
-docker compose --profile streamlit-prod up -d
-```
-
-Access at: http://localhost:8501

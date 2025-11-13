@@ -1,9 +1,11 @@
--- Initialize the database with tables
+-- Initialize the database with tables for app-v2
+-- This matches the SQLModel schema in app-v2/backend/models.py
 
 CREATE TABLE IF NOT EXISTS surveyor (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL
+    last_name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS species (
@@ -11,14 +13,15 @@ CREATE TABLE IF NOT EXISTS species (
     name VARCHAR(255) NOT NULL,
     conservation_status VARCHAR(50),
     type VARCHAR(50) NOT NULL DEFAULT 'butterfly',
-    UNIQUE(name, type)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS transect (
+CREATE TABLE IF NOT EXISTS location (
     id SERIAL PRIMARY KEY,
     number INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NOT NULL DEFAULT 'butterfly'
+    type VARCHAR(50) NOT NULL DEFAULT 'butterfly',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS survey (
@@ -30,20 +33,23 @@ CREATE TABLE IF NOT EXISTS survey (
     temperature_celsius DECIMAL(5,2),
     conditions_met BOOLEAN,
     notes TEXT,
-    type VARCHAR(50) NOT NULL DEFAULT 'butterfly'
+    type VARCHAR(50) NOT NULL DEFAULT 'butterfly',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS survey_surveyor (
     id SERIAL PRIMARY KEY,
-    survey_id INTEGER REFERENCES survey(id) ON DELETE CASCADE,
-    surveyor_id INTEGER REFERENCES surveyor(id) ON DELETE CASCADE,
+    survey_id INTEGER NOT NULL REFERENCES survey(id) ON DELETE CASCADE,
+    surveyor_id INTEGER NOT NULL REFERENCES surveyor(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(survey_id, surveyor_id)
 );
 
 CREATE TABLE IF NOT EXISTS sighting (
     id SERIAL PRIMARY KEY,
-    survey_id INTEGER REFERENCES survey(id) ON DELETE CASCADE,
-    species_id INTEGER REFERENCES species(id) ON DELETE CASCADE,
-    transect_id INTEGER REFERENCES transect(id) ON DELETE CASCADE,
-    count INTEGER NOT NULL DEFAULT 1 CHECK (count > 0)
+    survey_id INTEGER NOT NULL REFERENCES survey(id) ON DELETE CASCADE,
+    species_id INTEGER NOT NULL REFERENCES species(id) ON DELETE CASCADE,
+    location_id INTEGER NOT NULL REFERENCES location(id) ON DELETE CASCADE,
+    count INTEGER NOT NULL DEFAULT 1 CHECK (count > 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
