@@ -1,7 +1,7 @@
 """
 FastAPI Backend for Wildlife Survey Management System
 
-This API provides RESTful endpoints for managing surveys, species, transects, and sightings.
+This API provides RESTful endpoints for managing surveys, species, locations, and sightings.
 Following DEVELOPMENT.md conventions, this backend separates concerns while reusing
 database logic from the Streamlit POC.
 """
@@ -9,7 +9,7 @@ database logic from the Streamlit POC.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import surveys, species, transects, surveyors
+from routers import surveys, species, locations, surveyors
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -48,7 +48,7 @@ app.add_middleware(
 
 app.include_router(surveys.router, prefix="/api/surveys", tags=["Surveys"])
 app.include_router(species.router, prefix="/api/species", tags=["Species"])
-app.include_router(transects.router, prefix="/api/transects", tags=["Transects"])
+app.include_router(locations.router, prefix="/api/locations", tags=["Locations"])
 app.include_router(surveyors.router, prefix="/api/surveyors", tags=["Surveyors"])
 
 # ============================================================================

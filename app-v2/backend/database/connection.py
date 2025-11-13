@@ -4,16 +4,48 @@ Database Connection Management for FastAPI Backend
 Adapted from Streamlit POC (../../app/database/connection.py)
 Uses connection pooling for efficient database access.
 Reads configuration from environment variables.
+
+Provides both:
+- Legacy psycopg2 connection pool (for existing raw SQL code)
+- SQLAlchemy sessions (for new ORM-based code)
 """
 
 import psycopg2
 from psycopg2 import pool
 import os
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Generator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from sqlmodel import SQLModel
+
+# ============================================================================
+# Legacy psycopg2 Connection Pool
+# ============================================================================
 
 # Initialize connection pool
 _connection_pool: Optional[pool.SimpleConnectionPool] = None
+
+
+def get_database_url() -> str:
+    """
+    Get database URL from environment variables.
+
+    Returns:
+        Database URL string for SQLAlchemy
+    """
+    host = os.getenv('DB_HOST', 'localhost')
+    port = os.getenv('DB_PORT', '5432')
+    database = os.getenv('DB_NAME', 'heal_butterflies')
+    user = os.getenv('DB_USER', 'postgres')
+    password = os.getenv('DB_PASSWORD', 'password')
+    sslmode = os.getenv('DB_SSLMODE', '')
+
+    url = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+    if sslmode:
+        url += f"?sslmode={sslmode}"
+    return url
 
 
 def get_connection_pool() -> Optional[pool.SimpleConnectionPool]:
@@ -205,3 +237,87 @@ def close_connection_pool():
             print(f"❌ Error closing connection pool: {e}")
         finally:
             _connection_pool = None
+
+
+# ============================================================================
+# SQLAlchemy Engine and Sessions (for ORM usage)
+# ============================================================================
+
+# Initialize SQLAlchemy engine and session factory
+_engine = None
+_SessionLocal = None
+
+
+def get_engine():
+    """
+    Get or create the SQLAlchemy engine.
+
+    Returns:
+        SQLAlchemy engine instance
+    """
+    global _engine
+    if _engine is None:
+        database_url = get_database_url()
+        _engine = create_engine(
+            database_url,
+            pool_pre_ping=True,  # Verify connections before using
+            pool_size=5,
+            max_overflow=10,
+            echo=False  # Set to True for SQL query logging
+        )
+        print(f"✅ SQLAlchemy engine created: {database_url.split('@')[1] if '@' in database_url else database_url}")
+    return _engine
+
+
+def get_session_factory():
+    """
+    Get or create the SQLAlchemy session factory.
+
+    Returns:
+        Session factory (sessionmaker instance)
+    """
+    global _SessionLocal
+    if _SessionLocal is None:
+        engine = get_engine()
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    return _SessionLocal
+
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    FastAPI dependency that provides a database session.
+
+    Usage:
+        @router.get("/items")
+        async def get_items(db: Session = Depends(get_db)):
+            items = db.query(Item).all()
+            return items
+
+    Yields:
+        SQLAlchemy Session instance
+
+    The session is automatically closed after the request completes.
+    """
+    SessionLocal = get_session_factory()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def close_engine():
+    """
+    Close the SQLAlchemy engine.
+    Should be called on application shutdown.
+    """
+    global _engine, _SessionLocal
+    if _engine:
+        try:
+            _engine.dispose()
+            print("✅ SQLAlchemy engine closed")
+        except Exception as e:
+            print(f"❌ Error closing engine: {e}")
+        finally:
+            _engine = None
+            _SessionLocal = None

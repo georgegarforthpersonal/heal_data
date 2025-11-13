@@ -11,18 +11,31 @@ Replaces:
 """
 
 from datetime import date as date_type, time as time_type, datetime
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from decimal import Decimal
 from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+
+if TYPE_CHECKING:
+    from typing import List
 
 
 # ============================================================================
-# Base Models
+# Junction Tables
 # ============================================================================
 
-class TimestampMixin(SQLModel):
-    """Mixin for models with timestamp tracking"""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+class SurveySurveyor(SQLModel, table=True):
+    """Junction table linking surveys to surveyors (many-to-many)"""
+    __tablename__ = "survey_surveyor"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_id: int = Field(foreign_key="survey.id", ondelete="CASCADE")
+    surveyor_id: int = Field(foreign_key="surveyor.id", ondelete="CASCADE")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
 
 
 # ============================================================================
@@ -35,11 +48,19 @@ class SurveyorBase(SQLModel):
     last_name: str = Field(max_length=255, description="Surveyor's last name")
 
 
-class Surveyor(SurveyorBase, TimestampMixin, table=True):
+class Surveyor(SurveyorBase, table=True):
     """Surveyor database model"""
     __tablename__ = "surveyor"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    surveys: List["Survey"] = Relationship(back_populates="surveyors", link_model=SurveySurveyor)
 
 
 class SurveyorCreate(SurveyorBase):
@@ -69,11 +90,19 @@ class SpeciesBase(SQLModel):
     type: str = Field(default="butterfly", max_length=50, description="Type of species (butterfly, bird, fungi)")
 
 
-class Species(SpeciesBase, TimestampMixin, table=True):
+class Species(SpeciesBase, table=True):
     """Species database model"""
     __tablename__ = "species"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    sightings: List["Sighting"] = Relationship(back_populates="species")
 
 
 class SpeciesCreate(SpeciesBase):
@@ -94,37 +123,45 @@ class SpeciesRead(SpeciesBase):
 
 
 # ============================================================================
-# Transect Models
+# Location Models
 # ============================================================================
 
-class TransectBase(SQLModel):
-    """Base transect fields"""
-    number: int = Field(ge=1, description="Transect number")
-    name: str = Field(max_length=255, description="Transect name")
+class LocationBase(SQLModel):
+    """Base location fields"""
+    number: int = Field(ge=1, description="Location number")
+    name: str = Field(max_length=255, description="Location name")
     type: str = Field(default="butterfly", max_length=50, description="Type (butterfly, bird, fungi)")
 
 
-class Transect(TransectBase, TimestampMixin, table=True):
-    """Transect database model"""
-    __tablename__ = "transect"
+class Location(LocationBase, table=True):
+    """Location database model"""
+    __tablename__ = "location"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    sightings: List["Sighting"] = Relationship(back_populates="location")
 
 
-class TransectCreate(TransectBase):
-    """Model for creating a new transect"""
+class LocationCreate(LocationBase):
+    """Model for creating a new location"""
     pass
 
 
-class TransectUpdate(SQLModel):
-    """Model for updating a transect (all fields optional)"""
+class LocationUpdate(SQLModel):
+    """Model for updating a location (all fields optional)"""
     number: Optional[int] = Field(None, ge=1)
     name: Optional[str] = Field(None, max_length=255)
     type: Optional[str] = Field(None, max_length=50)
 
 
-class TransectRead(TransectBase):
-    """Model for reading a transect (includes ID)"""
+class LocationRead(LocationBase):
+    """Model for reading a location (includes ID)"""
     id: int
 
 
@@ -144,11 +181,20 @@ class SurveyBase(SQLModel):
     type: str = Field(default="butterfly", max_length=50, description="Type of survey")
 
 
-class Survey(SurveyBase, TimestampMixin, table=True):
+class Survey(SurveyBase, table=True):
     """Survey database model"""
     __tablename__ = "survey"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    surveyors: List["Surveyor"] = Relationship(back_populates="surveys", link_model=SurveySurveyor)
+    sightings: List["Sighting"] = Relationship(back_populates="survey", cascade_delete=True)
 
 
 class SurveyCreate(SurveyBase):
@@ -194,16 +240,26 @@ class SurveyWithSightingsCount(SurveyRead):
 class SightingBase(SQLModel):
     """Base sighting fields"""
     species_id: int = Field(gt=0, foreign_key="species.id", description="Species ID")
-    transect_id: int = Field(gt=0, foreign_key="transect.id", description="Transect ID")
+    location_id: int = Field(gt=0, foreign_key="location.id", description="Location ID")
     count: int = Field(gt=0, description="Number of individuals sighted")
 
 
-class Sighting(SightingBase, TimestampMixin, table=True):
+class Sighting(SightingBase, table=True):
     """Sighting database model"""
     __tablename__ = "sighting"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     survey_id: int = Field(foreign_key="survey.id")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    survey: "Survey" = Relationship(back_populates="sightings")
+    species: "Species" = Relationship(back_populates="sightings")
+    location: "Location" = Relationship(back_populates="sightings")
 
 
 class SightingCreate(SightingBase):
@@ -214,7 +270,7 @@ class SightingCreate(SightingBase):
 class SightingUpdate(SQLModel):
     """Model for updating a sighting (all fields optional)"""
     species_id: Optional[int] = Field(None, gt=0)
-    transect_id: Optional[int] = Field(None, gt=0)
+    location_id: Optional[int] = Field(None, gt=0)
     count: Optional[int] = Field(None, gt=0)
 
 
@@ -225,6 +281,6 @@ class SightingRead(SightingBase):
 
 
 class SightingWithDetails(SightingRead):
-    """Sighting with species and transect details"""
+    """Sighting with species and location details"""
     species_name: Optional[str] = None
-    transect_name: Optional[str] = None
+    location_name: Optional[str] = None

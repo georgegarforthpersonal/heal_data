@@ -7,156 +7,74 @@ Endpoints:
   GET    /api/surveyors/{id}       - Get specific surveyor
   PUT    /api/surveyors/{id}       - Update surveyor
   DELETE /api/surveyors/{id}       - Delete surveyor
+
+Refactored to use SQLModel ORM instead of raw SQL.
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
-from database.connection import get_db_cursor
-from models import SurveyorRead, SurveyorCreate, SurveyorUpdate
+from sqlalchemy.orm import Session
+from database.connection import get_db
+from models import Surveyor, SurveyorRead, SurveyorCreate, SurveyorUpdate
 
 router = APIRouter()
 
 
 @router.get("", response_model=List[SurveyorRead])
-async def get_surveyors():
+async def get_surveyors(db: Session = Depends(get_db)):
     """
     Get all surveyors.
 
     Returns:
-        List of surveyors
+        List of surveyors ordered by last name, first name
     """
-    try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT id, first_name, last_name
-                FROM surveyor
-                ORDER BY last_name, first_name
-            """)
-
-            rows = cursor.fetchall()
-
-            return [{
-                "id": row[0],
-                "first_name": row[1],
-                "last_name": row[2]
-            } for row in rows]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch surveyors: {str(e)}")
+    surveyors = db.query(Surveyor).order_by(Surveyor.last_name, Surveyor.first_name).all()
+    return surveyors
 
 
 @router.get("/{surveyor_id}", response_model=SurveyorRead)
-async def get_surveyor(surveyor_id: int):
+async def get_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     """Get a specific surveyor by ID"""
-    try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT id, first_name, last_name
-                FROM surveyor
-                WHERE id = %s
-            """, (surveyor_id,))
-
-            row = cursor.fetchone()
-            if not row:
-                raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
-
-            return {
-                "id": row[0],
-                "first_name": row[1],
-                "last_name": row[2]
-            }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch surveyor: {str(e)}")
+    surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    if not surveyor:
+        raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
+    return surveyor
 
 
 @router.post("", response_model=SurveyorRead, status_code=status.HTTP_201_CREATED)
-async def create_surveyor(surveyor: SurveyorCreate):
+async def create_surveyor(surveyor: SurveyorCreate, db: Session = Depends(get_db)):
     """Create a new surveyor"""
-    try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO surveyor (first_name, last_name)
-                VALUES (%s, %s)
-                RETURNING id, first_name, last_name
-            """, (surveyor.first_name, surveyor.last_name))
-
-            row = cursor.fetchone()
-
-            return {
-                "id": row[0],
-                "first_name": row[1],
-                "last_name": row[2]
-            }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create surveyor: {str(e)}")
+    db_surveyor = Surveyor.model_validate(surveyor)
+    db.add(db_surveyor)
+    db.commit()
+    db.refresh(db_surveyor)
+    return db_surveyor
 
 
 @router.put("/{surveyor_id}", response_model=SurveyorRead)
-async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate):
+async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Session = Depends(get_db)):
     """Update an existing surveyor"""
-    try:
-        with get_db_cursor() as cursor:
-            # Check if surveyor exists
-            cursor.execute("SELECT id FROM surveyor WHERE id = %s", (surveyor_id,))
-            if not cursor.fetchone():
-                raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
+    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    if not db_surveyor:
+        raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
 
-            # Build dynamic UPDATE query
-            update_fields = []
-            update_values = []
+    # Update only the fields that were provided
+    update_data = surveyor.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_surveyor, field, value)
 
-            if surveyor.first_name is not None:
-                update_fields.append("first_name = %s")
-                update_values.append(surveyor.first_name)
-            if surveyor.last_name is not None:
-                update_fields.append("last_name = %s")
-                update_values.append(surveyor.last_name)
-
-            if update_fields:
-                update_values.append(surveyor_id)
-                query = f"""
-                    UPDATE surveyor
-                    SET {', '.join(update_fields)}
-                    WHERE id = %s
-                    RETURNING id, first_name, last_name
-                """
-                cursor.execute(query, update_values)
-                row = cursor.fetchone()
-            else:
-                # No fields to update, just fetch current state
-                cursor.execute("""
-                    SELECT id, first_name, last_name
-                    FROM surveyor
-                    WHERE id = %s
-                """, (surveyor_id,))
-                row = cursor.fetchone()
-
-            return {
-                "id": row[0],
-                "first_name": row[1],
-                "last_name": row[2]
-            }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update surveyor: {str(e)}")
+    db.commit()
+    db.refresh(db_surveyor)
+    return db_surveyor
 
 
 @router.delete("/{surveyor_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_surveyor(surveyor_id: int):
+async def delete_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     """Delete a surveyor"""
-    try:
-        with get_db_cursor() as cursor:
-            cursor.execute("DELETE FROM surveyor WHERE id = %s RETURNING id", (surveyor_id,))
-            if not cursor.fetchone():
-                raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
+    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    if not db_surveyor:
+        raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete surveyor: {str(e)}")
+    db.delete(db_surveyor)
+    db.commit()
+    return None

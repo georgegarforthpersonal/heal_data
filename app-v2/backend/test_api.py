@@ -7,7 +7,7 @@ This script runs inside the API docker container and tests:
 - Surveyors endpoints
 - Surveys endpoints
 - Species endpoints
-- Transects endpoints
+- Locations endpoints
 
 Usage (from project root):
     docker exec heal_butterflies_api python /app/test_api.py
@@ -218,16 +218,16 @@ def main():
             tester.test_endpoint("GET", f"/api/species/{species_id}",
                                f"Get specific species (ID: {species_id})")
 
-    # Test 6: Transects
-    tester.print_section("6. Transects Endpoints")
-    transects = tester.test_endpoint("GET", "/api/transects", "Get all transects")
+    # Test 6: Locations
+    tester.print_section("6. Locations Endpoints")
+    locations = tester.test_endpoint("GET", "/api/locations", "Get all locations")
 
-    # If we have transects, test getting a specific one
-    if transects and len(transects) > 0:
-        transect_id = transects[0].get('id') or transects[0].get('transect_id')
-        if transect_id:
-            tester.test_endpoint("GET", f"/api/transects/{transect_id}",
-                               f"Get specific transect (ID: {transect_id})")
+    # If we have locations, test getting a specific one
+    if locations and len(locations) > 0:
+        location_id = locations[0].get('id') or locations[0].get('location_id')
+        if location_id:
+            tester.test_endpoint("GET", f"/api/locations/{location_id}",
+                               f"Get specific location (ID: {location_id})")
 
     # Print summary and exit
     exit_code = tester.print_summary()
