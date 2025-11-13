@@ -207,7 +207,7 @@ export function SurveyDetailPage() {
           Surveys
         </Link>
         <Typography color="text.primary">
-          {formatDate(survey.date)} • {survey.surveyor_ids.map(getSurveyorName).join(', ')}
+          {formatDate(survey.date)} • {getLocationName(survey.location_id)}
         </Typography>
       </Breadcrumbs>
 
