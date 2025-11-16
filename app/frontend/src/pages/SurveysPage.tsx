@@ -194,19 +194,20 @@ export function SurveysPage() {
   };
 
   /**
-   * Get display name for species type
+   * Get display name for species type with count and proper pluralization
    */
-  const getSpeciesDisplayName = (type: string): string => {
-    switch (type) {
-      case 'butterfly':
-        return 'Butterfly';
-      case 'bird':
-        return 'Bird';
-      case 'fungi':
-        return 'Fungi';
-      default:
-        return type;
-    }
+  const getSpeciesDisplayName = (type: string, count: number): string => {
+    const singular = type === 'butterfly' ? 'Butterfly'
+                   : type === 'bird' ? 'Bird'
+                   : type === 'fungi' ? 'Fungus'
+                   : type;
+
+    const plural = type === 'butterfly' ? 'Butterflies'
+                 : type === 'bird' ? 'Birds'
+                 : type === 'fungi' ? 'Fungi'
+                 : type + 's';
+
+    return `${count} ${count === 1 ? singular : plural}`;
   };
 
   // ============================================================================
@@ -417,10 +418,10 @@ export function SurveysPage() {
                           ? BirdIcon
                           : MushroomIcon;
 
-                        const speciesName = getSpeciesDisplayName(sighting.type);
+                        const speciesLabel = getSpeciesDisplayName(sighting.type, sighting.count);
 
                         return (
-                          <Tooltip key={idx} title={speciesName} arrow>
+                          <Tooltip key={idx} title={speciesLabel} arrow>
                             <Chip
                               icon={<Icon sx={{ fontSize: '16px !important', ml: '6px !important' }} />}
                               label={sighting.count}
