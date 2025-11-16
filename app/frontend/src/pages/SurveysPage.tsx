@@ -108,7 +108,12 @@ export function SurveysPage() {
     const editedParam = searchParams.get('edited');
     const deletedParam = searchParams.get('deleted');
 
-    if ((createdParam || editedParam || deletedParam) && !hasProcessedAction.current) {
+    // For created/edited, wait until surveys are loaded before processing
+    // For deleted, we can process immediately (no highlighting needed)
+    const needsSurveys = createdParam || editedParam;
+    const surveysReady = !needsSurveys || surveys.length > 0;
+
+    if ((createdParam || editedParam || deletedParam) && !hasProcessedAction.current && surveysReady) {
       const surveyId = parseInt(createdParam || editedParam || deletedParam || '0');
       const action = createdParam ? 'created' : editedParam ? 'edited' : 'deleted';
 
@@ -119,8 +124,8 @@ export function SurveysPage() {
       setToastAction(action);
       setShowToast(true);
 
-      // For created/edited, highlight the row (only if surveys loaded and survey exists)
-      if ((action === 'created' || action === 'edited') && surveys.length > 0) {
+      // For created/edited, highlight the row
+      if (action === 'created' || action === 'edited') {
         setHighlightedSurveyId(surveyId);
 
         // Scroll to the highlighted row
