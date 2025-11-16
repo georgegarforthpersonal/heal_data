@@ -193,6 +193,22 @@ export function SurveysPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  /**
+   * Get display name for species type
+   */
+  const getSpeciesDisplayName = (type: string): string => {
+    switch (type) {
+      case 'butterfly':
+        return 'Butterfly';
+      case 'bird':
+        return 'Bird';
+      case 'fungi':
+        return 'Fungi';
+      default:
+        return type;
+    }
+  };
+
   // ============================================================================
   // Render
   // ============================================================================
@@ -317,7 +333,7 @@ export function SurveysPage() {
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
                   <Visibility sx={{ fontSize: tableSizing.header.iconSize }} />
-                  <span>Sightings</span>
+                  <span>Species</span>
                 </Stack>
               </TableCell>
               <TableCell
@@ -390,7 +406,7 @@ export function SurveysPage() {
                     </Box>
                   </TableCell>
 
-                  {/* Sightings Column - Species breakdown with icons */}
+                  {/* Species Column - Species breakdown with icons and tooltips */}
                   <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
                     <Stack direction="row" spacing={1}>
                       {survey.species_breakdown.map((sighting, idx) => {
@@ -401,25 +417,28 @@ export function SurveysPage() {
                           ? BirdIcon
                           : MushroomIcon;
 
+                        const speciesName = getSpeciesDisplayName(sighting.type);
+
                         return (
-                          <Chip
-                            key={idx}
-                            icon={<Icon sx={{ fontSize: '16px !important', ml: '6px !important' }} />}
-                            label={sighting.count}
-                            size="small"
-                            sx={{
-                              bgcolor: notionColors.gray.background,
-                              color: notionColors.gray.text,
-                              fontWeight: 500,
-                              fontSize: tableSizing.chip.fontSize,
-                              height: tableSizing.chip.height,
-                              borderRadius: '4px',
-                              '& .MuiChip-label': {
-                                px: 1,
-                                py: 0
-                              }
-                            }}
-                          />
+                          <Tooltip key={idx} title={speciesName} arrow>
+                            <Chip
+                              icon={<Icon sx={{ fontSize: '16px !important', ml: '6px !important' }} />}
+                              label={sighting.count}
+                              size="small"
+                              sx={{
+                                bgcolor: notionColors.gray.background,
+                                color: notionColors.gray.text,
+                                fontWeight: 500,
+                                fontSize: tableSizing.chip.fontSize,
+                                height: tableSizing.chip.height,
+                                borderRadius: '4px',
+                                '& .MuiChip-label': {
+                                  px: 1,
+                                  py: 0
+                                }
+                              }}
+                            />
+                          </Tooltip>
                         );
                       })}
                       {survey.species_breakdown.length === 0 && (
