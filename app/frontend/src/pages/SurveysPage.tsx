@@ -1,5 +1,5 @@
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination } from '@mui/material';
-import { CalendarToday, Person, Visibility, LocationOn, Assignment } from '@mui/icons-material';
+import { CalendarToday, Person, Visibility, LocationOn } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
@@ -258,42 +258,36 @@ export function SurveysPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      {/* Page Header - Notion-style with icon and title */}
-      <Box sx={{ mb: 3 }}>
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-          <Assignment sx={{ fontSize: { xs: 32, md: 40 }, color: 'text.secondary' }} />
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
-              fontWeight: 700,
-              color: 'text.primary'
-            }}
-          >
-            Surveys
-          </Typography>
-        </Stack>
+      {/* Inline Title and Action */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Typography
+          variant="h2"
+          sx={{
+            fontSize: '1.125rem',
+            fontWeight: 600,
+            color: 'text.primary',
+          }}
+        >
+          Surveys
+        </Typography>
 
-        {/* Actions - New survey button */}
         {/* TODO: Add RBAC permission check - only show this button to admin users */}
         {/* When implementing: const { hasPermission } = useAuth(); */}
         {/* Then conditionally render: {hasPermission('create_survey') && <Button.../>} */}
-        <Stack direction="row" justifyContent="flex-end" alignItems="center">
-          <Button
-            variant="contained"
-            size="medium"
-            onClick={handleCreateClick}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' }
-            }}
-          >
-            New
-          </Button>
-        </Stack>
-      </Box>
+        <Button
+          variant="contained"
+          size="medium"
+          onClick={handleCreateClick}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            boxShadow: 'none',
+            '&:hover': { boxShadow: 'none' }
+          }}
+        >
+          New
+        </Button>
+      </Stack>
 
       {/* Surveys Table */}
       <TableContainer

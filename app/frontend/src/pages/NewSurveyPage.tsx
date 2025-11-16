@@ -10,8 +10,6 @@ import {
   Breadcrumbs,
   Link
 } from '@mui/material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { ArrowBack, Save, Cancel } from '@mui/icons-material';
@@ -235,87 +233,71 @@ export function NewSurveyPage() {
   // ============================================================================
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ p: 4 }}>
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Link
-            component="button"
-            onClick={handleBack}
+    <Box sx={{ p: 4 }}>
+      {/* Back Link and Actions */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+        <Link
+          component="button"
+          onClick={handleBack}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            textDecoration: 'none',
+            color: 'text.secondary',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            '&:hover': { color: 'primary.main' },
+          }}
+        >
+          <ArrowBack sx={{ fontSize: 16 }} />
+          Back to Surveys
+        </Link>
+
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<Cancel />}
+            onClick={handleCancel}
+            disabled={saving}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              textDecoration: 'none',
-              color: 'text.secondary',
-              cursor: 'pointer',
-              '&:hover': { color: 'primary.main' },
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
             }}
           >
-            <ArrowBack sx={{ fontSize: 18 }} />
-            Surveys
-          </Link>
-          <Typography color="text.primary">New Survey</Typography>
-        </Breadcrumbs>
-
-        {/* Page Header */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-          <Typography
-            variant="h1"
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={saving ? undefined : <Save />}
+            onClick={handleSave}
+            disabled={
+              saving ||
+              !date ||
+              !locationId ||
+              selectedSurveyors.length === 0 ||
+              draftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
+            }
             sx={{
-              fontSize: '2.5rem',
-              fontWeight: 700,
-              color: 'text.primary',
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none' },
+              minWidth: 140,
             }}
           >
-            New Survey
-          </Typography>
-
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<Cancel />}
-              onClick={handleCancel}
-              disabled={saving}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                boxShadow: 'none',
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={saving ? undefined : <Save />}
-              onClick={handleSave}
-              disabled={
-                saving ||
-                !date ||
-                !locationId ||
-                selectedSurveyors.length === 0 ||
-                draftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
-              }
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 'none' },
-                minWidth: 140,
-              }}
-            >
-              {saving ? (
-                <>
-                  <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Saving...
-                </>
-              ) : (
-                'Save Survey'
-              )}
-            </Button>
-          </Stack>
+            {saving ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Saving...
+              </>
+            ) : (
+              'Save Survey'
+            )}
+          </Button>
         </Stack>
-
+      </Stack>
         {/* Error Alert */}
         {error && (
           <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
@@ -368,7 +350,6 @@ export function NewSurveyPage() {
             validationError={validationErrors.sightings}
           />
         </Paper>
-      </Box>
-    </LocalizationProvider>
+    </Box>
   );
 }

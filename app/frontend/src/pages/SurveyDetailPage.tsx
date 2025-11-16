@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Stack, Breadcrumbs, Link, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowBack, Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey } from '../services/api';
@@ -364,51 +362,32 @@ export function SurveyDetailPage() {
   // ============================================================================
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.875rem', md: '1rem' } }}>
-          <Link
-            component="button"
-            onClick={handleBack}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              textDecoration: 'none',
-              color: 'text.secondary',
-              cursor: 'pointer',
-              fontSize: 'inherit',
-              '&:hover': { color: 'primary.main' }
-            }}
-          >
-            <ArrowBack sx={{ fontSize: { xs: 16, md: 18 } }} />
-            Surveys
-          </Link>
-          <Typography color="text.primary" sx={{ fontSize: 'inherit' }}>
-            {isEditMode ? 'Edit Survey' : `${formatDate(survey.date)} • ${getLocationName(survey.location_id)}`}
-          </Typography>
-        </Breadcrumbs>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      {/* Back Link and Actions */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 2, md: 3 }, gap: 1 }}>
+        <Link
+          component="button"
+          onClick={handleBack}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            textDecoration: 'none',
+            color: 'text.secondary',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            '&:hover': { color: 'primary.main' },
+          }}
+        >
+          <ArrowBack sx={{ fontSize: 16 }} />
+          Back to Surveys
+        </Link>
 
-        {/* Page Header */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 2, md: 3 }, gap: 1 }}>
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
-              fontWeight: 700,
-              color: 'text.primary'
-            }}
-          >
-            {isEditMode ? 'Edit Survey' : 'Survey Details'}
-          </Typography>
-
-          {/* TODO: Add RBAC permission checks - only show these buttons to admin users */}
-          {/* When implementing: const { hasPermission } = useAuth(); */}
-          {/* Then wrap buttons with: {hasPermission('edit_survey') && <Button.../>} */}
-
-          {isEditMode ? (
-            <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} sx={{ flexShrink: 0 }}>
+        {/* TODO: Add RBAC permission checks - only show these buttons to admin users */}
+        {/* When implementing: const { hasPermission } = useAuth(); */}
+        {/* Then wrap buttons with: {hasPermission('edit_survey') && <Button.../>} */}
+        {isEditMode ? (
+          <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} sx={{ flexShrink: 0 }}>
               <Button
                 variant="outlined"
                 startIcon={<Cancel sx={{ display: { xs: 'none', sm: 'block' } }} />}
@@ -492,15 +471,16 @@ export function SurveyDetailPage() {
                 Delete
               </Button>
             </Stack>
-          )}
-        </Stack>
+        )
+        }
+      </Stack>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
         {/* Survey Metadata Card */}
         <Paper
@@ -703,7 +683,6 @@ export function SurveyDetailPage() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Box>
-    </LocalizationProvider>
+    </Box>
   );
 }
