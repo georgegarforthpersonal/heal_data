@@ -300,6 +300,7 @@ async def update_survey(survey_id: int, survey: SurveyUpdate, db: Session = Depe
         "conditions_met": db_survey.conditions_met,
         "notes": db_survey.notes,
         "survey_type": db_survey.type,
+        "location_id": db_survey.location_id,
         "surveyor_ids": surveyor_ids_list
     }
 

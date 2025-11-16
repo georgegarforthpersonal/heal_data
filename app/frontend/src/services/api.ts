@@ -27,13 +27,47 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || `API error: ${response.status}`);
+      let errorMessage = `API error: ${response.status}`;
+      try {
+        const error = await response.json();
+        errorMessage = error.detail || errorMessage;
+      } catch {
+        // If response body isn't JSON, try to get it as text
+        try {
+          const text = await response.text();
+          if (text) errorMessage = text;
+        } catch {
+          // Ignore if we can't read the response
+        }
+      }
+      throw new Error(errorMessage);
     }
 
-    return response.json();
+    // Handle 204 No Content responses
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    // Get the response text first
+    const responseText = await response.text();
+
+    // If response is empty, return undefined
+    if (!responseText || responseText.trim() === '') {
+      return undefined as T;
+    }
+
+    // Try to parse as JSON
+    try {
+      return JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`Failed to parse response as JSON. Response: ${responseText.substring(0, 200)}`);
+    }
   } catch (error) {
-    console.error('API request failed:', error);
+    console.error('API request failed:', {
+      endpoint,
+      method: options?.method || 'GET',
+      error: error instanceof Error ? error.message : String(error)
+    });
     throw error;
   }
 }
@@ -202,6 +236,25 @@ export const surveysAPI = {
     return fetchAPI(`/surveys/${surveyId}/sightings`, {
       method: 'POST',
       body: JSON.stringify(sighting),
+    });
+  },
+
+  /**
+   * Update a sighting in a survey
+   */
+  updateSighting: (surveyId: number, sightingId: number, sighting: Partial<Sighting>): Promise<Sighting> => {
+    return fetchAPI(`/surveys/${surveyId}/sightings/${sightingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(sighting),
+    });
+  },
+
+  /**
+   * Delete a sighting from a survey
+   */
+  deleteSighting: (surveyId: number, sightingId: number): Promise<void> => {
+    return fetchAPI(`/surveys/${surveyId}/sightings/${sightingId}`, {
+      method: 'DELETE',
     });
   },
 };

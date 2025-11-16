@@ -40,10 +40,11 @@ export function SurveysPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [createdSurveyId, setCreatedSurveyId] = useState<number | null>(null);
-  const createdRowRef = useRef<HTMLTableRowElement>(null);
-  const hasProcessedCreation = useRef(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastAction, setToastAction] = useState<'created' | 'edited' | 'deleted' | null>(null);
+  const [highlightedSurveyId, setHighlightedSurveyId] = useState<number | null>(null);
+  const highlightedRowRef = useRef<HTMLTableRowElement>(null);
+  const hasProcessedAction = useRef(false);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -99,36 +100,49 @@ export function SurveysPage() {
   }, [page, limit]); // Re-fetch when pagination changes
 
   // ============================================================================
-  // Handle newly created survey toast and highlighting
+  // Handle created/edited/deleted survey toast and highlighting
   // ============================================================================
 
   useEffect(() => {
     const createdParam = searchParams.get('created');
-    if (createdParam && surveys.length > 0 && !hasProcessedCreation.current) {
-      const surveyId = parseInt(createdParam);
+    const editedParam = searchParams.get('edited');
+    const deletedParam = searchParams.get('deleted');
+
+    if ((createdParam || editedParam || deletedParam) && !hasProcessedAction.current) {
+      const surveyId = parseInt(createdParam || editedParam || deletedParam || '0');
+      const action = createdParam ? 'created' : editedParam ? 'edited' : 'deleted';
 
       // Mark as processed to prevent re-running
-      hasProcessedCreation.current = true;
+      hasProcessedAction.current = true;
 
-      // Set state for highlighting and toast
-      setCreatedSurveyId(surveyId);
-      setShowSuccessToast(true);
+      // Set state for toast
+      setToastAction(action);
+      setShowToast(true);
+
+      // For created/edited, highlight the row (only if surveys loaded and survey exists)
+      if ((action === 'created' || action === 'edited') && surveys.length > 0) {
+        setHighlightedSurveyId(surveyId);
+
+        // Scroll to the highlighted row
+        setTimeout(() => {
+          highlightedRowRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }, 100);
+
+        // Clear highlighting after 3 seconds
+        setTimeout(() => {
+          setHighlightedSurveyId(null);
+        }, 3000);
+      }
 
       // Clear URL parameter immediately to prevent re-trigger on refresh
       setSearchParams({}, { replace: true });
 
-      // Scroll to the newly created row
+      // Reset processed flag after action completes
       setTimeout(() => {
-        createdRowRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-      }, 100);
-
-      // Clear highlighting after 3 seconds
-      setTimeout(() => {
-        setCreatedSurveyId(null);
-        hasProcessedCreation.current = false; // Reset for next creation
+        hasProcessedAction.current = false;
       }, 3000);
     }
   }, [searchParams, surveys, setSearchParams]);
@@ -360,17 +374,17 @@ export function SurveysPage() {
           <TableBody>
             {surveys.map((survey) => {
               const surveyorNames = survey.surveyor_ids.map(id => getSurveyorName(id));
-              const isNewlyCreated = survey.id === createdSurveyId;
+              const isHighlighted = survey.id === highlightedSurveyId;
 
               return (
                 <TableRow
                   key={survey.id}
-                  ref={isNewlyCreated ? createdRowRef : null}
+                  ref={isHighlighted ? highlightedRowRef : null}
                   onClick={() => handleRowClick(survey.id)}
                   sx={{
-                    bgcolor: isNewlyCreated ? 'rgba(219, 237, 219, 0.7)' : 'transparent',
+                    bgcolor: isHighlighted ? 'rgba(219, 237, 219, 0.7)' : 'transparent',
                     transition: 'background-color 0.5s ease-out',
-                    '&:hover': { bgcolor: isNewlyCreated ? 'rgba(219, 237, 219, 0.85)' : 'grey.50' },
+                    '&:hover': { bgcolor: isHighlighted ? 'rgba(219, 237, 219, 0.85)' : 'grey.50' },
                     cursor: 'pointer',
                     borderBottom: '1px solid',
                     borderColor: 'divider'
@@ -500,20 +514,22 @@ export function SurveysPage() {
         </Box>
       )}
 
-      {/* Success Toast Notification */}
+      {/* Toast Notification */}
       <Snackbar
-        open={showSuccessToast}
+        open={showToast}
         autoHideDuration={4000}
-        onClose={() => setShowSuccessToast(false)}
+        onClose={() => setShowToast(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
-          onClose={() => setShowSuccessToast(false)}
-          severity="success"
+          onClose={() => setShowToast(false)}
+          severity={toastAction === 'deleted' ? 'error' : 'success'}
           variant="filled"
           sx={{ width: '100%' }}
         >
-          Survey created successfully
+          {toastAction === 'created' && 'Survey created successfully'}
+          {toastAction === 'edited' && 'Survey updated successfully'}
+          {toastAction === 'deleted' && 'Survey deleted successfully'}
         </Alert>
       </Snackbar>
     </Box>
