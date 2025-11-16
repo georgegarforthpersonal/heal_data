@@ -257,15 +257,15 @@ export function SurveysPage() {
   }
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
       {/* Page Header - Notion-style with icon and title */}
       <Box sx={{ mb: 3 }}>
         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-          <Assignment sx={{ fontSize: 40, color: 'text.secondary' }} />
+          <Assignment sx={{ fontSize: { xs: 32, md: 40 }, color: 'text.secondary' }} />
           <Typography
             variant="h1"
             sx={{
-              fontSize: '2.5rem',
+              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
               fontWeight: 700,
               color: 'text.primary'
             }}
@@ -304,7 +304,7 @@ export function SurveysPage() {
           borderColor: 'divider'
         }}
       >
-        <Table sx={{ minWidth: 650 }}>
+        <Table sx={{ minWidth: { xs: 300, sm: 500, md: 650 } }}>
           {/* Table Header */}
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.50' }}>
@@ -333,6 +333,7 @@ export function SurveysPage() {
                   letterSpacing: '0.3px',
                   py: tableSizing.header.py,
                   px: tableSizing.header.px,
+                  display: { xs: 'none', md: 'table-cell' }, // Hide on mobile, show on tablet+
                 }}
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -365,6 +366,7 @@ export function SurveysPage() {
                   letterSpacing: '0.3px',
                   py: tableSizing.header.py,
                   px: tableSizing.header.px,
+                  display: { xs: 'none', sm: 'table-cell' }, // Hide on mobile, show on tablet+
                 }}
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -401,7 +403,7 @@ export function SurveysPage() {
                   </TableCell>
 
                   {/* Surveyors Column - Avatar Stack */}
-                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, display: { xs: 'none', md: 'table-cell' } }}>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
                       <AvatarGroup
                         max={4}
@@ -483,7 +485,7 @@ export function SurveysPage() {
                   </TableCell>
 
                   {/* Location Column */}
-                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary', display: { xs: 'none', sm: 'table-cell' } }}>
                     {getLocationName(survey.location_id)}
                   </TableCell>
                 </TableRow>
@@ -495,9 +497,15 @@ export function SurveysPage() {
 
       {/* Pagination Controls */}
       {paginationMeta.total_pages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Showing {surveys.length === 0 ? 0 : ((page - 1) * limit) + 1} to {Math.min(page * limit, paginationMeta.total)} of {paginationMeta.total} surveys
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+            {/* More concise text on mobile */}
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+              Showing {surveys.length === 0 ? 0 : ((page - 1) * limit) + 1} to {Math.min(page * limit, paginationMeta.total)} of {paginationMeta.total} surveys
+            </Box>
+            <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+              {surveys.length === 0 ? 0 : ((page - 1) * limit) + 1}-{Math.min(page * limit, paginationMeta.total)} of {paginationMeta.total}
+            </Box>
           </Typography>
           <Pagination
             count={paginationMeta.total_pages}

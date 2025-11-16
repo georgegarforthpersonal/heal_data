@@ -365,9 +365,9 @@ export function SurveyDetailPage() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ p: 4 }}>
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         {/* Breadcrumb Navigation */}
-        <Breadcrumbs sx={{ mb: 3 }}>
+        <Breadcrumbs sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.875rem', md: '1rem' } }}>
           <Link
             component="button"
             onClick={handleBack}
@@ -378,23 +378,24 @@ export function SurveyDetailPage() {
               textDecoration: 'none',
               color: 'text.secondary',
               cursor: 'pointer',
+              fontSize: 'inherit',
               '&:hover': { color: 'primary.main' }
             }}
           >
-            <ArrowBack sx={{ fontSize: 18 }} />
+            <ArrowBack sx={{ fontSize: { xs: 16, md: 18 } }} />
             Surveys
           </Link>
-          <Typography color="text.primary">
+          <Typography color="text.primary" sx={{ fontSize: 'inherit' }}>
             {isEditMode ? 'Edit Survey' : `${formatDate(survey.date)} • ${getLocationName(survey.location_id)}`}
           </Typography>
         </Breadcrumbs>
 
         {/* Page Header */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 2, md: 3 }, gap: 1 }}>
           <Typography
             variant="h1"
             sx={{
-              fontSize: '2.5rem',
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
               fontWeight: 700,
               color: 'text.primary'
             }}
@@ -407,23 +408,26 @@ export function SurveyDetailPage() {
           {/* Then wrap buttons with: {hasPermission('edit_survey') && <Button.../>} */}
 
           {isEditMode ? (
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} sx={{ flexShrink: 0 }}>
               <Button
                 variant="outlined"
-                startIcon={<Cancel />}
+                startIcon={<Cancel sx={{ display: { xs: 'none', sm: 'block' } }} />}
                 onClick={handleCancel}
                 disabled={saving}
+                size="small"
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
-                  boxShadow: 'none'
+                  boxShadow: 'none',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
                 }}
               >
                 Cancel
               </Button>
               <Button
                 variant="contained"
-                startIcon={saving ? undefined : <Save />}
+                startIcon={saving ? undefined : <Save sx={{ display: { xs: 'none', sm: 'block' } }} />}
                 onClick={handleSave}
                 disabled={
                   saving ||
@@ -432,48 +436,57 @@ export function SurveyDetailPage() {
                   editSelectedSurveyors.length === 0 ||
                   editDraftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
                 }
+                size="small"
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
                   boxShadow: 'none',
                   '&:hover': { boxShadow: 'none' },
-                  minWidth: 140,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  minWidth: { xs: 80, sm: 140 },
+                  px: { xs: 1, sm: 2 }
                 }}
               >
                 {saving ? (
                   <>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
                     Saving...
                   </>
                 ) : (
-                  'Save Survey'
+                  'Save'
                 )}
               </Button>
             </Stack>
           ) : (
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} sx={{ flexShrink: 0 }}>
               <Button
                 variant="contained"
-                startIcon={<Edit />}
+                startIcon={<Edit sx={{ display: { xs: 'none', sm: 'block' } }} />}
                 onClick={handleEditClick}
+                size="small"
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
                   boxShadow: 'none',
-                  '&:hover': { boxShadow: 'none' }
+                  '&:hover': { boxShadow: 'none' },
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
                 }}
               >
-                Edit Survey
+                Edit
               </Button>
               <Button
                 variant="outlined"
                 color="error"
-                startIcon={<Delete />}
+                startIcon={<Delete sx={{ display: { xs: 'none', sm: 'block' } }} />}
                 onClick={handleDeleteClick}
+                size="small"
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
-                  boxShadow: 'none'
+                  boxShadow: 'none',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
                 }}
               >
                 Delete
@@ -492,8 +505,8 @@ export function SurveyDetailPage() {
         {/* Survey Metadata Card */}
         <Paper
           sx={{
-            p: 3,
-            mb: 3,
+            p: { xs: 2, sm: 2.5, md: 3 },
+            mb: { xs: 2, md: 3 },
             boxShadow: 'none',
             border: '1px solid',
             borderColor: 'divider'
@@ -575,7 +588,7 @@ export function SurveyDetailPage() {
         {/* Sightings Section */}
         <Paper
           sx={{
-            p: 3,
+            p: { xs: 2, sm: 2.5, md: 3 },
             boxShadow: 'none',
             border: '1px solid',
             borderColor: 'divider'
@@ -597,13 +610,13 @@ export function SurveyDetailPage() {
               {/* Sightings Table */}
               {sightings.length > 0 ? (
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
-                  {/* Table Header */}
+                  {/* Table Header - Hidden on mobile */}
                   <Box
                     sx={{
-                      display: 'grid',
+                      display: { xs: 'none', sm: 'grid' },
                       gridTemplateColumns: '3fr 1fr',
-                      gap: 2,
-                      p: 1.5,
+                      gap: { sm: 1.5, md: 2 },
+                      p: { sm: 1, md: 1.5 },
                       bgcolor: 'grey.50',
                       borderBottom: '1px solid',
                       borderColor: 'divider'
@@ -624,17 +637,17 @@ export function SurveyDetailPage() {
                       sx={{
                         display: 'grid',
                         gridTemplateColumns: '3fr 1fr',
-                        gap: 2,
-                        p: 1.5,
+                        gap: { xs: 1, sm: 1.5, md: 2 },
+                        p: { xs: 1, sm: 1.25, md: 1.5 },
                         borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
                         borderColor: 'divider',
                         '&:hover': { bgcolor: 'grey.50' }
                       }}
                     >
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
                         {sighting.species_name || getSpeciesName(sighting.species_id)}
                       </Typography>
-                      <Typography variant="body2" fontWeight={600}>
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
                         {sighting.count}
                       </Typography>
                     </Box>
