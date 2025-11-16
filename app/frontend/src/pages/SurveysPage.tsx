@@ -1,12 +1,11 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar } from '@mui/material';
 import { CalendarToday, Person, Visibility, LocationOn, Assignment } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
 import type { Survey, Surveyor, Location } from '../services/api';
-import { CreateSurveyModal } from '../components/surveys/CreateSurveyModal';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
@@ -30,6 +29,7 @@ import { CreateSurveyModal } from '../components/surveys/CreateSurveyModal';
  */
 export function SurveysPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ============================================================================
   // State Management
@@ -40,7 +40,10 @@ export function SurveysPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [createdSurveyId, setCreatedSurveyId] = useState<number | null>(null);
+  const createdRowRef = useRef<HTMLTableRowElement>(null);
+  const hasProcessedCreation = useRef(false);
 
   // ============================================================================
   // Data Fetching
@@ -74,6 +77,41 @@ export function SurveysPage() {
   }, []);
 
   // ============================================================================
+  // Handle newly created survey toast and highlighting
+  // ============================================================================
+
+  useEffect(() => {
+    const createdParam = searchParams.get('created');
+    if (createdParam && surveys.length > 0 && !hasProcessedCreation.current) {
+      const surveyId = parseInt(createdParam);
+
+      // Mark as processed to prevent re-running
+      hasProcessedCreation.current = true;
+
+      // Set state for highlighting and toast
+      setCreatedSurveyId(surveyId);
+      setShowSuccessToast(true);
+
+      // Clear URL parameter immediately to prevent re-trigger on refresh
+      setSearchParams({}, { replace: true });
+
+      // Scroll to the newly created row
+      setTimeout(() => {
+        createdRowRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 100);
+
+      // Clear highlighting after 3 seconds
+      setTimeout(() => {
+        setCreatedSurveyId(null);
+        hasProcessedCreation.current = false; // Reset for next creation
+      }, 3000);
+    }
+  }, [searchParams, surveys, setSearchParams]);
+
+  // ============================================================================
   // Event Handlers
   // ============================================================================
 
@@ -82,15 +120,7 @@ export function SurveysPage() {
   };
 
   const handleCreateClick = () => {
-    setCreateModalOpen(true);
-  };
-
-  const handleCreateSuccess = (newSurvey: Survey) => {
-    // Close modal
-    setCreateModalOpen(false);
-
-    // Navigate to the new survey's detail page
-    navigate(`/surveys/${newSurvey.id}`);
+    navigate('/surveys/new');
   };
 
   // ============================================================================
@@ -286,13 +316,17 @@ export function SurveysPage() {
           <TableBody>
             {surveys.map((survey) => {
               const surveyorNames = survey.surveyor_ids.map(id => getSurveyorName(id));
+              const isNewlyCreated = survey.id === createdSurveyId;
 
               return (
                 <TableRow
                   key={survey.id}
+                  ref={isNewlyCreated ? createdRowRef : null}
                   onClick={() => handleRowClick(survey.id)}
                   sx={{
-                    '&:hover': { bgcolor: 'grey.50' },
+                    bgcolor: isNewlyCreated ? 'rgba(219, 237, 219, 0.7)' : 'transparent',
+                    transition: 'background-color 0.5s ease-out',
+                    '&:hover': { bgcolor: isNewlyCreated ? 'rgba(219, 237, 219, 0.85)' : 'grey.50' },
                     cursor: 'pointer',
                     borderBottom: '1px solid',
                     borderColor: 'divider'
@@ -393,14 +427,22 @@ export function SurveysPage() {
         </Table>
       </TableContainer>
 
-      {/* Create Survey Modal */}
-      <CreateSurveyModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSuccess={handleCreateSuccess}
-        locations={locations}
-        surveyors={surveyors}
-      />
+      {/* Success Toast Notification */}
+      <Snackbar
+        open={showSuccessToast}
+        autoHideDuration={4000}
+        onClose={() => setShowSuccessToast(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setShowSuccessToast(false)}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          Survey created successfully
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

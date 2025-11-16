@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { theme } from './theme';
 import { SurveysPage } from './pages/SurveysPage';
 import { SurveyDetailPage } from './pages/SurveyDetailPage';
+import { NewSurveyPage } from './pages/NewSurveyPage';
 
 function App() {
   return (
@@ -13,6 +14,9 @@ function App() {
           <Routes>
             {/* Main surveys list page */}
             <Route path="/surveys" element={<SurveysPage />} />
+
+            {/* New survey page */}
+            <Route path="/surveys/new" element={<NewSurveyPage />} />
 
             {/* Survey detail page */}
             <Route path="/surveys/:id" element={<SurveyDetailPage />} />
