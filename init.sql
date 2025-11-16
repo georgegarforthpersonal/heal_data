@@ -1,5 +1,5 @@
--- Initialize the database with tables for app-v2
--- This matches the SQLModel schema in app-v2/backend/models.py
+-- Initialize the database with tables for app
+-- This matches the SQLModel schema in app/backend/models.py
 
 CREATE TABLE IF NOT EXISTS surveyor (
     id SERIAL PRIMARY KEY,

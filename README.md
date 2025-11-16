@@ -67,7 +67,7 @@ This application uses **Neon** (serverless PostgreSQL) for staging and productio
 
 **Database migrations:**
 ```bash
-# From app-v2/backend directory
+# From app/backend directory
 alembic revision --autogenerate -m "description"
 alembic upgrade head
 ```
@@ -76,7 +76,7 @@ alembic upgrade head
 
 ## 📁 Project Structure
 ```
-app-v2/
+app/
 ├── frontend/                 # React + TypeScript frontend
 │   ├── src/
 │   │   ├── pages/           # Page components
@@ -114,8 +114,8 @@ curl http://localhost:8000/api/surveys
 ## 📚 Documentation
 
 - See `ENVIRONMENT_GUIDE.md` for detailed environment setup
-- See `app-v2/DEVELOPMENT.md` for development guidelines
-- See `app-v2/README.md` for application details
+- See `app/DEVELOPMENT.md` for development guidelines
+- See `app/README.md` for application details
 
 ---
 

@@ -9,7 +9,7 @@ This document describes the development approach, conventions, and patterns for 
 ## Project Structure
 
 ```
-app-v2/frontend/src/
+app/frontend/src/
 ├── components/
 │   ├── common/          # Reusable UI components (buttons, inputs, etc.)
 │   ├── features/        # Domain-specific components (SurveyCard, etc.)

@@ -151,7 +151,7 @@ docker exec -w /app heal_butterflies_api alembic revision --autogenerate -m "Add
 **3. Review the generated migration:**
 ```bash
 # Check the file in alembic/versions/
-cat app-v2/backend/alembic/versions/xxxx_add_email_to_surveyor.py
+cat app/backend/alembic/versions/xxxx_add_email_to_surveyor.py
 ```
 
 **4. Apply the migration:**

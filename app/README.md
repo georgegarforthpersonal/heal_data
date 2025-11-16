@@ -27,7 +27,7 @@ App runs at `http://localhost:5173`
 ### Local Development
 
 ```bash
-cd app-v2/frontend
+cd app/frontend
 npm install
 npm run dev
 ```
