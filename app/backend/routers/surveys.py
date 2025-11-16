@@ -15,8 +15,9 @@ Endpoints:
 Refactored to use SQLModel ORM instead of raw SQL.
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List
+from fastapi import APIRouter, HTTPException, status, Depends, Query
+from typing import List, Optional
+from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from database.connection import get_db
@@ -32,17 +33,53 @@ router = APIRouter()
 # Survey CRUD Operations
 # ============================================================================
 
-@router.get("", response_model=List[SurveyWithSightingsCount])
-async def get_surveys(db: Session = Depends(get_db)):
+@router.get("")
+async def get_surveys(
+    page: int = Query(1, ge=1, description="Page number (starting from 1)"),
+    limit: int = Query(25, ge=1, le=100, description="Items per page"),
+    start_date: Optional[date] = Query(None, description="Filter surveys from this date (inclusive)"),
+    end_date: Optional[date] = Query(None, description="Filter surveys until this date (inclusive)"),
+    db: Session = Depends(get_db)
+):
     """
-    Get all surveys with sighting counts.
+    Get surveys with pagination and optional date range filtering.
+
+    Args:
+        page: Page number (starting from 1)
+        limit: Number of items per page (max 100)
+        start_date: Optional start date filter (YYYY-MM-DD)
+        end_date: Optional end date filter (YYYY-MM-DD)
 
     Returns:
-        List of all surveys with sighting counts and species breakdown
+        Paginated list of surveys with metadata:
+        - data: List of surveys with sighting counts and species breakdown
+        - page: Current page number
+        - limit: Items per page
+        - total: Total number of surveys (after filtering)
+        - total_pages: Total number of pages
     """
     try:
-        # Get all surveys with basic info
-        surveys_query = db.query(Survey).order_by(Survey.date.desc()).all()
+        # Build base query with filters
+        query = db.query(Survey)
+
+        # Apply date range filters
+        if start_date:
+            query = query.filter(Survey.date >= start_date)
+        if end_date:
+            query = query.filter(Survey.date <= end_date)
+
+        # Get total count for pagination metadata
+        total = query.count()
+
+        # Calculate pagination
+        total_pages = (total + limit - 1) // limit  # Ceiling division
+        offset = (page - 1) * limit
+
+        # Get paginated surveys
+        surveys_query = query.order_by(Survey.date.desc())\
+            .offset(offset)\
+            .limit(limit)\
+            .all()
 
         result = []
         for survey in surveys_query:
@@ -88,7 +125,13 @@ async def get_surveys(db: Session = Depends(get_db)):
                 "species_breakdown": species_breakdown
             })
 
-        return result
+        return {
+            "data": result,
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": total_pages
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch surveys: {str(e)}")

@@ -1,11 +1,11 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination } from '@mui/material';
 import { CalendarToday, Person, Visibility, LocationOn, Assignment } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
-import type { Survey, Surveyor, Location } from '../services/api';
+import type { Survey, Surveyor, Location, PaginationMeta } from '../services/api';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
@@ -45,6 +45,16 @@ export function SurveysPage() {
   const createdRowRef = useRef<HTMLTableRowElement>(null);
   const hasProcessedCreation = useRef(false);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(25); // Fixed limit, could make this configurable
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta>({
+    page: 1,
+    limit: 25,
+    total: 0,
+    total_pages: 0
+  });
+
   // ============================================================================
   // Data Fetching
   // ============================================================================
@@ -55,14 +65,26 @@ export function SurveysPage() {
         setLoading(true);
         setError(null);
 
-        // Fetch surveys, surveyors, and locations in parallel
-        const [surveysData, surveyorsData, locationsData] = await Promise.all([
-          surveysAPI.getAll(),
+        // Build query parameters
+        const queryParams = {
+          page,
+          limit
+        };
+
+        // Fetch surveys (paginated), surveyors, and locations in parallel
+        const [surveysResponse, surveyorsData, locationsData] = await Promise.all([
+          surveysAPI.getAll(queryParams),
           surveyorsAPI.getAll(),
           locationsAPI.getAll(),
         ]);
 
-        setSurveys(surveysData);
+        setSurveys(surveysResponse.data);
+        setPaginationMeta({
+          page: surveysResponse.page,
+          limit: surveysResponse.limit,
+          total: surveysResponse.total,
+          total_pages: surveysResponse.total_pages
+        });
         setSurveyors(surveyorsData);
         setLocations(locationsData);
       } catch (err) {
@@ -74,7 +96,7 @@ export function SurveysPage() {
     };
 
     fetchData();
-  }, []);
+  }, [page, limit]); // Re-fetch when pagination changes
 
   // ============================================================================
   // Handle newly created survey toast and highlighting
@@ -121,6 +143,11 @@ export function SurveysPage() {
 
   const handleCreateClick = () => {
     navigate('/surveys/new');
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ============================================================================
@@ -426,6 +453,32 @@ export function SurveysPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Pagination Controls */}
+      {paginationMeta.total_pages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Showing {surveys.length === 0 ? 0 : ((page - 1) * limit) + 1} to {Math.min(page * limit, paginationMeta.total)} of {paginationMeta.total} surveys
+          </Typography>
+          <Pagination
+            count={paginationMeta.total_pages}
+            page={page}
+            onChange={handlePageChange}
+            color="primary"
+            shape="rounded"
+            showFirstButton
+            showLastButton
+            size="large"
+            sx={{
+              '& .MuiPaginationItem-root': {
+                fontSize: '0.95rem',
+                minWidth: { xs: '36px', sm: '40px' },
+                height: { xs: '36px', sm: '40px' }
+              }
+            }}
+          />
+        </Box>
+      )}
 
       {/* Success Toast Notification */}
       <Snackbar

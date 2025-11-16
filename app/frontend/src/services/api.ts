@@ -87,6 +87,37 @@ export interface Survey {
   species_breakdown: SpeciesTypeCount[]; // Breakdown by species type
 }
 
+/**
+ * Pagination metadata returned by paginated endpoints
+ */
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+/**
+ * Paginated response wrapper
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+/**
+ * Query parameters for fetching surveys
+ */
+export interface SurveyQueryParams {
+  page?: number;
+  limit?: number;
+  start_date?: string; // YYYY-MM-DD format
+  end_date?: string; // YYYY-MM-DD format
+}
+
 export interface SurveyDetail extends Omit<Survey, 'sightings_count'> {
   surveyors?: Surveyor[];
 }
@@ -105,10 +136,20 @@ export interface Sighting {
 
 export const surveysAPI = {
   /**
-   * Get all surveys with sighting counts
+   * Get surveys with pagination and optional filters
    */
-  getAll: (): Promise<Survey[]> => {
-    return fetchAPI('/surveys');
+  getAll: (params?: SurveyQueryParams): Promise<PaginatedResponse<Survey>> => {
+    const queryParams = new URLSearchParams();
+
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/surveys?${queryString}` : '/surveys';
+
+    return fetchAPI(endpoint);
   },
 
   /**
