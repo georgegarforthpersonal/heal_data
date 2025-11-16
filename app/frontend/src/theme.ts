@@ -73,14 +73,18 @@ export const tableSizing = {
   },
 } as const;
 
-// Simple, clean theme - professional and minimal
+// HEAL Rewilding brand theme - inspired by logo colors
+// Logo uses a calming purple/lavender that represents nature and conservation
 export const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2', // Clean blue
+      main: '#8B8AC7',      // HEAL purple (from logo)
+      light: '#B5B4E0',     // Lighter for hovers
+      dark: '#6968A3',      // Darker for active states
+      contrastText: '#fff', // White text on purple
     },
     secondary: {
-      main: '#dc004e', // Accent red
+      main: '#dc004e', // Keep red for accents/warnings
     },
     background: {
       default: '#fafafa',
