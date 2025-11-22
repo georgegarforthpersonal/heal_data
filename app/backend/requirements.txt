@@ -15,5 +15,8 @@ python-dotenv>=1.0.0
 # Testing
 requests>=2.31.0  # For testing API endpoints
 
+# Fuzzy matching for species name matching
+rapidfuzz>=3.0.0
+
 # Development tools (optional)
 # httpx>=0.26.0  # For testing API endpoints
