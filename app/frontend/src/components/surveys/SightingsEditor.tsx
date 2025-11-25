@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Box, Typography, TextField, Autocomplete, IconButton, Alert } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import type { Species } from '../../services/api';
@@ -24,6 +25,7 @@ interface SightingsEditorProps {
  * - Auto-adds new row when last row is filled
  * - Always keeps at least one row
  * - Inline validation
+ * - Grouped by species type with section headers
  */
 export function SightingsEditor({
   sightings,
@@ -31,6 +33,23 @@ export function SightingsEditor({
   onSightingsChange,
   validationError,
 }: SightingsEditorProps) {
+
+  // Sort species by type first, then by name within each type
+  const sortedSpecies = useMemo(() => {
+    return [...species].sort((a, b) => {
+      // First sort by type
+      if (a.type !== b.type) {
+        return a.type.localeCompare(b.type);
+      }
+      // Then sort by name within the same type
+      return a.name.localeCompare(b.name);
+    });
+  }, [species]);
+
+  // Format category name for display (capitalize first letter)
+  const formatCategoryName = (category: string): string => {
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  };
 
   const addSightingRow = () => {
     onSightingsChange([
@@ -138,7 +157,8 @@ export function SightingsEditor({
               >
                 {/* Species Dropdown */}
                 <Autocomplete
-                  options={species}
+                  options={sortedSpecies}
+                  groupBy={(option) => formatCategoryName(option.type)}
                   getOptionLabel={(option) => option.name}
                   value={species.find((s) => s.id === sighting.species_id) || null}
                   onChange={(_, newValue) =>

@@ -50,8 +50,8 @@ async def get_species(survey_type: Optional[str] = None):
                 "id": row[0],
                 "name": row[1],
                 "conservation_status": row[2],
-                "species_type": row[3],
-                
+                "type": row[3],
+
             } for row in rows]
 
     except Exception as e:
@@ -77,8 +77,8 @@ async def get_species_by_id(species_id: int):
                 "id": row[0],
                 "name": row[1],
                 "conservation_status": row[2],
-                "species_type": row[3],
-                
+                "type": row[3],
+
             }
 
     except HTTPException:
@@ -96,7 +96,7 @@ async def create_species(species: SpeciesCreate):
                 INSERT INTO species (name, conservation_status, type)
                 VALUES (%s, %s, %s)
                 RETURNING id, name, conservation_status, type
-            """, (species.name, species.conservation_status, species.species_type))
+            """, (species.name, species.conservation_status, species.type))
 
             row = cursor.fetchone()
 
@@ -104,8 +104,8 @@ async def create_species(species: SpeciesCreate):
                 "id": row[0],
                 "name": row[1],
                 "conservation_status": row[2],
-                "species_type": row[3],
-                
+                "type": row[3],
+
             }
 
     except Exception as e:
@@ -132,9 +132,9 @@ async def update_species(species_id: int, species: SpeciesUpdate):
             if species.conservation_status is not None:
                 update_fields.append("conservation_status = %s")
                 update_values.append(species.conservation_status)
-            if species.species_type is not None:
+            if species.type is not None:
                 update_fields.append("type = %s")
-                update_values.append(species.species_type)
+                update_values.append(species.type)
 
             if update_fields:
                 update_values.append(species_id)
@@ -159,8 +159,8 @@ async def update_species(species_id: int, species: SpeciesUpdate):
                 "id": row[0],
                 "name": row[1],
                 "conservation_status": row[2],
-                "species_type": row[3],
-                
+                "type": row[3],
+
             }
 
     except HTTPException:

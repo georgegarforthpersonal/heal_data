@@ -29,6 +29,7 @@ heal_butterflies/
 ├── staging-run              # Script runner for staging environment
 ├── prod-run                 # Script runner for prod environment
 ├── start-env.sh             # Environment starter
+├── migrate-db               # Database migration runner
 └── match-species            # Species matching helper
 ```
 
@@ -79,6 +80,18 @@ alembic upgrade head                               # Apply migrations
 alembic history                                    # View history
 alembic downgrade -1                               # Rollback one migration
 ```
+
+### Species Migration
+
+To update species data with scientific names and NBN Atlas GUIDs, see:
+**[SPECIES_MIGRATION_GUIDE.md](SPECIES_MIGRATION_GUIDE.md)**
+
+Quick summary:
+1. Match species: `./dev-run match_species.py -s butterflies --validate --export results.json`
+2. Apply schema: `./migrate-db dev upgrade head`
+3. Apply data: `./dev-run apply_species_migration.py results.json --apply`
+
+**Note**: The `migrate-db` script requires explicit environment (dev/staging/prod) for safety.
 
 ## Environment Configuration
 

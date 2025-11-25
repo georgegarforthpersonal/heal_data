@@ -85,14 +85,20 @@ class SurveyorRead(SurveyorBase):
 
 class SpeciesBase(SQLModel):
     """Base species fields"""
-    name: str = Field(max_length=255, description="Species name")
+    name: str = Field(max_length=255, description="Species common name")
     conservation_status: Optional[str] = Field(None, max_length=50, description="Conservation status")
     type: str = Field(default="butterfly", max_length=50, description="Type of species (butterfly, bird, fungi)")
+    scientific_name: Optional[str] = Field(None, max_length=255, description="Scientific/Latin name from NBN Atlas")
+    nbn_atlas_guid: Optional[str] = Field(None, max_length=255, description="NBN Atlas GUID for reference")
 
 
 class Species(SpeciesBase, table=True):
     """Species database model"""
     __tablename__ = "species"
+    __table_args__ = (
+        sa.Index('ix_species_scientific_name', 'scientific_name'),
+        sa.Index('ix_species_nbn_atlas_guid', 'nbn_atlas_guid'),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(
@@ -115,6 +121,8 @@ class SpeciesUpdate(SQLModel):
     name: Optional[str] = Field(None, max_length=255)
     conservation_status: Optional[str] = Field(None, max_length=50)
     type: Optional[str] = Field(None, max_length=50)
+    scientific_name: Optional[str] = Field(None, max_length=255)
+    nbn_atlas_guid: Optional[str] = Field(None, max_length=255)
 
 
 class SpeciesRead(SpeciesBase):
