@@ -6,6 +6,10 @@ Usage:
     ./dev-run migrate_species.py -s butterflies --no-dry-run # Apply to database
     ./dev-run migrate_species.py -s birds --export file.json --no-dry-run
     ./dev-run migrate_species.py -s spiders                  # Dry-run for spiders
+    ./dev-run migrate_species.py -s mammals                  # Dry-run for mammals
+    ./dev-run migrate_species.py -s bats                     # Dry-run for bats
+    ./dev-run migrate_species.py -s reptiles                 # Dry-run for reptiles
+    ./dev-run migrate_species.py -s amphibians               # Dry-run for amphibians
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
@@ -65,6 +69,34 @@ SPECIES_CONFIG = {
         "display_name": "Spiders",
         "min_occurrence": 0,  # Include all spiders with common names
         "allowed_ranks": ["species", "genus", "family"]  # Include family/genus (e.g., "crab spiders", "Zebra Spider")
+    },
+    "mammals": {
+        "db_type": "mammal",
+        "api_filter": "taxonGroup_s:\"terrestrial mammal\"",
+        "display_name": "Mammals",
+        "min_occurrence": 1000,  # Include all mammals with common names
+        "allowed_ranks": ["species"]  # Only species-level records
+    },
+    "bats": {
+        "db_type": "bat",
+        "api_filter": "taxonGroup_s:\"terrestrial mammal\"",  # Bats are included under terrestrial mammal
+        "display_name": "Bats",
+        "min_occurrence": 100,  # Include all bats with common names
+        "allowed_ranks": ["species"]  # Only species-level records
+    },
+    "reptiles": {
+        "db_type": "reptile",
+        "api_filter": "taxonGroup_s:reptile",
+        "display_name": "Reptiles",
+        "min_occurrence": 1000,  # Include all reptiles with common names
+        "allowed_ranks": ["species"]  # Only species-level records
+    },
+    "amphibians": {
+        "db_type": "amphibian",
+        "api_filter": "taxonGroup_s:amphibian",
+        "display_name": "Amphibians",
+        "min_occurrence": 1000,  # Include all amphibians with common names
+        "allowed_ranks": ["species"]  # Only species-level records
     }
 }
 
@@ -80,6 +112,18 @@ HARDCODED_MAPPINGS = {
     },
     "spiders": {
         # Add spider mappings here as needed
+    },
+    "mammals": {
+        # Add mammal mappings here as needed
+    },
+    "bats": {
+        # Add bat mappings here as needed
+    },
+    "reptiles": {
+        # Add reptile mappings here as needed
+    },
+    "amphibians": {
+        # Add amphibian mappings here as needed
     }
 }
 
@@ -146,9 +190,51 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
             page_size=100
         )
 
+        # Exclusion keywords for mammals category
+        MARINE_MAMMAL_KEYWORDS = [
+            'seal', 'whale', 'dolphin', 'porpoise', 'walrus', 'orca'
+        ]
+        BAT_KEYWORDS = [
+            'bat', 'pipistrelle', 'noctule', 'horseshoe', 'barbastelle',
+            'serotine', 'myotis', 'plecotus', 'nyctalus'
+        ]
+        MARINE_REPTILE_KEYWORDS = [
+            'turtle', 'terrapin'
+        ]
+
         api_species = []
+        excluded_count = 0
+
         for record in raw_records:
             rank = record.get('rank')
+            common_name = record.get('commonNameSingle', '')
+
+            # For mammals type, exclude marine mammals and bats
+            if species_type == "mammals" and common_name:
+                is_marine = any(kw.lower() in common_name.lower() for kw in MARINE_MAMMAL_KEYWORDS)
+                is_bat = any(kw.lower() in common_name.lower() for kw in BAT_KEYWORDS)
+
+                if is_marine or is_bat:
+                    excluded_count += 1
+                    continue
+
+            # For bats type, include ONLY bats
+            if species_type == "bats" and common_name:
+                is_bat = any(kw.lower() in common_name.lower() for kw in BAT_KEYWORDS)
+
+                if not is_bat:
+                    excluded_count += 1
+                    continue
+
+            # For reptiles type, exclude marine reptiles (turtles, terrapins)
+            if species_type == "reptiles" and common_name:
+                is_marine = any(kw.lower() in common_name.lower() for kw in MARINE_REPTILE_KEYWORDS)
+
+                if is_marine:
+                    excluded_count += 1
+                    continue
+
+            # Standard filtering
             if (
                 rank in allowed_ranks and
                 record.get('commonNameSingle') and
@@ -162,6 +248,13 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
                 ))
 
         logger.info(f"Found {len(api_species)} {config['display_name'].lower()} from API")
+        if species_type == "mammals" and excluded_count > 0:
+            logger.info(f"Excluded {excluded_count} marine mammals and bats")
+        if species_type == "bats" and excluded_count > 0:
+            logger.info(f"Excluded {excluded_count} non-bat mammals")
+        if species_type == "reptiles" and excluded_count > 0:
+            logger.info(f"Excluded {excluded_count} marine reptiles")
+
         return api_species
 
     finally:
@@ -1129,7 +1222,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--species-type", "-s",
         required=True,
-        choices=["birds", "butterflies", "spiders"],
+        choices=["birds", "butterflies", "spiders", "mammals", "bats", "reptiles", "amphibians"],
         help="Type of species to process"
     )
     parser.add_argument(
