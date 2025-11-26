@@ -1,7 +1,7 @@
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination } from '@mui/material';
 import { CalendarToday, Person, Visibility, LocationOn } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ButterflyIcon, BirdIcon, MushroomIcon } from '../components/icons/WildlifeIcons';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
@@ -18,8 +18,13 @@ import type { Survey, Surveyor, Location, PaginationMeta } from '../services/api
  * - Icons automatically displayed based on species type:
  *   - butterfly → ButterflyIcon (🦋)
  *   - bird → BirdIcon (🐦)
+ *   - spider → SpiderIcon (🕷️)
+ *   - bat → BatIcon (🦇)
+ *   - mammal → MammalIcon (🦌)
+ *   - reptile → ReptileIcon (🐍)
+ *   - amphibian → AmphibianIcon (🐸)
  *   - fungi → MushroomIcon (🍄)
- * - Supports multiple species per survey (e.g., "🦋45 🐦23 🍄18")
+ * - Supports multiple species per survey (e.g., "🦋45 🐦23 🐍3")
  * - Note: survey.type field is deprecated, use species_breakdown instead
  *
  * Following DEVELOPMENT.md conventions:
@@ -218,11 +223,21 @@ export function SurveysPage() {
   const getSpeciesDisplayName = (type: string, count: number): string => {
     const singular = type === 'butterfly' ? 'Butterfly'
                    : type === 'bird' ? 'Bird'
+                   : type === 'spider' ? 'Spider'
+                   : type === 'bat' ? 'Bat'
+                   : type === 'mammal' ? 'Mammal'
+                   : type === 'reptile' ? 'Reptile'
+                   : type === 'amphibian' ? 'Amphibian'
                    : type === 'fungi' ? 'Fungus'
                    : type;
 
     const plural = type === 'butterfly' ? 'Butterflies'
                  : type === 'bird' ? 'Birds'
+                 : type === 'spider' ? 'Spiders'
+                 : type === 'bat' ? 'Bats'
+                 : type === 'mammal' ? 'Mammals'
+                 : type === 'reptile' ? 'Reptiles'
+                 : type === 'amphibian' ? 'Amphibians'
                  : type === 'fungi' ? 'Fungi'
                  : type + 's';
 
@@ -431,7 +446,19 @@ export function SurveysPage() {
                           ? ButterflyIcon
                           : sighting.type === 'bird'
                           ? BirdIcon
-                          : MushroomIcon;
+                          : sighting.type === 'spider'
+                          ? SpiderIcon
+                          : sighting.type === 'bat'
+                          ? BatIcon
+                          : sighting.type === 'mammal'
+                          ? MammalIcon
+                          : sighting.type === 'reptile'
+                          ? ReptileIcon
+                          : sighting.type === 'amphibian'
+                          ? AmphibianIcon
+                          : sighting.type === 'fungi'
+                          ? MushroomIcon
+                          : MushroomIcon; // Default fallback
 
                         const speciesLabel = getSpeciesDisplayName(sighting.type, sighting.count);
 
