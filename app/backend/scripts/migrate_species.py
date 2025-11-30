@@ -10,6 +10,8 @@ Usage:
     ./dev-run migrate_species.py -s bats                     # Dry-run for bats
     ./dev-run migrate_species.py -s reptiles                 # Dry-run for reptiles
     ./dev-run migrate_species.py -s amphibians               # Dry-run for amphibians
+    ./dev-run migrate_species.py -s moths                    # Dry-run for moths (requires common name)
+    ./dev-run migrate_species.py -s insects                  # Dry-run for other insects (excl. butterflies & moths)
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
@@ -97,6 +99,22 @@ SPECIES_CONFIG = {
         "display_name": "Amphibians",
         "min_occurrence": 1000,  # Include all amphibians with common names
         "allowed_ranks": ["species"]  # Only species-level records
+    },
+    "moths": {
+        "db_type": "moth",
+        "api_filter": "taxonGroup_s:\"insect - moth\"",
+        "display_name": "Moths",
+        "min_occurrence": 1000,  # Include moths with 1000+ occurrences
+        "allowed_ranks": ["species"]  # Only species-level records
+    },
+    "insects": {
+        "db_type": "insect",
+        "api_filter": "taxonGroup_s:insect*",
+        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
+        "display_name": "Insects",
+        "min_occurrence": 100,  # Include insects with 1000+ occurrences
+        "allowed_ranks": ["species"],  # Only species-level records
+        "require_common_name": False  # Allow species without common names (most don't have them)
     }
 }
 
@@ -124,6 +142,12 @@ HARDCODED_MAPPINGS = {
     },
     "amphibians": {
         # Add amphibian mappings here as needed
+    },
+    "moths": {
+        # Add moth mappings here as needed
+    },
+    "insects": {
+        # Add insect mappings here as needed
     }
 }
 
@@ -177,16 +201,26 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
     config = SPECIES_CONFIG[species_type]
     min_occurrence = config.get('min_occurrence', 100)
     allowed_ranks = config.get('allowed_ranks', ['species'])
+    require_common_name = config.get('require_common_name', True)
 
     logger.info(f"Fetching {config['display_name']} from NBN Atlas API...")
     logger.info(f"Minimum occurrence threshold: {min_occurrence}")
     logger.info(f"Allowed ranks: {', '.join(allowed_ranks)}")
+    if not require_common_name:
+        logger.info(f"Including species without common names")
+
+    # Build filter query list (include base filter + exclusions if any)
+    filter_queries = [config['api_filter']]
+    if 'api_filter_exclude' in config:
+        for exclude_filter in config['api_filter_exclude']:
+            filter_queries.append(f"-{exclude_filter}")
+        logger.info(f"Excluding: {', '.join(config['api_filter_exclude'])}")
 
     client = NBNAtlasClient()
     try:
         raw_records = client.search_all(
             query="*:*",
-            filter_query=config['api_filter'],
+            filter_query=filter_queries if len(filter_queries) > 1 else config['api_filter'],
             page_size=100
         )
 
@@ -235,13 +269,16 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
                     continue
 
             # Standard filtering
+            has_common_name = bool(record.get('commonNameSingle'))
+            meets_common_name_requirement = has_common_name or not require_common_name
+
             if (
                 rank in allowed_ranks and
-                record.get('commonNameSingle') and
+                meets_common_name_requirement and
                 record.get('occurrenceCount', 0) >= min_occurrence
             ):
                 api_species.append(APISpecies(
-                    common_name=record['commonNameSingle'],
+                    common_name=record.get('commonNameSingle', ''),
                     scientific_name=record['scientificName'],
                     occurrence_count=record.get('occurrenceCount', 0),
                     guid=record.get('guid')
@@ -635,7 +672,9 @@ def preview_migration(
         logger.info(f"\nNew species to add ({len(new_species)}):")
         logger.info("  These will require your approval:")
         for species in new_species[:10]:
-            logger.info(f"  • {species.common_name} ({species.scientific_name})")
+            display_name = species.common_name if species.common_name else species.scientific_name
+            suffix = f" ({species.scientific_name})" if species.common_name else ""
+            logger.info(f"  • {display_name}{suffix}")
         if len(new_species) > 10:
             logger.info(f"  ... and {len(new_species) - 10} more")
 
@@ -733,8 +772,11 @@ def review_new_species(
 
     # Show all new species
     for i, species in enumerate(new_species, 1):
-        logger.info(f"{i}. {species.common_name}")
-        logger.info(f"   Scientific: {species.scientific_name}")
+        # Display common name if available, otherwise scientific name
+        display_name = species.common_name if species.common_name else species.scientific_name
+        logger.info(f"{i}. {display_name}")
+        if species.common_name:
+            logger.info(f"   Scientific: {species.scientific_name}")
         logger.info(f"   Occurrences: {species.occurrence_count}")
         logger.info(f"   GUID: {species.guid}")
         logger.info("")
@@ -759,7 +801,9 @@ def review_new_species(
         elif response == 'list':
             # Show condensed list
             for i, species in enumerate(new_species, 1):
-                logger.info(f"{i}. {species.common_name} ({species.scientific_name})")
+                display_name = species.common_name if species.common_name else species.scientific_name
+                suffix = f" ({species.scientific_name})" if species.common_name else ""
+                logger.info(f"{i}. {display_name}{suffix}")
         else:
             logger.info("Invalid response. Please enter 'y', 'n', or 'list'")
 
@@ -973,6 +1017,8 @@ def apply_migration(
             # Update existing species
             updated_count = 0
             for match in updates:
+                # Use common name if available, otherwise leave as NULL
+                common_name = match.api_species.common_name if match.api_species.common_name else None
                 cursor.execute("""
                     UPDATE species
                     SET
@@ -981,7 +1027,7 @@ def apply_migration(
                         nbn_atlas_guid = %s
                     WHERE id = %s
                 """, (
-                    match.api_species.common_name,
+                    common_name,
                     match.api_species.scientific_name,
                     match.api_species.guid,
                     match.db_species.id
@@ -996,11 +1042,13 @@ def apply_migration(
             db_type = config['db_type']
 
             for species in approved_new_species:
+                # Use common name if available, otherwise leave as NULL
+                common_name = species.common_name if species.common_name else None
                 cursor.execute("""
                     INSERT INTO species (name, type, scientific_name, nbn_atlas_guid)
                     VALUES (%s, %s, %s, %s)
                 """, (
-                    species.common_name,
+                    common_name,
                     db_type,
                     species.scientific_name,
                     species.guid
@@ -1222,7 +1270,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--species-type", "-s",
         required=True,
-        choices=["birds", "butterflies", "spiders", "mammals", "bats", "reptiles", "amphibians"],
+        choices=["birds", "butterflies", "spiders", "mammals", "bats", "reptiles", "amphibians", "moths", "insects"],
         help="Type of species to process"
     )
     parser.add_argument(

@@ -1,7 +1,7 @@
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination } from '@mui/material';
 import { CalendarToday, Person, Visibility, LocationOn } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon } from '../components/icons/WildlifeIcons';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
@@ -18,6 +18,9 @@ import type { Survey, Surveyor, Location, PaginationMeta } from '../services/api
  * - Icons automatically displayed based on species type:
  *   - butterfly → ButterflyIcon (🦋)
  *   - bird → BirdIcon (🐦)
+ *   - moth → MothIcon
+ *   - insect → BugIcon (🐞)
+ *   - gall → LeafIcon (🍃)
  *   - spider → SpiderIcon (🕷️)
  *   - bat → BatIcon (🦇)
  *   - mammal → MammalIcon (🦌)
@@ -223,6 +226,9 @@ export function SurveysPage() {
   const getSpeciesDisplayName = (type: string, count: number): string => {
     const singular = type === 'butterfly' ? 'Butterfly'
                    : type === 'bird' ? 'Bird'
+                   : type === 'moth' ? 'Moth'
+                   : type === 'insect' ? 'Insect'
+                   : type === 'gall' ? 'Gall'
                    : type === 'spider' ? 'Spider'
                    : type === 'bat' ? 'Bat'
                    : type === 'mammal' ? 'Mammal'
@@ -233,6 +239,9 @@ export function SurveysPage() {
 
     const plural = type === 'butterfly' ? 'Butterflies'
                  : type === 'bird' ? 'Birds'
+                 : type === 'moth' ? 'Moths'
+                 : type === 'insect' ? 'Insects'
+                 : type === 'gall' ? 'Galls'
                  : type === 'spider' ? 'Spiders'
                  : type === 'bat' ? 'Bats'
                  : type === 'mammal' ? 'Mammals'
@@ -446,6 +455,12 @@ export function SurveysPage() {
                           ? ButterflyIcon
                           : sighting.type === 'bird'
                           ? BirdIcon
+                          : sighting.type === 'moth'
+                          ? MothIcon
+                          : sighting.type === 'insect'
+                          ? BugIcon
+                          : sighting.type === 'gall'
+                          ? LeafIcon
                           : sighting.type === 'spider'
                           ? SpiderIcon
                           : sighting.type === 'bat'

@@ -354,10 +354,11 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
         Sighting.survey_id,
         Sighting.species_id,
         Sighting.count,
-        Species.name.label('species_name')
+        Species.name.label('species_name'),
+        Species.scientific_name.label('species_scientific_name')
     ).join(Species, Sighting.species_id == Species.id)\
      .filter(Sighting.survey_id == survey_id)\
-     .order_by(Species.name)\
+     .order_by(func.coalesce(Species.name, Species.scientific_name))\
      .all()
 
     return [{
@@ -365,7 +366,8 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
         "survey_id": row.survey_id,
         "species_id": row.species_id,
         "count": row.count,
-        "species_name": row.species_name
+        "species_name": row.species_name,
+        "species_scientific_name": row.species_scientific_name
     } for row in sightings]
 
 
@@ -407,7 +409,8 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
         "survey_id": db_sighting.survey_id,
         "species_id": db_sighting.species_id,
         "count": db_sighting.count,
-        "species_name": species.name if species else None
+        "species_name": species.name if species else None,
+        "species_scientific_name": species.scientific_name if species else None
     }
 
 
@@ -454,7 +457,8 @@ async def update_sighting(survey_id: int, sighting_id: int, sighting: SightingUp
         "survey_id": db_sighting.survey_id,
         "species_id": db_sighting.species_id,
         "count": db_sighting.count,
-        "species_name": species.name if species else None
+        "species_name": species.name if species else None,
+        "species_scientific_name": species.scientific_name if species else None
     }
 
 

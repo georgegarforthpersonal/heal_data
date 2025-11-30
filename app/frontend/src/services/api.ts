@@ -93,7 +93,8 @@ export interface Surveyor {
 
 export interface Species {
   id: number;
-  name: string;
+  name: string | null;
+  scientific_name: string | null;
   conservation_status: string | null;
   type: string;
 }
@@ -170,7 +171,8 @@ export interface Sighting {
   survey_id: number;
   species_id: number;
   count: number;
-  species_name?: string;
+  species_name?: string | null;
+  species_scientific_name?: string | null;
 }
 
 // ============================================================================

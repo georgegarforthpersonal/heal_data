@@ -125,11 +125,15 @@ export function SurveyDetailPage() {
   };
 
   /**
-   * Get species name from ID
+   * Get species display name from ID
    */
   const getSpeciesName = (id: number): string => {
     const speciesItem = species.find(s => s.id === id);
-    return speciesItem?.name || 'Unknown';
+    if (!speciesItem) return 'Unknown';
+    if (speciesItem.name) {
+      return `${speciesItem.name}${speciesItem.scientific_name ? ' ' + speciesItem.scientific_name : ''}`;
+    }
+    return speciesItem.scientific_name || 'Unknown';
   };
 
   /**
@@ -625,7 +629,16 @@ export function SurveyDetailPage() {
                       }}
                     >
                       <Typography variant="body2" sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
-                        {sighting.species_name || getSpeciesName(sighting.species_id)}
+                        {sighting.species_name ? (
+                          <>
+                            {sighting.species_name}
+                            {sighting.species_scientific_name && (
+                              <i style={{ color: '#666', marginLeft: '0.25rem' }}> {sighting.species_scientific_name}</i>
+                            )}
+                          </>
+                        ) : (
+                          <i style={{ color: '#666' }}>{sighting.species_scientific_name || getSpeciesName(sighting.species_id)}</i>
+                        )}
                       </Typography>
                       <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
                         {sighting.count}

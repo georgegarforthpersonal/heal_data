@@ -32,16 +32,16 @@ async def get_species(survey_type: Optional[str] = None):
         with get_db_cursor() as cursor:
             if survey_type:
                 cursor.execute("""
-                    SELECT id, name, conservation_status, type
+                    SELECT id, name, conservation_status, type, scientific_name
                     FROM species
                     WHERE type = %s
-                    ORDER BY name
+                    ORDER BY COALESCE(name, scientific_name)
                 """, (survey_type,))
             else:
                 cursor.execute("""
-                    SELECT id, name, conservation_status, type
+                    SELECT id, name, conservation_status, type, scientific_name
                     FROM species
-                    ORDER BY name
+                    ORDER BY COALESCE(name, scientific_name)
                 """)
 
             rows = cursor.fetchall()
@@ -51,7 +51,7 @@ async def get_species(survey_type: Optional[str] = None):
                 "name": row[1],
                 "conservation_status": row[2],
                 "type": row[3],
-
+                "scientific_name": row[4],
             } for row in rows]
 
     except Exception as e:
@@ -64,7 +64,7 @@ async def get_species_by_id(species_id: int):
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT id, name, conservation_status, type
+                SELECT id, name, conservation_status, type, scientific_name
                 FROM species
                 WHERE id = %s
             """, (species_id,))
@@ -78,7 +78,7 @@ async def get_species_by_id(species_id: int):
                 "name": row[1],
                 "conservation_status": row[2],
                 "type": row[3],
-
+                "scientific_name": row[4],
             }
 
     except HTTPException:
@@ -93,10 +93,10 @@ async def create_species(species: SpeciesCreate):
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                INSERT INTO species (name, conservation_status, type)
-                VALUES (%s, %s, %s)
-                RETURNING id, name, conservation_status, type
-            """, (species.name, species.conservation_status, species.type))
+                INSERT INTO species (name, conservation_status, type, scientific_name)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, name, conservation_status, type, scientific_name
+            """, (species.name, species.conservation_status, species.type, species.scientific_name))
 
             row = cursor.fetchone()
 
@@ -105,7 +105,7 @@ async def create_species(species: SpeciesCreate):
                 "name": row[1],
                 "conservation_status": row[2],
                 "type": row[3],
-
+                "scientific_name": row[4],
             }
 
     except Exception as e:
@@ -135,6 +135,9 @@ async def update_species(species_id: int, species: SpeciesUpdate):
             if species.type is not None:
                 update_fields.append("type = %s")
                 update_values.append(species.type)
+            if species.scientific_name is not None:
+                update_fields.append("scientific_name = %s")
+                update_values.append(species.scientific_name)
 
             if update_fields:
                 update_values.append(species_id)
@@ -142,14 +145,14 @@ async def update_species(species_id: int, species: SpeciesUpdate):
                     UPDATE species
                     SET {', '.join(update_fields)}
                     WHERE id = %s
-                    RETURNING id, name, conservation_status, type
+                    RETURNING id, name, conservation_status, type, scientific_name
                 """
                 cursor.execute(query, update_values)
                 row = cursor.fetchone()
             else:
                 # No fields to update, just fetch current state
                 cursor.execute("""
-                    SELECT id, name, conservation_status, type
+                    SELECT id, name, conservation_status, type, scientific_name
                     FROM species
                     WHERE id = %s
                 """, (species_id,))
@@ -160,7 +163,7 @@ async def update_species(species_id: int, species: SpeciesUpdate):
                 "name": row[1],
                 "conservation_status": row[2],
                 "type": row[3],
-
+                "scientific_name": row[4],
             }
 
     except HTTPException:

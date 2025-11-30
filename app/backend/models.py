@@ -85,7 +85,7 @@ class SurveyorRead(SurveyorBase):
 
 class SpeciesBase(SQLModel):
     """Base species fields"""
-    name: str = Field(max_length=255, description="Species common name")
+    name: Optional[str] = Field(None, max_length=255, description="Species common name")
     conservation_status: Optional[str] = Field(None, max_length=50, description="Conservation status")
     type: str = Field(default="butterfly", max_length=50, description="Type of species (butterfly, bird, fungi)")
     scientific_name: Optional[str] = Field(None, max_length=255, description="Scientific/Latin name from NBN Atlas")
@@ -291,3 +291,4 @@ class SightingRead(SightingBase):
 class SightingWithDetails(SightingRead):
     """Sighting with species details"""
     species_name: Optional[str] = None
+    species_scientific_name: Optional[str] = None

@@ -18,5 +18,8 @@ requests>=2.31.0  # For testing API endpoints
 # Fuzzy matching for species name matching
 rapidfuzz>=3.0.0
 
+# Excel file reading
+openpyxl>=3.0.0
+
 # Development tools (optional)
 # httpx>=0.26.0  # For testing API endpoints

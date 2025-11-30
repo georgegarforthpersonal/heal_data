@@ -34,15 +34,17 @@ export function SightingsEditor({
   validationError,
 }: SightingsEditorProps) {
 
-  // Sort species by type first, then by name within each type
+  // Sort species by type first, then by name (or scientific_name if name is null) within each type
   const sortedSpecies = useMemo(() => {
     return [...species].sort((a, b) => {
       // First sort by type
       if (a.type !== b.type) {
         return a.type.localeCompare(b.type);
       }
-      // Then sort by name within the same type
-      return a.name.localeCompare(b.name);
+      // Then sort by name within the same type (use scientific_name if name is null)
+      const nameA = a.name || a.scientific_name || '';
+      const nameB = b.name || b.scientific_name || '';
+      return nameA.localeCompare(nameB);
     });
   }, [species]);
 
@@ -159,24 +161,77 @@ export function SightingsEditor({
                 <Autocomplete
                   options={sortedSpecies}
                   groupBy={(option) => formatCategoryName(option.type)}
-                  getOptionLabel={(option) => option.name}
+                  getOptionLabel={(option) => {
+                    // For the text field display
+                    if (option.name) {
+                      return `${option.name} ${option.scientific_name || ''}`.trim();
+                    }
+                    return option.scientific_name || '';
+                  }}
                   value={species.find((s) => s.id === sighting.species_id) || null}
                   onChange={(_, newValue) =>
                     updateSighting(sighting.tempId, 'species_id', newValue?.id || null)
                   }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder={isEmptyLastRow ? 'Start typing to add sighting...' : 'Select species'}
-                      size="small"
-                      sx={{
-                        '& .MuiInputBase-input': {
-                          fontSize: { xs: '0.813rem', sm: '0.875rem' },
-                          padding: { xs: '6px 8px', sm: '8.5px 14px' }
-                        }
-                      }}
-                    />
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      {option.name ? (
+                        <>
+                          {option.name}
+                          {option.scientific_name && (
+                            <i style={{ color: '#666', marginLeft: '0.5rem' }}>{option.scientific_name}</i>
+                          )}
+                        </>
+                      ) : (
+                        <i style={{ color: '#666' }}>{option.scientific_name}</i>
+                      )}
+                    </li>
                   )}
+                  renderInput={(params) => {
+                    const selectedSpecies = species.find((s) => s.id === sighting.species_id);
+                    const hasSelection = selectedSpecies !== undefined && selectedSpecies !== null;
+
+                    return (
+                      <TextField
+                        {...params}
+                        placeholder={isEmptyLastRow ? 'Start typing to add sighting...' : 'Select species'}
+                        size="small"
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: hasSelection && params.inputProps.value ? (
+                            <Box
+                              component="span"
+                              sx={{
+                                position: 'absolute',
+                                left: { xs: 8, sm: 14 },
+                                pointerEvents: 'none',
+                                fontSize: { xs: '0.813rem', sm: '0.875rem' },
+                                color: 'text.primary',
+                              }}
+                            >
+                              {selectedSpecies.name ? (
+                                <>
+                                  {selectedSpecies.name}
+                                  {selectedSpecies.scientific_name && (
+                                    <i style={{ color: '#666', marginLeft: '0.25rem' }}> {selectedSpecies.scientific_name}</i>
+                                  )}
+                                </>
+                              ) : (
+                                <i style={{ color: '#666' }}>{selectedSpecies.scientific_name}</i>
+                              )}
+                            </Box>
+                          ) : null,
+                        }}
+                        sx={{
+                          '& .MuiInputBase-input': {
+                            fontSize: { xs: '0.813rem', sm: '0.875rem' },
+                            padding: { xs: '6px 8px', sm: '8.5px 14px' },
+                            // Hide the input text when we have a selection to show our custom formatted version
+                            color: hasSelection && params.inputProps.value ? 'transparent' : 'inherit',
+                          }
+                        }}
+                      />
+                    );
+                  }}
                   size="small"
                 />
 

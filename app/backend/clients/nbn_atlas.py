@@ -30,7 +30,7 @@ class NBNAtlasClient:
     def search(
         self,
         query: str = "*:*",
-        filter_query: Optional[str] = None,
+        filter_query: Optional[str | List[str]] = None,
         page_size: int = 10,
         start: int = 0,
         sort: Optional[str] = None,
@@ -41,7 +41,7 @@ class NBNAtlasClient:
 
         Args:
             query: The main search query (default: "*:*" for all records)
-            filter_query: Additional filter query (e.g., "speciesGroup:Birds")
+            filter_query: Additional filter query or list of queries (e.g., "speciesGroup:Birds" or ["taxonGroup:insect*", "-taxonGroup:butterfly"])
             page_size: Number of results per page (default: 10, max: 1000)
             start: Starting offset for pagination (default: 0)
             sort: Sort order (e.g., "scientificName")
@@ -64,7 +64,11 @@ class NBNAtlasClient:
         }
 
         if filter_query:
-            params["fq"] = filter_query
+            # Support both single string and list of filter queries
+            if isinstance(filter_query, list):
+                params["fq"] = filter_query
+            else:
+                params["fq"] = filter_query
 
         if sort:
             params["sort"] = sort
@@ -81,7 +85,7 @@ class NBNAtlasClient:
     def search_all(
         self,
         query: str = "*:*",
-        filter_query: Optional[str] = None,
+        filter_query: Optional[str | List[str]] = None,
         page_size: int = 100,
         max_records: Optional[int] = None
     ) -> List[Dict[str, Any]]:
@@ -90,7 +94,7 @@ class NBNAtlasClient:
 
         Args:
             query: The main search query (default: "*:*" for all records)
-            filter_query: Additional filter query (e.g., "speciesGroup:Birds")
+            filter_query: Additional filter query or list of queries (e.g., "speciesGroup:Birds" or ["taxonGroup:insect*", "-taxonGroup:butterfly"])
             page_size: Number of results per page (default: 100)
             max_records: Maximum number of records to retrieve (default: all)
 
