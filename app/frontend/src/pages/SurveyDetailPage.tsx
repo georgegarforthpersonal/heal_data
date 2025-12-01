@@ -614,37 +614,81 @@ export function SurveyDetailPage() {
                     </Typography>
                   </Box>
 
-                  {/* Table Rows */}
-                  {sightings.map((sighting, index) => (
-                    <Box
-                      key={sighting.id}
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: '3fr 1fr',
-                        gap: { xs: 1, sm: 1.5, md: 2 },
-                        p: { xs: 1, sm: 1.25, md: 1.5 },
-                        borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
-                        borderColor: 'divider',
-                        '&:hover': { bgcolor: 'grey.50' }
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
-                        {sighting.species_name ? (
-                          <>
-                            {sighting.species_name}
-                            {sighting.species_scientific_name && (
-                              <i style={{ color: '#666', marginLeft: '0.25rem' }}> {sighting.species_scientific_name}</i>
-                            )}
-                          </>
-                        ) : (
-                          <i style={{ color: '#666' }}>{sighting.species_scientific_name || getSpeciesName(sighting.species_id)}</i>
-                        )}
-                      </Typography>
-                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
-                        {sighting.count}
-                      </Typography>
-                    </Box>
-                  ))}
+                  {/* Table Rows - Grouped by Species Type */}
+                  {(() => {
+                    // Group sightings by species type
+                    const grouped = sightings.reduce((acc, sighting) => {
+                      const speciesItem = species.find(s => s.id === sighting.species_id);
+                      const type = speciesItem?.type || 'unknown';
+                      if (!acc[type]) acc[type] = [];
+                      acc[type].push(sighting);
+                      return acc;
+                    }, {} as Record<string, typeof sightings>);
+
+                    // Sort groups alphabetically by type name
+                    const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+
+                    // Format type name for display
+                    const formatTypeName = (type: string) =>
+                      type.charAt(0).toUpperCase() + type.slice(1);
+
+                    return sortedGroups.map(([type, groupSightings], groupIndex) => (
+                      <Box key={type}>
+                        {/* Group Divider and Label */}
+                        <Box
+                          sx={{
+                            borderTop: groupIndex > 0 ? '1px solid' : 'none',
+                            borderColor: 'divider',
+                            bgcolor: 'grey.50',
+                            px: { xs: 1, sm: 1.25, md: 1.5 },
+                            py: { xs: 0.75, sm: 1 },
+                            mt: groupIndex > 0 ? 2 : 0
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight={600}
+                            sx={{ fontSize: { xs: '0.688rem', sm: '0.75rem' }, letterSpacing: '0.05em' }}
+                          >
+                            {formatTypeName(type)} · {groupSightings.length}
+                          </Typography>
+                        </Box>
+
+                        {/* Group Rows */}
+                        {groupSightings.map((sighting, index) => (
+                          <Box
+                            key={sighting.id}
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns: '3fr 1fr',
+                              gap: { xs: 1, sm: 1.5, md: 2 },
+                              p: { xs: 1, sm: 1.25, md: 1.5 },
+                              borderBottom: '1px solid',
+                              borderColor: 'divider',
+                              '&:hover': { bgcolor: 'grey.50' }
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
+                              {sighting.species_name ? (
+                                <>
+                                  {sighting.species_name}
+                                  {sighting.species_scientific_name && (
+                                    <i style={{ color: '#666', marginLeft: '0.25rem' }}> {sighting.species_scientific_name}</i>
+                                  )}
+                                </>
+                              ) : (
+                                <i style={{ color: '#666' }}>{sighting.species_scientific_name || getSpeciesName(sighting.species_id)}</i>
+                              )}
+                            </Typography>
+                            <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
+                              {sighting.count}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    ));
+                  })()}
                 </Box>
               ) : (
                 <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
