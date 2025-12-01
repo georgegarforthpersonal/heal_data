@@ -8,6 +8,7 @@ import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey } from
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon } from '../components/icons/WildlifeIcons';
 
 /**
  * SurveyDetailPage displays detailed information about a single survey
@@ -142,6 +143,38 @@ export function SurveyDetailPage() {
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  /**
+   * Get icon component for species type
+   */
+  const getSpeciesIcon = (type: string) => {
+    switch (type) {
+      case 'butterfly':
+        return ButterflyIcon;
+      case 'bird':
+        return BirdIcon;
+      case 'moth':
+        return MothIcon;
+      case 'insect':
+        return BugIcon;
+      case 'gall':
+        return LeafIcon;
+      case 'spider':
+        return SpiderIcon;
+      case 'bat':
+        return BatIcon;
+      case 'mammal':
+        return MammalIcon;
+      case 'reptile':
+        return ReptileIcon;
+      case 'amphibian':
+        return AmphibianIcon;
+      case 'fungi':
+        return MushroomIcon;
+      default:
+        return BugIcon; // Default fallback
+    }
   };
 
   // ============================================================================
@@ -632,28 +665,34 @@ export function SurveyDetailPage() {
                     const formatTypeName = (type: string) =>
                       type.charAt(0).toUpperCase() + type.slice(1);
 
-                    return sortedGroups.map(([type, groupSightings], groupIndex) => (
-                      <Box key={type}>
-                        {/* Group Divider and Label */}
-                        <Box
-                          sx={{
-                            borderTop: groupIndex > 0 ? '1px solid' : 'none',
-                            borderColor: 'divider',
-                            bgcolor: 'grey.50',
-                            px: { xs: 1, sm: 1.25, md: 1.5 },
-                            py: { xs: 0.75, sm: 1 },
-                            mt: groupIndex > 0 ? 2 : 0
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            fontWeight={600}
-                            sx={{ fontSize: { xs: '0.688rem', sm: '0.75rem' }, letterSpacing: '0.05em' }}
+                    return sortedGroups.map(([type, groupSightings], groupIndex) => {
+                      const SpeciesIcon = getSpeciesIcon(type);
+
+                      return (
+                        <Box key={type}>
+                          {/* Group Divider and Label */}
+                          <Box
+                            sx={{
+                              borderTop: groupIndex > 0 ? '1px solid' : 'none',
+                              borderColor: 'divider',
+                              bgcolor: 'grey.50',
+                              px: { xs: 1, sm: 1.25, md: 1.5 },
+                              py: { xs: 0.75, sm: 1 },
+                              mt: groupIndex > 0 ? 2 : 0
+                            }}
                           >
-                            {formatTypeName(type)} · {groupSightings.length}
-                          </Typography>
-                        </Box>
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                              <SpeciesIcon sx={{ fontSize: { xs: '14px', sm: '16px' }, color: 'text.secondary' }} />
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                fontWeight={600}
+                                sx={{ fontSize: { xs: '0.688rem', sm: '0.75rem' }, letterSpacing: '0.05em' }}
+                              >
+                                {formatTypeName(type)} · {groupSightings.length}
+                              </Typography>
+                            </Stack>
+                          </Box>
 
                         {/* Group Rows */}
                         {groupSightings.map((sighting, index) => (
@@ -686,8 +725,9 @@ export function SurveyDetailPage() {
                             </Typography>
                           </Box>
                         ))}
-                      </Box>
-                    ));
+                        </Box>
+                      );
+                    })
                   })()}
                 </Box>
               ) : (

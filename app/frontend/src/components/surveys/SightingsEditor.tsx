@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { Box, Typography, TextField, Autocomplete, IconButton, Alert } from '@mui/material';
+import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import type { Species } from '../../services/api';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon } from '../icons/WildlifeIcons';
 
 export interface DraftSighting {
   tempId: string; // Temporary ID for draft sightings (before save)
@@ -51,6 +52,36 @@ export function SightingsEditor({
   // Format category name for display (capitalize first letter)
   const formatCategoryName = (category: string): string => {
     return category.charAt(0).toUpperCase() + category.slice(1);
+  };
+
+  // Get icon component for species type
+  const getSpeciesIcon = (type: string) => {
+    switch (type) {
+      case 'butterfly':
+        return ButterflyIcon;
+      case 'bird':
+        return BirdIcon;
+      case 'moth':
+        return MothIcon;
+      case 'insect':
+        return BugIcon;
+      case 'gall':
+        return LeafIcon;
+      case 'spider':
+        return SpiderIcon;
+      case 'bat':
+        return BatIcon;
+      case 'mammal':
+        return MammalIcon;
+      case 'reptile':
+        return ReptileIcon;
+      case 'amphibian':
+        return AmphibianIcon;
+      case 'fungi':
+        return MushroomIcon;
+      default:
+        return BugIcon; // Default fallback
+    }
   };
 
   const addSightingRow = () => {
@@ -161,6 +192,25 @@ export function SightingsEditor({
                 <Autocomplete
                   options={sortedSpecies}
                   groupBy={(option) => formatCategoryName(option.type)}
+                  renderGroup={(params) => {
+                    // Extract type from the formatted group name (e.g., "Butterfly" -> "butterfly")
+                    const type = params.group.toLowerCase();
+                    const SpeciesIcon = getSpeciesIcon(type);
+
+                    return (
+                      <li key={params.key}>
+                        <Box sx={{ px: 2, py: 1, bgcolor: 'grey.50', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <SpeciesIcon sx={{ fontSize: '16px', color: 'text.secondary' }} />
+                            <Typography variant="body2" fontWeight={600} color="text.secondary">
+                              {params.group}
+                            </Typography>
+                          </Stack>
+                        </Box>
+                        <ul style={{ padding: 0, margin: 0 }}>{params.children}</ul>
+                      </li>
+                    );
+                  }}
                   getOptionLabel={(option) => {
                     // For the text field display
                     if (option.name) {
