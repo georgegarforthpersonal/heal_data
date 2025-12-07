@@ -21,14 +21,22 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[SurveyorRead])
-async def get_surveyors(db: Session = Depends(get_db)):
+async def get_surveyors(include_inactive: bool = False, db: Session = Depends(get_db)):
     """
     Get all surveyors.
+
+    Args:
+        include_inactive: If True, include inactive surveyors. Default: False (only active)
 
     Returns:
         List of surveyors ordered by last name, first name
     """
-    surveyors = db.query(Surveyor).order_by(Surveyor.last_name, Surveyor.first_name).all()
+    query = db.query(Surveyor)
+
+    if not include_inactive:
+        query = query.filter(Surveyor.is_active == True)
+
+    surveyors = query.order_by(Surveyor.last_name, Surveyor.first_name).all()
     return surveyors
 
 
@@ -70,7 +78,7 @@ async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Sessio
 
 @router.delete("/{surveyor_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
-    """Delete a surveyor"""
+    """Delete a surveyor (hard delete - use deactivate instead for soft delete)"""
     db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
     if not db_surveyor:
         raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
@@ -78,3 +86,44 @@ async def delete_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     db.delete(db_surveyor)
     db.commit()
     return None
+
+
+@router.post("/{surveyor_id}/deactivate", response_model=SurveyorRead)
+async def deactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
+    """
+    Deactivate a surveyor (soft delete).
+
+    The surveyor will no longer appear in active surveyor lists,
+    but their historical survey data is preserved.
+    """
+    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    if not db_surveyor:
+        raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
+
+    if not db_surveyor.is_active:
+        raise HTTPException(status_code=400, detail=f"Surveyor {surveyor_id} is already inactive")
+
+    db_surveyor.is_active = False
+    db.commit()
+    db.refresh(db_surveyor)
+    return db_surveyor
+
+
+@router.post("/{surveyor_id}/reactivate", response_model=SurveyorRead)
+async def reactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
+    """
+    Reactivate a previously deactivated surveyor.
+
+    The surveyor will appear in active surveyor lists again.
+    """
+    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    if not db_surveyor:
+        raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
+
+    if db_surveyor.is_active:
+        raise HTTPException(status_code=400, detail=f"Surveyor {surveyor_id} is already active")
+
+    db_surveyor.is_active = True
+    db.commit()
+    db.refresh(db_surveyor)
+    return db_surveyor

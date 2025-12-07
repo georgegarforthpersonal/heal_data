@@ -10,8 +10,14 @@ Usage:
     ./dev-run migrate_species.py -s bats                     # Dry-run for bats
     ./dev-run migrate_species.py -s reptiles                 # Dry-run for reptiles
     ./dev-run migrate_species.py -s amphibians               # Dry-run for amphibians
-    ./dev-run migrate_species.py -s moths                    # Dry-run for moths (requires common name)
-    ./dev-run migrate_species.py -s insects                  # Dry-run for other insects (excl. butterflies & moths)
+    ./dev-run migrate_species.py -s moths                    # Dry-run for moths
+    ./dev-run migrate_species.py -s beetles                  # Dry-run for beetles (Coleoptera)
+    ./dev-run migrate_species.py -s flies                    # Dry-run for true flies (Diptera)
+    ./dev-run migrate_species.py -s bees-wasps-ants          # Dry-run for Hymenoptera
+    ./dev-run migrate_species.py -s bugs                     # Dry-run for bugs (Hemiptera)
+    ./dev-run migrate_species.py -s dragonflies-damselflies  # Dry-run for Odonata
+    ./dev-run migrate_species.py -s grasshoppers-crickets    # Dry-run for Orthoptera
+    ./dev-run migrate_species.py -s insects                  # Dry-run for other insects not in above categories
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
@@ -107,14 +113,83 @@ SPECIES_CONFIG = {
         "min_occurrence": 1000,  # Include moths with 1000+ occurrences
         "allowed_ranks": ["species"]  # Only species-level records
     },
+    "beetles": {
+        "db_type": "beetle",
+        "api_filter": "taxonGroup_s:insect*",
+        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
+        "filter_by_order": "Coleoptera",
+        "display_name": "Beetles (Coleoptera)",
+        "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
+    "flies": {
+        "db_type": "fly",
+        "api_filter": "taxonGroup_s:insect*",
+        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
+        "filter_by_order": "Diptera",
+        "display_name": "True Flies (Diptera)",
+        "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
+    "bees-wasps-ants": {
+        "db_type": "bee-wasp-ant",
+        "api_filter": "taxonGroup_s:insect*",
+        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
+        "filter_by_order": "Hymenoptera",
+        "display_name": "Bees, Wasps and Ants (Hymenoptera)",
+        "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
+    "bugs": {
+        "db_type": "bug",
+        "api_filter": "taxonGroup_s:insect*",
+        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
+        "filter_by_order": "Hemiptera",
+        "display_name": "Bugs (Hemiptera)",
+        "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
+    "dragonflies-damselflies": {
+        "db_type": "dragonfly-damselfly",
+        "api_filter": "taxonGroup_s:insect*",
+        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
+        "filter_by_order": "Odonata",
+        "display_name": "Dragonflies and Damselflies (Odonata)",
+        "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
+    "grasshoppers-crickets": {
+        "db_type": "grasshopper-cricket",
+        "api_filter": "taxonGroup_s:insect*",
+        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
+        "filter_by_order": "Orthoptera",
+        "display_name": "Grasshoppers and Crickets (Orthoptera)",
+        "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
     "insects": {
         "db_type": "insect",
         "api_filter": "taxonGroup_s:insect*",
-        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
-        "display_name": "Insects",
-        "min_occurrence": 100,  # Include insects with 1000+ occurrences
-        "allowed_ranks": ["species"],  # Only species-level records
-        "require_common_name": False  # Allow species without common names (most don't have them)
+        "api_filter_exclude": [
+            "taxonGroup_s:\"insect - butterfly\"",
+            "taxonGroup_s:\"insect - moth\"",
+            "order_s:Coleoptera",
+            "order_s:Diptera",
+            "order_s:Hymenoptera",
+            "order_s:Hemiptera",
+            "order_s:Odonata",
+            "order_s:Orthoptera"
+        ],
+        "display_name": "Insects (Other)",
+        "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
     }
 }
 
@@ -146,8 +221,26 @@ HARDCODED_MAPPINGS = {
     "moths": {
         # Add moth mappings here as needed
     },
+    "beetles": {
+        # Add beetle mappings here as needed
+    },
+    "flies": {
+        # Add fly mappings here as needed
+    },
+    "bees-wasps-ants": {
+        # Add bee/wasp/ant mappings here as needed
+    },
+    "bugs": {
+        # Add bug mappings here as needed
+    },
+    "dragonflies-damselflies": {
+        # Add dragonfly/damselfly mappings here as needed
+    },
+    "grasshoppers-crickets": {
+        # Add grasshopper/cricket mappings here as needed
+    },
     "insects": {
-        # Add insect mappings here as needed
+        # Add other insect mappings here as needed
     }
 }
 
@@ -209,6 +302,14 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
     if not require_common_name:
         logger.info(f"Including species without common names")
 
+    # For 'insects' type, fetch existing species from specific insect groups to avoid duplicates
+    exclude_existing = set()
+    if species_type == "insects":
+        specific_insect_types = ['beetle', 'fly', 'bee-wasp-ant', 'bug', 'dragonfly-damselfly', 'grasshopper-cricket']
+        exclude_existing = fetch_existing_species_scientific_names(specific_insect_types)
+        if exclude_existing:
+            logger.info(f"Will exclude {len(exclude_existing)} species already in specific insect groups")
+
     # Build filter query list (include base filter + exclusions if any)
     filter_queries = [config['api_filter']]
     if 'api_filter_exclude' in config:
@@ -239,9 +340,19 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
         api_species = []
         excluded_count = 0
 
+        # Get order filter if specified
+        filter_by_order = config.get('filter_by_order')
+
         for record in raw_records:
             rank = record.get('rank')
             common_name = record.get('commonNameSingle', '')
+            order = record.get('order', '')
+
+            # Filter by taxonomic order if specified
+            if filter_by_order:
+                if order != filter_by_order:
+                    excluded_count += 1
+                    continue
 
             # For mammals type, exclude marine mammals and bats
             if species_type == "mammals" and common_name:
@@ -284,7 +395,17 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
                     guid=record.get('guid')
                 ))
 
+        # For 'insects' type, filter out species that already exist in other specific groups
+        if species_type == "insects" and exclude_existing:
+            original_count = len(api_species)
+            api_species = [s for s in api_species if s.scientific_name not in exclude_existing]
+            filtered_count = original_count - len(api_species)
+            if filtered_count > 0:
+                logger.info(f"Excluded {filtered_count} species that already exist in other insect groups")
+
         logger.info(f"Found {len(api_species)} {config['display_name'].lower()} from API")
+        if filter_by_order and excluded_count > 0:
+            logger.info(f"Filtered to {filter_by_order} order (excluded {excluded_count} records from other orders)")
         if species_type == "mammals" and excluded_count > 0:
             logger.info(f"Excluded {excluded_count} marine mammals and bats")
         if species_type == "bats" and excluded_count > 0:
@@ -296,6 +417,29 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
 
     finally:
         client.close()
+
+
+def fetch_existing_species_scientific_names(exclude_types: list[str]) -> set[str]:
+    """
+    Fetch scientific names of species already in the database for given types.
+    Used to avoid importing duplicates.
+    """
+    if not exclude_types:
+        return set()
+
+    with get_db_cursor() as cursor:
+        cursor.execute("""
+            SELECT DISTINCT scientific_name
+            FROM species
+            WHERE type IN %s
+                AND scientific_name IS NOT NULL
+                AND scientific_name != ''
+        """, (tuple(exclude_types),))
+        rows = cursor.fetchall()
+
+        scientific_names = {row[0] for row in rows}
+
+    return scientific_names
 
 
 def fetch_db_species(species_type: str) -> list[DBSpecies]:
@@ -1270,7 +1414,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--species-type", "-s",
         required=True,
-        choices=["birds", "butterflies", "spiders", "mammals", "bats", "reptiles", "amphibians", "moths", "insects"],
+        choices=[
+            "birds", "butterflies", "spiders", "mammals", "bats",
+            "reptiles", "amphibians", "moths",
+            "beetles", "flies", "bees-wasps-ants", "bugs",
+            "dragonflies-damselflies", "grasshoppers-crickets", "insects"
+        ],
         help="Type of species to process"
     )
     parser.add_argument(

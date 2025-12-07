@@ -48,8 +48,19 @@ def add_date_params(params: Dict[str, Any], start_date: Optional[date], end_date
 def determine_date_range(data_points: List, start_date: Optional[date], end_date: Optional[date]) -> DateRange:
     """Determine date range from data points or use filter dates as fallback"""
     if data_points:
-        dates = [dp.date if hasattr(dp, 'date') else dp.week_start for dp in data_points]
-        return DateRange(start=min(dates), end=max(dates))
+        # Handle different date field names (date, survey_date, week_start)
+        dates = []
+        for dp in data_points:
+            if hasattr(dp, 'date'):
+                dates.append(dp.date)
+            elif hasattr(dp, 'survey_date'):
+                dates.append(dp.survey_date)
+            elif hasattr(dp, 'week_start'):
+                dates.append(dp.week_start)
+
+        if dates:
+            return DateRange(start=min(dates), end=max(dates))
+
     # No data - use filter dates or today
     return DateRange(
         start=start_date or date.today(),
@@ -261,10 +272,10 @@ async def get_species_occurrences(
     db: Session = Depends(get_db)
 ):
     """
-    Get weekly occurrence counts for a specific species.
+    Get occurrence counts for a specific species by survey.
 
-    Returns the total count of individuals seen per week for the specified species.
-    Uses Monday as the start of the week.
+    Returns the total count of individuals seen per survey for the specified species.
+    Each survey date becomes a data point in the chart.
 
     Args:
         species_id: ID of the species to track
@@ -273,29 +284,24 @@ async def get_species_occurrences(
         db: Database session
 
     Returns:
-        SpeciesOccurrenceResponse with weekly occurrence data
+        SpeciesOccurrenceResponse with occurrence data by survey
     """
     try:
         # Build date filters
         date_filter_sql = build_date_filter_sql(start_date, end_date)
 
-        # Query to get weekly occurrences
+        # Query to get occurrences by survey - include ALL surveys with 0 for no sightings
         query = text(f"""
-            WITH weekly_occurrences AS (
-                SELECT
-                    DATE_TRUNC('week', survey.date)::date as week_start,
-                    SUM(sighting.count) as occurrence_count
-                FROM survey
-                JOIN sighting ON survey.id = sighting.survey_id
-                WHERE sighting.species_id = :species_id
-                {date_filter_sql}
-                GROUP BY week_start
-                ORDER BY week_start
-            )
             SELECT
-                week_start,
-                occurrence_count
-            FROM weekly_occurrences
+                survey.id as survey_id,
+                survey.date as survey_date,
+                COALESCE(SUM(CASE WHEN sighting.species_id = :species_id THEN sighting.count ELSE 0 END), 0) as occurrence_count
+            FROM survey
+            LEFT JOIN sighting ON survey.id = sighting.survey_id AND sighting.species_id = :species_id
+            WHERE 1=1
+            {date_filter_sql}
+            GROUP BY survey.id, survey.date
+            ORDER BY survey.date, survey.id
         """)
 
         # Build parameters
@@ -318,7 +324,8 @@ async def get_species_occurrences(
         # Transform to response format
         data_points = [
             SpeciesOccurrenceDataPoint(
-                week_start=row.week_start,
+                survey_id=row.survey_id,
+                survey_date=row.survey_date,
                 occurrence_count=row.occurrence_count
             )
             for row in rows
