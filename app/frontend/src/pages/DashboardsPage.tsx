@@ -480,7 +480,7 @@ export function DashboardsPage() {
               `${option.name || option.scientific_name} (${option.total_count} total)`
             }
             value={speciesList.find(s => s.id === selectedSpeciesId) || null}
-            onChange={(event, newValue) => {
+            onChange={(_event, newValue) => {
               setSelectedSpeciesId(newValue ? newValue.id : null);
             }}
             renderInput={(params) => (
