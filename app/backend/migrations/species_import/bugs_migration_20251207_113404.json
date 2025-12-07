@@ -1,0 +1,5090 @@
+{
+  "species_type": "bugs",
+  "timestamp": "2025-12-07T11:34:04.187835",
+  "summary": {
+    "total_db_species": 0,
+    "high_confidence": 0,
+    "low_confidence": 0,
+    "no_match": 0,
+    "new_api_species": 846
+  },
+  "matches": [],
+  "new_species": [
+    {
+      "common_name": "",
+      "scientific_name": "Gargara genistae",
+      "occurrence_count": 118,
+      "guid": "NHMSYS0020705606"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla pulchra",
+      "occurrence_count": 390,
+      "guid": "NHMSYS0020705851"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Capitophorus hippophaes",
+      "occurrence_count": 148,
+      "guid": "NHMSYS0021121651"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gilletteella cooleyi",
+      "occurrence_count": 160,
+      "guid": "NHMSYS0020705535"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla ambigua",
+      "occurrence_count": 161,
+      "guid": "NHMSYS0020705836"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphanus rolandri",
+      "occurrence_count": 206,
+      "guid": "NHMSYS0020308945"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arocephalus punctum",
+      "occurrence_count": 117,
+      "guid": "NBNSYS0000010513"
+    },
+    {
+      "common_name": "European Tarnished Plant Bug",
+      "scientific_name": "Lygus rugulipennis",
+      "occurrence_count": 3019,
+      "guid": "NHMSYS0020309398"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Brachycaudus) helichrysi",
+      "occurrence_count": 1144,
+      "guid": "NHMSYS0021121650"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Apolygus spinolae",
+      "occurrence_count": 753,
+      "guid": "NHMSYS0020976917"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzus (Nectarosiphon) antirrhinii",
+      "occurrence_count": 1023,
+      "guid": "NHMSYS0021299609"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Criomorphus albomarginatus",
+      "occurrence_count": 347,
+      "guid": "NHMSYS0020705311"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopoplax ditomoides",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0020309448"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzus (Sciamyzus) cymbalariae",
+      "occurrence_count": 312,
+      "guid": "NHMSYS0020736419"
+    },
+    {
+      "common_name": "Water Cricket",
+      "scientific_name": "Velia (Plesiovelia) caprai",
+      "occurrence_count": 5879,
+      "guid": "NHMSYS0020309936"
+    },
+    {
+      "common_name": "Apple-grass Aphid",
+      "scientific_name": "Rhopalosiphum insertum",
+      "occurrence_count": 514,
+      "guid": "NHMSYS0020705871"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Temnostethus (Montandoniella) gracilis",
+      "occurrence_count": 401,
+      "guid": "NHMSYS0020309882"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Evacanthus acuminatus",
+      "occurrence_count": 187,
+      "guid": "NHMSYS0020705592"
+    },
+    {
+      "common_name": "Cottony Camellia Scale",
+      "scientific_name": "Pulvinaria floccifera",
+      "occurrence_count": 399,
+      "guid": "NHMSYS0020973469"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Corixa affinis",
+      "occurrence_count": 439,
+      "guid": "NHMSYS0000527509"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Saldula opacula",
+      "occurrence_count": 160,
+      "guid": "NHMSYS0020309795"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Peritrechus nubilus",
+      "occurrence_count": 186,
+      "guid": "NHMSYS0020309634"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Planaphrodes bifasciata",
+      "occurrence_count": 374,
+      "guid": "NHMSYS0020705215"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Closterotomus fulvomaculatus",
+      "occurrence_count": 289,
+      "guid": "NHMSYS0020976956"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis brohmeri",
+      "occurrence_count": 121,
+      "guid": "NHMSYS0021299254"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalus (Aeschyntelus) maculatus",
+      "occurrence_count": 190,
+      "guid": "NHMSYS0020309773"
+    },
+    {
+      "common_name": "Vernal Shieldbug",
+      "scientific_name": "Peribalus strictus",
+      "occurrence_count": 147,
+      "guid": "NHMSYS0021131492"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pithanus maerkelii",
+      "occurrence_count": 1874,
+      "guid": "NHMSYS0020309679"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cinara (Cupressobium) juniperi",
+      "occurrence_count": 254,
+      "guid": "NHMSYS0020736323"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthotylus (Pseudorthotylus) bilineatus",
+      "occurrence_count": 131,
+      "guid": "NHMSYS0020309606"
+    },
+    {
+      "common_name": "Elm-currant Aphid",
+      "scientific_name": "Eriosoma ulmi",
+      "occurrence_count": 688,
+      "guid": "NHMSYS0020705550"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Drymus (Sylvadrymus) ryei",
+      "occurrence_count": 308,
+      "guid": "NHMSYS0020309187"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Zyginella pulchra",
+      "occurrence_count": 165,
+      "guid": "NHMSYS0020745858"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uromelan) jaceae",
+      "occurrence_count": 458,
+      "guid": "NHMSYS0020732934"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Strongylocoris leucocephalus",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0020309864"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosteles sexnotatus",
+      "occurrence_count": 496,
+      "guid": "NHMSYS0020705723"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dictyla convergens",
+      "occurrence_count": 251,
+      "guid": "NHMSYS0020309158"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) idaei",
+      "occurrence_count": 296,
+      "guid": "NHMSYS0021121742"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Legnotus limbosus",
+      "occurrence_count": 1312,
+      "guid": "NHMSYS0020309352"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrodema micropterum",
+      "occurrence_count": 272,
+      "guid": "NHMSYS0020309401"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chaitophorus populeti",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0021121655"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Psallus) varians",
+      "occurrence_count": 764,
+      "guid": "NHMSYS0020309742"
+    },
+    {
+      "common_name": "Bronze Shieldbug",
+      "scientific_name": "Troilus luridus",
+      "occurrence_count": 3905,
+      "guid": "NHMSYS0020309921"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cardiastethus fasciiventris",
+      "occurrence_count": 436,
+      "guid": "NHMSYS0020309045"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthops (Orthops) basalis",
+      "occurrence_count": 279,
+      "guid": "NHMSYS0020309578"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Bryocoris pteridis",
+      "occurrence_count": 545,
+      "guid": "NHMSYS0020309009"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pemphigus (Pemphigus) spyrothecae",
+      "occurrence_count": 787,
+      "guid": "NHMSYS0020740225"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Callipterinella minutissima",
+      "occurrence_count": 132,
+      "guid": "NHMSYS0020736298"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Elymana sulphurella",
+      "occurrence_count": 343,
+      "guid": "NHMSYS0020705368"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) genistae",
+      "occurrence_count": 125,
+      "guid": "NHMSYS0020738162"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Wahlgreniella arbuti",
+      "occurrence_count": 153,
+      "guid": "NHMSYS0020736504"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sitobion (Sitobion) fragariae",
+      "occurrence_count": 612,
+      "guid": "NHMSYS0020738376"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ceratocombus (Ceratocombus) coleoptratus",
+      "occurrence_count": 125,
+      "guid": "NHMSYS0020309058"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Plinthisus brevipennis",
+      "occurrence_count": 367,
+      "guid": "NHMSYS0020309697"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoecia (Anoecia) vagans",
+      "occurrence_count": 287,
+      "guid": "NHMSYS0020738139"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Scolopostethus grandis",
+      "occurrence_count": 163,
+      "guid": "NHMSYS0020309810"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hesperocorixa linnaei",
+      "occurrence_count": 3722,
+      "guid": "MM0001Z1H00231Z0"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopolophium (Metopolophium) fasciatum",
+      "occurrence_count": 254,
+      "guid": "NHMSYS0020738315"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Corixa dentipes",
+      "occurrence_count": 668,
+      "guid": "NHMSYS0000527514"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megophthalmus scabripennis",
+      "occurrence_count": 324,
+      "guid": "NHMSYS0020705734"
+    },
+    {
+      "common_name": "Dark Green Apple Capsid",
+      "scientific_name": "Orthotylus (Orthotylus) marginalis",
+      "occurrence_count": 861,
+      "guid": "NHMSYS0020309592"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trioza galii",
+      "occurrence_count": 173,
+      "guid": "NHMSYS0020705949"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Kleidocerys truncatulus",
+      "occurrence_count": 194,
+      "guid": "NHMSYS0020705673"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tytthus pygmaeus",
+      "occurrence_count": 199,
+      "guid": "NHMSYS0020309933"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) ilicis",
+      "occurrence_count": 180,
+      "guid": "NHMSYS0020738165"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Salicarus (Salicarus) roseri",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0020705907"
+    },
+    {
+      "common_name": "Poplar-lettuce Aphid",
+      "scientific_name": "Pemphigus (Pemphigus) bursarius",
+      "occurrence_count": 899,
+      "guid": "NHMSYS0020738345"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tremulicerus vitreus",
+      "occurrence_count": 169,
+      "guid": "NHMSYS0020705646"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Heterocordylus (Heterocordylus) tibialis",
+      "occurrence_count": 429,
+      "guid": "NHMSYS0020309304"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Oncopsis tristis",
+      "occurrence_count": 429,
+      "guid": "NHMSYS0020705780"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pemphigus (Pemphigus) protospirae",
+      "occurrence_count": 325,
+      "guid": "NHMSYS0020705807"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Alloeotomus gothicus",
+      "occurrence_count": 153,
+      "guid": "NHMSYS0020308914"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicyphus (Dicyphus) epilobii",
+      "occurrence_count": 1546,
+      "guid": "NHMSYS0020309169"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Closterotomus trivialis",
+      "occurrence_count": 1518,
+      "guid": "NHMSYS0021109892"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrotylus (Alloeonycha) paykulli",
+      "occurrence_count": 391,
+      "guid": "NHMSYS0020309412"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Polymerus (Poeciloscytus) unifasciatus",
+      "occurrence_count": 421,
+      "guid": "NHMSYS0020309705"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Agnocoris reclairei",
+      "occurrence_count": 134,
+      "guid": "NHMSYS0020308909"
+    },
+    {
+      "common_name": "Punctate Corixa",
+      "scientific_name": "Corixa punctata",
+      "occurrence_count": 7842,
+      "guid": "NHMSYS0000527524"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Limotettix striola",
+      "occurrence_count": 225,
+      "guid": "NHMSYS0020705691"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gampsocoris punctipes",
+      "occurrence_count": 429,
+      "guid": "NHMSYS0020309240"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Thecabius (Thecabius) affinis",
+      "occurrence_count": 283,
+      "guid": "NHMSYS0020705934"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyadaphis foeniculi",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0021121673"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nothodelphax distincta",
+      "occurrence_count": 128,
+      "guid": "NHMSYS0021123051"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Deraeocoris (Deraeocoris) flavilinea",
+      "occurrence_count": 2482,
+      "guid": "NHMSYS0020309142"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stenodema (Stenodema) holsata",
+      "occurrence_count": 2071,
+      "guid": "NHMSYS0020309850"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pachypappa tremulae",
+      "occurrence_count": 225,
+      "guid": "NHMSYS0020738343"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Subsaltusaphis (Subsaltusaphis) picta",
+      "occurrence_count": 148,
+      "guid": "NHMSYS0020738385"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euscelis lineolatus",
+      "occurrence_count": 127,
+      "guid": "NHMSYS0020705590"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) triglochinis",
+      "occurrence_count": 143,
+      "guid": "NHMSYS0020738184"
+    },
+    {
+      "common_name": "Moorland Pondskater",
+      "scientific_name": "Gerris (Gerris) costae",
+      "occurrence_count": 680,
+      "guid": "NHMSYS0020309253"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Deltocephalus maculiceps",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0020705326"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chlamydatus (Euattus) pullus",
+      "occurrence_count": 129,
+      "guid": "NHMSYS0020309077"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalosiphum maidis",
+      "occurrence_count": 119,
+      "guid": "NHMSYS0020736461"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Coriomeris denticulatus",
+      "occurrence_count": 2173,
+      "guid": "NHMSYS0020309108"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Drymus (Sylvadrymus) sylvaticus",
+      "occurrence_count": 1773,
+      "guid": "NHMSYS0020309188"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Takecallis arundicolens",
+      "occurrence_count": 172,
+      "guid": "NHMSYS0020736480"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nysius thymi",
+      "occurrence_count": 207,
+      "guid": "NHMSYS0020309539"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macropsis cerea",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0021126463"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Subsigara) distincta",
+      "occurrence_count": 3704,
+      "guid": "NHMSYS0020309832"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Conosanus obsoletus",
+      "occurrence_count": 1232,
+      "guid": "NHMSYS0020705297"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphoniella (Macrosiphoniella) millefolii",
+      "occurrence_count": 404,
+      "guid": "NHMSYS0020705716"
+    },
+    {
+      "common_name": "Common Damselbug",
+      "scientific_name": "Nabis (Nabis) rugosus",
+      "occurrence_count": 2446,
+      "guid": "NHMSYS0020309507"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Adelphocoris seticornis",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0020308898"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Unaspis euonymi",
+      "occurrence_count": 131,
+      "guid": "NHMSYS0021005369"
+    },
+    {
+      "common_name": "Tree Damsel Bug",
+      "scientific_name": "Himacerus (Himacerus) apterus",
+      "occurrence_count": 1639,
+      "guid": "NHMSYS0020309317"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macustus grisescens",
+      "occurrence_count": 1284,
+      "guid": "NHMSYS0020705727"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosteles variatus",
+      "occurrence_count": 101,
+      "guid": "NHMSYS0020705724"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Empoasca vitis",
+      "occurrence_count": 1407,
+      "guid": "NHMSYS0020705544"
+    },
+    {
+      "common_name": "Meadow Plant Bug",
+      "scientific_name": "Leptopterna dolabrata",
+      "occurrence_count": 6648,
+      "guid": "NHMSYS0020309360"
+    },
+    {
+      "common_name": "European Fruit Lecanium",
+      "scientific_name": "Parthenolecanium corni",
+      "occurrence_count": 380,
+      "guid": "NHMSYS0021005139"
+    },
+    {
+      "common_name": "Fine Streaked Bugkin",
+      "scientific_name": "Miris striatus",
+      "occurrence_count": 1493,
+      "guid": "NHMSYS0020309474"
+    },
+    {
+      "common_name": "Sphagnum Bug",
+      "scientific_name": "Hebrus (Hebrusella) ruficeps",
+      "occurrence_count": 754,
+      "guid": "NHMSYS0020309294"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anaceratagallia venosa",
+      "occurrence_count": 216,
+      "guid": "NHMSYS0020917128"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megalocoleus molliculus",
+      "occurrence_count": 233,
+      "guid": "NHMSYS0020309427"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aploneura lentisci",
+      "occurrence_count": 187,
+      "guid": "NHMSYS0020736276"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metatropis rufescens",
+      "occurrence_count": 700,
+      "guid": "NHMSYS0020309446"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sipha (Sipha) glyceriae",
+      "occurrence_count": 281,
+      "guid": "NHMSYS0020738372"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Enoplops scapha",
+      "occurrence_count": 481,
+      "guid": "NHMSYS0020309212"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Thuleaphis) sedi",
+      "occurrence_count": 128,
+      "guid": "NHMSYS0020736292"
+    },
+    {
+      "common_name": "Box Bug",
+      "scientific_name": "Gonocerus acuteangulatus",
+      "occurrence_count": 4082,
+      "guid": "NHMSYS0020309271"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Livia juncorum",
+      "occurrence_count": 662,
+      "guid": "NHMSYS0020705699"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dikraneura variata",
+      "occurrence_count": 377,
+      "guid": "NHMSYS0020705332"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Errastunus ocellaris",
+      "occurrence_count": 721,
+      "guid": "NHMSYS0020705533"
+    },
+    {
+      "common_name": "Reed Damsel Bug",
+      "scientific_name": "Nabis (Limnonabis) lineatus",
+      "occurrence_count": 347,
+      "guid": "NHMSYS0020309499"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoecia (Anoecia) corni",
+      "occurrence_count": 1959,
+      "guid": "NHMSYS0020738137"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anthocoris sarothamni",
+      "occurrence_count": 184,
+      "guid": "NHMSYS0020308940"
+    },
+    {
+      "common_name": "Dock Bug",
+      "scientific_name": "Coreus marginatus",
+      "occurrence_count": 25986,
+      "guid": "NHMSYS0020109255"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Heterotoma planicornis",
+      "occurrence_count": 3946,
+      "guid": "NHMSYS0020309310"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Erzaleus metrius",
+      "occurrence_count": 217,
+      "guid": "NHMSYS0020977210"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopeurum fuscoviride",
+      "occurrence_count": 179,
+      "guid": "NHMSYS0020738313"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Calocoris (Calocoris) alpestris",
+      "occurrence_count": 731,
+      "guid": "NHMSYS0020309017"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acericerus vittifrons",
+      "occurrence_count": 144,
+      "guid": "NHMSYS0020705647"
+    },
+    {
+      "common_name": "Bay Sucker",
+      "scientific_name": "Trioza alacris",
+      "occurrence_count": 487,
+      "guid": "NHMSYS0020705941"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Edwardsiana geometrica",
+      "occurrence_count": 109,
+      "guid": "NHMSYS0020705358"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicyphus (Dicyphus) errans",
+      "occurrence_count": 437,
+      "guid": "NHMSYS0020309170"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lipaphis rossi",
+      "occurrence_count": 154,
+      "guid": "NHMSYS0021299569"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla mali",
+      "occurrence_count": 251,
+      "guid": "NHMSYS0020705845"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cyllecoris histrionius",
+      "occurrence_count": 915,
+      "guid": "NHMSYS0020309124"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx florida",
+      "occurrence_count": 333,
+      "guid": "NHMSYS0020705567"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx urticae",
+      "occurrence_count": 2072,
+      "guid": "NHMSYS0020705576"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphoniella (Macrosiphoniella) sanborni",
+      "occurrence_count": 154,
+      "guid": "NHMSYS0021108920"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Calocoris (Calocoris) roseomaculatus",
+      "occurrence_count": 677,
+      "guid": "NHMSYS0020309018"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Agallia consobrina",
+      "occurrence_count": 481,
+      "guid": "NHMSYS0020705177"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Teratocoris saundersi",
+      "occurrence_count": 284,
+      "guid": "NHMSYS0020309888"
+    },
+    {
+      "common_name": "Hairy Shieldbug",
+      "scientific_name": "Dolycoris baccarum",
+      "occurrence_count": 25578,
+      "guid": "NHMSYS0020309177"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eurhadina pulchella",
+      "occurrence_count": 288,
+      "guid": "NHMSYS0020705581"
+    },
+    {
+      "common_name": "Birch Shieldbug",
+      "scientific_name": "Elasmostethus interstinctus",
+      "occurrence_count": 13099,
+      "guid": "NHMSYS0020309198"
+    },
+    {
+      "common_name": "Honeysuckle Whitefly",
+      "scientific_name": "Aleyrodes lonicerae",
+      "occurrence_count": 278,
+      "guid": "NHMSYS0020745989"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Subsigara) fossarum",
+      "occurrence_count": 2693,
+      "guid": "NHMSYS0020309835"
+    },
+    {
+      "common_name": "Nut Scale",
+      "scientific_name": "Eulecanium tiliae",
+      "occurrence_count": 192,
+      "guid": "NHMSYS0021005113"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) rosae",
+      "occurrence_count": 1065,
+      "guid": "NHMSYS0020738306"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Buchananiella continua",
+      "occurrence_count": 242,
+      "guid": "NHMSYS0020309011"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eurhadina loewii",
+      "occurrence_count": 138,
+      "guid": "NHMSYS0020705580"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chloriona unicolor",
+      "occurrence_count": 126,
+      "guid": "NHMSYS0020705265"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla saliceti",
+      "occurrence_count": 109,
+      "guid": "NHMSYS0020705856"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uroleucon) jaceicola",
+      "occurrence_count": 169,
+      "guid": "NHMSYS0020738405"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) nasturtii",
+      "occurrence_count": 322,
+      "guid": "NHMSYS0021121744"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euscelis incisus",
+      "occurrence_count": 1741,
+      "guid": "NHMSYS0020705589"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Neophilaenus campestris",
+      "occurrence_count": 399,
+      "guid": "NHMSYS0020705765"
+    },
+    {
+      "common_name": "Nettle Groundbug",
+      "scientific_name": "Heterogaster urticae",
+      "occurrence_count": 3014,
+      "guid": "NHMSYS0020109260"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cymus melanocephalus",
+      "occurrence_count": 1510,
+      "guid": "NHMSYS0020309132"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosaldula scotica",
+      "occurrence_count": 255,
+      "guid": "NHMSYS0020309408"
+    },
+    {
+      "common_name": "Glasshouse Whitefly",
+      "scientific_name": "Trialeurodes vaporariorum",
+      "occurrence_count": 294,
+      "guid": "NHMSYS0020746007"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nysius senecionis",
+      "occurrence_count": 281,
+      "guid": "NHMSYS0020309538"
+    },
+    {
+      "common_name": "Hawthorn-carrot Aphid",
+      "scientific_name": "Dysaphis (Dysaphis) crataegi",
+      "occurrence_count": 864,
+      "guid": "NHMSYS0020738254"
+    },
+    {
+      "common_name": "Water Measurer",
+      "scientific_name": "Hydrometra stagnorum",
+      "occurrence_count": 7825,
+      "guid": "NHMSYS0000527548"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmus miriformis",
+      "occurrence_count": 2013,
+      "guid": "NHMSYS0020309492"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pachytomella parallela",
+      "occurrence_count": 507,
+      "guid": "NHMSYS0020309612"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopolophium (Metopolophium) tenerum",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020927585"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Liorhyssus hyalinus",
+      "occurrence_count": 222,
+      "guid": "NHMSYS0020309367"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chaitophorus tremulae",
+      "occurrence_count": 152,
+      "guid": "NHMSYS0020738222"
+    },
+    {
+      "common_name": "Gorse Shieldbug",
+      "scientific_name": "Piezodorus lituratus",
+      "occurrence_count": 9039,
+      "guid": "NHMSYS0020309665"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Conomelus anceps",
+      "occurrence_count": 1920,
+      "guid": "NHMSYS0020705295"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Streptanus marginatus",
+      "occurrence_count": 212,
+      "guid": "NHMSYS0021126493"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Scolopostethus thomsoni",
+      "occurrence_count": 1733,
+      "guid": "NHMSYS0020309813"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Kalama tricornis",
+      "occurrence_count": 303,
+      "guid": "NHMSYS0020309340"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Plea minutissima",
+      "occurrence_count": 5683,
+      "guid": "NHMSYS0000527574"
+    },
+    {
+      "common_name": "Eleagnus Sucker",
+      "scientific_name": "Cacopsylla fulguralis",
+      "occurrence_count": 194,
+      "guid": "NHMSYS0020974044"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopolophium sabihae",
+      "occurrence_count": 151,
+      "guid": "NHMSYS0021299599"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Neides tipularius",
+      "occurrence_count": 228,
+      "guid": "NHMSYS0020309510"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eurygaster maura",
+      "occurrence_count": 256,
+      "guid": "NHMSYS0020309230"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Thamnotettix confinis",
+      "occurrence_count": 367,
+      "guid": "NBNSYS0000010569"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acericerus heydenii",
+      "occurrence_count": 301,
+      "guid": "NHMSYS0020973325"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoecia furcata",
+      "occurrence_count": 201,
+      "guid": "NHMSYS0021299219"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) bonomii",
+      "occurrence_count": 163,
+      "guid": "NHMSYS0020738252"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Delphacinus mesomelas",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0020705320"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyledelphax elegantula",
+      "occurrence_count": 298,
+      "guid": "NHMSYS0020705627"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicyphus (Brachyceroea) globulifer",
+      "occurrence_count": 489,
+      "guid": "NHMSYS0020309166"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sthenarus rotermundi",
+      "occurrence_count": 145,
+      "guid": "NHMSYS0020309858"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) radicola",
+      "occurrence_count": 165,
+      "guid": "NHMSYS0021121669"
+    },
+    {
+      "common_name": "Black Bean Aphid",
+      "scientific_name": "Aphis (Aphis) fabae",
+      "occurrence_count": 3564,
+      "guid": "NHMSYS0020705203"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Alydus calcaratus",
+      "occurrence_count": 604,
+      "guid": "NHMSYS0020308916"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cymatia coleoptrata",
+      "occurrence_count": 1639,
+      "guid": "NHMSYS0000527529"
+    },
+    {
+      "common_name": "Tortoise Bug",
+      "scientific_name": "Eurygaster testudinaria",
+      "occurrence_count": 4955,
+      "guid": "NHMSYS0020309231"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzotoxoptera wimshurstae",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0020705757"
+    },
+    {
+      "common_name": "Cow Wheat Shieldbug",
+      "scientific_name": "Adomerus biguttatus",
+      "occurrence_count": 162,
+      "guid": "NHMSYS0020308901"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla peregrina",
+      "occurrence_count": 835,
+      "guid": "NHMSYS0020705848"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Fagocyba cruenta",
+      "occurrence_count": 284,
+      "guid": "NHMSYS0020705596"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyperomyzus (Hyperomyzella) rhinanthi",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0020736368"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Bursaphis) epilobii",
+      "occurrence_count": 318,
+      "guid": "NHMSYS0020738151"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ledra aurita",
+      "occurrence_count": 1154,
+      "guid": "NHMSYS0020705689"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Speudotettix subfusculus",
+      "occurrence_count": 546,
+      "guid": "NHMSYS0020705901"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupelix cuspidata",
+      "occurrence_count": 466,
+      "guid": "NHMSYS0020705558"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tachycixius pilosus",
+      "occurrence_count": 1649,
+      "guid": "NHMSYS0020705926"
+    },
+    {
+      "common_name": "Cabbage Bug",
+      "scientific_name": "Eurydema (Eurydema) oleracea",
+      "occurrence_count": 4153,
+      "guid": "NHMSYS0020309225"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uromelan) taraxaci",
+      "occurrence_count": 134,
+      "guid": "NHMSYS0020736500"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arytaina genistae",
+      "occurrence_count": 376,
+      "guid": "NHMSYS0020705234"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megamelodes lequesnei",
+      "occurrence_count": 193,
+      "guid": "NHMSYS0020442434"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hoplomachus thunbergii",
+      "occurrence_count": 169,
+      "guid": "NHMSYS0020309324"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalosiphoninus (Pseudorhopalosiphoninus) calthae",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020927603"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Saldula c-album",
+      "occurrence_count": 224,
+      "guid": "NHMSYS0020309792"
+    },
+    {
+      "common_name": "Green Apple Aphid",
+      "scientific_name": "Aphis (Aphis) pomi",
+      "occurrence_count": 343,
+      "guid": "NHMSYS0020705206"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyadaphis passerinii",
+      "occurrence_count": 287,
+      "guid": "NHMSYS0021121674"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chaetosiphon (Pentatrichopus) fragaefolii",
+      "occurrence_count": 186,
+      "guid": "NHMSYS0020736311"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Longicaudus trirhodus",
+      "occurrence_count": 268,
+      "guid": "NHMSYS0020732925"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphoniella (Macrosiphoniella) tanacetaria",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0021121684"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Saldula pallipes",
+      "occurrence_count": 183,
+      "guid": "NHMSYS0020309797"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Thelaxes dryophila",
+      "occurrence_count": 186,
+      "guid": "NHMSYS0020736484"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyperomyzus (Hyperomyzus) lactucae",
+      "occurrence_count": 701,
+      "guid": "NHMSYS0021121677"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Idiocerus lituratus",
+      "occurrence_count": 337,
+      "guid": "NHMSYS0020705638"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acyrthosiphon (Acyrthosiphon) malvae",
+      "occurrence_count": 3453,
+      "guid": "NHMSYS0021121727"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phytocoris (Phytocoris) dimidiatus",
+      "occurrence_count": 162,
+      "guid": "NHMSYS0020309653"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cryptomyzus (Cryptomyzus) galeopsidis",
+      "occurrence_count": 288,
+      "guid": "NHMSYS0020705313"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hayhurstia atriplicis",
+      "occurrence_count": 409,
+      "guid": "NBNSYS0000050574"
+    },
+    {
+      "common_name": "Brassica Whitefly",
+      "scientific_name": "Aleyrodes proletella",
+      "occurrence_count": 189,
+      "guid": "NHMSYS0020745995"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uromelan) solidaginis",
+      "occurrence_count": 136,
+      "guid": "NHMSYS0021299784"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acalypta parvula",
+      "occurrence_count": 747,
+      "guid": "NHMSYS0020308882"
+    },
+    {
+      "common_name": "Water Singer",
+      "scientific_name": "Micronecta (Micronecta) poweri",
+      "occurrence_count": 497,
+      "guid": "NHMSYS0020309458"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cyrtorhinus caricis",
+      "occurrence_count": 303,
+      "guid": "NHMSYS0020309136"
+    },
+    {
+      "common_name": "Hawthorn Shieldbug",
+      "scientific_name": "Acanthosoma haemorrhoidale",
+      "occurrence_count": 17933,
+      "guid": "NHMSYS0020308885"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla sorbi",
+      "occurrence_count": 213,
+      "guid": "NHMSYS0020705857"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Viridicerus ustulatus",
+      "occurrence_count": 143,
+      "guid": "NHMSYS0020973654"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pilophorus clavatus",
+      "occurrence_count": 121,
+      "guid": "NHMSYS0020309668"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orius (Heterorius) majusculus",
+      "occurrence_count": 270,
+      "guid": "NHMSYS0020309560"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopolophium (Metopolophium) albidum",
+      "occurrence_count": 153,
+      "guid": "NHMSYS0020738314"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalus (Rhopalus) parumpunctatus",
+      "occurrence_count": 642,
+      "guid": "NHMSYS0020309775"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psyllopsis fraxini",
+      "occurrence_count": 2018,
+      "guid": "NHMSYS0020472770"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosteles viridigriseus",
+      "occurrence_count": 552,
+      "guid": "NHMSYS0021126469"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Jacksonia papillata",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020736376"
+    },
+    {
+      "common_name": "Lucerne Bug",
+      "scientific_name": "Adelphocoris lineolatus",
+      "occurrence_count": 1252,
+      "guid": "NHMSYS0020308897"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trionymus perrisii",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0021004992"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Psallus) lepidus",
+      "occurrence_count": 241,
+      "guid": "NHMSYS0020309739"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arboridia ribauti",
+      "occurrence_count": 132,
+      "guid": "NHMSYS0020705227"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stictopleurus abutilon",
+      "occurrence_count": 457,
+      "guid": "NHMSYS0020309860"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Illinoia (Masonaphis) lambersi",
+      "occurrence_count": 132,
+      "guid": "NHMSYS0020736373"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chaitophorus truncatus",
+      "occurrence_count": 124,
+      "guid": "NHMSYS0020736319"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) ulicis",
+      "occurrence_count": 200,
+      "guid": "NHMSYS0020738186"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euconomelus lepidus",
+      "occurrence_count": 105,
+      "guid": "NHMSYS0020705554"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Spanioneura fonscolombii",
+      "occurrence_count": 181,
+      "guid": "NHMSYS0021123524"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eriosoma patchiae",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0020705549"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Capsodes gothicus",
+      "occurrence_count": 110,
+      "guid": "NHMSYS0020309039"
+    },
+    {
+      "common_name": "Andromeda Lacebug",
+      "scientific_name": "Stephanitis takeyai",
+      "occurrence_count": 365,
+      "guid": "NHMSYS0021004551"
+    },
+    {
+      "common_name": "Gorse Lacebug",
+      "scientific_name": "Dictyonota strichnocera",
+      "occurrence_count": 301,
+      "guid": "NHMSYS0020309161"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphrophora salicina",
+      "occurrence_count": 227,
+      "guid": "NHMSYS0020705224"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Muellerianella fairmairei",
+      "occurrence_count": 213,
+      "guid": "NHMSYS0020705753"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trichochermes walkeri",
+      "occurrence_count": 256,
+      "guid": "NHMSYS0020705936"
+    },
+    {
+      "common_name": "Rosy Apple Aphid",
+      "scientific_name": "Dysaphis (Pomaphis) plantaginea",
+      "occurrence_count": 355,
+      "guid": "NHMSYS0020705343"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphoniella (Macrosiphoniella) absinthii",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0021121681"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Maculolachnus submacula",
+      "occurrence_count": 172,
+      "guid": "NHMSYS0020736397"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Corizus hyoscyami",
+      "occurrence_count": 7300,
+      "guid": "NHMSYS0020309113"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Apolygus lucorum",
+      "occurrence_count": 756,
+      "guid": "NHMSYS0020976911"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) albifrons",
+      "occurrence_count": 168,
+      "guid": "NHMSYS0020738296"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) farinosa",
+      "occurrence_count": 296,
+      "guid": "NHMSYS0020738160"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Idiopterus nephrelepidis",
+      "occurrence_count": 187,
+      "guid": "NHMSYS0021109691"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stenodema (Brachystira) trispinosa",
+      "occurrence_count": 212,
+      "guid": "NHMSYS0020309848"
+    },
+    {
+      "common_name": "Bird Cherry-oat Aphid",
+      "scientific_name": "Rhopalosiphum padi",
+      "occurrence_count": 710,
+      "guid": "NHMSYS0020705872"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Baeopelma foersteri",
+      "occurrence_count": 237,
+      "guid": "NHMSYS0020926521"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Halicorixa) selecta",
+      "occurrence_count": 154,
+      "guid": "NHMSYS0020309820"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) taraxacicola",
+      "occurrence_count": 124,
+      "guid": "NHMSYS0020738183"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicyphus (Dicyphus) stachydis",
+      "occurrence_count": 1342,
+      "guid": "NHMSYS0020309171"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) salicariae",
+      "occurrence_count": 274,
+      "guid": "NHMSYS0021121746"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cryptomyzus (Cryptomyzus) alboapicalis",
+      "occurrence_count": 165,
+      "guid": "NHMSYS0020738238"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Kosswigianella exigua",
+      "occurrence_count": 156,
+      "guid": "NHMSYS0021126451"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphrodes makarovi",
+      "occurrence_count": 1720,
+      "guid": "NHMSYS0020705218"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ericaphis wakibae",
+      "occurrence_count": 165,
+      "guid": "NHMSYS0021199579"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stenodema (Brachystira) calcarata",
+      "occurrence_count": 4723,
+      "guid": "NHMSYS0020309847"
+    },
+    {
+      "common_name": "Horse Chestnut Scale Insect",
+      "scientific_name": "Pulvinaria regalis",
+      "occurrence_count": 522,
+      "guid": "NHMSYS0020546167"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphoniella (Macrosiphoniella) artemisiae",
+      "occurrence_count": 276,
+      "guid": "NHMSYS0021121682"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Verdanus abdominalis",
+      "occurrence_count": 208,
+      "guid": "NHMSYS0020920555"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) lauberti",
+      "occurrence_count": 321,
+      "guid": "NHMSYS0021121667"
+    },
+    {
+      "common_name": "Beech Scale",
+      "scientific_name": "Cryptococcus fagisuga",
+      "occurrence_count": 142,
+      "guid": "NHMSYS0021005158"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phytocoris (Phytocoris) populi",
+      "occurrence_count": 101,
+      "guid": "NHMSYS0020309656"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) anthrisci",
+      "occurrence_count": 148,
+      "guid": "NHMSYS0020738249"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthotylus (Litocoris) ericetorum",
+      "occurrence_count": 649,
+      "guid": "NHMSYS0020309585"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzocallis (Agrioaphis) castanicola",
+      "occurrence_count": 277,
+      "guid": "NHMSYS0020736412"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aulacorthum (Aulacorthum) solani",
+      "occurrence_count": 775,
+      "guid": "NHMSYS0021121751"
+    },
+    {
+      "common_name": "Bastard-toadflax Bug",
+      "scientific_name": "Canthophorus impressus",
+      "occurrence_count": 251,
+      "guid": "NHMSYS0020309036"
+    },
+    {
+      "common_name": "Southern Green Shieldbug",
+      "scientific_name": "Nezara viridula",
+      "occurrence_count": 1573,
+      "guid": "NHMSYS0020309518"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cixius distinguendus",
+      "occurrence_count": 147,
+      "guid": "NBNSYS0000010709"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crypturaphis grassii",
+      "occurrence_count": 186,
+      "guid": "NHMSYS0020738242"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acyrthosiphon (Acyrthosiphon) pisum",
+      "occurrence_count": 1944,
+      "guid": "NHMSYS0020738132"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Zyginidia scutellaris",
+      "occurrence_count": 1165,
+      "guid": "NHMSYS0020705979"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Velia (Plesiovelia) saulii",
+      "occurrence_count": 401,
+      "guid": "NHMSYS0020309937"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aquarius paludum",
+      "occurrence_count": 453,
+      "guid": "NHMSYS0000527504"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chloriona smaragdula",
+      "occurrence_count": 270,
+      "guid": "NHMSYS0020705264"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Deltocephalus pulicaris",
+      "occurrence_count": 518,
+      "guid": "NHMSYS0020705327"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) tulipae",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0021108902"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pseudococcus viburni",
+      "occurrence_count": 246,
+      "guid": "NHMSYS0021004908"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Amphorophora (Amphorophora) tuberculata",
+      "occurrence_count": 130,
+      "guid": "NHMSYS0021109586"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uroleucon) hypochoeridis",
+      "occurrence_count": 219,
+      "guid": "NHMSYS0020978193"
+    },
+    {
+      "common_name": "Ant Damsel Bug",
+      "scientific_name": "Himacerus (Aptus) mirmicoides",
+      "occurrence_count": 2351,
+      "guid": "NHMSYS0020309315"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megalonotus praetextatus",
+      "occurrence_count": 221,
+      "guid": "NHMSYS0020309435"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Delphacodes venosus",
+      "occurrence_count": 167,
+      "guid": "NHMSYS0020705322"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) hederae",
+      "occurrence_count": 289,
+      "guid": "NHMSYS0020738164"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Paracorixa concinna",
+      "occurrence_count": 1490,
+      "guid": "NHMSYS0000527571"
+    },
+    {
+      "common_name": "Semi-aquatic bugs",
+      "scientific_name": "Hebrus (Hebrus) pusillus",
+      "occurrence_count": 202,
+      "guid": "NHMSYS0020309292"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gerris (Gerris) thoracicus",
+      "occurrence_count": 2342,
+      "guid": "NHMSYS0020309257"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthotylus (Orthotylus) tenellus",
+      "occurrence_count": 216,
+      "guid": "NHMSYS0020309596"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Hylopsallus) variabilis",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0020309725"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cimex lectularius",
+      "occurrence_count": 334,
+      "guid": "NHMSYS0020309085"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sorhoanus xanthoneurus",
+      "occurrence_count": 116,
+      "guid": "NHMSYS0020705896"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Strophingia ericae",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0020705920"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tuberculatus (Tuberculatus) querceus",
+      "occurrence_count": 126,
+      "guid": "NHMSYS0020738400"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Javesella pellucida",
+      "occurrence_count": 1823,
+      "guid": "NBNSYS0000010765"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psylla alni",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0020924675"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cinara (Cinara) piceae",
+      "occurrence_count": 262,
+      "guid": "NHMSYS0020738230"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arctocorisa carinata",
+      "occurrence_count": 129,
+      "guid": "NHMSYS0000527505"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lygus wagneri",
+      "occurrence_count": 214,
+      "guid": "NHMSYS0020309399"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uroleucon) cichorii",
+      "occurrence_count": 188,
+      "guid": "NHMSYS0020738403"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uromelan) campanulae",
+      "occurrence_count": 122,
+      "guid": "NHMSYS0020738412"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Retrocorixa) semistriata",
+      "occurrence_count": 838,
+      "guid": "NHMSYS0020309826"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalosiphoninus (Myzosiphon) staphyleae",
+      "occurrence_count": 218,
+      "guid": "NHMSYS0020736456"
+    },
+    {
+      "common_name": "Greater Streaked Shieldbug",
+      "scientific_name": "Odontoscelis (Odontoscelis) fuliginosa",
+      "occurrence_count": 176,
+      "guid": "NHMSYS0020309545"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Appelia) tragopogonis",
+      "occurrence_count": 162,
+      "guid": "NHMSYS0020738209"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Asiraca clavicornis",
+      "occurrence_count": 533,
+      "guid": "NHMSYS0020442293"
+    },
+    {
+      "common_name": "Sandrunner",
+      "scientific_name": "Sciocoris (Sciocoris) cursitans",
+      "occurrence_count": 300,
+      "guid": "NHMSYS0020309806"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Paralimnus phragmitis",
+      "occurrence_count": 305,
+      "guid": "NHMSYS0020442448"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pseudococcus calceolariae",
+      "occurrence_count": 116,
+      "guid": "NHMSYS0021004896"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eulachnus rileyi",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020736359"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phoenicocoris obscurellus",
+      "occurrence_count": 125,
+      "guid": "NHMSYS0020309636"
+    },
+    {
+      "common_name": "Broad Damselbug",
+      "scientific_name": "Nabis (Nabicula) flavomarginatus",
+      "occurrence_count": 1561,
+      "guid": "NHMSYS0020309501"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Kybos smaragdulus",
+      "occurrence_count": 143,
+      "guid": "NHMSYS0020705682"
+    },
+    {
+      "common_name": "Lime Aphid",
+      "scientific_name": "Eucallipterus tiliae",
+      "occurrence_count": 497,
+      "guid": "NHMSYS0020736354"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trioza centranthi",
+      "occurrence_count": 1514,
+      "guid": "NHMSYS0020705944"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicyphus (Idolocoris) pallicornis",
+      "occurrence_count": 477,
+      "guid": "NHMSYS0020309173"
+    },
+    {
+      "common_name": "Delicate Apple Capsid",
+      "scientific_name": "Malacocoris chlorizans",
+      "occurrence_count": 565,
+      "guid": "NHMSYS0020309415"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Psallus) falleni",
+      "occurrence_count": 243,
+      "guid": "NHMSYS0020309736"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chartoscirta elegantula",
+      "occurrence_count": 128,
+      "guid": "NHMSYS0020309066"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) coronillae",
+      "occurrence_count": 142,
+      "guid": "NHMSYS0020738149"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx thoulessi",
+      "occurrence_count": 152,
+      "guid": "NHMSYS0020705575"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Polymerus (Polymerus) nigrita",
+      "occurrence_count": 450,
+      "guid": "NHMSYS0020309709"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gerris (Gerriselloides) lateralis",
+      "occurrence_count": 535,
+      "guid": "NHMSYS0020309259"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Bathysolen nubilus",
+      "occurrence_count": 126,
+      "guid": "NHMSYS0020308975"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pemphigus (Pemphiginus) populi",
+      "occurrence_count": 529,
+      "guid": "NHMSYS0020705805"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopolophium (Metopolophium) festucae",
+      "occurrence_count": 1044,
+      "guid": "NHMSYS0020738316"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Raglius alboacuminatus",
+      "occurrence_count": 190,
+      "guid": "NHMSYS0020309755"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Graptopeltus lynceus",
+      "occurrence_count": 177,
+      "guid": "NHMSYS0020309273"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cryptomyzus (Cryptomyzus) korschelti",
+      "occurrence_count": 195,
+      "guid": "NHMSYS0020738240"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pseudoloxops coccineus",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0020309744"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzocallis (Myzocallis) coryli",
+      "occurrence_count": 266,
+      "guid": "NHMSYS0020738323"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx notata",
+      "occurrence_count": 144,
+      "guid": "NHMSYS0020705570"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anthocoris nemoralis",
+      "occurrence_count": 2650,
+      "guid": "NHMSYS0020308937"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sacchiphantes abietis",
+      "occurrence_count": 120,
+      "guid": "NHMSYS0020705534"
+    },
+    {
+      "common_name": "Water Scorpion",
+      "scientific_name": "Nepa cinerea",
+      "occurrence_count": 7733,
+      "guid": "NHMSYS0000527563"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lopus decolor",
+      "occurrence_count": 485,
+      "guid": "NHMSYS0020309369"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Geoica utricularia",
+      "occurrence_count": 179,
+      "guid": "NHMSYS0020736363"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stroggylocephalus agrestis",
+      "occurrence_count": 224,
+      "guid": "NHMSYS0020705916"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chaitophorus capreae",
+      "occurrence_count": 169,
+      "guid": "NHMSYS0020736313"
+    },
+    {
+      "common_name": "Cuckoo-Spit Insect",
+      "scientific_name": "Philaenus spumarius",
+      "occurrence_count": 32783,
+      "guid": "NHMSYS0020705811"
+    },
+    {
+      "common_name": "Firebug",
+      "scientific_name": "Pyrrhocoris apterus",
+      "occurrence_count": 523,
+      "guid": "NHMSYS0020309752"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Teratocoris antennatus",
+      "occurrence_count": 260,
+      "guid": "NHMSYS0020309886"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalus (Rhopalus) subrufus",
+      "occurrence_count": 4734,
+      "guid": "NHMSYS0020309777"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nasonovia (Kakimia) dasyphylli",
+      "occurrence_count": 111,
+      "guid": "NHMSYS0020736424"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Adelphocoris ticinensis",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0020308899"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Notus flavipennis",
+      "occurrence_count": 470,
+      "guid": "NHMSYS0020705769"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trapezonotus (Trapezonotus) desertus",
+      "occurrence_count": 246,
+      "guid": "NHMSYS0020309911"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Iassus lanio",
+      "occurrence_count": 1280,
+      "guid": "NHMSYS0020705629"
+    },
+    {
+      "common_name": "Little Pondskater",
+      "scientific_name": "Gerris (Gerris) argentatus",
+      "occurrence_count": 623,
+      "guid": "NHMSYS0020309252"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Populicerus populi",
+      "occurrence_count": 257,
+      "guid": "NHMSYS0020705641"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lamprotettix nitidulus",
+      "occurrence_count": 358,
+      "guid": "NHMSYS0020705686"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stygnocoris sabulosus",
+      "occurrence_count": 1287,
+      "guid": "NHMSYS0020309870"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Delphiniobium junackianum",
+      "occurrence_count": 145,
+      "guid": "NHMSYS0020738244"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupterycyba jucunda",
+      "occurrence_count": 259,
+      "guid": "NHMSYS0020705560"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) viburni",
+      "occurrence_count": 169,
+      "guid": "NHMSYS0020738189"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psammotettix nodosus",
+      "occurrence_count": 195,
+      "guid": "NHMSYS0020442457"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis euonymi",
+      "occurrence_count": 149,
+      "guid": "NHMSYS0020738154"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) euphorbiae",
+      "occurrence_count": 2447,
+      "guid": "NHMSYS0020738301"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Plagiognathus (Plagiognathus) arbustorum",
+      "occurrence_count": 7154,
+      "guid": "NHMSYS0020309684"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acompus rufipes",
+      "occurrence_count": 123,
+      "guid": "NHMSYS0020308895"
+    },
+    {
+      "common_name": "Woolly Apple Aphid",
+      "scientific_name": "Eriosoma lanigerum",
+      "occurrence_count": 453,
+      "guid": "NHMSYS0020705547"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Callicorixa wollastoni",
+      "occurrence_count": 721,
+      "guid": "NHMSYS0000527508"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthotylus (Melanotrichus) moncreaffi",
+      "occurrence_count": 117,
+      "guid": "NHMSYS0020309588"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhodobium porosum",
+      "occurrence_count": 161,
+      "guid": "NHMSYS0020736453"
+    },
+    {
+      "common_name": "Rosy Leaf-curling Aphid",
+      "scientific_name": "Dysaphis (Dysaphis) devecta",
+      "occurrence_count": 339,
+      "guid": "NHMSYS0020705342"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Javesella forcipata",
+      "occurrence_count": 153,
+      "guid": "NBNSYS0000010763"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ovatus (Ovatus) insitus",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0020738340"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosteles horvathi",
+      "occurrence_count": 145,
+      "guid": "NHMSYS0020705718"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pemphigus (Pemphigus) gairi",
+      "occurrence_count": 221,
+      "guid": "NHMSYS0020705803"
+    },
+    {
+      "common_name": "Common Flower Bug",
+      "scientific_name": "Anthocoris nemorum",
+      "occurrence_count": 11196,
+      "guid": "NHMSYS0020308938"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Notostira elongata",
+      "occurrence_count": 2975,
+      "guid": "NHMSYS0020309530"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pilophorus perplexus",
+      "occurrence_count": 243,
+      "guid": "NHMSYS0020309670"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arctocorisa germari",
+      "occurrence_count": 709,
+      "guid": "NHMSYS0000527506"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cavariella (Cavariella) archangelicae",
+      "occurrence_count": 194,
+      "guid": "NHMSYS0020738216"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dryophilocoris (Dryophilocoris) flavoquadrimaculatus",
+      "occurrence_count": 1735,
+      "guid": "NHMSYS0020309191"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzus (Nectarosiphon) ascalonicus",
+      "occurrence_count": 624,
+      "guid": "NHMSYS0020736415"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Salda littoralis",
+      "occurrence_count": 266,
+      "guid": "NHMSYS0020309783"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Balclutha punctata",
+      "occurrence_count": 1200,
+      "guid": "NHMSYS0020705244"
+    },
+    {
+      "common_name": "Lesser water-boatmen",
+      "scientific_name": "Sigara (Subsigara) scotti",
+      "occurrence_count": 1036,
+      "guid": "NHMSYS0020309838"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Streptanus aemulans",
+      "occurrence_count": 319,
+      "guid": "NHMSYS0020705912"
+    },
+    {
+      "common_name": "Pear-hogweed Aphid",
+      "scientific_name": "Anuraphis subterranea",
+      "occurrence_count": 273,
+      "guid": "NHMSYS0021121736"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Peritrechus geniculatus",
+      "occurrence_count": 748,
+      "guid": "NHMSYS0020309631"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Heterocordylus (Heterocordylus) genistae",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0020309302"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Microlophium carnosum",
+      "occurrence_count": 823,
+      "guid": "NHMSYS0020736407"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stygnocoris fuligineus",
+      "occurrence_count": 529,
+      "guid": "NHMSYS0020309868"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Oncotylus (Oncotylus) viridiflavus",
+      "occurrence_count": 953,
+      "guid": "NHMSYS0020309555"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Sigara) dorsalis",
+      "occurrence_count": 14783,
+      "guid": "NHMSYS0020309829"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Populicerus albicans",
+      "occurrence_count": 125,
+      "guid": "NHMSYS0020705631"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Streptanus sordidus",
+      "occurrence_count": 680,
+      "guid": "NHMSYS0020705914"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Amblytylus nasutus",
+      "occurrence_count": 531,
+      "guid": "NHMSYS0020308920"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Oncopsis alni",
+      "occurrence_count": 289,
+      "guid": "NHMSYS0020705775"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Polymerus (Poeciloscytus) palustris",
+      "occurrence_count": 201,
+      "guid": "NHMSYS0020309704"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Temnostethus (Montandoniella) pusillus",
+      "occurrence_count": 170,
+      "guid": "NHMSYS0020309883"
+    },
+    {
+      "common_name": "Elder Aphid",
+      "scientific_name": "Aphis (Aphis) sambuci",
+      "occurrence_count": 926,
+      "guid": "NHMSYS0020738178"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uroleucon) obscurum",
+      "occurrence_count": 122,
+      "guid": "NHMSYS0020738408"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chilacis typhae",
+      "occurrence_count": 869,
+      "guid": "NHMSYS0020309068"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphoniella (Phalangomyzus) oblonga",
+      "occurrence_count": 198,
+      "guid": "NHMSYS0020738288"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Delphax pulchellus",
+      "occurrence_count": 414,
+      "guid": "NHMSYS0020705324"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Empoasca decipiens",
+      "occurrence_count": 498,
+      "guid": "NHMSYS0020705542"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diuraphis (Holcaphis) holci",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0020738247"
+    },
+    {
+      "common_name": "Heath Assassin Bug",
+      "scientific_name": "Coranus (Coranus) subapterus",
+      "occurrence_count": 283,
+      "guid": "NHMSYS0020309101"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megalonotus dilatatus",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0020309433"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Periphyllus hirticornis",
+      "occurrence_count": 163,
+      "guid": "NHMSYS0020736438"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euceraphis punctipennis",
+      "occurrence_count": 427,
+      "guid": "NHMSYS0020736356"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Smynthurodes betae",
+      "occurrence_count": 143,
+      "guid": "NHMSYS0020736476"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Acaudus) lychnidis",
+      "occurrence_count": 221,
+      "guid": "NHMSYS0020738205"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nysius ericae",
+      "occurrence_count": 244,
+      "guid": "NHMSYS0020309535"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phorodon (Phorodon) humuli",
+      "occurrence_count": 388,
+      "guid": "NHMSYS0020738352"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eurhadina concinna",
+      "occurrence_count": 168,
+      "guid": "NHMSYS0020705579"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosteles septemnotatus",
+      "occurrence_count": 142,
+      "guid": "NHMSYS0020705722"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cryptostemma alienum",
+      "occurrence_count": 182,
+      "guid": "NBNSYS0000010331"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyalopterus pruni",
+      "occurrence_count": 463,
+      "guid": "NHMSYS0020736366"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uroleucon) tanaceti",
+      "occurrence_count": 142,
+      "guid": "NHMSYS0020738410"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx atropunctata",
+      "occurrence_count": 197,
+      "guid": "NHMSYS0020705563"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Athysanus argentarius",
+      "occurrence_count": 339,
+      "guid": "NHMSYS0020705240"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Halicorixa) stagnalis",
+      "occurrence_count": 975,
+      "guid": "NHMSYS0020309821"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uroleucon) achilleae",
+      "occurrence_count": 115,
+      "guid": "NHMSYS0020738402"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Neolygus contaminatus",
+      "occurrence_count": 889,
+      "guid": "NHMSYS0020976989"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pachybrachius fracticollis",
+      "occurrence_count": 466,
+      "guid": "NHMSYS0020309609"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Forcipata citrinella",
+      "occurrence_count": 277,
+      "guid": "NHMSYS0020705603"
+    },
+    {
+      "common_name": "Heath Damselbug",
+      "scientific_name": "Nabis (Nabis) ericetorum",
+      "occurrence_count": 416,
+      "guid": "NHMSYS0020309504"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Allygus mixtus",
+      "occurrence_count": 801,
+      "guid": "NHMSYS0020705189"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Neottiglossa pusilla",
+      "occurrence_count": 915,
+      "guid": "NHMSYS0020309512"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Betulaphis quadrituberculata",
+      "occurrence_count": 139,
+      "guid": "NHMSYS0020736285"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Plagiognathus albipennis",
+      "occurrence_count": 184,
+      "guid": "NHMSYS0020705817"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) hirsutissima",
+      "occurrence_count": 124,
+      "guid": "NHMSYS0020738258"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Europiella artemisiae",
+      "occurrence_count": 148,
+      "guid": "NHMSYS0020309220"
+    },
+    {
+      "common_name": "Creeping Thistle Lacebug",
+      "scientific_name": "Tingis (Tingis) ampliata",
+      "occurrence_count": 1332,
+      "guid": "NHMSYS0020309899"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Nevskyaphis) malvae",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0021299409"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lachnus roboris",
+      "occurrence_count": 263,
+      "guid": "NHMSYS0020738286"
+    },
+    {
+      "common_name": "Black-Kneed Apple Capsid",
+      "scientific_name": "Blepharidopterus angulatus",
+      "occurrence_count": 1654,
+      "guid": "NHMSYS0020308991"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx cyclops",
+      "occurrence_count": 155,
+      "guid": "NHMSYS0020705565"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx filicum",
+      "occurrence_count": 137,
+      "guid": "NHMSYS0020705566"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Bursaphis) schneideri",
+      "occurrence_count": 191,
+      "guid": "NHMSYS0020738181"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acyrthosiphon (Acyrthosiphon) caraganae",
+      "occurrence_count": 180,
+      "guid": "NHMSYS0020738125"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chloriona vasconica",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020442302"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis brancoi",
+      "occurrence_count": 144,
+      "guid": "NHMSYS0021299499"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Evacanthus interruptus",
+      "occurrence_count": 1907,
+      "guid": "NHMSYS0020705593"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Oncopsis flavicollis",
+      "occurrence_count": 996,
+      "guid": "NHMSYS0020705778"
+    },
+    {
+      "common_name": "Large Willow Aphid",
+      "scientific_name": "Tuberolachnus (Tuberolachnus) salignus",
+      "occurrence_count": 1233,
+      "guid": "NHMSYS0020738401"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphrodes bicincta",
+      "occurrence_count": 409,
+      "guid": "NHMSYS0020705214"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Synophropsis lauri",
+      "occurrence_count": 108,
+      "guid": "NHMSYS0020745854"
+    },
+    {
+      "common_name": "Bracken Bug",
+      "scientific_name": "Monalocoris (Monalocoris) filicis",
+      "occurrence_count": 1355,
+      "guid": "NHMSYS0020309478"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Himacerus (Anaptus) major",
+      "occurrence_count": 847,
+      "guid": "NHMSYS0020309313"
+    },
+    {
+      "common_name": "Common Pondskater",
+      "scientific_name": "Gerris (Gerris) lacustris",
+      "occurrence_count": 9595,
+      "guid": "NHMSYS0020309255"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) ranunculi",
+      "occurrence_count": 244,
+      "guid": "NHMSYS0020705344"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Schizolachnus pineti",
+      "occurrence_count": 242,
+      "guid": "NHMSYS0020736468"
+    },
+    {
+      "common_name": "Bishop's Mitre",
+      "scientific_name": "Aelia acuminata",
+      "occurrence_count": 6848,
+      "guid": "NHMSYS0020308903"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chaetosiphon (Pentatrichopus) tetrarhodum",
+      "occurrence_count": 147,
+      "guid": "NHMSYS0020736312"
+    },
+    {
+      "common_name": "Large Walnut Aphid",
+      "scientific_name": "Panaphis juglandis",
+      "occurrence_count": 145,
+      "guid": "NHMSYS0020736434"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Leptopterna ferrugata",
+      "occurrence_count": 1672,
+      "guid": "NHMSYS0020309361"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megophthalmus scanicus",
+      "occurrence_count": 484,
+      "guid": "NHMSYS0020705735"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cercopis vulnerata",
+      "occurrence_count": 9574,
+      "guid": "NHMSYS0020705260"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Grypocoris (Lophyromiris) stysi",
+      "occurrence_count": 4250,
+      "guid": "NHMSYS0020977054"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acericerus ribauti",
+      "occurrence_count": 188,
+      "guid": "NHMSYS0020920318"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nasonovia (Nasonovia) pilosellae",
+      "occurrence_count": 307,
+      "guid": "NHMSYS0020705763"
+    },
+    {
+      "common_name": "Cherry Aphid",
+      "scientific_name": "Myzus (Myzus) cerasi",
+      "occurrence_count": 1090,
+      "guid": "NHMSYS0020738328"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyalopteroides humilis",
+      "occurrence_count": 122,
+      "guid": "NHMSYS0020736365"
+    },
+    {
+      "common_name": "Common Backswimmer",
+      "scientific_name": "Notonecta (Notonecta) glauca",
+      "occurrence_count": 13919,
+      "guid": "NHMSYS0020309523"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uromelan) sonchi",
+      "occurrence_count": 139,
+      "guid": "NHMSYS0020732935"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lygus pratensis",
+      "occurrence_count": 951,
+      "guid": "NHMSYS0020309396"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ceruraphis eriophori",
+      "occurrence_count": 222,
+      "guid": "NHMSYS0020736310"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Agramma (Agramma) laetum",
+      "occurrence_count": 228,
+      "guid": "NHMSYS0020308912"
+    },
+    {
+      "common_name": "Scarab Shieldbug",
+      "scientific_name": "Thyreocoris scarabaeoides",
+      "occurrence_count": 417,
+      "guid": "NHMSYS0020309895"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Notonecta (Notonecta) obliqua",
+      "occurrence_count": 1273,
+      "guid": "NHMSYS0020309525"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Grypotes puncticollis",
+      "occurrence_count": 148,
+      "guid": "NHMSYS0020705614"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cymus glandicolor",
+      "occurrence_count": 1003,
+      "guid": "NHMSYS0020309131"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Beosus maritimus",
+      "occurrence_count": 221,
+      "guid": "NHMSYS0020308977"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phyllaphis fagi",
+      "occurrence_count": 577,
+      "guid": "NHMSYS0020705812"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Liosomaphis berberidis",
+      "occurrence_count": 170,
+      "guid": "NHMSYS0020736380"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Sigara) striata",
+      "occurrence_count": 316,
+      "guid": "NHMSYS0020309830"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trigonotylus caelestialium",
+      "occurrence_count": 254,
+      "guid": "NHMSYS0020309915"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Peritrechus lundii",
+      "occurrence_count": 262,
+      "guid": "NHMSYS0020309633"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stenocranus minutus",
+      "occurrence_count": 976,
+      "guid": "NHMSYS0020705906"
+    },
+    {
+      "common_name": "Box Sucker",
+      "scientific_name": "Psylla buxi",
+      "occurrence_count": 527,
+      "guid": "NHMSYS0020705840"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) ruborum",
+      "occurrence_count": 162,
+      "guid": "NHMSYS0020738177"
+    },
+    {
+      "common_name": "Pondweed Bug",
+      "scientific_name": "Mesovelia furcata",
+      "occurrence_count": 517,
+      "guid": "NHMSYS0000527551"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Doratura stylata",
+      "occurrence_count": 248,
+      "guid": "NHMSYS0020705339"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Notonecta marmorea",
+      "occurrence_count": 331,
+      "guid": "NBNSYS0000010379"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Berytinus (Berytinus) montivagus",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020308988"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Scolopostethus decoratus",
+      "occurrence_count": 979,
+      "guid": "NHMSYS0020309809"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Linnavuoriana sexmaculata",
+      "occurrence_count": 242,
+      "guid": "NHMSYS0021126457"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) craccivora",
+      "occurrence_count": 115,
+      "guid": "NHMSYS0021121739"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gerris (Gerris) gibbifer",
+      "occurrence_count": 1132,
+      "guid": "NHMSYS0020309254"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Uroleucon (Uroleucon) cirsii",
+      "occurrence_count": 382,
+      "guid": "NHMSYS0020732933"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Notonecta (Notonecta) viridis",
+      "occurrence_count": 1728,
+      "guid": "NHMSYS0020309526"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Reduvius personatus",
+      "occurrence_count": 246,
+      "guid": "NHMSYS0020309763"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Corixa panzeri",
+      "occurrence_count": 1652,
+      "guid": "NHMSYS0000527522"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla melanoneura",
+      "occurrence_count": 712,
+      "guid": "NHMSYS0020705846"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Pomaphis) sorbi",
+      "occurrence_count": 273,
+      "guid": "NHMSYS0020705345"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orsillus depressus",
+      "occurrence_count": 223,
+      "guid": "NHMSYS0020309568"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hesperocorixa moesta",
+      "occurrence_count": 762,
+      "guid": "NHMSYS0000527545"
+    },
+    {
+      "common_name": "Forget-me-not Shieldbug",
+      "scientific_name": "Sehirus luctuosus",
+      "occurrence_count": 1291,
+      "guid": "NHMSYS0020309817"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzus (Myzus) ornatus",
+      "occurrence_count": 464,
+      "guid": "NHMSYS0021121698"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthops (Orthops) kalmii",
+      "occurrence_count": 333,
+      "guid": "NHMSYS0020309580"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Javesella obscurella",
+      "occurrence_count": 108,
+      "guid": "NBNSYS0000010764"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sitobion (Metobion) scoticum",
+      "occurrence_count": 117,
+      "guid": "NHMSYS0020738378"
+    },
+    {
+      "common_name": "Brown Soft-scale",
+      "scientific_name": "Coccus hesperidum",
+      "occurrence_count": 493,
+      "guid": "NHMSYS0020978099"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Callicorixa praeusta",
+      "occurrence_count": 5583,
+      "guid": "NHMSYS0000527507"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphrophora major",
+      "occurrence_count": 179,
+      "guid": "NHMSYS0020705222"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ditropis pteridis",
+      "occurrence_count": 676,
+      "guid": "NHMSYS0020705337"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Kleidocerys ericae",
+      "occurrence_count": 315,
+      "guid": "NHMSYS0020309343"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) craccae",
+      "occurrence_count": 109,
+      "guid": "NHMSYS0021121737"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx stachydearum",
+      "occurrence_count": 216,
+      "guid": "NHMSYS0020705573"
+    },
+    {
+      "common_name": "Slender-horned Leatherbug",
+      "scientific_name": "Ceraleptus lividus",
+      "occurrence_count": 383,
+      "guid": "NHMSYS0020309052"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phylus (Phylus) coryli",
+      "occurrence_count": 523,
+      "guid": "NHMSYS0020309641"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nysius huttoni",
+      "occurrence_count": 406,
+      "guid": "NHMSYS0021108908"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hesperocorixa castanea",
+      "occurrence_count": 1214,
+      "guid": "NHMSYS0000527543"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cryptosiphum artemisiae",
+      "occurrence_count": 229,
+      "guid": "NHMSYS0020705316"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Drepanosiphum platanoidis",
+      "occurrence_count": 1053,
+      "guid": "NHMSYS0020736351"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthotylus (Melanotrichus) flavosparsus",
+      "occurrence_count": 267,
+      "guid": "NHMSYS0020309587"
+    },
+    {
+      "common_name": "Rhododendron Leafhopper",
+      "scientific_name": "Graphocephala fennahi",
+      "occurrence_count": 1340,
+      "guid": "NHMSYS0020705608"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrolophus rubi",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0020309404"
+    },
+    {
+      "common_name": "Hawthorn-parsley Aphid",
+      "scientific_name": "Dysaphis (Dysaphis) apiifolia",
+      "occurrence_count": 184,
+      "guid": "NHMSYS0020738250"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Henestaris laticeps",
+      "occurrence_count": 192,
+      "guid": "NHMSYS0020309298"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Zygina angusta",
+      "occurrence_count": 168,
+      "guid": "NHMSYS0020705971"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Adelges laricis",
+      "occurrence_count": 177,
+      "guid": "NHMSYS0020705536"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoecia (Anoecia) nemoralis",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020738138"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Capitophorus similis",
+      "occurrence_count": 213,
+      "guid": "NHMSYS0020736304"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trama (Trama) troglodytes",
+      "occurrence_count": 430,
+      "guid": "NHMSYS0020738399"
+    },
+    {
+      "common_name": "Marsh Damselbug",
+      "scientific_name": "Nabis (Dolichonabis) limbatus",
+      "occurrence_count": 2949,
+      "guid": "NHMSYS0020309497"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euceraphis betulae",
+      "occurrence_count": 573,
+      "guid": "NHMSYS0020738269"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Berytinus (Berytinus) minor",
+      "occurrence_count": 263,
+      "guid": "NHMSYS0020308987"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhabdomiris striatellus",
+      "occurrence_count": 1557,
+      "guid": "NHMSYS0020784510"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalosiphoninus (Rhopalosiphoninus) latysiphon",
+      "occurrence_count": 121,
+      "guid": "NHMSYS0021121707"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Illinoia (Illinoia) azaleae",
+      "occurrence_count": 100,
+      "guid": "NHMSYS0020738279"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Typhlocyba quercus",
+      "occurrence_count": 375,
+      "guid": "NHMSYS0020705960"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhyparochromus pini",
+      "occurrence_count": 194,
+      "guid": "NHMSYS0020309781"
+    },
+    {
+      "common_name": "Toothed Pondskater",
+      "scientific_name": "Gerris (Gerris) odontogaster",
+      "occurrence_count": 3675,
+      "guid": "NHMSYS0020309256"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Paradelphacodes paludosa",
+      "occurrence_count": 125,
+      "guid": "NBNSYS0000153193"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psyllopsis fraxinicola",
+      "occurrence_count": 324,
+      "guid": "NHMSYS0020705865"
+    },
+    {
+      "common_name": "Spiked Shieldbug",
+      "scientific_name": "Picromerus bidens",
+      "occurrence_count": 4265,
+      "guid": "NHMSYS0020309660"
+    },
+    {
+      "common_name": "Mint Aphid",
+      "scientific_name": "Ovatus (Ovatus) crataegarius",
+      "occurrence_count": 253,
+      "guid": "NHMSYS0020738338"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cryptomyzus (Cryptomyzus) ballotae",
+      "occurrence_count": 118,
+      "guid": "NHMSYS0020738239"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Subsigara) falleni",
+      "occurrence_count": 8427,
+      "guid": "NHMSYS0020309833"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Apocremnus) betuleti",
+      "occurrence_count": 193,
+      "guid": "NHMSYS0020309719"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Xylocoris (Xylocoris) cursitans",
+      "occurrence_count": 269,
+      "guid": "NHMSYS0020309948"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Asterodiaspis quercicola",
+      "occurrence_count": 120,
+      "guid": "NHMSYS0021005267"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orius (Orius) laevigatus",
+      "occurrence_count": 249,
+      "guid": "NHMSYS0020309563"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthonotus rufifrons",
+      "occurrence_count": 339,
+      "guid": "NHMSYS0020309575"
+    },
+    {
+      "common_name": "Viburnum Whitefly",
+      "scientific_name": "Aleurotuba jelinekii",
+      "occurrence_count": 136,
+      "guid": "NHMSYS0021005046"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Calaphis flava",
+      "occurrence_count": 184,
+      "guid": "NHMSYS0020736296"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Mesopsallus) ambiguus",
+      "occurrence_count": 425,
+      "guid": "NHMSYS0020309728"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Alnetoidea alneti",
+      "occurrence_count": 412,
+      "guid": "NHMSYS0020705191"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicranotropis hamata",
+      "occurrence_count": 557,
+      "guid": "NBNSYS0000010750"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eurydema (Eurydema) ornata",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0020309226"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phytocoris (Phytocoris) tiliae",
+      "occurrence_count": 884,
+      "guid": "NHMSYS0020309658"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosteles laevis",
+      "occurrence_count": 264,
+      "guid": "NHMSYS0020705719"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orientus ishidae",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0020973367"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Salda morio",
+      "occurrence_count": 120,
+      "guid": "NHMSYS0020309784"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hamamelistes betulinus",
+      "occurrence_count": 142,
+      "guid": "NHMSYS0020738274"
+    },
+    {
+      "common_name": "Red-legged Shieldbug",
+      "scientific_name": "Pentatoma rufipes",
+      "occurrence_count": 24348,
+      "guid": "NHMSYS0020309624"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megalonotus chiragra",
+      "occurrence_count": 396,
+      "guid": "NHMSYS0020309432"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macropsis scotti",
+      "occurrence_count": 192,
+      "guid": "NHMSYS0020705714"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhyparochromus vulgaris",
+      "occurrence_count": 390,
+      "guid": "NHMSYS0020973301"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megaloceroea recticornis",
+      "occurrence_count": 1296,
+      "guid": "NHMSYS0020309425"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aradus depressus",
+      "occurrence_count": 460,
+      "guid": "NHMSYS0020308958"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Acaudus) klugkisti",
+      "occurrence_count": 615,
+      "guid": "NHMSYS0020736288"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrotylus (Alloeonycha) solitarius",
+      "occurrence_count": 180,
+      "guid": "NHMSYS0020309413"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lindbergina aurovittata",
+      "occurrence_count": 231,
+      "guid": "NHMSYS0020705693"
+    },
+    {
+      "common_name": "Pied Shieldbug",
+      "scientific_name": "Tritomegas bicolor",
+      "occurrence_count": 3656,
+      "guid": "NHMSYS0020309919"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Saissetia coffeae",
+      "occurrence_count": 126,
+      "guid": "NHMSYS0021005339"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stroggylocephalus livens",
+      "occurrence_count": 132,
+      "guid": "NHMSYS0020442468"
+    },
+    {
+      "common_name": "River Skater",
+      "scientific_name": "Aquarius najas",
+      "occurrence_count": 665,
+      "guid": "NHMSYS0000527503"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) stellariae",
+      "occurrence_count": 199,
+      "guid": "NHMSYS0020738308"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Saldula palustris",
+      "occurrence_count": 162,
+      "guid": "NHMSYS0020309798"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoscopus serratulae",
+      "occurrence_count": 176,
+      "guid": "NHMSYS0020705219"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dysaphis (Dysaphis) angelicae",
+      "occurrence_count": 131,
+      "guid": "NHMSYS0020738248"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Appelia) schwartzi",
+      "occurrence_count": 128,
+      "guid": "NHMSYS0020738208"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx vittata",
+      "occurrence_count": 447,
+      "guid": "NHMSYS0020705577"
+    },
+    {
+      "common_name": "Willow-carrot Aphid",
+      "scientific_name": "Cavariella (Cavariella) aegopodii",
+      "occurrence_count": 449,
+      "guid": "NHMSYS0020738215"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Craspedolepta nebulosa",
+      "occurrence_count": 297,
+      "guid": "NHMSYS0020705305"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macropsis prasina",
+      "occurrence_count": 243,
+      "guid": "NHMSYS0020705713"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Deraeocoris (Knightocapsus) lutescens",
+      "occurrence_count": 2442,
+      "guid": "NHMSYS0020309147"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megacoelum infusum",
+      "occurrence_count": 340,
+      "guid": "NHMSYS0020309423"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phylus (Phylus) melanocephalus",
+      "occurrence_count": 853,
+      "guid": "NHMSYS0020309642"
+    },
+    {
+      "common_name": "Tree Hopper",
+      "scientific_name": "Centrotus cornutus",
+      "occurrence_count": 1099,
+      "guid": "NHMSYS0020705258"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Graphosoma italicum",
+      "occurrence_count": 370,
+      "guid": "NHMSYS0021371849"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ribautiana debilis",
+      "occurrence_count": 150,
+      "guid": "NHMSYS0020705879"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Piesma maculatum",
+      "occurrence_count": 179,
+      "guid": "NHMSYS0020309662"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Platycranus (Genistocapsus) bicolor",
+      "occurrence_count": 133,
+      "guid": "NHMSYS0020309688"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arytainilla spartiophila",
+      "occurrence_count": 124,
+      "guid": "NHMSYS0020705237"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Utamphorophora humboldti",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020736502"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chloriona glaucescens",
+      "occurrence_count": 200,
+      "guid": "NHMSYS0020705263"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trigonotylus ruficornis",
+      "occurrence_count": 815,
+      "guid": "NHMSYS0020309917"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pterocallis alni",
+      "occurrence_count": 134,
+      "guid": "NHMSYS0020736449"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acalypta carinata",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0020308880"
+    },
+    {
+      "common_name": "Fig Gall",
+      "scientific_name": "Tetraneura (Tetraneura) ulmi",
+      "occurrence_count": 891,
+      "guid": "NHMSYS0020705928"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx melissae",
+      "occurrence_count": 521,
+      "guid": "NHMSYS0020705569"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cicadula aurantipes",
+      "occurrence_count": 133,
+      "guid": "NHMSYS0020705273"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Siphoninus phillyreae",
+      "occurrence_count": 218,
+      "guid": "NHMSYS0021005357"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Neophilaenus exclamationis",
+      "occurrence_count": 265,
+      "guid": "NHMSYS0020705766"
+    },
+    {
+      "common_name": "Pine Cone Bug",
+      "scientific_name": "Gastrodes grossipes",
+      "occurrence_count": 680,
+      "guid": "NHMSYS0020309244"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Allygus modestus",
+      "occurrence_count": 255,
+      "guid": "NHMSYS0020705190"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthocephalus coriaceus",
+      "occurrence_count": 105,
+      "guid": "NHMSYS0020309570"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzaphis rosarum",
+      "occurrence_count": 247,
+      "guid": "NHMSYS0020736411"
+    },
+    {
+      "common_name": "Water Lily Aphid",
+      "scientific_name": "Rhopalosiphum nymphaeae",
+      "occurrence_count": 315,
+      "guid": "NHMSYS0020736462"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chionaspis salicis",
+      "occurrence_count": 227,
+      "guid": "NHMSYS0020705261"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orius (Orius) niger",
+      "occurrence_count": 648,
+      "guid": "NHMSYS0020309564"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acetropis (Acetropis) gimmerthalii",
+      "occurrence_count": 371,
+      "guid": "NHMSYS0020308889"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthocephalus saltator",
+      "occurrence_count": 388,
+      "guid": "NHMSYS0020309571"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chamaepsylla hartigi",
+      "occurrence_count": 187,
+      "guid": "NHMSYS0020705843"
+    },
+    {
+      "common_name": "European Cinchbug",
+      "scientific_name": "Ischnodemus sabuleti",
+      "occurrence_count": 2266,
+      "guid": "NHMSYS0020309337"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Periphyllus testudinaceus",
+      "occurrence_count": 659,
+      "guid": "NHMSYS0020736440"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cicadula frontalis",
+      "occurrence_count": 276,
+      "guid": "NBNSYS0000010577"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) weberi",
+      "occurrence_count": 129,
+      "guid": "NHMSYS0020738309"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arthaldeus pascuellus",
+      "occurrence_count": 1298,
+      "guid": "NHMSYS0020705231"
+    },
+    {
+      "common_name": "Viburnum Scale",
+      "scientific_name": "Lichtensia viburni",
+      "occurrence_count": 299,
+      "guid": "NHMSYS0020972476"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cinara (Cinara) pinea",
+      "occurrence_count": 250,
+      "guid": "NHMSYS0021121663"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Notonecta (Notonecta) maculata",
+      "occurrence_count": 1456,
+      "guid": "NHMSYS0020309524"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Zonocyba bifasciata",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0020705959"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cryptomyzus (Cryptomyzus) ribis",
+      "occurrence_count": 531,
+      "guid": "NHMSYS0020705314"
+    },
+    {
+      "common_name": "Spear Thistle Lacebug",
+      "scientific_name": "Tingis (Tingis) cardui",
+      "occurrence_count": 1776,
+      "guid": "NHMSYS0020309901"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla brunneipennis",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020705839"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Populicerus confusus",
+      "occurrence_count": 694,
+      "guid": "NHMSYS0020705632"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) funestum",
+      "occurrence_count": 185,
+      "guid": "NHMSYS0020738302"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) hellebori",
+      "occurrence_count": 497,
+      "guid": "NHMSYS0020738304"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Paramesus obtusifrons",
+      "occurrence_count": 107,
+      "guid": "NHMSYS0020705798"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Liocoris tripustulatus",
+      "occurrence_count": 7472,
+      "guid": "NHMSYS0020109262"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stenocranus major",
+      "occurrence_count": 321,
+      "guid": "NHMSYS0020705905"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Mocydia crocea",
+      "occurrence_count": 816,
+      "guid": "NHMSYS0021126475"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalosiphum rufulum",
+      "occurrence_count": 123,
+      "guid": "NHMSYS0020736463"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) praeterita",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0020738175"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Mocydiopsis attenuata",
+      "occurrence_count": 133,
+      "guid": "NHMSYS0020705748"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Alebra wahlbergi",
+      "occurrence_count": 192,
+      "guid": "NHMSYS0020705186"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) gei",
+      "occurrence_count": 648,
+      "guid": "NHMSYS0020738303"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ulopa reticulata",
+      "occurrence_count": 905,
+      "guid": "NHMSYS0020705964"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cicadula persimilis",
+      "occurrence_count": 176,
+      "guid": "NBNSYS0000010580"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cavariella (Cavariella) theobaldi",
+      "occurrence_count": 356,
+      "guid": "NHMSYS0020738220"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Charagochilus (Charagochilus) gyllenhalii",
+      "occurrence_count": 307,
+      "guid": "NHMSYS0020309061"
+    },
+    {
+      "common_name": "Common Green Capsid",
+      "scientific_name": "Lygocoris (Lygocoris) pabulinus",
+      "occurrence_count": 3057,
+      "guid": "NHMSYS0020309387"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pterocomma pilosum",
+      "occurrence_count": 148,
+      "guid": "NHMSYS0020736450"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Atractotomus magnicornis",
+      "occurrence_count": 141,
+      "guid": "NHMSYS0020308971"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trapezonotus (Trapezonotus) arenarius",
+      "occurrence_count": 327,
+      "guid": "NHMSYS0020309910"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Jassargus sursumflexus",
+      "occurrence_count": 167,
+      "guid": "NBNSYS0000010519"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Scolopostethus affinis",
+      "occurrence_count": 980,
+      "guid": "NHMSYS0020309808"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aneurus (Aneurodes) avenius",
+      "occurrence_count": 193,
+      "guid": "NHMSYS0020308924"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eriosoma lanuginosum",
+      "occurrence_count": 241,
+      "guid": "NHMSYS0020705548"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cinara (Cinara) pilicornis",
+      "occurrence_count": 171,
+      "guid": "NHMSYS0021121662"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Alebra albostriella",
+      "occurrence_count": 578,
+      "guid": "NHMSYS0020705184"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphrophora alni",
+      "occurrence_count": 5691,
+      "guid": "NHMSYS0020705221"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Micronecta (Dichaetonecta) scholtzi",
+      "occurrence_count": 910,
+      "guid": "NHMSYS0020309454"
+    },
+    {
+      "common_name": "Field Damsel Bug",
+      "scientific_name": "Nabis (Nabis) ferus",
+      "occurrence_count": 1504,
+      "guid": "NHMSYS0020309505"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Saldula pilosella",
+      "occurrence_count": 138,
+      "guid": "NHMSYS0020309799"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Thamnotettix dilutior",
+      "occurrence_count": 221,
+      "guid": "NBNSYS0000010570"
+    },
+    {
+      "common_name": "Timothy Grassbug",
+      "scientific_name": "Stenotus binotatus",
+      "occurrence_count": 3106,
+      "guid": "NHMSYS0020109271"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Harpocera thoracica",
+      "occurrence_count": 2466,
+      "guid": "NHMSYS0020109258"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pinalitus cervinus",
+      "occurrence_count": 1588,
+      "guid": "NHMSYS0020309673"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Saldula orthochila",
+      "occurrence_count": 191,
+      "guid": "NHMSYS0020309796"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pantilius (Pantilius) tunicatus",
+      "occurrence_count": 1499,
+      "guid": "NHMSYS0020309616"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Javesella discolor",
+      "occurrence_count": 257,
+      "guid": "NBNSYS0000010761"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoscopus flavostriatus",
+      "occurrence_count": 245,
+      "guid": "NHMSYS0020705216"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Physatocheila dumetorum",
+      "occurrence_count": 587,
+      "guid": "NHMSYS0020309645"
+    },
+    {
+      "common_name": "Saucer Bug",
+      "scientific_name": "Ilyocoris cimicoides",
+      "occurrence_count": 7791,
+      "guid": "NHMSYS0000527549"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzus (Nectarosiphon) ligustri",
+      "occurrence_count": 261,
+      "guid": "NHMSYS0020705760"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cavariella (Cavariella) konoi",
+      "occurrence_count": 115,
+      "guid": "NHMSYS0020738218"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Halticus luteicollis",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020309283"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Retrocorixa) limitata",
+      "occurrence_count": 789,
+      "guid": "NHMSYS0020309825"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Amphorophora (Amphorophora) idaei",
+      "occurrence_count": 293,
+      "guid": "NHMSYS0020738135"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoscopus albifrons",
+      "occurrence_count": 895,
+      "guid": "NHMSYS0020322280"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) cytisorum",
+      "occurrence_count": 250,
+      "guid": "NHMSYS0021109597"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arenocoris falleni",
+      "occurrence_count": 413,
+      "guid": "NHMSYS0020308961"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Turrutus socialis",
+      "occurrence_count": 147,
+      "guid": "NHMSYS0020705957"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Delphacodes capnodes",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020442318"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Javesella dubia",
+      "occurrence_count": 714,
+      "guid": "NBNSYS0000010762"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cavariella (Cavariella) pastinacae",
+      "occurrence_count": 331,
+      "guid": "NHMSYS0020738219"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lygus maritimus",
+      "occurrence_count": 318,
+      "guid": "NHMSYS0020309395"
+    },
+    {
+      "common_name": "Rhombic Leatherbug",
+      "scientific_name": "Syromastus rhombeus",
+      "occurrence_count": 912,
+      "guid": "NHMSYS0020309872"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx decemnotata",
+      "occurrence_count": 212,
+      "guid": "NHMSYS0020745857"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Kelisia vittipennis",
+      "occurrence_count": 173,
+      "guid": "NHMSYS0020705672"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicranocephalus agilis",
+      "occurrence_count": 596,
+      "guid": "NHMSYS0020309155"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stygnocoris rusticus",
+      "occurrence_count": 226,
+      "guid": "NHMSYS0020309869"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) rumicis",
+      "occurrence_count": 378,
+      "guid": "NHMSYS0021121745"
+    },
+    {
+      "common_name": "Western Conifer Seed Bug",
+      "scientific_name": "Leptoglossus occidentalis",
+      "occurrence_count": 9592,
+      "guid": "NHMSYS0020476639"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chlamydatus (Eurymerocoris) evanescens",
+      "occurrence_count": 108,
+      "guid": "NHMSYS0020309079"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Berytinus (Berytinus) signoreti",
+      "occurrence_count": 215,
+      "guid": "NHMSYS0020308989"
+    },
+    {
+      "common_name": "Polyphagous Tree Mealybug",
+      "scientific_name": "Phenacoccus aceris",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0021004860"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acompocoris pygmaeus",
+      "occurrence_count": 167,
+      "guid": "NHMSYS0020308892"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Thripsaphis (Trichocallis) cyperi",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0020736487"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dichrooscytus rufipennis",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0020309153"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acyrthosiphon (Acyrthosiphon) loti",
+      "occurrence_count": 142,
+      "guid": "NHMSYS0020738127"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cacopsylla visci",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0020705860"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Prociphilus (Stagona) pini",
+      "occurrence_count": 104,
+      "guid": "NHMSYS0020736445"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cymus claviculus",
+      "occurrence_count": 323,
+      "guid": "NHMSYS0020309130"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pterocomma salicis",
+      "occurrence_count": 201,
+      "guid": "NHMSYS0020732931"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cicadula quadrinotata",
+      "occurrence_count": 680,
+      "guid": "NBNSYS0000010581"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cixius nervosus",
+      "occurrence_count": 2043,
+      "guid": "NHMSYS0020705287"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Graphocraerus ventralis",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020705610"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tuberculatus (Tuberculoides) annulatus",
+      "occurrence_count": 425,
+      "guid": "NHMSYS0020736495"
+    },
+    {
+      "common_name": "Potato Capsid",
+      "scientific_name": "Closterotomus norwegicus",
+      "occurrence_count": 5919,
+      "guid": "NHMSYS0020976950"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Protrama flavescens",
+      "occurrence_count": 123,
+      "guid": "NHMSYS0020736446"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Zygina flammigera",
+      "occurrence_count": 519,
+      "guid": "NHMSYS0020705972"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eurybregma nigrolineata",
+      "occurrence_count": 212,
+      "guid": "NHMSYS0020705583"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Subsigara) iactans",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020309836"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphelocheirus (Aphelocheirus) aestivalis",
+      "occurrence_count": 6498,
+      "guid": "NHMSYS0020308948"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ribautiana ulmi",
+      "occurrence_count": 374,
+      "guid": "NHMSYS0020705882"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phytocoris (Ktenocoris) varipes",
+      "occurrence_count": 2300,
+      "guid": "NHMSYS0020309651"
+    },
+    {
+      "common_name": "Woolly Vine Scale Insect",
+      "scientific_name": "Pulvinaria vitis",
+      "occurrence_count": 516,
+      "guid": "NHMSYS0020735718"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trioza vitreoradiata",
+      "occurrence_count": 163,
+      "guid": "NHMSYS0020470554"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Empicoris vagabundus",
+      "occurrence_count": 367,
+      "guid": "NHMSYS0020109256"
+    },
+    {
+      "common_name": "Juniper Shieldbug",
+      "scientific_name": "Cyphostethus tristriatus",
+      "occurrence_count": 3272,
+      "guid": "NHMSYS0020309134"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthops (Orthops) campestris",
+      "occurrence_count": 1981,
+      "guid": "NHMSYS0020309579"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cymatia bonsdorffii",
+      "occurrence_count": 805,
+      "guid": "NHMSYS0000527528"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Odontoscelis (Odontoscelis) lineola",
+      "occurrence_count": 250,
+      "guid": "NHMSYS0020309546"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Capsus ater",
+      "occurrence_count": 3124,
+      "guid": "NHMSYS0020309042"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Drymus (Sylvadrymus) brunneus",
+      "occurrence_count": 823,
+      "guid": "NHMSYS0020309185"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycolus stellariae",
+      "occurrence_count": 107,
+      "guid": "NHMSYS0020705250"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Hylopsallus) perrisi",
+      "occurrence_count": 297,
+      "guid": "NHMSYS0020309723"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metopolophium (Metopolophium) dirhodum",
+      "occurrence_count": 825,
+      "guid": "NHMSYS0021121688"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Deraeocoris (Deraeocoris) ruber",
+      "occurrence_count": 4700,
+      "guid": "NHMSYS0020309144"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hesperocorixa sahlbergi",
+      "occurrence_count": 7870,
+      "guid": "NHMSYS0000527546"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Legnotus picipes",
+      "occurrence_count": 152,
+      "guid": "NHMSYS0020309353"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megamelus notula",
+      "occurrence_count": 290,
+      "guid": "NBNSYS0000010751"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx aurata",
+      "occurrence_count": 2502,
+      "guid": "NHMSYS0020705564"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Spathocera dalmanii",
+      "occurrence_count": 177,
+      "guid": "NHMSYS0020309842"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eremocoris podagricus",
+      "occurrence_count": 233,
+      "guid": "NHMSYS0020309216"
+    },
+    {
+      "common_name": "Birch Catkin Bug",
+      "scientific_name": "Kleidocerys resedae",
+      "occurrence_count": 5441,
+      "guid": "NHMSYS0020309344"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aneurus (Aneurus) laevis",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0020308926"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Edwardsiana crataegi",
+      "occurrence_count": 156,
+      "guid": "NHMSYS0020705354"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orius (Heterorius) vicinus",
+      "occurrence_count": 402,
+      "guid": "NHMSYS0020309561"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Opsius stactogalus",
+      "occurrence_count": 140,
+      "guid": "NHMSYS0020705782"
+    },
+    {
+      "common_name": "Pear-bedstraw Aphid",
+      "scientific_name": "Dysaphis (Pomaphis) pyri",
+      "occurrence_count": 269,
+      "guid": "NHMSYS0020736352"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chaitophorus leucomelas",
+      "occurrence_count": 183,
+      "guid": "NHMSYS0020736315"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pentastiridius leporinus",
+      "occurrence_count": 215,
+      "guid": "NHMSYS0020920487"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Plagiognathus (Plagiognathus) chrysanthemi",
+      "occurrence_count": 2297,
+      "guid": "NHMSYS0020309685"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trioza remota",
+      "occurrence_count": 1052,
+      "guid": "NHMSYS0020705952"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) newtoni",
+      "occurrence_count": 137,
+      "guid": "NHMSYS0020738171"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzus (Nectarosiphon) certus",
+      "occurrence_count": 192,
+      "guid": "NHMSYS0020736416"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Loricula elegantula",
+      "occurrence_count": 497,
+      "guid": "NHMSYS0020309371"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pinalitus viscicola",
+      "occurrence_count": 125,
+      "guid": "NHMSYS0020309675"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Bursaphis) grossulariae",
+      "occurrence_count": 311,
+      "guid": "NHMSYS0020738163"
+    },
+    {
+      "common_name": "Blue Shieldbug",
+      "scientific_name": "Zicrona caerulea",
+      "occurrence_count": 2635,
+      "guid": "NHMSYS0020109277"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Glaenocorisa propinqua",
+      "occurrence_count": 203,
+      "guid": "NBNSYS0100012093"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Mecomma (Mecomma) ambulans",
+      "occurrence_count": 997,
+      "guid": "NHMSYS0020309420"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chartoscirta cincta",
+      "occurrence_count": 1010,
+      "guid": "NHMSYS0020309064"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Acompocoris alpinus",
+      "occurrence_count": 164,
+      "guid": "NHMSYS0020308891"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Campyloneura virgula",
+      "occurrence_count": 2107,
+      "guid": "NHMSYS0020309032"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phytocoris (Ktenocoris) ulmi",
+      "occurrence_count": 498,
+      "guid": "NHMSYS0020309650"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) loti",
+      "occurrence_count": 204,
+      "guid": "NHMSYS0020738167"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Linnavuoriana decempunctata",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020705695"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Planococcus citri",
+      "occurrence_count": 178,
+      "guid": "NHMSYS0021004884"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nasonovia (Nasonovia) ribisnigri",
+      "occurrence_count": 787,
+      "guid": "NHMSYS0020738335"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Vesiculaphis theobaldi",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0020736503"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Muellerianella extrusa",
+      "occurrence_count": 258,
+      "guid": "NHMSYS0020705752"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Wahlgreniella nervata",
+      "occurrence_count": 171,
+      "guid": "NHMSYS0020738419"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metidiocerus rutilans",
+      "occurrence_count": 175,
+      "guid": "NHMSYS0020705642"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cicadella viridis",
+      "occurrence_count": 6060,
+      "guid": "NHMSYS0020705270"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Idiocerus herrichi",
+      "occurrence_count": 230,
+      "guid": "NBNSYS0000010446"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Neolygus viridis",
+      "occurrence_count": 568,
+      "guid": "NHMSYS0020977001"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Jassargus pseudocellaris",
+      "occurrence_count": 340,
+      "guid": "NHMSYS0020977455"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Derephysia (Derephysia) foliacea",
+      "occurrence_count": 272,
+      "guid": "NHMSYS0020309149"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Oncopsis subangulata",
+      "occurrence_count": 166,
+      "guid": "NHMSYS0021126481"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Forda formicaria",
+      "occurrence_count": 529,
+      "guid": "NHMSYS0020736360"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Amphorophora (Amphorophora) ampullata",
+      "occurrence_count": 174,
+      "guid": "NHMSYS0021121732"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Microvelia (Microvelia) reticulata",
+      "occurrence_count": 4294,
+      "guid": "NHMSYS0020309466"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hyperomyzus (Hyperomyzus) lampsanae",
+      "occurrence_count": 163,
+      "guid": "NHMSYS0020738276"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Neophilaenus lineatus",
+      "occurrence_count": 5174,
+      "guid": "NHMSYS0020705767"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicranocephalus medius",
+      "occurrence_count": 251,
+      "guid": "NHMSYS0020309156"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosteles ossiannilssoni",
+      "occurrence_count": 204,
+      "guid": "NHMSYS0020705721"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Atractotomus mali",
+      "occurrence_count": 366,
+      "guid": "NHMSYS0020308972"
+    },
+    {
+      "common_name": "Apple Capsid",
+      "scientific_name": "Lygocoris (Lygocoris) rugicollis",
+      "occurrence_count": 401,
+      "guid": "NHMSYS0020309388"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Corylobium avellanae",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0020736341"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Vermicorixa) lateralis",
+      "occurrence_count": 4318,
+      "guid": "NHMSYS0020309840"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) gossypii",
+      "occurrence_count": 336,
+      "guid": "NHMSYS0021108896"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Elatobium abietinum",
+      "occurrence_count": 203,
+      "guid": "NHMSYS0020736353"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Scolopostethus puberulus",
+      "occurrence_count": 232,
+      "guid": "NHMSYS0020309812"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euides basilinea",
+      "occurrence_count": 244,
+      "guid": "NHMSYS0020977611"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Asciodema obsoleta",
+      "occurrence_count": 380,
+      "guid": "NHMSYS0020308968"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthotylus (Pachylops) virescens",
+      "occurrence_count": 248,
+      "guid": "NHMSYS0020309602"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Symydobius oblongus",
+      "occurrence_count": 152,
+      "guid": "NHMSYS0020738387"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Pseudovermicorixa) nigrolineata",
+      "occurrence_count": 3845,
+      "guid": "NHMSYS0020309823"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) amygdaloides",
+      "occurrence_count": 163,
+      "guid": "NHMSYS0020738297"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megoura viciae",
+      "occurrence_count": 253,
+      "guid": "NHMSYS0020705736"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dicyphus (Brachyceroea) annulatus",
+      "occurrence_count": 289,
+      "guid": "NHMSYS0020309165"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Craspedolepta subpunctata",
+      "occurrence_count": 140,
+      "guid": "NHMSYS0020705309"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Loricula pselaphiformis",
+      "occurrence_count": 198,
+      "guid": "NHMSYS0020109263"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dyroderes umbraculatus",
+      "occurrence_count": 296,
+      "guid": "NHMSYS0020309196"
+    },
+    {
+      "common_name": "Turtle Bug",
+      "scientific_name": "Podops inuncta",
+      "occurrence_count": 1596,
+      "guid": "NHMSYS0020109267"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Amphorophora (Amphorophora) rubi",
+      "occurrence_count": 504,
+      "guid": "NHMSYS0020738136"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Periphyllus acericola",
+      "occurrence_count": 176,
+      "guid": "NHMSYS0020736436"
+    },
+    {
+      "common_name": "Green Shieldbug",
+      "scientific_name": "Palomena prasina",
+      "occurrence_count": 45101,
+      "guid": "NHMSYS0020109266"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhaphigaster nebulosa",
+      "occurrence_count": 407,
+      "guid": "NHMSYS0020916991"
+    },
+    {
+      "common_name": "Common Shorebug",
+      "scientific_name": "Saldula saltatoria",
+      "occurrence_count": 2059,
+      "guid": "NHMSYS0020309800"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myzus (Nectarosiphon) persicae",
+      "occurrence_count": 3416,
+      "guid": "NHMSYS0021121695"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Miridius quadrivirgatus",
+      "occurrence_count": 506,
+      "guid": "NHMSYS0020309470"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eupteryx signatipennis",
+      "occurrence_count": 164,
+      "guid": "NHMSYS0020705572"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anaceratagallia ribauti",
+      "occurrence_count": 306,
+      "guid": "NHMSYS0020705179"
+    },
+    {
+      "common_name": "Heather Shieldbug",
+      "scientific_name": "Rhacognathus punctatus",
+      "occurrence_count": 645,
+      "guid": "NHMSYS0020309768"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Orthotylus (Orthotylus) ochrotrichus",
+      "occurrence_count": 320,
+      "guid": "NHMSYS0020309594"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phytocoris (Phytocoris) longipennis",
+      "occurrence_count": 518,
+      "guid": "NHMSYS0020309654"
+    },
+    {
+      "common_name": "Water Stick Insect",
+      "scientific_name": "Ranatra (Ranatra) linearis",
+      "occurrence_count": 2106,
+      "guid": "NHMSYS0020309758"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Microvelia (Microvelia) pygmaea",
+      "occurrence_count": 295,
+      "guid": "NHMSYS0020309465"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psallus (Psallus) haematodes",
+      "occurrence_count": 452,
+      "guid": "NHMSYS0020309738"
+    },
+    {
+      "common_name": "Woundwort Shieldbug",
+      "scientific_name": "Eysarcoris venustissimus",
+      "occurrence_count": 5585,
+      "guid": "NHMSYS0020309235"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) urticata",
+      "occurrence_count": 214,
+      "guid": "NHMSYS0020705210"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brevicoryne brassicae",
+      "occurrence_count": 402,
+      "guid": "NHMSYS0020736294"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Idiocerus stigmaticalis",
+      "occurrence_count": 333,
+      "guid": "NHMSYS0020705644"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis armata",
+      "occurrence_count": 151,
+      "guid": "NHMSYS0021299249"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cinara (Cinara) confinis",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0020738225"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cixius cunicularius",
+      "occurrence_count": 206,
+      "guid": "NBNSYS0000010708"
+    },
+    {
+      "common_name": "Parent Bug",
+      "scientific_name": "Elasmucha grisea",
+      "occurrence_count": 7133,
+      "guid": "NHMSYS0020309200"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Compsidolon (Coniortodes) salicellum",
+      "occurrence_count": 294,
+      "guid": "NHMSYS0020309093"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Taphropeltus contractus",
+      "occurrence_count": 237,
+      "guid": "NHMSYS0020309876"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stenodema (Stenodema) laevigata",
+      "occurrence_count": 6369,
+      "guid": "NHMSYS0020309851"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pionosomus varius",
+      "occurrence_count": 116,
+      "guid": "NHMSYS0020309677"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Parapiesma quadratum",
+      "occurrence_count": 327,
+      "guid": "NHMSYS0020309619"
+    },
+    {
+      "common_name": "Mussel Scale",
+      "scientific_name": "Lepidosaphes ulmi",
+      "occurrence_count": 157,
+      "guid": "NHMSYS0021005229"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Megalocoleus tanaceti",
+      "occurrence_count": 182,
+      "guid": "NHMSYS0020309428"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chartoscirta cocksii",
+      "occurrence_count": 487,
+      "guid": "NHMSYS0020309065"
+    },
+    {
+      "common_name": "Crescent-marked Lily Aphid",
+      "scientific_name": "Aulacorthum (Neomyzus) circumflexum",
+      "occurrence_count": 310,
+      "guid": "NHMSYS0020736279"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Zygina lunaris",
+      "occurrence_count": 155,
+      "guid": "NHMSYS0021371969"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Microvelia (Microvelia) buenoi",
+      "occurrence_count": 199,
+      "guid": "NHMSYS0020309464"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Issus coleoptratus",
+      "occurrence_count": 1348,
+      "guid": "NHMSYS0020705653"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sitobion (Sitobion) avenae",
+      "occurrence_count": 575,
+      "guid": "NHMSYS0020738375"
+    },
+    {
+      "common_name": "Turkey Oak Aphid",
+      "scientific_name": "Myzocallis (Myzocallis) boerneri",
+      "occurrence_count": 222,
+      "guid": "NHMSYS0020738321"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrosiphum (Macrosiphum) cholodkovskyi",
+      "occurrence_count": 300,
+      "guid": "NHMSYS0020738299"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Brachycaudus (Prunaphis) cardui",
+      "occurrence_count": 463,
+      "guid": "NHMSYS0021121752"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anthocoris confusus",
+      "occurrence_count": 1394,
+      "guid": "NHMSYS0020308933"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trioza urticae",
+      "occurrence_count": 2149,
+      "guid": "NHMSYS0020472778"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Aphis) frangulae",
+      "occurrence_count": 240,
+      "guid": "NHMSYS0021121741"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nasonovia (Nasonovia) compositellae",
+      "occurrence_count": 1404,
+      "guid": "NHMSYS0020738332"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sigara (Retrocorixa) venusta",
+      "occurrence_count": 790,
+      "guid": "NHMSYS0020309827"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stictopleurus punctatonervosus",
+      "occurrence_count": 1051,
+      "guid": "NHMSYS0020309861"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chorosoma schillingi",
+      "occurrence_count": 1021,
+      "guid": "NHMSYS0020309082"
+    },
+    {
+      "common_name": "Rambur's Pied Shieldbug",
+      "scientific_name": "Tritomegas sexmaculatus",
+      "occurrence_count": 681,
+      "guid": "NHMSYS0020916997"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphis (Bursaphis) epilobiaria",
+      "occurrence_count": 161,
+      "guid": "NHMSYS0020738150"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psammotettix confinis",
+      "occurrence_count": 577,
+      "guid": "NHMSYS0020705827"
+    }
+  ]
+}

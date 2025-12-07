@@ -1,0 +1,188 @@
+{
+  "species_type": "grasshoppers-crickets",
+  "timestamp": "2025-12-07T11:46:38.462923",
+  "summary": {
+    "total_db_species": 0,
+    "high_confidence": 0,
+    "low_confidence": 0,
+    "no_match": 0,
+    "new_api_species": 29
+  },
+  "matches": [],
+  "new_species": [
+    {
+      "common_name": "Wart-biter",
+      "scientific_name": "Decticus verrucivorus",
+      "occurrence_count": 342,
+      "guid": "NBNSYS0000006818"
+    },
+    {
+      "common_name": "Cepero's Ground-hopper",
+      "scientific_name": "Tetrix ceperoi",
+      "occurrence_count": 709,
+      "guid": "NBNSYS0000006831"
+    },
+    {
+      "common_name": "Heath Grasshopper",
+      "scientific_name": "Chorthippus vagans",
+      "occurrence_count": 394,
+      "guid": "NHMSYS0001387288"
+    },
+    {
+      "common_name": "Oak Bush-cricket",
+      "scientific_name": "Meconema thalassinum",
+      "occurrence_count": 12466,
+      "guid": "NHMSYS0001387418"
+    },
+    {
+      "common_name": "Roesel's Bush-cricket",
+      "scientific_name": "Roeseliana roeselii",
+      "occurrence_count": 21375,
+      "guid": "NHMSYS0021351693"
+    },
+    {
+      "common_name": "Field Grasshopper",
+      "scientific_name": "Chorthippus brunneus",
+      "occurrence_count": 42775,
+      "guid": "NBNSYS0000006842"
+    },
+    {
+      "common_name": "Dark Bush-cricket",
+      "scientific_name": "Pholidoptera griseoaptera",
+      "occurrence_count": 27377,
+      "guid": "NHMSYS0001387435"
+    },
+    {
+      "common_name": "Short-winged Cone-head",
+      "scientific_name": "Conocephalus dorsalis",
+      "occurrence_count": 6596,
+      "guid": "NBNSYS0000006824"
+    },
+    {
+      "common_name": "Woodland Grasshopper",
+      "scientific_name": "Omocestus rufipes",
+      "occurrence_count": 1427,
+      "guid": "NHMSYS0001387431"
+    },
+    {
+      "common_name": "Bog Bush-cricket",
+      "scientific_name": "Metrioptera brachyptera",
+      "occurrence_count": 3178,
+      "guid": "NBNSYS0000006821"
+    },
+    {
+      "common_name": "Rufous Grasshopper",
+      "scientific_name": "Gomphocerippus rufus",
+      "occurrence_count": 1150,
+      "guid": "NBNSYS0000006840"
+    },
+    {
+      "common_name": "Common Ground-hopper",
+      "scientific_name": "Tetrix undulata",
+      "occurrence_count": 10039,
+      "guid": "NBNSYS0000006833"
+    },
+    {
+      "common_name": "Meadow Grasshopper",
+      "scientific_name": "Pseudochorthippus parallelus",
+      "occurrence_count": 32210,
+      "guid": "NHMSYS0021583970"
+    },
+    {
+      "common_name": "Scaly Cricket",
+      "scientific_name": "Pseudomogoplistes vicentae",
+      "occurrence_count": 203,
+      "guid": "NHMSYS0020973988"
+    },
+    {
+      "common_name": "Lesser Marsh Grasshopper",
+      "scientific_name": "Chorthippus albomarginatus",
+      "occurrence_count": 11319,
+      "guid": "NHMSYS0001387286"
+    },
+    {
+      "common_name": "Speckled Bush-cricket",
+      "scientific_name": "Leptophyes punctatissima",
+      "occurrence_count": 26804,
+      "guid": "NBNSYS0000006825"
+    },
+    {
+      "common_name": "Large Marsh Grasshopper",
+      "scientific_name": "Stethophyma grossum",
+      "occurrence_count": 718,
+      "guid": "NBNSYS0000006834"
+    },
+    {
+      "common_name": "Grey Bush-cricket",
+      "scientific_name": "Platycleis albopunctata",
+      "occurrence_count": 1904,
+      "guid": "NHMSYS0001387438"
+    },
+    {
+      "common_name": "Mole Cricket",
+      "scientific_name": "Gryllotalpa gryllotalpa",
+      "occurrence_count": 163,
+      "guid": "NBNSYS0000006830"
+    },
+    {
+      "common_name": "Southern Oak Bush-cricket",
+      "scientific_name": "Meconema meridionale",
+      "occurrence_count": 2361,
+      "guid": "NHMSYS0020977729"
+    },
+    {
+      "common_name": "Long-winged Cone-head",
+      "scientific_name": "Conocephalus fuscus",
+      "occurrence_count": 12111,
+      "guid": "NHMSYS0020752279"
+    },
+    {
+      "common_name": "Common Green Grasshopper",
+      "scientific_name": "Omocestus viridulus",
+      "occurrence_count": 24692,
+      "guid": "NBNSYS0000006838"
+    },
+    {
+      "common_name": "Slender Ground-hopper",
+      "scientific_name": "Tetrix subulata",
+      "occurrence_count": 8773,
+      "guid": "NBNSYS0000006832"
+    },
+    {
+      "common_name": "Stripe-winged Grasshopper",
+      "scientific_name": "Stenobothrus lineatus",
+      "occurrence_count": 2250,
+      "guid": "NBNSYS0000006835"
+    },
+    {
+      "common_name": "Mottled Grasshopper",
+      "scientific_name": "Myrmeleotettix maculatus",
+      "occurrence_count": 8138,
+      "guid": "NBNSYS0000006839"
+    },
+    {
+      "common_name": "House Cricket",
+      "scientific_name": "Acheta domesticus",
+      "occurrence_count": 1122,
+      "guid": "NBNSYS0000006827"
+    },
+    {
+      "common_name": "Wood Cricket",
+      "scientific_name": "Nemobius sylvestris",
+      "occurrence_count": 893,
+      "guid": "NBNSYS0000006828"
+    },
+    {
+      "common_name": "Great Green Bush-cricket",
+      "scientific_name": "Tettigonia viridissima",
+      "occurrence_count": 5736,
+      "guid": "NHMSYS0001387471"
+    },
+    {
+      "common_name": "Field Cricket",
+      "scientific_name": "Gryllus campestris",
+      "occurrence_count": 218,
+      "guid": "NHMSYS0001387363"
+    }
+  ]
+}

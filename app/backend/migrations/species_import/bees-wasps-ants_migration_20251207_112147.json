@@ -1,0 +1,3530 @@
+{
+  "species_type": "bees-wasps-ants",
+  "timestamp": "2025-12-07T11:21:47.644037",
+  "summary": {
+    "total_db_species": 0,
+    "high_confidence": 0,
+    "low_confidence": 0,
+    "no_match": 0,
+    "new_api_species": 586
+  },
+  "matches": [],
+  "new_species": [
+    {
+      "common_name": "",
+      "scientific_name": "Promethes sulcator",
+      "occurrence_count": 154,
+      "guid": "NBNSYS0000031436"
+    },
+    {
+      "common_name": "Small Scissor Bee",
+      "scientific_name": "Chelostoma campanularum",
+      "occurrence_count": 686,
+      "guid": "NHMSYS0000875648"
+    },
+    {
+      "common_name": "Small Sallow Mining Bee",
+      "scientific_name": "Andrena praecox",
+      "occurrence_count": 457,
+      "guid": "NHMSYS0000875257"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Perilissus albitarsis",
+      "occurrence_count": 216,
+      "guid": "NHMSYS0000900787"
+    },
+    {
+      "common_name": "Shady Tigress",
+      "scientific_name": "Athalia lugens",
+      "occurrence_count": 366,
+      "guid": "NHMSYS0020480804"
+    },
+    {
+      "common_name": "Common Mini-miner",
+      "scientific_name": "Andrena minutula",
+      "occurrence_count": 2148,
+      "guid": "NHMSYS0000875234"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Mimesa lutaria",
+      "occurrence_count": 147,
+      "guid": "NHMSYS0000876336"
+    },
+    {
+      "common_name": "Gwynne's Mining Bee",
+      "scientific_name": "Andrena bicolor",
+      "occurrence_count": 4267,
+      "guid": "NHMSYS0000875171"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura pavida",
+      "occurrence_count": 377,
+      "guid": "NHMSYS0021240403"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Itoplectis maculator",
+      "occurrence_count": 122,
+      "guid": "NBNSYS0000031079"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrophya punctumalbum",
+      "occurrence_count": 214,
+      "guid": "NHMSYS0020920197"
+    },
+    {
+      "common_name": "Variable Nomad Bee",
+      "scientific_name": "Nomada zonata",
+      "occurrence_count": 200,
+      "guid": "NHMSYS0020936600"
+    },
+    {
+      "common_name": "Chalk Yellow-face Bee",
+      "scientific_name": "Hylaeus dilatatus",
+      "occurrence_count": 354,
+      "guid": "NHMSYS0000876102"
+    },
+    {
+      "common_name": "Heath Sand Wasp",
+      "scientific_name": "Ammophila pubescens",
+      "occurrence_count": 209,
+      "guid": "NHMSYS0000875038"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lissonota coracina",
+      "occurrence_count": 127,
+      "guid": "NHMSYS0020920157"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis parvula",
+      "occurrence_count": 434,
+      "guid": "NBNSYS0000009407"
+    },
+    {
+      "common_name": "Small Shaggy Bee",
+      "scientific_name": "Panurgus calcaratus",
+      "occurrence_count": 236,
+      "guid": "NHMSYS0000876529"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cladius pilicornis",
+      "occurrence_count": 207,
+      "guid": "NHMSYS0020920101"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pseudomalus violaceus",
+      "occurrence_count": 104,
+      "guid": "NBNSYS0100004923"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stigmus pendulus",
+      "occurrence_count": 144,
+      "guid": "NHMSYS0000876716"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dipogon variegatus",
+      "occurrence_count": 320,
+      "guid": "NBNSYS0000009397"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Selandria serva",
+      "occurrence_count": 1090,
+      "guid": "NHMSYS0020482224"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Argogorytes fargeii",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0000875445"
+    },
+    {
+      "common_name": "Grey-banded Mining Bee",
+      "scientific_name": "Andrena denticulata",
+      "occurrence_count": 689,
+      "guid": "NHMSYS0000875192"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ichneumon suspiciosus",
+      "occurrence_count": 134,
+      "guid": "NHMSYS0000899758"
+    },
+    {
+      "common_name": "Swollen-thighed Blood Bee",
+      "scientific_name": "Sphecodes crassus",
+      "occurrence_count": 427,
+      "guid": "NBNSYS0000009728"
+    },
+    {
+      "common_name": "Red Wasp",
+      "scientific_name": "Vespula rufa",
+      "occurrence_count": 1458,
+      "guid": "NHMSYS0000876782"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoplius nigerrimus",
+      "occurrence_count": 1171,
+      "guid": "NHMSYS0000875308"
+    },
+    {
+      "common_name": "Turquoise Furrow Bee",
+      "scientific_name": "Lasioglossum cupromicans",
+      "occurrence_count": 531,
+      "guid": "NHMSYS0000876175"
+    },
+    {
+      "common_name": "Black-horned Nomad Bee",
+      "scientific_name": "Nomada rufipes",
+      "occurrence_count": 723,
+      "guid": "NHMSYS0000876448"
+    },
+    {
+      "common_name": "Rufescent Sharp-tail Bee",
+      "scientific_name": "Coelioxys rufescens",
+      "occurrence_count": 130,
+      "guid": "NHMSYS0000875704"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysis ruddii",
+      "occurrence_count": 130,
+      "guid": "NHMSYS0000875668"
+    },
+    {
+      "common_name": "Little Nomad Bee",
+      "scientific_name": "Nomada flavoguttata",
+      "occurrence_count": 1544,
+      "guid": "NHMSYS0000876420"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysis vanlithi",
+      "occurrence_count": 183,
+      "guid": "NHMSYS0021231943"
+    },
+    {
+      "common_name": "Knopper Gall",
+      "scientific_name": "Andricus quercuscalicis",
+      "occurrence_count": 2130,
+      "guid": "NBNSYS0000031922"
+    },
+    {
+      "common_name": "Ridge-saddled Carpenter Bee",
+      "scientific_name": "Heriades truncorum",
+      "occurrence_count": 528,
+      "guid": "NHMSYS0000876052"
+    },
+    {
+      "common_name": "Silver Spiny Digger Wasp",
+      "scientific_name": "Oxybelus argentatus",
+      "occurrence_count": 367,
+      "guid": "NHMSYS0000876522"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tiphia femorata",
+      "occurrence_count": 742,
+      "guid": "NHMSYS0000876757"
+    },
+    {
+      "common_name": "Cuckoo Wasp",
+      "scientific_name": "Vespula austriaca",
+      "occurrence_count": 154,
+      "guid": "NHMSYS0000876780"
+    },
+    {
+      "common_name": "Early Nomad Bee",
+      "scientific_name": "Nomada leucophthalma",
+      "occurrence_count": 957,
+      "guid": "NHMSYS0000876436"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nematus lucidus",
+      "occurrence_count": 273,
+      "guid": "NBNSYS0000013662"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ophion scutellaris",
+      "occurrence_count": 130,
+      "guid": "NBNSYS0000031331"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tachysphex pompiliformis",
+      "occurrence_count": 1075,
+      "guid": "NHMSYS0000876735"
+    },
+    {
+      "common_name": "Gold-Fringed Mason Bee",
+      "scientific_name": "Osmia aurulenta",
+      "occurrence_count": 1062,
+      "guid": "NHMSYS0000876507"
+    },
+    {
+      "common_name": "Brown-banded Carder Bee",
+      "scientific_name": "Bombus humilis",
+      "occurrence_count": 5902,
+      "guid": "NHMSYS0000875563"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo maculata",
+      "occurrence_count": 238,
+      "guid": "NBNSYS0000013476"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Mimumesa dahlbomi",
+      "occurrence_count": 393,
+      "guid": "NBNSYS0100004089"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Platycampus luridiventris",
+      "occurrence_count": 198,
+      "guid": "NHMSYS0020481830"
+    },
+    {
+      "common_name": "Turnip Tigress",
+      "scientific_name": "Athalia rosae",
+      "occurrence_count": 2429,
+      "guid": "NHMSYS0020480806"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo notha",
+      "occurrence_count": 726,
+      "guid": "NBNSYS0100005775"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus haematodes",
+      "occurrence_count": 203,
+      "guid": "NBNSYS0000013336"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius ruficornis",
+      "occurrence_count": 219,
+      "guid": "NHMSYS0000875894"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lonchodryinus ruficornis",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0000876271"
+    },
+    {
+      "common_name": "Buff-tailed Mining Bee",
+      "scientific_name": "Andrena humilis",
+      "occurrence_count": 419,
+      "guid": "NHMSYS0000875218"
+    },
+    {
+      "common_name": "Slender Digger Wasp",
+      "scientific_name": "Crossocerus elongatulus",
+      "occurrence_count": 723,
+      "guid": "NHMSYS0000875785"
+    },
+    {
+      "common_name": "Belted Tigress",
+      "scientific_name": "Athalia bicolor",
+      "occurrence_count": 199,
+      "guid": "NHMSYS0020480796"
+    },
+    {
+      "common_name": "False Margined Blood Bee",
+      "scientific_name": "Sphecodes miniatus",
+      "occurrence_count": 105,
+      "guid": "NBNSYS0000009736"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lasius umbratus",
+      "occurrence_count": 280,
+      "guid": "NHMSYS0000876228"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus varispinus",
+      "occurrence_count": 164,
+      "guid": "NHMSYS0020920127"
+    },
+    {
+      "common_name": "Black-thighed Epeolus",
+      "scientific_name": "Epeolus variegatus",
+      "occurrence_count": 659,
+      "guid": "NHMSYS0000875912"
+    },
+    {
+      "common_name": "Broad-margined Mining Bee",
+      "scientific_name": "Andrena synadelpha",
+      "occurrence_count": 267,
+      "guid": "NHMSYS0000875280"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus palmipes",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0000875797"
+    },
+    {
+      "common_name": "Brown-footed Leafcutter Bee",
+      "scientific_name": "Megachile versicolor",
+      "occurrence_count": 715,
+      "guid": "NHMSYS0000876302"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sapyga quinquepunctata",
+      "occurrence_count": 784,
+      "guid": "NHMSYS0000876664"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo mesomela",
+      "occurrence_count": 1622,
+      "guid": "NHMSYS0020920295"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trichrysis cyanea",
+      "occurrence_count": 661,
+      "guid": "NHMSYS0000876762"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ichneumon xanthorius",
+      "occurrence_count": 109,
+      "guid": "NBNSYS0000031600"
+    },
+    {
+      "common_name": "Rose Bedeguar Causer",
+      "scientific_name": "Diplolepis rosae",
+      "occurrence_count": 2010,
+      "guid": "NBNSYS0000031893"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trichopria aequata",
+      "occurrence_count": 188,
+      "guid": "NBNSYS0000032935"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus nigritus",
+      "occurrence_count": 232,
+      "guid": "NHMSYS0000875793"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Heterarthrus wuestneii",
+      "occurrence_count": 137,
+      "guid": "NHMSYS0020481251"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Astata boops",
+      "occurrence_count": 408,
+      "guid": "NHMSYS0000875449"
+    },
+    {
+      "common_name": "Yellow-legged Mining Bee",
+      "scientific_name": "Andrena flavipes",
+      "occurrence_count": 3794,
+      "guid": "NHMSYS0000875202"
+    },
+    {
+      "common_name": "Fabricius' Nomad Bee",
+      "scientific_name": "Nomada fabriciana",
+      "occurrence_count": 2135,
+      "guid": "NHMSYS0000876415"
+    },
+    {
+      "common_name": "Sainfoin Blunthorn Bee",
+      "scientific_name": "Melitta dimidiata",
+      "occurrence_count": 174,
+      "guid": "NHMSYS0000876311"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus germanicus",
+      "occurrence_count": 283,
+      "guid": "NBNSYS0000013333"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus niger",
+      "occurrence_count": 294,
+      "guid": "NBNSYS0000013341"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura pedunculi",
+      "occurrence_count": 880,
+      "guid": "NHMSYS0021240408"
+    },
+    {
+      "common_name": "Willughby's Leafcutter Bee",
+      "scientific_name": "Megachile willughbiella",
+      "occurrence_count": 1635,
+      "guid": "NHMSYS0000876303"
+    },
+    {
+      "common_name": "Ashy Mining Bee",
+      "scientific_name": "Andrena cineraria",
+      "occurrence_count": 9131,
+      "guid": "NHMSYS0000875177"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Harpactus tumidus",
+      "occurrence_count": 352,
+      "guid": "NHMSYS0000876038"
+    },
+    {
+      "common_name": "Small Tiphia",
+      "scientific_name": "Tiphia minuta",
+      "occurrence_count": 303,
+      "guid": "NHMSYS0000876758"
+    },
+    {
+      "common_name": "Yellow Loosestrife Bee",
+      "scientific_name": "Macropis europaea",
+      "occurrence_count": 419,
+      "guid": "NHMSYS0000876276"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrophya alboannulata",
+      "occurrence_count": 127,
+      "guid": "NBNSYS0000042236"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius sexcinctus",
+      "occurrence_count": 194,
+      "guid": "NBNSYS0000009512"
+    },
+    {
+      "common_name": "Bilberry Bumblebee",
+      "scientific_name": "Bombus monticola",
+      "occurrence_count": 4904,
+      "guid": "NHMSYS0000875571"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Formica lemani",
+      "occurrence_count": 3236,
+      "guid": "NHMSYS0000875957"
+    },
+    {
+      "common_name": "Black-headed Leafcutter Bee",
+      "scientific_name": "Megachile circumcincta",
+      "occurrence_count": 242,
+      "guid": "NHMSYS0000876296"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysura radians",
+      "occurrence_count": 146,
+      "guid": "NHMSYS0000875679"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo brevicornis",
+      "occurrence_count": 416,
+      "guid": "NBNSYS0100005774"
+    },
+    {
+      "common_name": "Common Wasp",
+      "scientific_name": "Vespula vulgaris",
+      "occurrence_count": 14635,
+      "guid": "NHMSYS0000876783"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Profenusa pygmaea",
+      "occurrence_count": 778,
+      "guid": "NHMSYS0020482134"
+    },
+    {
+      "common_name": "Orange-horned Nomad Bee",
+      "scientific_name": "Nomada fulvicornis",
+      "occurrence_count": 318,
+      "guid": "NHMSYS0000876423"
+    },
+    {
+      "common_name": "Yellow Meadow Ant",
+      "scientific_name": "Lasius flavus",
+      "occurrence_count": 7005,
+      "guid": "NHMSYS0000876223"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius dives",
+      "occurrence_count": 100,
+      "guid": "NHMSYS0000875883"
+    },
+    {
+      "common_name": "Red-shanked Carder Bee",
+      "scientific_name": "Bombus ruderarius",
+      "occurrence_count": 1047,
+      "guid": "NHMSYS0000875582"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus capitosus",
+      "occurrence_count": 144,
+      "guid": "NHMSYS0000875778"
+    },
+    {
+      "common_name": "Hedgerow Spinner",
+      "scientific_name": "Pamphilius sylvaticus",
+      "occurrence_count": 125,
+      "guid": "NHMSYS0020481766"
+    },
+    {
+      "common_name": "Smeathman's Furrow Bee",
+      "scientific_name": "Lasioglossum smeathmanellum",
+      "occurrence_count": 1226,
+      "guid": "NHMSYS0000876212"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoplius concinnus",
+      "occurrence_count": 234,
+      "guid": "NHMSYS0000875305"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Empria tridens",
+      "occurrence_count": 147,
+      "guid": "NHMSYS0020481117"
+    },
+    {
+      "common_name": "Hawksbeard Mining Bee",
+      "scientific_name": "Andrena fulvago",
+      "occurrence_count": 185,
+      "guid": "NHMSYS0000875208"
+    },
+    {
+      "common_name": "Sandpit Mining Bee",
+      "scientific_name": "Andrena barbilabris",
+      "occurrence_count": 1561,
+      "guid": "NHMSYS0000875170"
+    },
+    {
+      "common_name": "Heather (Girdled) Colletes",
+      "scientific_name": "Colletes succinctus",
+      "occurrence_count": 1550,
+      "guid": "NHMSYS0000875731"
+    },
+    {
+      "common_name": "Tufted Furrow Bee",
+      "scientific_name": "Lasioglossum nitidiusculum",
+      "occurrence_count": 263,
+      "guid": "NHMSYS0000876195"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Syrphoctonus tarsatorius",
+      "occurrence_count": 160,
+      "guid": "NBNSYS0000031409"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Andricus aries",
+      "occurrence_count": 209,
+      "guid": "NHMSYS0020470128"
+    },
+    {
+      "common_name": "Birch Clubhorn",
+      "scientific_name": "Cimbex femoratus",
+      "occurrence_count": 613,
+      "guid": "NHMSYS0020480904"
+    },
+    {
+      "common_name": "Least Furrow Bee",
+      "scientific_name": "Lasioglossum minutissimum",
+      "occurrence_count": 722,
+      "guid": "NHMSYS0000876191"
+    },
+    {
+      "common_name": "Yellow-shouldered Nomad Bee",
+      "scientific_name": "Nomada ferruginata",
+      "occurrence_count": 200,
+      "guid": "NHMSYS0000876418"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Evagetes crassicornis",
+      "occurrence_count": 725,
+      "guid": "NBNSYS0000009424"
+    },
+    {
+      "common_name": "Bloomed Furrow Bee",
+      "scientific_name": "Lasioglossum albipes",
+      "occurrence_count": 1722,
+      "guid": "NHMSYS0000876168"
+    },
+    {
+      "common_name": "Cryptic Bumblebee",
+      "scientific_name": "Bombus cryptarum",
+      "occurrence_count": 336,
+      "guid": "NBNSYS0100002027"
+    },
+    {
+      "common_name": "Purbeck Mason Wasp",
+      "scientific_name": "Pseudepipona herrichii",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0000876638"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Endromopoda detrita",
+      "occurrence_count": 142,
+      "guid": "NBNSYS0000031025"
+    },
+    {
+      "common_name": "Blunthorn Nomad Bee",
+      "scientific_name": "Nomada flavopicta",
+      "occurrence_count": 376,
+      "guid": "NHMSYS0000876421"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lasius alienus",
+      "occurrence_count": 555,
+      "guid": "NHMSYS0000873235"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Caliadurgus fasciatellus",
+      "occurrence_count": 171,
+      "guid": "NBNSYS0000009399"
+    },
+    {
+      "common_name": "Red Wood Ant",
+      "scientific_name": "Formica rufa",
+      "occurrence_count": 2782,
+      "guid": "NHMSYS0000875963"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Heterarthrus vagans",
+      "occurrence_count": 379,
+      "guid": "NHMSYS0020481250"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalum coarctatum",
+      "occurrence_count": 398,
+      "guid": "NHMSYS0000876656"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Agenioideus cinctellus",
+      "occurrence_count": 229,
+      "guid": "NBNSYS0000009414"
+    },
+    {
+      "common_name": "Spiny Mason Wasp",
+      "scientific_name": "Odynerus spinipes",
+      "occurrence_count": 631,
+      "guid": "NHMSYS0000876484"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Mimesa equestris",
+      "occurrence_count": 347,
+      "guid": "NBNSYS0100004083"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Blennocampa phyllocolpa",
+      "occurrence_count": 1233,
+      "guid": "NBNSYS0100002013"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus nigratus",
+      "occurrence_count": 618,
+      "guid": "NBNSYS0000013342"
+    },
+    {
+      "common_name": "Hairy-footed Flower Bee",
+      "scientific_name": "Anthophora plumipes",
+      "occurrence_count": 16460,
+      "guid": "NHMSYS0000875407"
+    },
+    {
+      "common_name": "White-faced Mason Bee",
+      "scientific_name": "Osmia (Osmia) cornuta",
+      "occurrence_count": 191,
+      "guid": "NHMSYS0021167227"
+    },
+    {
+      "common_name": "White-jawed Yellow-face Bee",
+      "scientific_name": "Hylaeus confusus",
+      "occurrence_count": 632,
+      "guid": "NHMSYS0000876100"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus megacephalus",
+      "occurrence_count": 753,
+      "guid": "NHMSYS0000875792"
+    },
+    {
+      "common_name": "White-zoned Furrow Bee",
+      "scientific_name": "Lasioglossum leucozonium",
+      "occurrence_count": 1714,
+      "guid": "NHMSYS0000876186"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Amblyteles armatorius",
+      "occurrence_count": 505,
+      "guid": "NBNSYS0000031641"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Alloxysta victrix",
+      "occurrence_count": 182,
+      "guid": "NBNSYS0000031952"
+    },
+    {
+      "common_name": "Small Black Ant",
+      "scientific_name": "Lasius niger",
+      "occurrence_count": 9636,
+      "guid": "NHMSYS0000873237"
+    },
+    {
+      "common_name": "Hairy Wood Ant",
+      "scientific_name": "Formica lugubris",
+      "occurrence_count": 2379,
+      "guid": "NHMSYS0000875958"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Scolioneura betuleti",
+      "occurrence_count": 265,
+      "guid": "NHMSYS0020482196"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dryudella pinguis",
+      "occurrence_count": 244,
+      "guid": "NBNSYS0100002902"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Monosapyga clavicornis",
+      "occurrence_count": 178,
+      "guid": "NHMSYS0000876352"
+    },
+    {
+      "common_name": "Banded Clubhorn",
+      "scientific_name": "Abia fasciata",
+      "occurrence_count": 370,
+      "guid": "NHMSYS0021168645"
+    },
+    {
+      "common_name": "Red-backed Mining Bee",
+      "scientific_name": "Andrena similis",
+      "occurrence_count": 212,
+      "guid": "NHMSYS0000875273"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Perilissus variator",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0000900804"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dipogon subintermedius",
+      "occurrence_count": 310,
+      "guid": "NBNSYS0000009396"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trypoxylon figulus",
+      "occurrence_count": 261,
+      "guid": "NHMSYS0000873271"
+    },
+    {
+      "common_name": "Lathbury's Nomad Bee",
+      "scientific_name": "Nomada lathburiana",
+      "occurrence_count": 1118,
+      "guid": "NHMSYS0000876435"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis hyalinata",
+      "occurrence_count": 110,
+      "guid": "NBNSYS0000009406"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diplazon pectoratorius",
+      "occurrence_count": 184,
+      "guid": "NHMSYS0000898595"
+    },
+    {
+      "common_name": "Welted Lesser Mason Bee",
+      "scientific_name": "Hoplitis claviventris",
+      "occurrence_count": 302,
+      "guid": "NHMSYS0000876071"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhogogaster chlorosoma",
+      "occurrence_count": 305,
+      "guid": "NHMSYS0020482176"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus liogaster",
+      "occurrence_count": 106,
+      "guid": "NBNSYS0000013338"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ancistrocerus oviventris",
+      "occurrence_count": 548,
+      "guid": "NBNSYS0000009451"
+    },
+    {
+      "common_name": "Angled Stem-sawfly",
+      "scientific_name": "Cephus spinipes",
+      "occurrence_count": 456,
+      "guid": "NHMSYS0020480896"
+    },
+    {
+      "common_name": "Pallid Tigress",
+      "scientific_name": "Athalia liberta",
+      "occurrence_count": 195,
+      "guid": "NBNSYS0000013362"
+    },
+    {
+      "common_name": "Buffish Mining Bee",
+      "scientific_name": "Andrena nigroaenea",
+      "occurrence_count": 4347,
+      "guid": "NHMSYS0000875243"
+    },
+    {
+      "common_name": "Reed Stem Borer",
+      "scientific_name": "Calameuta filiformis",
+      "occurrence_count": 260,
+      "guid": "NBNSYS0000013258"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysis viridula",
+      "occurrence_count": 410,
+      "guid": "NHMSYS0000875674"
+    },
+    {
+      "common_name": "Oak Apple Gall Causer",
+      "scientific_name": "Biorhiza pallida",
+      "occurrence_count": 1295,
+      "guid": "NBNSYS0000031939"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Monophadnus pallescens",
+      "occurrence_count": 145,
+      "guid": "NHMSYS0020481413"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cynips longiventris",
+      "occurrence_count": 113,
+      "guid": "NBNSYS0000031935"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrophya rufipes",
+      "occurrence_count": 117,
+      "guid": "NBNSYS0000013504"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cladius compressicornis",
+      "occurrence_count": 203,
+      "guid": "NHMSYS0020920100"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Monsoma pulveratum",
+      "occurrence_count": 109,
+      "guid": "NHMSYS0020481421"
+    },
+    {
+      "common_name": "Northern White-tailed Bumblebee",
+      "scientific_name": "Bombus magnus",
+      "occurrence_count": 1161,
+      "guid": "NBNSYS0000009837"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus cothurnatus",
+      "occurrence_count": 165,
+      "guid": "NBNSYS0000013331"
+    },
+    {
+      "common_name": "Hairy Sand Wasp",
+      "scientific_name": "Podalonia hirsuta",
+      "occurrence_count": 866,
+      "guid": "NHMSYS0000876592"
+    },
+    {
+      "common_name": "Buff-tailed Bumblebee",
+      "scientific_name": "Bombus terrestris",
+      "occurrence_count": 104801,
+      "guid": "NHMSYS0000875595"
+    },
+    {
+      "common_name": "Shaggy Furrow Bee",
+      "scientific_name": "Lasioglossum villosulum",
+      "occurrence_count": 1396,
+      "guid": "NHMSYS0000876215"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stethomostus fuliginosus",
+      "occurrence_count": 204,
+      "guid": "NHMSYS0020482269"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus puncticollis",
+      "occurrence_count": 121,
+      "guid": "NBNSYS0000013347"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lindenius albilabris",
+      "occurrence_count": 1172,
+      "guid": "NHMSYS0000876241"
+    },
+    {
+      "common_name": "Smooth-faced Furrow Bee",
+      "scientific_name": "Lasioglossum fratellum",
+      "occurrence_count": 982,
+      "guid": "NHMSYS0000876178"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmica sabuleti",
+      "occurrence_count": 1370,
+      "guid": "NHMSYS0000876373"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Heterarthrus fiora",
+      "occurrence_count": 512,
+      "guid": "NHMSYS0021239673"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Temnothorax nylanderi",
+      "occurrence_count": 360,
+      "guid": "NHMSYS0000876743"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus ferrugatus",
+      "occurrence_count": 176,
+      "guid": "NBNSYS0000013332"
+    },
+    {
+      "common_name": "Shuckard's Wasp",
+      "scientific_name": "Pemphredon inornata",
+      "occurrence_count": 505,
+      "guid": "NHMSYS0000876562"
+    },
+    {
+      "common_name": "Furry-bellied Blood Bee",
+      "scientific_name": "Sphecodes hyalinatus",
+      "occurrence_count": 225,
+      "guid": "NHMSYS0000876683"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolichovespula saxonica",
+      "occurrence_count": 759,
+      "guid": "NHMSYS0000875848"
+    },
+    {
+      "common_name": "Cherry Gall",
+      "scientific_name": "Cynips quercusfolii",
+      "occurrence_count": 546,
+      "guid": "NBNSYS0000031936"
+    },
+    {
+      "common_name": "Mournful Wasp",
+      "scientific_name": "Pemphredon lugubris",
+      "occurrence_count": 938,
+      "guid": "NHMSYS0000876563"
+    },
+    {
+      "common_name": "Slender Wood Borer Wasp",
+      "scientific_name": "Trypoxylon attenuatum",
+      "occurrence_count": 936,
+      "guid": "NHMSYS0000876764"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis schioedtei",
+      "occurrence_count": 136,
+      "guid": "NBNSYS0000009410"
+    },
+    {
+      "common_name": "Ridge-cheeked Furrow Bee",
+      "scientific_name": "Lasioglossum puncticolle",
+      "occurrence_count": 292,
+      "guid": "NHMSYS0000876203"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhogogaster scalaris",
+      "occurrence_count": 634,
+      "guid": "NBNSYS0100005132"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Spilomena troglodytes",
+      "occurrence_count": 111,
+      "guid": "NHMSYS0000876705"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Fenella nigrita",
+      "occurrence_count": 164,
+      "guid": "NHMSYS0020481187"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredopsis coquebertii",
+      "occurrence_count": 251,
+      "guid": "NHMSYS0020482478"
+    },
+    {
+      "common_name": "Black Mining Bee",
+      "scientific_name": "Andrena pilipes",
+      "occurrence_count": 324,
+      "guid": "NHMSYS0000875254"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus tarsatus",
+      "occurrence_count": 288,
+      "guid": "NHMSYS0000875805"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nesoselandria morio",
+      "occurrence_count": 209,
+      "guid": "NHMSYS0020973393"
+    },
+    {
+      "common_name": "Flavous Nomad Bee",
+      "scientific_name": "Nomada flava",
+      "occurrence_count": 2117,
+      "guid": "NHMSYS0000876419"
+    },
+    {
+      "common_name": "Western Honey Bee",
+      "scientific_name": "Apis mellifera",
+      "occurrence_count": 55105,
+      "guid": "NHMSYS0000875423"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hedychrum niemelai",
+      "occurrence_count": 235,
+      "guid": "NHMSYS0000876047"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hemichroa crocea",
+      "occurrence_count": 145,
+      "guid": "NHMSYS0020481233"
+    },
+    {
+      "common_name": "Blunt Tailed Digger Wasp",
+      "scientific_name": "Crossocerus dimidiatus",
+      "occurrence_count": 382,
+      "guid": "NHMSYS0000875783"
+    },
+    {
+      "common_name": "Small Gorse Mining Bee",
+      "scientific_name": "Andrena ovatula",
+      "occurrence_count": 487,
+      "guid": "NHMSYS0000875249"
+    },
+    {
+      "common_name": "Ivy Bee",
+      "scientific_name": "Colletes hederae",
+      "occurrence_count": 10417,
+      "guid": "NBNSYS0100002538"
+    },
+    {
+      "common_name": "Norwegian Wasp",
+      "scientific_name": "Dolichovespula norwegica",
+      "occurrence_count": 1117,
+      "guid": "NHMSYS0000875847"
+    },
+    {
+      "common_name": "Common Pine Combhorn",
+      "scientific_name": "Diprion pini",
+      "occurrence_count": 153,
+      "guid": "NHMSYS0020480993"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diplolepis nervosa",
+      "occurrence_count": 332,
+      "guid": "NBNSYS0000031892"
+    },
+    {
+      "common_name": "Artichoke Gall",
+      "scientific_name": "Andricus foecundatrix",
+      "occurrence_count": 1400,
+      "guid": "NHMSYS0021206456"
+    },
+    {
+      "common_name": "Hairy Yellow-face",
+      "scientific_name": "Hylaeus hyalinatus",
+      "occurrence_count": 1269,
+      "guid": "NHMSYS0000876106"
+    },
+    {
+      "common_name": "Wild Rose Fusehorn",
+      "scientific_name": "Arge ochropus",
+      "occurrence_count": 352,
+      "guid": "NHMSYS0020480782"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredopsis litterata",
+      "occurrence_count": 304,
+      "guid": "NHMSYS0020482489"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo livida",
+      "occurrence_count": 1086,
+      "guid": "NBNSYS0000013475"
+    },
+    {
+      "common_name": "Impunctate Mini-miner",
+      "scientific_name": "Andrena subopaca",
+      "occurrence_count": 1071,
+      "guid": "NHMSYS0000875279"
+    },
+    {
+      "common_name": "Large Yellow-face Bee",
+      "scientific_name": "Hylaeus signatus",
+      "occurrence_count": 389,
+      "guid": "NHMSYS0000876116"
+    },
+    {
+      "common_name": "Dark Blood Bee",
+      "scientific_name": "Sphecodes niger",
+      "occurrence_count": 202,
+      "guid": "NHMSYS0000876687"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Caliroa annulipes",
+      "occurrence_count": 144,
+      "guid": "NHMSYS0020480852"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo amoena",
+      "occurrence_count": 156,
+      "guid": "NBNSYS0000013466"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Halidamia affinis",
+      "occurrence_count": 202,
+      "guid": "NHMSYS0020481224"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus podagricus",
+      "occurrence_count": 679,
+      "guid": "NHMSYS0000875798"
+    },
+    {
+      "common_name": "Heather Mining Bee",
+      "scientific_name": "Andrena fuscipes",
+      "occurrence_count": 437,
+      "guid": "NHMSYS0000875212"
+    },
+    {
+      "common_name": "Reticulate Blood Bee",
+      "scientific_name": "Sphecodes reticulatus",
+      "occurrence_count": 206,
+      "guid": "NHMSYS0000876692"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hoplocampa pectoralis",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0020481265"
+    },
+    {
+      "common_name": "Squat Furrow Bee",
+      "scientific_name": "Lasioglossum pauperatum",
+      "occurrence_count": 137,
+      "guid": "NHMSYS0000876199"
+    },
+    {
+      "common_name": "Coast Leafcutter Bee",
+      "scientific_name": "Megachile maritima",
+      "occurrence_count": 645,
+      "guid": "NHMSYS0000876301"
+    },
+    {
+      "common_name": "Grey-gastered Mining Bee",
+      "scientific_name": "Andrena tibialis",
+      "occurrence_count": 185,
+      "guid": "NHMSYS0000875283"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Caliroa cerasi",
+      "occurrence_count": 413,
+      "guid": "NHMSYS0020480853"
+    },
+    {
+      "common_name": "Scarce Scabious Clubhorn",
+      "scientific_name": "Abia candens",
+      "occurrence_count": 109,
+      "guid": "NHMSYS0020480646"
+    },
+    {
+      "common_name": "Mud Wasp",
+      "scientific_name": "Podalonia affinis",
+      "occurrence_count": 262,
+      "guid": "NHMSYS0000876591"
+    },
+    {
+      "common_name": "Large Meadow Mining Bee",
+      "scientific_name": "Andrena labialis",
+      "occurrence_count": 384,
+      "guid": "NHMSYS0000875221"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmica ruginodis",
+      "occurrence_count": 8343,
+      "guid": "NHMSYS0000876371"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus ovalis",
+      "occurrence_count": 408,
+      "guid": "NHMSYS0000875794"
+    },
+    {
+      "common_name": "Small Flecked Mining Bee",
+      "scientific_name": "Andrena coitana",
+      "occurrence_count": 376,
+      "guid": "NHMSYS0000875181"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Psenulus concolor",
+      "occurrence_count": 129,
+      "guid": "NHMSYS0000876634"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anteon pubicorne",
+      "occurrence_count": 109,
+      "guid": "NHMSYS0000875365"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius lituratus",
+      "occurrence_count": 434,
+      "guid": "NHMSYS0000875887"
+    },
+    {
+      "common_name": "Large Velvet Ant",
+      "scientific_name": "Mutilla europaea",
+      "occurrence_count": 202,
+      "guid": "NHMSYS0000876354"
+    },
+    {
+      "common_name": "Cliff Mason Bee",
+      "scientific_name": "Osmia xanthomelana",
+      "occurrence_count": 208,
+      "guid": "NHMSYS0000876520"
+    },
+    {
+      "common_name": "Small Spurred Digger Wasp",
+      "scientific_name": "Nysson dimidiatus",
+      "occurrence_count": 248,
+      "guid": "NHMSYS0000876469"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pseudomalus auratus",
+      "occurrence_count": 415,
+      "guid": "NBNSYS0100004922"
+    },
+    {
+      "common_name": "Ornate Tailed Digger Wasp",
+      "scientific_name": "Cerceris rybyensis",
+      "occurrence_count": 1833,
+      "guid": "NHMSYS0000875634"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eriocampa ovata",
+      "occurrence_count": 836,
+      "guid": "NHMSYS0020481132"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrophya annulata",
+      "occurrence_count": 640,
+      "guid": "NBNSYS0000013498"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura kirbyi",
+      "occurrence_count": 134,
+      "guid": "NHMSYS0021240248"
+    },
+    {
+      "common_name": "Silvery Leafcutter Bee",
+      "scientific_name": "Megachile leachella",
+      "occurrence_count": 840,
+      "guid": "NHMSYS0020977399"
+    },
+    {
+      "common_name": "Blunt-jawed Nomad Bee",
+      "scientific_name": "Nomada striata",
+      "occurrence_count": 416,
+      "guid": "NHMSYS0000876460"
+    },
+    {
+      "common_name": "Painted Mining Bee",
+      "scientific_name": "Andrena fucata",
+      "occurrence_count": 622,
+      "guid": "NHMSYS0000875206"
+    },
+    {
+      "common_name": "Vestal Cuckoo Bee",
+      "scientific_name": "Bombus vestalis",
+      "occurrence_count": 10543,
+      "guid": "NBNSYS0100002030"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Birka cinereipes",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0020480815"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura myosotidis",
+      "occurrence_count": 275,
+      "guid": "NHMSYS0021240353"
+    },
+    {
+      "common_name": "Oyster Gall",
+      "scientific_name": "Neuroterus anthracinus",
+      "occurrence_count": 939,
+      "guid": "NHMSYS0021206577"
+    },
+    {
+      "common_name": "Gypsy Cuckoo Bee",
+      "scientific_name": "Bombus bohemicus",
+      "occurrence_count": 3024,
+      "guid": "NBNSYS0100002025"
+    },
+    {
+      "common_name": "Short-horned Yellow-face Bee",
+      "scientific_name": "Hylaeus brevicornis",
+      "occurrence_count": 648,
+      "guid": "NHMSYS0000876098"
+    },
+    {
+      "common_name": "Bull-headed Furrow Bee",
+      "scientific_name": "Lasioglossum zonulum",
+      "occurrence_count": 542,
+      "guid": "NHMSYS0000876218"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Passaloecus singularis",
+      "occurrence_count": 393,
+      "guid": "NHMSYS0000876544"
+    },
+    {
+      "common_name": "Bilberry Mining Bee",
+      "scientific_name": "Andrena lapponica",
+      "occurrence_count": 493,
+      "guid": "NHMSYS0000875224"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolichovespula media",
+      "occurrence_count": 1178,
+      "guid": "NHMSYS0000875846"
+    },
+    {
+      "common_name": "Pale-legged Stem-sawfly",
+      "scientific_name": "Calameuta pallipes",
+      "occurrence_count": 330,
+      "guid": "NBNSYS0000013259"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gasteruption jaculator",
+      "occurrence_count": 240,
+      "guid": "NHMSYS0020705037"
+    },
+    {
+      "common_name": "Dusky Ant",
+      "scientific_name": "Formica fusca",
+      "occurrence_count": 3661,
+      "guid": "NHMSYS0000875954"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aglaostigma aucupariae",
+      "occurrence_count": 1359,
+      "guid": "NHMSYS0020480658"
+    },
+    {
+      "common_name": "Fen Mason-wasp",
+      "scientific_name": "Odynerus simillimus",
+      "occurrence_count": 139,
+      "guid": "NHMSYS0000876483"
+    },
+    {
+      "common_name": "Narrow-headed Ant",
+      "scientific_name": "Formica exsecta",
+      "occurrence_count": 1338,
+      "guid": "NHMSYS0000875953"
+    },
+    {
+      "common_name": "Red-tailed Blood Bee",
+      "scientific_name": "Sphecodes rubicundus",
+      "occurrence_count": 140,
+      "guid": "NBNSYS0000009742"
+    },
+    {
+      "common_name": "Violet Carpenter Bee",
+      "scientific_name": "Xylocopa violacea",
+      "occurrence_count": 105,
+      "guid": "NHMSYS0000876788"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anacharis eucharoides",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0021237030"
+    },
+    {
+      "common_name": "Club Horned Wood Borer Wasp",
+      "scientific_name": "Trypoxylon clavicerum",
+      "occurrence_count": 323,
+      "guid": "NHMSYS0000876765"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phanacis hypochoeridis",
+      "occurrence_count": 137,
+      "guid": "NBNSYS0000031851"
+    },
+    {
+      "common_name": "Large Sallow Mining Bee",
+      "scientific_name": "Andrena apicata",
+      "occurrence_count": 222,
+      "guid": "NHMSYS0000875162"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis fennica",
+      "occurrence_count": 112,
+      "guid": "NBNSYS0000009404"
+    },
+    {
+      "common_name": "Social Pear Spinner",
+      "scientific_name": "Neurotoma saltuum",
+      "occurrence_count": 211,
+      "guid": "NHMSYS0020481709"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ancistrocerus parietum",
+      "occurrence_count": 367,
+      "guid": "NHMSYS0000875050"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura leucosticta",
+      "occurrence_count": 107,
+      "guid": "NHMSYS0021240283"
+    },
+    {
+      "common_name": "Bronze Fusehorn",
+      "scientific_name": "Arge ustulata",
+      "occurrence_count": 405,
+      "guid": "NHMSYS0020480787"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arachnospila trivialis",
+      "occurrence_count": 414,
+      "guid": "NBNSYS0000009418"
+    },
+    {
+      "common_name": "Painted Nomad Bee",
+      "scientific_name": "Nomada fucata",
+      "occurrence_count": 1270,
+      "guid": "NHMSYS0000876422"
+    },
+    {
+      "common_name": "Marsham's Nomad Bee",
+      "scientific_name": "Nomada marshamella",
+      "occurrence_count": 2635,
+      "guid": "NHMSYS0000876438"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus aericeps",
+      "occurrence_count": 516,
+      "guid": "NHMSYS0020481042"
+    },
+    {
+      "common_name": "Red-girdled Mining Bee",
+      "scientific_name": "Andrena labiata",
+      "occurrence_count": 813,
+      "guid": "NHMSYS0000875222"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Fenusella nana",
+      "occurrence_count": 142,
+      "guid": "NHMSYS0020481211"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Symmorphus gracilis",
+      "occurrence_count": 307,
+      "guid": "NHMSYS0000876725"
+    },
+    {
+      "common_name": "Orange-footed Furrow Bee",
+      "scientific_name": "Lasioglossum xanthopus",
+      "occurrence_count": 163,
+      "guid": "NHMSYS0000876217"
+    },
+    {
+      "common_name": "Chocolate Mining Bee",
+      "scientific_name": "Andrena scotica",
+      "occurrence_count": 5591,
+      "guid": "NHMSYS0000875268"
+    },
+    {
+      "common_name": "Red-thighed Epeolus",
+      "scientific_name": "Epeolus cruciger",
+      "occurrence_count": 520,
+      "guid": "NHMSYS0000875908"
+    },
+    {
+      "common_name": "Scottish Wood Ant",
+      "scientific_name": "Formica aquilonia",
+      "occurrence_count": 736,
+      "guid": "NHMSYS0000875949"
+    },
+    {
+      "common_name": "Wall Mason Wasp",
+      "scientific_name": "Ancistrocerus parietinus",
+      "occurrence_count": 343,
+      "guid": "NHMSYS0000875049"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cerceris ruficornis",
+      "occurrence_count": 219,
+      "guid": "NHMSYS0000875633"
+    },
+    {
+      "common_name": "Raspberry Fusehorn",
+      "scientific_name": "Arge gracilicornis",
+      "occurrence_count": 177,
+      "guid": "NHMSYS0020480776"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Fenusa pumila",
+      "occurrence_count": 257,
+      "guid": "NHMSYS0020481201"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ancistrocerus nigricornis",
+      "occurrence_count": 380,
+      "guid": "NHMSYS0000875046"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysis impressa",
+      "occurrence_count": 207,
+      "guid": "NHMSYS0000875663"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pristiphora pallidiventris",
+      "occurrence_count": 141,
+      "guid": "NBNSYS0000013568"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus madidus",
+      "occurrence_count": 156,
+      "guid": "NBNSYS0000013339"
+    },
+    {
+      "common_name": "Early Colletes",
+      "scientific_name": "Colletes cunicularius",
+      "occurrence_count": 1295,
+      "guid": "NHMSYS0000875722"
+    },
+    {
+      "common_name": "Groove-faced Mining Bee",
+      "scientific_name": "Andrena angustior",
+      "occurrence_count": 508,
+      "guid": "NHMSYS0000875161"
+    },
+    {
+      "common_name": "Red Mason Bee",
+      "scientific_name": "Osmia bicornis",
+      "occurrence_count": 9760,
+      "guid": "NHMSYS0000876509"
+    },
+    {
+      "common_name": "Tawny Mining Bee",
+      "scientific_name": "Andrena fulva",
+      "occurrence_count": 10332,
+      "guid": "NHMSYS0000875207"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diplazon laetatorius",
+      "occurrence_count": 220,
+      "guid": "NBNSYS0000031427"
+    },
+    {
+      "common_name": "Patchwork Leafcutter Bee",
+      "scientific_name": "Megachile centuncularis",
+      "occurrence_count": 2146,
+      "guid": "NHMSYS0000876295"
+    },
+    {
+      "common_name": "Margined Colletes",
+      "scientific_name": "Colletes marginatus",
+      "occurrence_count": 299,
+      "guid": "NHMSYS0000875727"
+    },
+    {
+      "common_name": "White-footed Furrow Bee",
+      "scientific_name": "Lasioglossum leucopus",
+      "occurrence_count": 1522,
+      "guid": "NBNSYS0100003669"
+    },
+    {
+      "common_name": "Slave-making Ant",
+      "scientific_name": "Formica sanguinea",
+      "occurrence_count": 586,
+      "guid": "NHMSYS0000875966"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus picipes",
+      "occurrence_count": 487,
+      "guid": "NBNSYS0000013344"
+    },
+    {
+      "common_name": "Sharp-collared Furrow Bee",
+      "scientific_name": "Lasioglossum malachurum",
+      "occurrence_count": 1485,
+      "guid": "NBNSYS0100003670"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Allantus calceatus",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0020480664"
+    },
+    {
+      "common_name": "Common Furrow Bee",
+      "scientific_name": "Lasioglossum calceatum",
+      "occurrence_count": 4902,
+      "guid": "NHMSYS0000876174"
+    },
+    {
+      "common_name": "Pantaloon Bee",
+      "scientific_name": "Dasypoda hirtipes",
+      "occurrence_count": 1042,
+      "guid": "NHMSYS0000875818"
+    },
+    {
+      "common_name": "Hawthorn Mining Bee",
+      "scientific_name": "Andrena chrysosceles",
+      "occurrence_count": 2020,
+      "guid": "NHMSYS0000875176"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stromboceros delicatulus",
+      "occurrence_count": 473,
+      "guid": "NHMSYS0020482273"
+    },
+    {
+      "common_name": "Pale Footed Black Wasp",
+      "scientific_name": "Psenulus pallipes",
+      "occurrence_count": 336,
+      "guid": "NBNSYS0000009538"
+    },
+    {
+      "common_name": "Short-haired Bumblebee",
+      "scientific_name": "Bombus subterraneus",
+      "occurrence_count": 180,
+      "guid": "NHMSYS0000875592"
+    },
+    {
+      "common_name": "Common Yellow-face Bee",
+      "scientific_name": "Hylaeus communis",
+      "occurrence_count": 1995,
+      "guid": "NHMSYS0000876099"
+    },
+    {
+      "common_name": "Northern Colletes",
+      "scientific_name": "Colletes floralis",
+      "occurrence_count": 565,
+      "guid": "NHMSYS0000875724"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Stigmus solskyi",
+      "occurrence_count": 247,
+      "guid": "NHMSYS0000876717"
+    },
+    {
+      "common_name": "Fork-jawed Nomad Bee",
+      "scientific_name": "Nomada ruficornis",
+      "occurrence_count": 1379,
+      "guid": "NHMSYS0000876447"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Bethylus fuscicornis",
+      "occurrence_count": 112,
+      "guid": "NHMSYS0000875461"
+    },
+    {
+      "common_name": "Brown Tree Ant",
+      "scientific_name": "Lasius brunneus",
+      "occurrence_count": 1005,
+      "guid": "NHMSYS0000876221"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmica specioides",
+      "occurrence_count": 129,
+      "guid": "NHMSYS0000876376"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus varus",
+      "occurrence_count": 578,
+      "guid": "NBNSYS0000145291"
+    },
+    {
+      "common_name": "Ringed Tigress",
+      "scientific_name": "Athalia circularis",
+      "occurrence_count": 794,
+      "guid": "NHMSYS0020480798"
+    },
+    {
+      "common_name": "Solomon's-seal Sawfly",
+      "scientific_name": "Phymatocera aterrima",
+      "occurrence_count": 1175,
+      "guid": "NBNSYS0100004626"
+    },
+    {
+      "common_name": "Coppice Mining Bee",
+      "scientific_name": "Andrena helvola",
+      "occurrence_count": 400,
+      "guid": "NHMSYS0000875217"
+    },
+    {
+      "common_name": "Field Cuckoo Bee",
+      "scientific_name": "Bombus campestris",
+      "occurrence_count": 1947,
+      "guid": "NHMSYS0000875546"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Temnothorax albipennis",
+      "occurrence_count": 179,
+      "guid": "NHMSYS0000876741"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Fenusa ulmi",
+      "occurrence_count": 357,
+      "guid": "NHMSYS0020481207"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hemichroa australis",
+      "occurrence_count": 331,
+      "guid": "NHMSYS0020481232"
+    },
+    {
+      "common_name": "Geoffroy's Blood Bee",
+      "scientific_name": "Sphecodes geoffrellus",
+      "occurrence_count": 958,
+      "guid": "NBNSYS0100005568"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrophya duodecimpunctata",
+      "occurrence_count": 215,
+      "guid": "NBNSYS0000013500"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pteromalus puparum",
+      "occurrence_count": 113,
+      "guid": "NBNSYS0000032388"
+    },
+    {
+      "common_name": "Yellow-legged Furrow Bee",
+      "scientific_name": "Halictus rubicundus",
+      "occurrence_count": 3139,
+      "guid": "NHMSYS0000876030"
+    },
+    {
+      "common_name": "Sand Tailed Digger Wasp",
+      "scientific_name": "Cerceris arenaria",
+      "occurrence_count": 1222,
+      "guid": "NHMSYS0000875625"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aclastus gracilis",
+      "occurrence_count": 119,
+      "guid": "NHMSYS0000897337"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo atra",
+      "occurrence_count": 335,
+      "guid": "NBNSYS0000013468"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Metallus lanceolatus",
+      "occurrence_count": 213,
+      "guid": "NHMSYS0020705101"
+    },
+    {
+      "common_name": "Broad-banded Nomad Bee",
+      "scientific_name": "Nomada signata",
+      "occurrence_count": 173,
+      "guid": "NHMSYS0000876456"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Strongylogaster multifasciata",
+      "occurrence_count": 646,
+      "guid": "NHMSYS0020482284"
+    },
+    {
+      "common_name": "Square-headed Blood Bee",
+      "scientific_name": "Sphecodes monilicornis",
+      "occurrence_count": 1378,
+      "guid": "NHMSYS0000876686"
+    },
+    {
+      "common_name": "Slender Ant",
+      "scientific_name": "Leptothorax acervorum",
+      "occurrence_count": 1240,
+      "guid": "NHMSYS0000876230"
+    },
+    {
+      "common_name": "Marble Gall",
+      "scientific_name": "Andricus kollari",
+      "occurrence_count": 2873,
+      "guid": "NBNSYS0000031917"
+    },
+    {
+      "common_name": "Furry-claspered Furrow Bee",
+      "scientific_name": "Lasioglossum lativentre",
+      "occurrence_count": 698,
+      "guid": "NBNSYS0100003668"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysis illigeri",
+      "occurrence_count": 115,
+      "guid": "NHMSYS0000875662"
+    },
+    {
+      "common_name": "Plain Dark Bee",
+      "scientific_name": "Stelis phaeoptera",
+      "occurrence_count": 162,
+      "guid": "NHMSYS0000876712"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tachysphex unicolor",
+      "occurrence_count": 153,
+      "guid": "NHMSYS0000873269"
+    },
+    {
+      "common_name": "Little Black Wasp",
+      "scientific_name": "Pemphredon lethifer",
+      "occurrence_count": 527,
+      "guid": "NHMSYS0021236761"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lasius platythorax",
+      "occurrence_count": 309,
+      "guid": "NBNSYS0100003683"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus distinguendus",
+      "occurrence_count": 149,
+      "guid": "NHMSYS0000875784"
+    },
+    {
+      "common_name": "Common Mourning Bee",
+      "scientific_name": "Melecta albifrons",
+      "occurrence_count": 1238,
+      "guid": "NHMSYS0000876305"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aglaostigma fulvipes",
+      "occurrence_count": 761,
+      "guid": "NHMSYS0020480659"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo temula",
+      "occurrence_count": 884,
+      "guid": "NHMSYS0021230102"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus annulipes",
+      "occurrence_count": 502,
+      "guid": "NHMSYS0000875774"
+    },
+    {
+      "common_name": "Wool Carder Bee",
+      "scientific_name": "Anthidium manicatum",
+      "occurrence_count": 3050,
+      "guid": "NHMSYS0000875389"
+    },
+    {
+      "common_name": "Dull-vented Sharp-tail Bee",
+      "scientific_name": "Coelioxys elongata",
+      "occurrence_count": 380,
+      "guid": "NHMSYS0000875700"
+    },
+    {
+      "common_name": "Smooth Spangle Gall",
+      "scientific_name": "Neuroterus albipes",
+      "occurrence_count": 799,
+      "guid": "NBNSYS0000031899"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diplazon tetragonus",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0000898597"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tymmophorus obscuripes",
+      "occurrence_count": 118,
+      "guid": "NHMSYS0000902014"
+    },
+    {
+      "common_name": "Grass Ant",
+      "scientific_name": "Myrmecina graminicola",
+      "occurrence_count": 192,
+      "guid": "NHMSYS0000876357"
+    },
+    {
+      "common_name": "Alder Wood-Wasp",
+      "scientific_name": "Xiphydria camelus",
+      "occurrence_count": 129,
+      "guid": "NBNSYS0000013234"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo schaefferi",
+      "occurrence_count": 146,
+      "guid": "NBNSYS0000013486"
+    },
+    {
+      "common_name": "Orange-vented Mason Bee",
+      "scientific_name": "Osmia leaiana",
+      "occurrence_count": 1229,
+      "guid": "NHMSYS0000876513"
+    },
+    {
+      "common_name": "Large Scabious Mining Bee",
+      "scientific_name": "Andrena hattorfiana",
+      "occurrence_count": 827,
+      "guid": "NHMSYS0000875216"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arachnospila minutula",
+      "occurrence_count": 156,
+      "guid": "NHMSYS0000875439"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Formica cunicularia",
+      "occurrence_count": 662,
+      "guid": "NHMSYS0000875952"
+    },
+    {
+      "common_name": "Field Digger Wasp",
+      "scientific_name": "Argogorytes mystaceus",
+      "occurrence_count": 857,
+      "guid": "NHMSYS0000875446"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhadinoceraea micans",
+      "occurrence_count": 695,
+      "guid": "NHMSYS0020482173"
+    },
+    {
+      "common_name": "Zig-zag Elm Sawfly",
+      "scientific_name": "Aproceros leucopoda",
+      "occurrence_count": 762,
+      "guid": "NHMSYS0021196949"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus gonager",
+      "occurrence_count": 424,
+      "guid": "NBNSYS0000013335"
+    },
+    {
+      "common_name": "Catsear Nomad Bee",
+      "scientific_name": "Nomada integra",
+      "occurrence_count": 123,
+      "guid": "NHMSYS0000876432"
+    },
+    {
+      "common_name": "Red-backed Furrow Bee",
+      "scientific_name": "Lasioglossum laevigatum",
+      "occurrence_count": 307,
+      "guid": "NHMSYS0000876184"
+    },
+    {
+      "common_name": "Lobe-spurred Furrow Bee",
+      "scientific_name": "Lasioglossum pauxillum",
+      "occurrence_count": 1274,
+      "guid": "NHMSYS0000876200"
+    },
+    {
+      "common_name": "Bear-clawed Nomad Bee",
+      "scientific_name": "Nomada baccata",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0000876403"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Passaloecus insignis",
+      "occurrence_count": 109,
+      "guid": "NHMSYS0000876541"
+    },
+    {
+      "common_name": "Common Spangle Gall",
+      "scientific_name": "Neuroterus quercusbaccarum",
+      "occurrence_count": 4063,
+      "guid": "NBNSYS0000031903"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ichneumon sarcitorius",
+      "occurrence_count": 234,
+      "guid": "NBNSYS0000031589"
+    },
+    {
+      "common_name": "Wheat Stem Borer",
+      "scientific_name": "Cephus pygmeus",
+      "occurrence_count": 547,
+      "guid": "NBNSYS0000013255"
+    },
+    {
+      "common_name": "Shining Guest Ant",
+      "scientific_name": "Formicoxenus nitidulus",
+      "occurrence_count": 176,
+      "guid": "NHMSYS0000875971"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphidius ervi",
+      "occurrence_count": 100,
+      "guid": "NBNSYS0000031824"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Trypoxylon medium",
+      "occurrence_count": 100,
+      "guid": "NHMSYS0000876766"
+    },
+    {
+      "common_name": "Hornet",
+      "scientific_name": "Vespa crabro",
+      "occurrence_count": 17037,
+      "guid": "NHMSYS0000876769"
+    },
+    {
+      "common_name": "Large Garden Bumblebee",
+      "scientific_name": "Bombus ruderatus",
+      "occurrence_count": 1669,
+      "guid": "NHMSYS0000875583"
+    },
+    {
+      "common_name": "Spined Mason Bee",
+      "scientific_name": "Osmia spinulosa",
+      "occurrence_count": 963,
+      "guid": "NHMSYS0020774747"
+    },
+    {
+      "common_name": "Carrot Mining Bee",
+      "scientific_name": "Andrena nitidiuscula",
+      "occurrence_count": 113,
+      "guid": "NBNSYS0100001525"
+    },
+    {
+      "common_name": "German Wasp",
+      "scientific_name": "Vespula germanica",
+      "occurrence_count": 4258,
+      "guid": "NHMSYS0000876781"
+    },
+    {
+      "common_name": "White-tailed Bumblebee",
+      "scientific_name": "Bombus lucorum",
+      "occurrence_count": 21576,
+      "guid": "NHMSYS0000875570"
+    },
+    {
+      "common_name": "4-Banded Digger Wasp",
+      "scientific_name": "Gorytes quadrifasciatus",
+      "occurrence_count": 308,
+      "guid": "NHMSYS0000876006"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Bathythrix pellucidator",
+      "occurrence_count": 102,
+      "guid": "NHMSYS0000897863"
+    },
+    {
+      "common_name": "Turf Ant",
+      "scientific_name": "Tetramorium caespitum",
+      "occurrence_count": 580,
+      "guid": "NHMSYS0000876751"
+    },
+    {
+      "common_name": "Black-banded Spider Wasp",
+      "scientific_name": "Anoplius viaticus",
+      "occurrence_count": 593,
+      "guid": "NBNSYS0000009431"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius continuus",
+      "occurrence_count": 1870,
+      "guid": "NBNSYS0000009513"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arachnospila anceps",
+      "occurrence_count": 826,
+      "guid": "NBNSYS0000009416"
+    },
+    {
+      "common_name": "Narrow-barred Fusehorn",
+      "scientific_name": "Arge melanochra",
+      "occurrence_count": 168,
+      "guid": "NHMSYS0020480777"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Empria liturata",
+      "occurrence_count": 106,
+      "guid": "NHMSYS0020481108"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmica lobicornis",
+      "occurrence_count": 238,
+      "guid": "NHMSYS0000876365"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrophya montana",
+      "occurrence_count": 372,
+      "guid": "NBNSYS0000013501"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aphidius avenae",
+      "occurrence_count": 134,
+      "guid": "NBNSYS0000141963"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmica scabrinodis",
+      "occurrence_count": 4558,
+      "guid": "NHMSYS0000876374"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gorytes laticinctus",
+      "occurrence_count": 388,
+      "guid": "NHMSYS0000876005"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Phaneroserphus calcar",
+      "occurrence_count": 117,
+      "guid": "NHMSYS0021118500"
+    },
+    {
+      "common_name": "Bryony Mining Bee",
+      "scientific_name": "Andrena florea",
+      "occurrence_count": 267,
+      "guid": "NHMSYS0000875203"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmica schencki",
+      "occurrence_count": 182,
+      "guid": "NHMSYS0000876375"
+    },
+    {
+      "common_name": "Spined Hylaeus",
+      "scientific_name": "Hylaeus cornutus",
+      "occurrence_count": 141,
+      "guid": "NHMSYS0000876101"
+    },
+    {
+      "common_name": "Alder Clubhorn",
+      "scientific_name": "Cimbex connatus",
+      "occurrence_count": 156,
+      "guid": "NHMSYS0020480901"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius lapidarius",
+      "occurrence_count": 416,
+      "guid": "NHMSYS0000875885"
+    },
+    {
+      "common_name": "Spotted Dark Bee",
+      "scientific_name": "Stelis ornatula",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0000876711"
+    },
+    {
+      "common_name": "Large Gorse Mining Bee",
+      "scientific_name": "Andrena bimaculata",
+      "occurrence_count": 303,
+      "guid": "NHMSYS0000875172"
+    },
+    {
+      "common_name": "Cola-Nut Gall",
+      "scientific_name": "Andricus lignicola",
+      "occurrence_count": 1328,
+      "guid": "NBNSYS0000031918"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Gymnomerus laevipes",
+      "occurrence_count": 212,
+      "guid": "NBNSYS0000009446"
+    },
+    {
+      "common_name": "Silk-Button Spangle Gall",
+      "scientific_name": "Neuroterus numismalis",
+      "occurrence_count": 1882,
+      "guid": "NBNSYS0000031901"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus aeneus",
+      "occurrence_count": 834,
+      "guid": "NBNSYS0000013324"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pimpla turionellae",
+      "occurrence_count": 173,
+      "guid": "NBNSYS0000031089"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura clitellata",
+      "occurrence_count": 249,
+      "guid": "NHMSYS0021240113"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diastrophus rubi",
+      "occurrence_count": 201,
+      "guid": "NHMSYS0020470294"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Andricus curvator",
+      "occurrence_count": 559,
+      "guid": "NBNSYS0000031912"
+    },
+    {
+      "common_name": "Wall Mason Bee",
+      "scientific_name": "Osmia parietina",
+      "occurrence_count": 181,
+      "guid": "NHMSYS0000876516"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pimpla flavicoxis",
+      "occurrence_count": 133,
+      "guid": "NBNSYS0000031084"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredopsis nassata",
+      "occurrence_count": 859,
+      "guid": "NHMSYS0020482492"
+    },
+    {
+      "common_name": "Trimmer's Mining Bee",
+      "scientific_name": "Andrena trimmerana",
+      "occurrence_count": 444,
+      "guid": "NHMSYS0000875285"
+    },
+    {
+      "common_name": "Large Sharp-tail Bee",
+      "scientific_name": "Coelioxys conoidea",
+      "occurrence_count": 256,
+      "guid": "NBNSYS0000144805"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eutomostethus luteiventris",
+      "occurrence_count": 393,
+      "guid": "NHMSYS0020481159"
+    },
+    {
+      "common_name": "Wilke's Mining Bee",
+      "scientific_name": "Andrena wilkella",
+      "occurrence_count": 965,
+      "guid": "NHMSYS0000875290"
+    },
+    {
+      "common_name": "Red-tailed (Hill) Cuckoo Bee",
+      "scientific_name": "Bombus rupestris",
+      "occurrence_count": 2914,
+      "guid": "NBNSYS0100002028"
+    },
+    {
+      "common_name": "Common Rose Fusehorn",
+      "scientific_name": "Arge pagana",
+      "occurrence_count": 1755,
+      "guid": "NHMSYS0020480783"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Empria pallimacula",
+      "occurrence_count": 139,
+      "guid": "NHMSYS0020481111"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ametastegia glabrata",
+      "occurrence_count": 298,
+      "guid": "NBNSYS0000013384"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pristiphora appendiculata",
+      "occurrence_count": 101,
+      "guid": "NHMSYS0020920261"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Anoplius infuscatus",
+      "occurrence_count": 559,
+      "guid": "NHMSYS0000875307"
+    },
+    {
+      "common_name": "Bellflower Blunthorn Bee",
+      "scientific_name": "Melitta haemorrhoidalis",
+      "occurrence_count": 309,
+      "guid": "NHMSYS0000876312"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura ribesii",
+      "occurrence_count": 281,
+      "guid": "NHMSYS0021240468"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura proxima",
+      "occurrence_count": 2329,
+      "guid": "NHMSYS0021240443"
+    },
+    {
+      "common_name": "Reed Yellow-face Bee",
+      "scientific_name": "Hylaeus pectoralis",
+      "occurrence_count": 319,
+      "guid": "NHMSYS0000876110"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo ferruginea",
+      "occurrence_count": 160,
+      "guid": "NBNSYS0000013474"
+    },
+    {
+      "common_name": "Blackthorn Mining Bee",
+      "scientific_name": "Andrena varians",
+      "occurrence_count": 121,
+      "guid": "NHMSYS0000875287"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hedychridium ardens",
+      "occurrence_count": 569,
+      "guid": "NHMSYS0000876040"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis susterai",
+      "occurrence_count": 107,
+      "guid": "NBNSYS0000009412"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crossocerus cetratus",
+      "occurrence_count": 529,
+      "guid": "NHMSYS0000875780"
+    },
+    {
+      "common_name": "Tree Wasp",
+      "scientific_name": "Dolichovespula sylvestris",
+      "occurrence_count": 2853,
+      "guid": "NHMSYS0000875849"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ancistrocerus gazella",
+      "occurrence_count": 641,
+      "guid": "NHMSYS0000875045"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lasius psammophilus",
+      "occurrence_count": 549,
+      "guid": "NBNSYS0100003684"
+    },
+    {
+      "common_name": "Clarke's Mining Bee",
+      "scientific_name": "Andrena clarkella",
+      "occurrence_count": 2029,
+      "guid": "NHMSYS0000875179"
+    },
+    {
+      "common_name": "Black-headed Mining Bee",
+      "scientific_name": "Andrena nigriceps",
+      "occurrence_count": 204,
+      "guid": "NHMSYS0000875241"
+    },
+    {
+      "common_name": "Scabious Clubhorn",
+      "scientific_name": "Abia nitens",
+      "occurrence_count": 448,
+      "guid": "NHMSYS0021611094"
+    },
+    {
+      "common_name": "Tree Bumblebee",
+      "scientific_name": "Bombus hypnorum",
+      "occurrence_count": 41527,
+      "guid": "NHMSYS0000875564"
+    },
+    {
+      "common_name": "Alfken's Mini-miner",
+      "scientific_name": "Andrena alfkenella",
+      "occurrence_count": 114,
+      "guid": "NHMSYS0000875157"
+    },
+    {
+      "common_name": "Gooden's Nomad Bee",
+      "scientific_name": "Nomada goodeniana",
+      "occurrence_count": 4241,
+      "guid": "NHMSYS0000876427"
+    },
+    {
+      "common_name": "Wesmael's Digger Wasp",
+      "scientific_name": "Crossocerus wesmaeli",
+      "occurrence_count": 815,
+      "guid": "NHMSYS0000875811"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cratichneumon culex",
+      "occurrence_count": 146,
+      "guid": "NHMSYS0000898219"
+    },
+    {
+      "common_name": "Field Digger Wasp",
+      "scientific_name": "Mellinus arvensis",
+      "occurrence_count": 2849,
+      "guid": "NHMSYS0000876318"
+    },
+    {
+      "common_name": "Broad-barred Fusehorn",
+      "scientific_name": "Arge cyanocrocea",
+      "occurrence_count": 1371,
+      "guid": "NHMSYS0020480770"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura oligospila",
+      "occurrence_count": 135,
+      "guid": "NHMSYS0021474013"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhogogaster punctulata",
+      "occurrence_count": 190,
+      "guid": "NHMSYS0020482179"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ceropales maculata",
+      "occurrence_count": 322,
+      "guid": "NHMSYS0000875637"
+    },
+    {
+      "common_name": "White-bellied Mining Bee",
+      "scientific_name": "Andrena gravida",
+      "occurrence_count": 110,
+      "guid": "NHMSYS0000875213"
+    },
+    {
+      "common_name": "Red Currant Gall",
+      "scientific_name": "Cynips divisa",
+      "occurrence_count": 666,
+      "guid": "NBNSYS0000031934"
+    },
+    {
+      "common_name": "Dark-winged Blood Bee",
+      "scientific_name": "Sphecodes gibbus",
+      "occurrence_count": 556,
+      "guid": "NHMSYS0000876682"
+    },
+    {
+      "common_name": "Shrill Carder Bee",
+      "scientific_name": "Bombus sylvarum",
+      "occurrence_count": 4427,
+      "guid": "NHMSYS0000875593"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Bethylus cephalotes",
+      "occurrence_count": 143,
+      "guid": "NHMSYS0000875458"
+    },
+    {
+      "common_name": "Red Legged Spider Wasp",
+      "scientific_name": "Episyron rufipes",
+      "occurrence_count": 1156,
+      "guid": "NHMSYS0000875915"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura viridis",
+      "occurrence_count": 117,
+      "guid": "NHMSYS0021240578"
+    },
+    {
+      "common_name": "Large Scissor Bee (Sleepy Carpenter Bee)",
+      "scientific_name": "Chelostoma florisomne",
+      "occurrence_count": 480,
+      "guid": "NHMSYS0000875649"
+    },
+    {
+      "common_name": "Small Garden Bumblebee",
+      "scientific_name": "Bombus hortorum",
+      "occurrence_count": 29811,
+      "guid": "NHMSYS0000875562"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Andricus quercuscorticis",
+      "occurrence_count": 106,
+      "guid": "NBNSYS0000031923"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhopalum clavipes",
+      "occurrence_count": 311,
+      "guid": "NHMSYS0000876655"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Rhyssa persuasoria",
+      "occurrence_count": 211,
+      "guid": "NBNSYS0000031108"
+    },
+    {
+      "common_name": "Clover Blunthorn Bee",
+      "scientific_name": "Melitta leporina",
+      "occurrence_count": 418,
+      "guid": "NHMSYS0000876313"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arachnospila spissa",
+      "occurrence_count": 478,
+      "guid": "NHMSYS0000875440"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cladius pectinicornis",
+      "occurrence_count": 359,
+      "guid": "NBNSYS0000013506"
+    },
+    {
+      "common_name": "Small Scabious Mining Bee",
+      "scientific_name": "Andrena marginata",
+      "occurrence_count": 572,
+      "guid": "NHMSYS0000875232"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pachyprotasis rapae",
+      "occurrence_count": 649,
+      "guid": "NHMSYS0020481751"
+    },
+    {
+      "common_name": "Green Furrow Bee",
+      "scientific_name": "Lasioglossum morio",
+      "occurrence_count": 2918,
+      "guid": "NHMSYS0000876193"
+    },
+    {
+      "common_name": "Big-headed Mining Bee",
+      "scientific_name": "Andrena bucephala",
+      "occurrence_count": 279,
+      "guid": "NHMSYS0000875173"
+    },
+    {
+      "common_name": "Jet Ant",
+      "scientific_name": "Lasius fuliginosus",
+      "occurrence_count": 1258,
+      "guid": "NHMSYS0000876224"
+    },
+    {
+      "common_name": "Horned Black Wasp",
+      "scientific_name": "Passaloecus corniger",
+      "occurrence_count": 240,
+      "guid": "NHMSYS0000876536"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Aneugmenus padi",
+      "occurrence_count": 432,
+      "guid": "NHMSYS0020480746"
+    },
+    {
+      "common_name": "Cliff Mining Bee",
+      "scientific_name": "Andrena thoracica",
+      "occurrence_count": 712,
+      "guid": "NHMSYS0000875282"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus fumosus",
+      "occurrence_count": 347,
+      "guid": "NHMSYS0020920123"
+    },
+    {
+      "common_name": "Heath Potter Wasp",
+      "scientific_name": "Eumenes coarctatus",
+      "occurrence_count": 184,
+      "guid": "NHMSYS0000875934"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Eutomostethus ephippium",
+      "occurrence_count": 495,
+      "guid": "NHMSYS0020481157"
+    },
+    {
+      "common_name": "Sandpit Blood Bee",
+      "scientific_name": "Sphecodes pellucidus",
+      "occurrence_count": 835,
+      "guid": "NHMSYS0000876688"
+    },
+    {
+      "common_name": "Black Rose Fusehorn",
+      "scientific_name": "Arge nigripes",
+      "occurrence_count": 115,
+      "guid": "NHMSYS0020480780"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Heterarthrus microcephalus",
+      "occurrence_count": 115,
+      "guid": "NHMSYS0020481247"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura viminalis",
+      "occurrence_count": 183,
+      "guid": "NHMSYS0021240573"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Macrophya ribis",
+      "occurrence_count": 214,
+      "guid": "NBNSYS0000013503"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis exaltata",
+      "occurrence_count": 373,
+      "guid": "NBNSYS0000009403"
+    },
+    {
+      "common_name": "Blue Mason Bee",
+      "scientific_name": "Osmia caerulescens",
+      "occurrence_count": 1835,
+      "guid": "NBNSYS0100004362"
+    },
+    {
+      "common_name": "Hairy-saddled Colletes",
+      "scientific_name": "Colletes fodiens",
+      "occurrence_count": 590,
+      "guid": "NHMSYS0000875725"
+    },
+    {
+      "common_name": "Bugle Tigress",
+      "scientific_name": "Athalia cordata",
+      "occurrence_count": 1258,
+      "guid": "NHMSYS0020480799"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pimpla rufipes",
+      "occurrence_count": 401,
+      "guid": "NHMSYS0000901044"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diplolepis spinosissimae",
+      "occurrence_count": 127,
+      "guid": "NBNSYS0000031894"
+    },
+    {
+      "common_name": "Common Spiny Digger Wasp",
+      "scientific_name": "Oxybelus uniglumis",
+      "occurrence_count": 1915,
+      "guid": "NHMSYS0000876526"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Passaloecus gracilis",
+      "occurrence_count": 325,
+      "guid": "NHMSYS0000876539"
+    },
+    {
+      "common_name": "Short-fringed Mining Bee",
+      "scientific_name": "Andrena dorsata",
+      "occurrence_count": 1792,
+      "guid": "NHMSYS0000875195"
+    },
+    {
+      "common_name": "Small Velvet Ant",
+      "scientific_name": "Smicromyrme rufipes",
+      "occurrence_count": 161,
+      "guid": "NBNSYS0100005540"
+    },
+    {
+      "common_name": "Early Bumblebee",
+      "scientific_name": "Bombus pratorum",
+      "occurrence_count": 45951,
+      "guid": "NHMSYS0000875578"
+    },
+    {
+      "common_name": "Common Carder Bee",
+      "scientific_name": "Bombus pascuorum",
+      "occurrence_count": 148229,
+      "guid": "NHMSYS0000875576"
+    },
+    {
+      "common_name": "Greater Horntail Wasp",
+      "scientific_name": "Urocerus gigas",
+      "occurrence_count": 1594,
+      "guid": "NBNSYS0000013240"
+    },
+    {
+      "common_name": "Bare-saddled Colletes",
+      "scientific_name": "Colletes similis",
+      "occurrence_count": 318,
+      "guid": "NHMSYS0000875730"
+    },
+    {
+      "common_name": "Long-horned Bee",
+      "scientific_name": "Eucera longicornis",
+      "occurrence_count": 769,
+      "guid": "NHMSYS0000875930"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Arachnospila wesmaeli",
+      "occurrence_count": 131,
+      "guid": "NBNSYS0000009419"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ichneumon stramentor",
+      "occurrence_count": 137,
+      "guid": "NHMSYS0000899757"
+    },
+    {
+      "common_name": "Barbut's Cuckoo Bee",
+      "scientific_name": "Bombus barbutellus",
+      "occurrence_count": 677,
+      "guid": "NBNSYS0100002024"
+    },
+    {
+      "common_name": "Fork-tailed Flower Bee",
+      "scientific_name": "Anthophora furcata",
+      "occurrence_count": 1407,
+      "guid": "NHMSYS0000875403"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ametastegia tenera",
+      "occurrence_count": 110,
+      "guid": "NHMSYS0020920033"
+    },
+    {
+      "common_name": "Moss Carder Bee",
+      "scientific_name": "Bombus muscorum",
+      "occurrence_count": 5759,
+      "guid": "NHMSYS0000875572"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysis ignita",
+      "occurrence_count": 795,
+      "guid": "NHMSYS0000875661"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Diodontus luperus",
+      "occurrence_count": 141,
+      "guid": "NHMSYS0000875829"
+    },
+    {
+      "common_name": "Leaden Spider Wasp",
+      "scientific_name": "Pompilus cinereus",
+      "occurrence_count": 1176,
+      "guid": "NBNSYS0000009413"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lestiphorus bicinctus",
+      "occurrence_count": 193,
+      "guid": "NHMSYS0000876239"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Synergus albipes",
+      "occurrence_count": 103,
+      "guid": "NBNSYS0000031873"
+    },
+    {
+      "common_name": "Long-faced Furrow Bee",
+      "scientific_name": "Lasioglossum punctatissimum",
+      "occurrence_count": 740,
+      "guid": "NHMSYS0000876202"
+    },
+    {
+      "common_name": "Five-banded Weevil-wasp",
+      "scientific_name": "Cerceris quinquefasciata",
+      "occurrence_count": 300,
+      "guid": "NHMSYS0000875632"
+    },
+    {
+      "common_name": "Four-banded Flower Bee",
+      "scientific_name": "Anthophora quadrimaculata",
+      "occurrence_count": 254,
+      "guid": "NHMSYS0000875408"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Elampus panzeri",
+      "occurrence_count": 147,
+      "guid": "NHMSYS0000875899"
+    },
+    {
+      "common_name": "Slender Bodied Digger Wasp",
+      "scientific_name": "Crabro cribrarius",
+      "occurrence_count": 1462,
+      "guid": "NHMSYS0000875733"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ancistrocerus scoticus",
+      "occurrence_count": 504,
+      "guid": "NHMSYS0000875053"
+    },
+    {
+      "common_name": "Shiny-margined Mini-miner",
+      "scientific_name": "Andrena semilaevis",
+      "occurrence_count": 783,
+      "guid": "NHMSYS0000875269"
+    },
+    {
+      "common_name": "Chalk Furrow Bee",
+      "scientific_name": "Lasioglossum fulvicorne",
+      "occurrence_count": 804,
+      "guid": "NHMSYS0000876180"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hedychridium cupreum",
+      "occurrence_count": 108,
+      "guid": "NHMSYS0000876042"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Symmorphus bifasciatus",
+      "occurrence_count": 563,
+      "guid": "NBNSYS0100005641"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Methocha articulata",
+      "occurrence_count": 208,
+      "guid": "NHMSYS0000876326"
+    },
+    {
+      "common_name": "Banded Dark Bee",
+      "scientific_name": "Stelis punctulatissima",
+      "occurrence_count": 113,
+      "guid": "NHMSYS0000876713"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sussaba flavipes",
+      "occurrence_count": 182,
+      "guid": "NHMSYS0000901642"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Crabro peltarius",
+      "occurrence_count": 723,
+      "guid": "NHMSYS0000875734"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo thompsoni",
+      "occurrence_count": 186,
+      "guid": "NBNSYS0100005777"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hedychridium roseum",
+      "occurrence_count": 201,
+      "guid": "NHMSYS0000876044"
+    },
+    {
+      "common_name": "Forest Cuckoo Bee",
+      "scientific_name": "Bombus sylvestris",
+      "occurrence_count": 3928,
+      "guid": "NHMSYS0000875594"
+    },
+    {
+      "common_name": "Northern Mining Bee",
+      "scientific_name": "Andrena ruficrus",
+      "occurrence_count": 268,
+      "guid": "NHMSYS0000875264"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Lindenius panzeri",
+      "occurrence_count": 143,
+      "guid": "NHMSYS0000876242"
+    },
+    {
+      "common_name": "Bee Wolf",
+      "scientific_name": "Philanthus triangulum",
+      "occurrence_count": 1974,
+      "guid": "NHMSYS0000876577"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Auplopus carbonarius",
+      "occurrence_count": 231,
+      "guid": "NBNSYS0000009398"
+    },
+    {
+      "common_name": "Rufous-footed Furrow Bee",
+      "scientific_name": "Lasioglossum rufitarse",
+      "occurrence_count": 400,
+      "guid": "NHMSYS0000876206"
+    },
+    {
+      "common_name": "Red Banded Sand Wasp",
+      "scientific_name": "Ammophila sabulosa",
+      "occurrence_count": 1925,
+      "guid": "NHMSYS0000875039"
+    },
+    {
+      "common_name": "Heath Bumblebee",
+      "scientific_name": "Bombus jonellus",
+      "occurrence_count": 5328,
+      "guid": "NHMSYS0000875565"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Hoplocampa crataegi",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0020481259"
+    },
+    {
+      "common_name": "Melancholy Black Wasp",
+      "scientific_name": "Diodontus tristis",
+      "occurrence_count": 228,
+      "guid": "NHMSYS0000875831"
+    },
+    {
+      "common_name": "Little Carpenter Bee",
+      "scientific_name": "Ceratina cyanea",
+      "occurrence_count": 127,
+      "guid": "NHMSYS0000875623"
+    },
+    {
+      "common_name": "Red Ant",
+      "scientific_name": "Myrmica rubra",
+      "occurrence_count": 3353,
+      "guid": "NBNSYS0000009343"
+    },
+    {
+      "common_name": "Large Spurred Digger Wasp",
+      "scientific_name": "Nysson spinosus",
+      "occurrence_count": 417,
+      "guid": "NHMSYS0000876471"
+    },
+    {
+      "common_name": "Square-jawed Sharp-tail Bee",
+      "scientific_name": "Coelioxys mandibularis",
+      "occurrence_count": 223,
+      "guid": "NHMSYS0000875702"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Chrysis angustula",
+      "occurrence_count": 323,
+      "guid": "NHMSYS0000875654"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dacnusa areolaris",
+      "occurrence_count": 101,
+      "guid": "NBNSYS0100002727"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo scrophulariae",
+      "occurrence_count": 1214,
+      "guid": "NBNSYS0000013487"
+    },
+    {
+      "common_name": "Green-eyed Flower Bee",
+      "scientific_name": "Anthophora bimaculata",
+      "occurrence_count": 756,
+      "guid": "NHMSYS0000875402"
+    },
+    {
+      "common_name": "Barberry Fusehorn",
+      "scientific_name": "Arge berberidis",
+      "occurrence_count": 4810,
+      "guid": "NHMSYS0020480767"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius cavifrons",
+      "occurrence_count": 906,
+      "guid": "NHMSYS0000875878"
+    },
+    {
+      "common_name": "Black-headed Mason Wasp",
+      "scientific_name": "Odynerus melanocephalus",
+      "occurrence_count": 168,
+      "guid": "NHMSYS0000876481"
+    },
+    {
+      "common_name": "Wood-carving Leafcutter Bee",
+      "scientific_name": "Megachile ligniseca",
+      "occurrence_count": 885,
+      "guid": "NHMSYS0000876300"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pristiphora monogyniae",
+      "occurrence_count": 113,
+      "guid": "NBNSYS0000013566"
+    },
+    {
+      "common_name": "Long-horned Nomad Bee",
+      "scientific_name": "Nomada hirtipes",
+      "occurrence_count": 148,
+      "guid": "NHMSYS0000876430"
+    },
+    {
+      "common_name": "Sheppard's Nomad Bee",
+      "scientific_name": "Nomada sheppardana",
+      "occurrence_count": 150,
+      "guid": "NHMSYS0000876455"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ectemnius cephalotes",
+      "occurrence_count": 448,
+      "guid": "NHMSYS0000875879"
+    },
+    {
+      "common_name": "Sea Aster Bee",
+      "scientific_name": "Colletes halophilus",
+      "occurrence_count": 344,
+      "guid": "NHMSYS0000875726"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Entomognathus brevis",
+      "occurrence_count": 484,
+      "guid": "NHMSYS0000875906"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nematus septentrionalis",
+      "occurrence_count": 418,
+      "guid": "NHMSYS0021240598"
+    },
+    {
+      "common_name": "Broken-belted Bumblebee",
+      "scientific_name": "Bombus soroeensis",
+      "occurrence_count": 1208,
+      "guid": "NHMSYS0000875588"
+    },
+    {
+      "common_name": "Small Sandpit Mining Bee",
+      "scientific_name": "Andrena argentata",
+      "occurrence_count": 189,
+      "guid": "NHMSYS0000875164"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ametastegia carpini",
+      "occurrence_count": 157,
+      "guid": "NHMSYS0020920030"
+    },
+    {
+      "common_name": "Red-tailed Mason Bee",
+      "scientific_name": "Osmia bicolor",
+      "occurrence_count": 1968,
+      "guid": "NHMSYS0000876508"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ametastegia equiseti",
+      "occurrence_count": 191,
+      "guid": "NBNSYS0000013383"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Allantus cinctus",
+      "occurrence_count": 264,
+      "guid": "NHMSYS0020480666"
+    },
+    {
+      "common_name": "Grey-tailed Furrow Bee",
+      "scientific_name": "Lasioglossum prasinum",
+      "occurrence_count": 188,
+      "guid": "NHMSYS0000876201"
+    },
+    {
+      "common_name": "Large Shaggy Bee",
+      "scientific_name": "Panurgus banksianus",
+      "occurrence_count": 361,
+      "guid": "NHMSYS0000876528"
+    },
+    {
+      "common_name": "Bronze Furrow Bee",
+      "scientific_name": "Halictus tumulorum",
+      "occurrence_count": 2726,
+      "guid": "NHMSYS0000876034"
+    },
+    {
+      "common_name": "Red Bartsia Blunthorn Bee",
+      "scientific_name": "Melitta tricincta",
+      "occurrence_count": 430,
+      "guid": "NHMSYS0000876315"
+    },
+    {
+      "common_name": "Tormentil Mining Bee",
+      "scientific_name": "Andrena tarsata",
+      "occurrence_count": 453,
+      "guid": "NHMSYS0000875281"
+    },
+    {
+      "common_name": "Minute Black Wasp",
+      "scientific_name": "Diodontus minutus",
+      "occurrence_count": 381,
+      "guid": "NHMSYS0000875830"
+    },
+    {
+      "common_name": "Sickle-jawed Blood Bee",
+      "scientific_name": "Sphecodes puncticeps",
+      "occurrence_count": 355,
+      "guid": "NHMSYS0000876691"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Tenthredo arcuata",
+      "occurrence_count": 842,
+      "guid": "NBNSYS0000013467"
+    },
+    {
+      "common_name": "Davies' Colletes",
+      "scientific_name": "Colletes daviesanus",
+      "occurrence_count": 1141,
+      "guid": "NHMSYS0000875723"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Ancistrocerus trifasciatus",
+      "occurrence_count": 612,
+      "guid": "NHMSYS0000875054"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Euura bridgmanii",
+      "occurrence_count": 563,
+      "guid": "NHMSYS0021240088"
+    },
+    {
+      "common_name": "Great Yellow Bumblebee",
+      "scientific_name": "Bombus distinguendus",
+      "occurrence_count": 2391,
+      "guid": "NHMSYS0000875554"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Cladius brullei",
+      "occurrence_count": 162,
+      "guid": "NHMSYS0020920099"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis pusilla",
+      "occurrence_count": 178,
+      "guid": "NBNSYS0000009409"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Claremontia tenuicornis",
+      "occurrence_count": 103,
+      "guid": "NHMSYS0020480941"
+    },
+    {
+      "common_name": "Red-tailed Bumblebee",
+      "scientific_name": "Bombus lapidarius",
+      "occurrence_count": 87931,
+      "guid": "NHMSYS0000875567"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Monostegia abdominalis",
+      "occurrence_count": 115,
+      "guid": "NHMSYS0020481417"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Mimumesa littoralis",
+      "occurrence_count": 137,
+      "guid": "NHMSYS0000876342"
+    },
+    {
+      "common_name": "Grey-patched Mining Bee",
+      "scientific_name": "Andrena nitida",
+      "occurrence_count": 3684,
+      "guid": "NHMSYS0001685273"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Pristiphora armata",
+      "occurrence_count": 216,
+      "guid": "NBNSYS0100004861"
+    },
+    {
+      "common_name": "Bare-saddled Blood Bee",
+      "scientific_name": "Sphecodes ephippius",
+      "occurrence_count": 1322,
+      "guid": "NHMSYS0000876679"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Endelomyia aethiops",
+      "occurrence_count": 147,
+      "guid": "NHMSYS0020481120"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Evagetes dubius",
+      "occurrence_count": 139,
+      "guid": "NHMSYS0000875943"
+    },
+    {
+      "common_name": "Black-headed Velvet Ant",
+      "scientific_name": "Myrmosa atra",
+      "occurrence_count": 738,
+      "guid": "NHMSYS0000876382"
+    },
+    {
+      "common_name": "4-Spotted Digger Wasp",
+      "scientific_name": "Crossocerus quadrimaculatus",
+      "occurrence_count": 1067,
+      "guid": "NHMSYS0000875801"
+    },
+    {
+      "common_name": "Pale Jawed Spiny Digger Wasp",
+      "scientific_name": "Oxybelus mandibularis",
+      "occurrence_count": 122,
+      "guid": "NHMSYS0000876523"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Sussaba cognata",
+      "occurrence_count": 125,
+      "guid": "NHMSYS0000901638"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Nysson trimaculatus",
+      "occurrence_count": 341,
+      "guid": "NHMSYS0000876472"
+    },
+    {
+      "common_name": "Four-spotted Furrow Bee",
+      "scientific_name": "Lasioglossum quadrinotatum",
+      "occurrence_count": 121,
+      "guid": "NHMSYS0000876205"
+    },
+    {
+      "common_name": "Skullcap Tigress",
+      "scientific_name": "Athalia scutellariae",
+      "occurrence_count": 156,
+      "guid": "NHMSYS0020480807"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Myrmica sulcinodis",
+      "occurrence_count": 158,
+      "guid": "NHMSYS0000876377"
+    },
+    {
+      "common_name": "Shiny-vented Sharp-tail Bee",
+      "scientific_name": "Coelioxys inermis",
+      "occurrence_count": 265,
+      "guid": "NHMSYS0000875701"
+    },
+    {
+      "common_name": "Orange-tailed Mining Bee",
+      "scientific_name": "Andrena haemorrhoa",
+      "occurrence_count": 8773,
+      "guid": "NHMSYS0000875215"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Priocnemis perturbator",
+      "occurrence_count": 496,
+      "guid": "NBNSYS0000009411"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Dolerus vestigialis",
+      "occurrence_count": 333,
+      "guid": "NHMSYS0020920117"
+    },
+    {
+      "common_name": "",
+      "scientific_name": "Fenusa dohrnii",
+      "occurrence_count": 697,
+      "guid": "NHMSYS0020481193"
+    },
+    {
+      "common_name": "Smooth-gastered Furrow Bee",
+      "scientific_name": "Lasioglossum parvulum",
+      "occurrence_count": 524,
+      "guid": "NHMSYS0000876198"
+    }
+  ]
+}
