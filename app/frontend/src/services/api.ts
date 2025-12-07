@@ -175,6 +175,46 @@ export interface Sighting {
   species_scientific_name?: string | null;
 }
 
+/**
+ * Dashboard data types
+ */
+export interface CumulativeSpeciesDataPoint {
+  date: string; // ISO date string "YYYY-MM-DD"
+  type: string; // Species type: "bird", "butterfly", etc.
+  cumulative_count: number;
+  new_species: string[]; // Names of species first seen on this date
+}
+
+export interface CumulativeSpeciesResponse {
+  data: CumulativeSpeciesDataPoint[];
+  date_range: {
+    start: string;
+    end: string;
+  };
+}
+
+export interface SpeciesOccurrenceDataPoint {
+  week_start: string; // ISO date string "YYYY-MM-DD"
+  occurrence_count: number;
+}
+
+export interface SpeciesOccurrenceResponse {
+  data: SpeciesOccurrenceDataPoint[];
+  date_range: {
+    start: string;
+    end: string;
+  };
+  species_name: string;
+}
+
+export interface SpeciesWithCount {
+  id: number;
+  name: string | null;
+  scientific_name: string | null;
+  type: string;
+  total_count: number;
+}
+
 // ============================================================================
 // API Methods - Surveys
 // ============================================================================
@@ -416,6 +456,42 @@ export const locationsAPI = {
     return fetchAPI(`/locations/${id}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// ============================================================================
+// API Methods - Dashboard
+// ============================================================================
+
+export const dashboardAPI = {
+  /**
+   * Get cumulative species counts over time for dashboard chart
+   */
+  getCumulativeSpecies: (speciesTypes?: string[]): Promise<CumulativeSpeciesResponse> => {
+    const params = new URLSearchParams();
+    if (speciesTypes && speciesTypes.length > 0) {
+      speciesTypes.forEach(type => params.append('species_types', type));
+    }
+    const query = params.toString();
+    return fetchAPI(query ? `/dashboard/cumulative-species?${query}` : '/dashboard/cumulative-species');
+  },
+
+  /**
+   * Get species ordered by occurrence count
+   */
+  getSpeciesByCount: (speciesType: string): Promise<SpeciesWithCount[]> => {
+    return fetchAPI(`/dashboard/species-by-count?species_type=${speciesType}`);
+  },
+
+  /**
+   * Get weekly occurrence counts for a specific species
+   */
+  getSpeciesOccurrences: (speciesId: number, startDate?: string, endDate?: string): Promise<SpeciesOccurrenceResponse> => {
+    const params = new URLSearchParams();
+    params.append('species_id', speciesId.toString());
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    return fetchAPI(`/dashboard/species-occurrences?${params.toString()}`);
   },
 };
 

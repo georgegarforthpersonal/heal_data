@@ -9,7 +9,7 @@ database logic from the Streamlit POC.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import surveys, species, locations, surveyors
+from routers import surveys, species, locations, surveyors, dashboard
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -50,6 +50,7 @@ app.include_router(surveys.router, prefix="/api/surveys", tags=["Surveys"])
 app.include_router(species.router, prefix="/api/species", tags=["Species"])
 app.include_router(locations.router, prefix="/api/locations", tags=["Locations"])
 app.include_router(surveyors.router, prefix="/api/surveyors", tags=["Surveyors"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 
 # ============================================================================
 # Health Check Endpoint

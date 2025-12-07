@@ -292,3 +292,49 @@ class SightingWithDetails(SightingRead):
     """Sighting with species details"""
     species_name: Optional[str] = None
     species_scientific_name: Optional[str] = None
+
+
+# ============================================================================
+# Dashboard Models
+# ============================================================================
+
+class CumulativeSpeciesDataPoint(SQLModel):
+    """Single data point for cumulative species chart"""
+    date: date_type = Field(description="Survey date")
+    type: str = Field(description="Species type")
+    cumulative_count: int = Field(description="Cumulative unique species count up to this date")
+    new_species: List[str] = Field(default_factory=list, description="Names of new species first seen on this date")
+
+
+class DateRange(SQLModel):
+    """Date range metadata"""
+    start: date_type = Field(description="Start date")
+    end: date_type = Field(description="End date")
+
+
+class CumulativeSpeciesResponse(SQLModel):
+    """Response for cumulative species endpoint"""
+    data: List[CumulativeSpeciesDataPoint] = Field(description="Cumulative species data points")
+    date_range: DateRange = Field(description="Date range of the data")
+
+
+class SpeciesOccurrenceDataPoint(SQLModel):
+    """Single data point for species occurrence chart"""
+    week_start: date_type = Field(description="Start of week (Monday)")
+    occurrence_count: int = Field(description="Total count of individuals seen this week")
+
+
+class SpeciesOccurrenceResponse(SQLModel):
+    """Response for species occurrence endpoint"""
+    data: List[SpeciesOccurrenceDataPoint] = Field(description="Weekly occurrence data points")
+    date_range: DateRange = Field(description="Date range of the data")
+    species_name: str = Field(description="Name of the species")
+
+
+class SpeciesWithCount(SQLModel):
+    """Species with total occurrence count"""
+    id: int = Field(description="Species ID")
+    name: Optional[str] = Field(description="Common name")
+    scientific_name: Optional[str] = Field(description="Scientific name")
+    type: str = Field(description="Species type")
+    total_count: int = Field(description="Total occurrence count across all surveys")

@@ -9,6 +9,7 @@ import { Layout } from './components/layout/Layout';
 import { SurveysPage } from './pages/SurveysPage';
 import { SurveyDetailPage } from './pages/SurveyDetailPage';
 import { NewSurveyPage } from './pages/NewSurveyPage';
+import { DashboardsPage } from './pages/DashboardsPage';
 
 // Set dayjs to use UK locale globally (dd/mm/yyyy format)
 dayjs.locale('en-gb');
@@ -21,6 +22,9 @@ function App() {
         <BrowserRouter>
           <Layout>
             <Routes>
+              {/* Dashboard page */}
+              <Route path="/dashboards" element={<DashboardsPage />} />
+
               {/* Main surveys list page */}
               <Route path="/surveys" element={<SurveysPage />} />
 
