@@ -11,13 +11,10 @@ Replaces:
 """
 
 from datetime import date as date_type, time as time_type, datetime
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 from decimal import Decimal
 from sqlmodel import Field, SQLModel, Relationship
 import sqlalchemy as sa
-
-if TYPE_CHECKING:
-    from typing import List
 
 
 # ============================================================================
@@ -58,6 +55,7 @@ class Surveyor(SurveyorBase, table=True):
         nullable=False,
         sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
     )
+    is_active: bool = Field(default=True, description="Whether surveyor is active")
 
     # Relationships
     surveys: List["Survey"] = Relationship(back_populates="surveyors", link_model=SurveySurveyor)
@@ -72,11 +70,13 @@ class SurveyorUpdate(SQLModel):
     """Model for updating a surveyor (all fields optional)"""
     first_name: Optional[str] = Field(None, max_length=255)
     last_name: Optional[str] = Field(None, max_length=255)
+    is_active: Optional[bool] = None
 
 
 class SurveyorRead(SurveyorBase):
     """Model for reading a surveyor (includes ID)"""
     id: int
+    is_active: bool
 
 
 # ============================================================================
@@ -320,13 +320,14 @@ class CumulativeSpeciesResponse(SQLModel):
 
 class SpeciesOccurrenceDataPoint(SQLModel):
     """Single data point for species occurrence chart"""
-    week_start: date_type = Field(description="Start of week (Monday)")
-    occurrence_count: int = Field(description="Total count of individuals seen this week")
+    survey_date: date_type = Field(description="Survey date")
+    survey_id: int = Field(description="Survey ID")
+    occurrence_count: int = Field(description="Total count of individuals seen in this survey")
 
 
 class SpeciesOccurrenceResponse(SQLModel):
     """Response for species occurrence endpoint"""
-    data: List[SpeciesOccurrenceDataPoint] = Field(description="Weekly occurrence data points")
+    data: List[SpeciesOccurrenceDataPoint] = Field(description="Occurrence data points by survey")
     date_range: DateRange = Field(description="Date range of the data")
     species_name: str = Field(description="Name of the species")
 
