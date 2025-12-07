@@ -677,7 +677,7 @@ export function SurveyDetailPage() {
                           </Box>
 
                         {/* Group Rows */}
-                        {groupSightings.map((sighting, index) => (
+                        {groupSightings.map((sighting) => (
                           <Box
                             key={sighting.id}
                             sx={{

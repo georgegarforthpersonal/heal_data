@@ -154,7 +154,7 @@ export function DashboardsPage() {
               New this week:
             </Typography>
             <Box sx={{ maxHeight: 150, overflowY: 'auto' }}>
-              {newSpeciesList.map((species, idx) => (
+              {newSpeciesList.map((species: string, idx: number) => (
                 <Typography key={idx} variant="body2" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                   • {species}
                 </Typography>

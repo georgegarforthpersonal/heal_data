@@ -1,6 +1,6 @@
 import { Box, Typography, Breadcrumbs, Link, Stack } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 interface BreadcrumbItem {
   label: string;

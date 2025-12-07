@@ -19,7 +19,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { Add, Delete, RestoreFromTrash, Edit } from '@mui/icons-material';
+import { Add, Delete, RestoreFromTrash } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import { surveyorsAPI, type Surveyor } from '../services/api';
 

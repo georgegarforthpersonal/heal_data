@@ -121,12 +121,11 @@ export function TopNavBar() {
                       sx={{
                         width: 44,
                         height: 44,
-                        borderRadius: '8px',
+                        borderRadius: isActive ? '0px' : '8px',
                         bgcolor: isActive ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
                         color: isActive ? 'primary.main' : 'text.secondary',
                         borderBottom: isActive ? '3px solid' : 'none',
                         borderColor: isActive ? 'primary.main' : 'transparent',
-                        borderRadius: isActive ? '0px' : '8px',
                         '&:hover': {
                           bgcolor: 'rgba(0, 0, 0, 0.08)',
                         },
