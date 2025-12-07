@@ -1,10 +1,10 @@
-import { Box, Typography, Paper, Stack, IconButton, Tooltip, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Typography, Paper, Stack, IconButton, Tooltip, CircularProgress, Alert, Autocomplete, TextField } from '@mui/material';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { dashboardAPI } from '../services/api';
 import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResponse } from '../services/api';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon } from '../components/icons/WildlifeIcons';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
 import { notionColors } from '../theme';
 
 /**
@@ -41,6 +41,12 @@ export function DashboardsPage() {
     'butterfly',
     'bird',
     'moth',
+    'beetle',
+    'fly',
+    'bee-wasp-ant',
+    'bug',
+    'dragonfly-damselfly',
+    'grasshopper-cricket',
     'insect',
     'gall',
     'spider',
@@ -57,7 +63,13 @@ export function DashboardsPage() {
       case 'butterfly': return ButterflyIcon;
       case 'bird': return BirdIcon;
       case 'moth': return MothIcon;
-      case 'insect': return BugIcon;
+      case 'beetle': return BeetleIcon;
+      case 'fly': return FlyIcon;
+      case 'bee-wasp-ant': return BeeIcon;
+      case 'bug': return BugIcon;
+      case 'dragonfly-damselfly': return DragonflyIcon;
+      case 'grasshopper-cricket': return GrasshopperIcon;
+      case 'insect': return EarwigIcon;
       case 'gall': return LeafIcon;
       case 'spider': return SpiderIcon;
       case 'bat': return BatIcon;
@@ -65,7 +77,7 @@ export function DashboardsPage() {
       case 'reptile': return ReptileIcon;
       case 'amphibian': return AmphibianIcon;
       case 'fungi': return MushroomIcon;
-      default: return BugIcon;
+      default: return EarwigIcon;
     }
   };
 
@@ -75,7 +87,26 @@ export function DashboardsPage() {
 
   // Format species type name for display
   const formatTypeName = (type: string): string => {
-    return type.charAt(0).toUpperCase() + type.slice(1) + 's';
+    const typeNameMap: { [key: string]: string } = {
+      'bee-wasp-ant': 'Bees, Wasps & Ants',
+      'grasshopper-cricket': 'Grasshoppers & Crickets',
+      'dragonfly-damselfly': 'Dragonflies & Damselflies',
+      'butterfly': 'Butterflies',
+      'bird': 'Birds',
+      'moth': 'Moths',
+      'beetle': 'Beetles',
+      'fly': 'Flies',
+      'bug': 'Bugs',
+      'insect': 'Insects',
+      'gall': 'Galls',
+      'spider': 'Spiders',
+      'bat': 'Bats',
+      'mammal': 'Mammals',
+      'reptile': 'Reptiles',
+      'amphibian': 'Amphibians',
+      'fungi': 'Fungi'
+    };
+    return typeNameMap[type] || type.charAt(0).toUpperCase() + type.slice(1) + 's';
   };
 
   // Format timestamp for x-axis (Year for Jan, Month name for Apr/Jul/Oct)
@@ -241,35 +272,31 @@ export function DashboardsPage() {
     // Get all species types present in the data
     const types = Array.from(new Set(chartData.data.map(d => d.type)));
 
-    // Get start of week (Monday) using dayjs
-    const getWeekStart = (date: Date): string =>
-      dayjs(date).startOf('week').add(1, 'day').format('YYYY-MM-DD');
-
-    // Aggregate data by week
-    const weeklyData = new Map<string, { counts: { [key: string]: number }; species: { [key: string]: string[] } }>();
+    // Aggregate data by date (not week - to preserve individual survey dates)
+    const dateData = new Map<string, { counts: { [key: string]: number }; species: { [key: string]: string[] } }>();
 
     chartData.data.forEach(({ date, type, cumulative_count, new_species }) => {
-      const weekKey = getWeekStart(new Date(date));
+      const dateKey = date; // Use actual date as key
 
-      if (!weeklyData.has(weekKey)) {
-        weeklyData.set(weekKey, { counts: {}, species: {} });
+      if (!dateData.has(dateKey)) {
+        dateData.set(dateKey, { counts: {}, species: {} });
       }
 
-      const weekData = weeklyData.get(weekKey)!;
+      const dayData = dateData.get(dateKey)!;
 
-      // Take the max cumulative count for each type within the week
-      weekData.counts[type] = Math.max(weekData.counts[type] || 0, cumulative_count);
+      // Take the max cumulative count for each type on this date
+      dayData.counts[type] = Math.max(dayData.counts[type] || 0, cumulative_count);
 
-      // Collect all new species for this type in this week
-      if (!weekData.species[type]) {
-        weekData.species[type] = [];
+      // Collect all new species for this type on this date
+      if (!dayData.species[type]) {
+        dayData.species[type] = [];
       }
-      weekData.species[type].push(...new_species);
+      dayData.species[type].push(...new_species);
     });
 
-    // Convert to array format with timestamps for x-axis
-    const chartArray = Array.from(weeklyData.entries())
-      .map(([weekKey, data]) => {
+    // Convert to array format with timestamps for x-axis (Option 2: Time scale)
+    const chartArray = Array.from(dateData.entries())
+      .map(([dateKey, data]) => {
         // Deduplicate species names for each type
         const deduplicatedSpecies: { [key: string]: string[] } = {};
         Object.entries(data.species).forEach(([type, speciesList]) => {
@@ -277,15 +304,16 @@ export function DashboardsPage() {
         });
 
         return {
-          date: new Date(weekKey).getTime(),
+          date: new Date(dateKey).getTime(), // Use timestamp for time scale
+          dateStr: dateKey, // Keep string for reference
           ...data.counts,
-          newSpecies: deduplicatedSpecies, // Store as nested object by type
+          newSpecies: deduplicatedSpecies,
         };
       })
       .sort((a, b) => a.date - b.date);
 
     // Calculate custom ticks for x-axis (Year in Jan, then Apr, Jul, Oct)
-    const customTicks: Date[] = [];
+    const customTicks: number[] = [];
     const seenMonths = new Set<string>();
 
     chartArray.forEach(item => {
@@ -296,7 +324,7 @@ export function DashboardsPage() {
 
       // Only add tick for Jan (year), Apr, Jul, Oct - once per month
       if ((month === 0 || month === 3 || month === 6 || month === 9) && !seenMonths.has(key)) {
-        customTicks.push(date);
+        customTicks.push(item.date);
         seenMonths.add(key);
       }
     });
@@ -388,7 +416,7 @@ export function DashboardsPage() {
                 type="number"
                 domain={['dataMin', 'dataMax']}
                 scale="time"
-                ticks={chartDataPrepared.customTicks.map(d => d.getTime())}
+                ticks={chartDataPrepared.customTicks}
                 tickFormatter={formatXAxisTick}
                 tick={{ fontSize: 12, fill: '#666' }}
                 tickLine={false}
@@ -438,6 +466,7 @@ export function DashboardsPage() {
         elevation={0}
         sx={{
           p: 3,
+          mt: 3,
           bgcolor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
@@ -445,21 +474,30 @@ export function DashboardsPage() {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
-          <FormControl size="small" sx={{ minWidth: 300 }}>
-            <InputLabel id="species-select-label">Select Species</InputLabel>
-            <Select
-              labelId="species-select-label"
-              value={selectedSpeciesId || ''}
-              label="Select Species"
-              onChange={(e) => setSelectedSpeciesId(Number(e.target.value))}
-            >
-              {speciesList.map((species) => (
-                <MenuItem key={species.id} value={species.id}>
-                  {species.name || species.scientific_name} ({species.total_count} total)
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            options={speciesList}
+            getOptionLabel={(option) =>
+              `${option.name || option.scientific_name} (${option.total_count} total)`
+            }
+            value={speciesList.find(s => s.id === selectedSpeciesId) || null}
+            onChange={(event, newValue) => {
+              setSelectedSpeciesId(newValue ? newValue.id : null);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Select Species"
+                placeholder="Type to search..."
+                size="small"
+              />
+            )}
+            sx={{ minWidth: 300 }}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            selectOnFocus
+            clearOnBlur
+            blurOnSelect
+            autoHighlight
+          />
         </Box>
 
         {occurrenceLoading && (
@@ -474,32 +512,73 @@ export function DashboardsPage() {
           </Alert>
         )}
 
-        {!occurrenceLoading && !occurrenceError && occurrenceData && chartDataPrepared && (
+        {!occurrenceLoading && !occurrenceError && occurrenceData && (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={(() => {
-                // Create a map of week_start -> count from occurrence data
-                const occurrenceMap = new Map<number, number>();
-                occurrenceData.data.forEach(d => {
-                  occurrenceMap.set(new Date(d.week_start).getTime(), d.occurrence_count);
+                // Option 3: Ordinal positioning with date labels
+                // Calculate year boundaries and store them with the chart data
+                const chartData = occurrenceData.data.map((d, index) => {
+                  const year = new Date(d.survey_date).getFullYear();
+                  return {
+                    index,
+                    surveyId: d.survey_id,
+                    date: new Date(d.survey_date).getTime(),
+                    dateStr: d.survey_date,
+                    count: d.occurrence_count,
+                    year,
+                  };
                 });
 
-                // Use the same data points as the cumulative chart to ensure matching x-axis
-                return chartDataPrepared.data.map(d => ({
-                  date: d.date,
-                  count: occurrenceMap.get(d.date) || 0,
-                }));
+                // Calculate year boundaries
+                const yearTickMap = new Map<number, number>(); // tick position -> year
+                let prevYear: number | null = null;
+                let lastIndexOfPrevYear: number | null = null;
+
+                chartData.forEach((d, index) => {
+                  if (prevYear !== null && d.year !== prevYear) {
+                    // Year boundary detected
+                    const midpoint = lastIndexOfPrevYear !== null
+                      ? (lastIndexOfPrevYear + index) / 2
+                      : index / 2;
+                    yearTickMap.set(midpoint, d.year);
+                  }
+
+                  prevYear = d.year;
+                  lastIndexOfPrevYear = index;
+                });
+
+                // Store the tick map in a way the formatter can access
+                (chartData as any).yearTickMap = yearTickMap;
+
+                return chartData;
               })()}
               margin={CHART_MARGIN}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
               <XAxis
-                dataKey="date"
-                type="number"
-                domain={['dataMin', 'dataMax']}
-                scale="time"
-                ticks={chartDataPrepared.customTicks.map(d => d.getTime())}
-                tickFormatter={formatXAxisTick}
+                dataKey="index"
+                type="category"
+                ticks={(() => {
+                  // Show year label at the first survey of each year
+                  const yearFirstSurvey = new Map<number, number>(); // year -> first index
+
+                  occurrenceData.data.forEach((d, index) => {
+                    const year = new Date(d.survey_date).getFullYear();
+                    if (!yearFirstSurvey.has(year)) {
+                      yearFirstSurvey.set(year, index);
+                    }
+                  });
+
+                  // Return array of first indices for each year
+                  return Array.from(yearFirstSurvey.values());
+                })()}
+                tickFormatter={(tickValue) => {
+                  const survey = occurrenceData.data[tickValue];
+                  if (!survey) return '';
+                  const year = new Date(survey.survey_date).getFullYear();
+                  return year.toString();
+                }}
                 tick={{ fontSize: 12, fill: '#666' }}
                 tickLine={false}
                 axisLine={{ stroke: '#e0e0e0' }}
@@ -509,12 +588,13 @@ export function DashboardsPage() {
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => value.toLocaleString()}
+                label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#666' } }}
               />
               <RechartsTooltip
                 content={({ active, payload }) => {
                   if (!active || !payload || payload.length === 0) return null;
                   const data = payload[0].payload;
-                  const date = dayjs(data.date).format('MMM DD, YYYY');
+                  const date = dayjs(data.dateStr).format('MMM DD, YYYY');
                   return (
                     <Paper
                       elevation={3}
@@ -528,6 +608,9 @@ export function DashboardsPage() {
                       <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                         {date}
                       </Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        Survey #{data.surveyId}
+                      </Typography>
                       <Typography variant="body2">
                         Count: {data.count} individuals
                       </Typography>
@@ -540,7 +623,7 @@ export function DashboardsPage() {
           </ResponsiveContainer>
         )}
 
-        {!occurrenceLoading && !occurrenceError && (!occurrenceData || !chartDataPrepared) && (
+        {!occurrenceLoading && !occurrenceError && !occurrenceData && (
           <Box
             sx={{
               display: 'flex',
@@ -551,7 +634,7 @@ export function DashboardsPage() {
             }}
           >
             <Typography variant="body1">
-              {selectedSpeciesId ? 'Loading chart data...' : 'Select a species to view occurrences'}
+              {selectedSpeciesId ? 'No occurrence data available' : 'Select a species to view occurrences'}
             </Typography>
           </Box>
         )}

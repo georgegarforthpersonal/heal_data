@@ -89,6 +89,7 @@ export interface Surveyor {
   id: number;
   first_name: string;
   last_name: string;
+  is_active: boolean;
 }
 
 export interface Species {
@@ -194,7 +195,8 @@ export interface CumulativeSpeciesResponse {
 }
 
 export interface SpeciesOccurrenceDataPoint {
-  week_start: string; // ISO date string "YYYY-MM-DD"
+  survey_date: string; // ISO date string "YYYY-MM-DD"
+  survey_id: number;
   occurrence_count: number;
 }
 
@@ -318,8 +320,9 @@ export const surveyorsAPI = {
   /**
    * Get all surveyors
    */
-  getAll: (): Promise<Surveyor[]> => {
-    return fetchAPI('/surveyors');
+  getAll: (includeInactive: boolean = false): Promise<Surveyor[]> => {
+    const query = includeInactive ? '?include_inactive=true' : '';
+    return fetchAPI(`/surveyors${query}`);
   },
 
   /**
@@ -350,11 +353,29 @@ export const surveyorsAPI = {
   },
 
   /**
-   * Delete a surveyor
+   * Delete a surveyor (hard delete - use deactivate instead)
    */
   delete: (id: number): Promise<void> => {
     return fetchAPI(`/surveyors/${id}`, {
       method: 'DELETE',
+    });
+  },
+
+  /**
+   * Deactivate a surveyor (soft delete)
+   */
+  deactivate: (id: number): Promise<Surveyor> => {
+    return fetchAPI(`/surveyors/${id}/deactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Reactivate a surveyor
+   */
+  reactivate: (id: number): Promise<Surveyor> => {
+    return fetchAPI(`/surveyors/${id}/reactivate`, {
+      method: 'POST',
     });
   },
 };

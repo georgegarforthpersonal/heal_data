@@ -8,7 +8,7 @@ import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey } from
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon } from '../components/icons/WildlifeIcons';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
 
 /**
  * SurveyDetailPage displays detailed information about a single survey
@@ -156,8 +156,20 @@ export function SurveyDetailPage() {
         return BirdIcon;
       case 'moth':
         return MothIcon;
-      case 'insect':
+      case 'beetle':
+        return BeetleIcon;
+      case 'fly':
+        return FlyIcon;
+      case 'bee-wasp-ant':
+        return BeeIcon;
+      case 'bug':
         return BugIcon;
+      case 'dragonfly-damselfly':
+        return DragonflyIcon;
+      case 'grasshopper-cricket':
+        return GrasshopperIcon;
+      case 'insect':
+        return EarwigIcon;
       case 'gall':
         return LeafIcon;
       case 'spider':
@@ -173,7 +185,7 @@ export function SurveyDetailPage() {
       case 'fungi':
         return MushroomIcon;
       default:
-        return BugIcon; // Default fallback
+        return EarwigIcon; // Default fallback
     }
   };
 

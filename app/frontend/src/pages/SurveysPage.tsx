@@ -1,7 +1,7 @@
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination } from '@mui/material';
 import { CalendarToday, Person, Visibility, LocationOn } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon } from '../components/icons/WildlifeIcons';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
@@ -227,6 +227,12 @@ export function SurveysPage() {
     const singular = type === 'butterfly' ? 'Butterfly'
                    : type === 'bird' ? 'Bird'
                    : type === 'moth' ? 'Moth'
+                   : type === 'beetle' ? 'Beetle'
+                   : type === 'fly' ? 'Fly'
+                   : type === 'bee-wasp-ant' ? 'Bee, Wasp or Ant'
+                   : type === 'bug' ? 'Bug'
+                   : type === 'dragonfly-damselfly' ? 'Dragonfly or Damselfly'
+                   : type === 'grasshopper-cricket' ? 'Grasshopper or Cricket'
                    : type === 'insect' ? 'Insect'
                    : type === 'gall' ? 'Gall'
                    : type === 'spider' ? 'Spider'
@@ -240,6 +246,12 @@ export function SurveysPage() {
     const plural = type === 'butterfly' ? 'Butterflies'
                  : type === 'bird' ? 'Birds'
                  : type === 'moth' ? 'Moths'
+                 : type === 'beetle' ? 'Beetles'
+                 : type === 'fly' ? 'Flies'
+                 : type === 'bee-wasp-ant' ? 'Bees, Wasps & Ants'
+                 : type === 'bug' ? 'Bugs'
+                 : type === 'dragonfly-damselfly' ? 'Dragonflies & Damselflies'
+                 : type === 'grasshopper-cricket' ? 'Grasshoppers & Crickets'
                  : type === 'insect' ? 'Insects'
                  : type === 'gall' ? 'Galls'
                  : type === 'spider' ? 'Spiders'
@@ -457,8 +469,20 @@ export function SurveysPage() {
                           ? BirdIcon
                           : sighting.type === 'moth'
                           ? MothIcon
-                          : sighting.type === 'insect'
+                          : sighting.type === 'beetle'
+                          ? BeetleIcon
+                          : sighting.type === 'fly'
+                          ? FlyIcon
+                          : sighting.type === 'bee-wasp-ant'
+                          ? BeeIcon
+                          : sighting.type === 'bug'
                           ? BugIcon
+                          : sighting.type === 'dragonfly-damselfly'
+                          ? DragonflyIcon
+                          : sighting.type === 'grasshopper-cricket'
+                          ? GrasshopperIcon
+                          : sighting.type === 'insect'
+                          ? EarwigIcon
                           : sighting.type === 'gall'
                           ? LeafIcon
                           : sighting.type === 'spider'
@@ -473,7 +497,7 @@ export function SurveysPage() {
                           ? AmphibianIcon
                           : sighting.type === 'fungi'
                           ? MushroomIcon
-                          : MushroomIcon; // Default fallback
+                          : EarwigIcon; // Default fallback
 
                         const speciesLabel = getSpeciesDisplayName(sighting.type, sighting.count);
 

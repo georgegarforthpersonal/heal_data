@@ -10,6 +10,7 @@ import { SurveysPage } from './pages/SurveysPage';
 import { SurveyDetailPage } from './pages/SurveyDetailPage';
 import { NewSurveyPage } from './pages/NewSurveyPage';
 import { DashboardsPage } from './pages/DashboardsPage';
+import { AdminPage } from './pages/AdminPage';
 
 // Set dayjs to use UK locale globally (dd/mm/yyyy format)
 dayjs.locale('en-gb');
@@ -24,6 +25,9 @@ function App() {
             <Routes>
               {/* Dashboard page */}
               <Route path="/dashboards" element={<DashboardsPage />} />
+
+              {/* Admin page */}
+              <Route path="/admin" element={<AdminPage />} />
 
               {/* Main surveys list page */}
               <Route path="/surveys" element={<SurveysPage />} />
