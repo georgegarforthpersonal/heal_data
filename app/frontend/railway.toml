@@ -1,0 +1,10 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+dockerContext = "."
+
+[build.args]
+VITE_API_URL = "${{VITE_API_URL}}"
+
+[deploy]
+startCommand = "nginx -g 'daemon off;'"
