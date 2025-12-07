@@ -24,19 +24,13 @@ app = FastAPI(
 # CORS Configuration - Allow React frontend to call API
 # ============================================================================
 
-# Development: Allow localhost on different ports
-origins = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:5174",  # Backup Vite port
-    "http://localhost:3000",  # Alternative React dev server
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:3000",
-]
+# Development: Allow all origins for mobile testing
+# In production, this should be restricted to specific domains
+origins = ["*"]  # Allow all origins for development/staging
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # TODO: Update for production deployment
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Allow all headers

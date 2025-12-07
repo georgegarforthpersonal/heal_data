@@ -176,13 +176,14 @@ export function SightingsEditor({
               <Box
                 key={sighting.tempId}
                 sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr 80px 40px', sm: '3fr 100px 48px', md: '3fr 120px 60px' },
-                  gap: { xs: 0.5, sm: 1, md: 2 },
-                  p: { xs: 0.75, sm: 1.25, md: 1.5 },
+                  display: { xs: 'flex', sm: 'grid' },
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gridTemplateColumns: { sm: '3fr 100px 48px', md: '3fr 120px 60px' },
+                  gap: { xs: 1, sm: 1, md: 2 },
+                  p: { xs: 1, sm: 1.25, md: 1.5 },
                   borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
                   borderColor: 'divider',
-                  alignItems: 'center',
+                  alignItems: { xs: 'stretch', sm: 'center' },
                   // Subtle styling for the empty last row
                   bgcolor: isEmptyLastRow ? 'grey.50' : 'transparent',
                   transition: 'background-color 0.2s',
@@ -254,7 +255,7 @@ export function SightingsEditor({
                                 position: 'absolute',
                                 left: { xs: 8, sm: 14 },
                                 pointerEvents: 'none',
-                                fontSize: { xs: '0.813rem', sm: '0.875rem' },
+                                fontSize: { xs: '16px', sm: '0.875rem' },
                                 color: 'text.primary',
                               }}
                             >
@@ -273,7 +274,7 @@ export function SightingsEditor({
                         }}
                         sx={{
                           '& .MuiInputBase-input': {
-                            fontSize: { xs: '0.813rem', sm: '0.875rem' },
+                            fontSize: { xs: '16px', sm: '0.875rem' },
                             padding: { xs: '6px 8px', sm: '8.5px 14px' },
                             // Hide the input text when we have a selection to show our custom formatted version
                             color: hasSelection && params.inputProps.value ? 'transparent' : 'inherit',
@@ -285,8 +286,20 @@ export function SightingsEditor({
                   size="small"
                 />
 
-                {/* Count Input */}
-                <TextField
+                {/* Count Input and Delete Button - grouped on mobile */}
+                <Box
+                  sx={{
+                    display: 'contents', // On larger screens, act as if wrapper doesn't exist (grid children)
+                    '@media (max-width: 600px)': {
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: 1,
+                      alignItems: 'center',
+                    }
+                  }}
+                >
+                  {/* Count Input */}
+                  <TextField
                   type="number"
                   value={sighting.count}
                   onChange={(e) =>
@@ -311,28 +324,30 @@ export function SightingsEditor({
                   inputProps={{ min: 1 }}
                   placeholder="#"
                   sx={{
+                    flex: { xs: 1, sm: 'unset' },
                     '& .MuiInputBase-input': {
-                      fontSize: { xs: '0.813rem', sm: '0.875rem' },
+                      fontSize: { xs: '16px', sm: '0.875rem' },
                       padding: { xs: '6px 8px', sm: '8.5px 14px' }
                     }
                   }}
                 />
 
-                {/* Delete Button */}
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => removeSightingRow(sighting.tempId)}
-                  disabled={sightings.length === 1}
-                  sx={{
-                    justifySelf: 'center',
-                    opacity: isEmptyLastRow ? 0.3 : 1,
-                    width: { xs: 32, sm: 36, md: 40 },
-                    height: { xs: 32, sm: 36, md: 40 },
-                  }}
-                >
-                  <Delete sx={{ fontSize: { xs: 16, sm: 18, md: 20 } }} />
-                </IconButton>
+                  {/* Delete Button */}
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => removeSightingRow(sighting.tempId)}
+                    disabled={sightings.length === 1}
+                    sx={{
+                      justifySelf: 'center',
+                      opacity: isEmptyLastRow ? 0.3 : 1,
+                      width: { xs: 32, sm: 36, md: 40 },
+                      height: { xs: 32, sm: 36, md: 40 },
+                    }}
+                  >
+                    <Delete sx={{ fontSize: { xs: 16, sm: 18, md: 20 } }} />
+                  </IconButton>
+                </Box>
               </Box>
             );
           })}

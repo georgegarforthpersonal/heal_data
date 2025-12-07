@@ -65,6 +65,11 @@ export function SurveyFormFields({
             fullWidth: true,
             error: !!validationErrors.date,
             helperText: validationErrors.date,
+            sx: {
+              '& .MuiInputBase-input': {
+                fontSize: { xs: '16px', sm: '1rem' },
+              }
+            }
           },
         }}
       />
@@ -81,6 +86,11 @@ export function SurveyFormFields({
             label="Location *"
             error={!!validationErrors.location}
             helperText={validationErrors.location}
+            sx={{
+              '& .MuiInputBase-input': {
+                fontSize: { xs: '16px', sm: '1rem' },
+              }
+            }}
           />
         )}
       />
@@ -107,6 +117,11 @@ export function SurveyFormFields({
             label="Surveyors *"
             error={!!validationErrors.surveyors}
             helperText={validationErrors.surveyors}
+            sx={{
+              '& .MuiInputBase-input': {
+                fontSize: { xs: '16px', sm: '1rem' },
+              }
+            }}
           />
         )}
         renderTags={(value, getTagProps) =>
@@ -130,6 +145,11 @@ export function SurveyFormFields({
         onChange={(e) => onNotesChange(e.target.value)}
         placeholder="Add any additional notes about this survey..."
         fullWidth
+        sx={{
+          '& .MuiInputBase-input': {
+            fontSize: { xs: '16px', sm: '1rem' },
+          }
+        }}
       />
     </Stack>
   );

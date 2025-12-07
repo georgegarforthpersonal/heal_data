@@ -460,7 +460,7 @@ export function SurveysPage() {
 
                   {/* Species Column - Species breakdown with icons and tooltips */}
                   <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" flexWrap="wrap" gap={1}>
                       {survey.species_breakdown.map((sighting, idx) => {
                         // Select icon based on species type
                         const Icon = sighting.type === 'butterfly'
