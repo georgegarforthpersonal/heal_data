@@ -1,7 +1,9 @@
+# Railway configuration for multiple services
+
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-dockerContext = "."
+dockerfilePath = "app/frontend/Dockerfile"
+dockerContext = "app/frontend"
 
 [build.args]
 VITE_API_URL = "${{VITE_API_URL}}"
