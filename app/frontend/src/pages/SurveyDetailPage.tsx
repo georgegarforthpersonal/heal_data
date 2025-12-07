@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Stack, Breadcrumbs, Link, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowBack, Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey } from '../services/api';
@@ -9,18 +9,18 @@ import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
+import { PageHeader } from '../components/layout/PageHeader';
 
 /**
  * SurveyDetailPage displays detailed information about a single survey
- * - Breadcrumb navigation back to surveys list
- * - Survey metadata (date, surveyors, weather, etc.)
- * - Sightings table (view and edit)
- * - View/Edit mode toggle
+ * - Survey metadata (date, surveyors, location, notes)
+ * - Sightings with card-based editing interface
+ * - View/Edit mode toggle with action buttons
  *
  * Following DEVELOPMENT.md conventions:
  * - Built inline first (no premature component extraction)
  * - Uses MUI components with theme integration
- * - Mock data ready to be replaced with API calls
+ * - Connected to real API
  */
 export function SurveyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -251,10 +251,6 @@ export function SurveyDetailPage() {
   // Event Handlers
   // ============================================================================
 
-  const handleBack = () => {
-    navigate('/surveys');
-  };
-
   const handleEditClick = () => {
     if (!survey) return;
 
@@ -412,117 +408,91 @@ export function SurveyDetailPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      {/* Back Link and Actions */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 2, md: 3 }, gap: 1 }}>
-        <Link
-          component="button"
-          onClick={handleBack}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            textDecoration: 'none',
-            color: 'text.secondary',
-            cursor: 'pointer',
-            fontSize: '0.875rem',
-            '&:hover': { color: 'primary.main' },
-          }}
-        >
-          <ArrowBack sx={{ fontSize: 16 }} />
-          Back to Surveys
-        </Link>
-
-        {/* TODO: Add RBAC permission checks - only show these buttons to admin users */}
-        {/* When implementing: const { hasPermission } = useAuth(); */}
-        {/* Then wrap buttons with: {hasPermission('edit_survey') && <Button.../>} */}
-        {isEditMode ? (
-          <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} sx={{ flexShrink: 0 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Cancel sx={{ display: { xs: 'none', sm: 'block' } }} />}
-                onClick={handleCancel}
-                disabled={saving}
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  boxShadow: 'none',
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={saving ? undefined : <Save sx={{ display: { xs: 'none', sm: 'block' } }} />}
-                onClick={handleSave}
-                disabled={
-                  saving ||
-                  !editDate ||
-                  !editLocationId ||
-                  editSelectedSurveyors.length === 0 ||
-                  editDraftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
-                }
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  boxShadow: 'none',
-                  '&:hover': { boxShadow: 'none' },
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  minWidth: { xs: 80, sm: 140 },
-                  px: { xs: 1, sm: 2 }
-                }}
-              >
-                {saving ? (
-                  <>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Saving...
-                  </>
-                ) : (
-                  'Save'
-                )}
-              </Button>
-            </Stack>
-          ) : (
-            <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} sx={{ flexShrink: 0 }}>
-              <Button
-                variant="contained"
-                startIcon={<Edit sx={{ display: { xs: 'none', sm: 'block' } }} />}
-                onClick={handleEditClick}
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  boxShadow: 'none',
-                  '&:hover': { boxShadow: 'none' },
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<Delete sx={{ display: { xs: 'none', sm: 'block' } }} />}
-                onClick={handleDeleteClick}
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  boxShadow: 'none',
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
-                }}
-              >
-                Delete
-              </Button>
-            </Stack>
-        )
+      {/* Page Header */}
+      <PageHeader
+        backButton={{ href: '/surveys' }}
+        actions={
+          <>
+            {/* TODO: Add RBAC permission checks - only show these buttons to admin users */}
+            {/* When implementing: const { hasPermission } = useAuth(); */}
+            {/* Then wrap buttons with: {hasPermission('edit_survey') && <Button.../>} */}
+            {isEditMode ? (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Cancel />}
+                  onClick={handleCancel}
+                  disabled={saving}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: 'none',
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={saving ? undefined : <Save />}
+                  onClick={handleSave}
+                  disabled={
+                    saving ||
+                    !editDate ||
+                    !editLocationId ||
+                    editSelectedSurveyors.length === 0 ||
+                    editDraftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
+                  }
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: 'none',
+                    '&:hover': { boxShadow: 'none' },
+                    minWidth: 140,
+                  }}
+                >
+                  {saving ? (
+                    <>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Survey'
+                  )}
+                </Button>
+              </Stack>
+            ) : (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="contained"
+                  startIcon={<Edit />}
+                  onClick={handleEditClick}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: 'none',
+                    '&:hover': { boxShadow: 'none' },
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<Delete />}
+                  onClick={handleDeleteClick}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: 'none',
+                  }}
+                >
+                  Delete
+                </Button>
+              </Stack>
+            )}
+          </>
         }
-      </Stack>
+      />
 
       {/* Error Alert */}
       {error && (

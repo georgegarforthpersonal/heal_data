@@ -7,17 +7,16 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Breadcrumbs,
-  Link
 } from '@mui/material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { ArrowBack, Save, Cancel } from '@mui/icons-material';
+import { Save, Cancel } from '@mui/icons-material';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
 import type { Survey, Location, Surveyor, Species } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
+import { PageHeader } from '../components/layout/PageHeader';
 
 /**
  * NewSurveyPage - Full-page form for creating surveys with inline sightings
@@ -49,8 +48,8 @@ export function NewSurveyPage() {
   // Form State - Sightings
   // ============================================================================
 
+  // Start with one empty row for desktop inline editing
   const [draftSightings, setDraftSightings] = useState<DraftSighting[]>([
-    // Start with one empty sighting row
     {
       tempId: `temp-${Date.now()}`,
       species_id: null,
@@ -212,10 +211,6 @@ export function NewSurveyPage() {
     navigate('/surveys');
   };
 
-  const handleBack = () => {
-    navigate('/surveys');
-  };
-
   // ============================================================================
   // Loading State
   // ============================================================================
@@ -234,70 +229,55 @@ export function NewSurveyPage() {
 
   return (
     <Box sx={{ p: 4 }}>
-      {/* Back Link and Actions */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-        <Link
-          component="button"
-          onClick={handleBack}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            textDecoration: 'none',
-            color: 'text.secondary',
-            cursor: 'pointer',
-            fontSize: '0.875rem',
-            '&:hover': { color: 'primary.main' },
-          }}
-        >
-          <ArrowBack sx={{ fontSize: 16 }} />
-          Back to Surveys
-        </Link>
-
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<Cancel />}
-            onClick={handleCancel}
-            disabled={saving}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              boxShadow: 'none',
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={saving ? undefined : <Save />}
-            onClick={handleSave}
-            disabled={
-              saving ||
-              !date ||
-              !locationId ||
-              selectedSurveyors.length === 0 ||
-              draftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
-            }
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
-              minWidth: 140,
-            }}
-          >
-            {saving ? (
-              <>
-                <CircularProgress size={20} sx={{ mr: 1 }} />
-                Saving...
-              </>
-            ) : (
-              'Save Survey'
-            )}
-          </Button>
-        </Stack>
-      </Stack>
+      {/* Page Header */}
+      <PageHeader
+        backButton={{ href: '/surveys' }}
+        actions={
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<Cancel />}
+              onClick={handleCancel}
+              disabled={saving}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: 'none',
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={saving ? undefined : <Save />}
+              onClick={handleSave}
+              disabled={
+                saving ||
+                !date ||
+                !locationId ||
+                selectedSurveyors.length === 0 ||
+                draftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
+              }
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+                minWidth: 140,
+              }}
+            >
+              {saving ? (
+                <>
+                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                  Saving...
+                </>
+              ) : (
+                'Save Survey'
+              )}
+            </Button>
+          </Stack>
+        }
+      />
         {/* Error Alert */}
         {error && (
           <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
