@@ -190,6 +190,8 @@ export function NewSurveyPage() {
           surveysAPI.addSighting(newSurvey.id, {
             species_id: sighting.species_id!,
             count: sighting.count,
+            latitude: sighting.latitude,
+            longitude: sighting.longitude,
           })
         )
       );

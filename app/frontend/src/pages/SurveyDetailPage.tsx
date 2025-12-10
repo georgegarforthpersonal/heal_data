@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, IconButton } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, LocationOnOutlined } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey } from '../services/api';
@@ -267,6 +267,8 @@ export function SurveyDetailPage() {
       tempId: `existing-${sighting.id}`,
       species_id: sighting.species_id,
       count: sighting.count,
+      latitude: sighting.latitude,
+      longitude: sighting.longitude,
       id: sighting.id, // Keep the real ID for updates/deletes
     }));
 
@@ -334,12 +336,16 @@ export function SurveyDetailPage() {
             return surveysAPI.updateSighting(Number(id), sighting.id, {
               species_id: sighting.species_id!,
               count: sighting.count,
+              latitude: sighting.latitude,
+              longitude: sighting.longitude,
             });
           } else {
             // Add new sighting
             return surveysAPI.addSighting(Number(id), {
               species_id: sighting.species_id!,
               count: sighting.count,
+              latitude: sighting.latitude,
+              longitude: sighting.longitude,
             });
           }
         })
@@ -613,7 +619,7 @@ export function SurveyDetailPage() {
                   <Box
                     sx={{
                       display: { xs: 'none', sm: 'grid' },
-                      gridTemplateColumns: '3fr 1fr',
+                      gridTemplateColumns: '3fr 90px 1fr',
                       gap: { sm: 1.5, md: 2 },
                       p: { sm: 1, md: 1.5 },
                       bgcolor: 'grey.50',
@@ -623,6 +629,9 @@ export function SurveyDetailPage() {
                   >
                     <Typography variant="body2" fontWeight={600} color="text.secondary">
                       SPECIES
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">
+                      LOCATION
                     </Typography>
                     <Typography variant="body2" fontWeight={600} color="text.secondary">
                       COUNT
@@ -677,36 +686,56 @@ export function SurveyDetailPage() {
                           </Box>
 
                         {/* Group Rows */}
-                        {groupSightings.map((sighting) => (
-                          <Box
-                            key={sighting.id}
-                            sx={{
-                              display: 'grid',
-                              gridTemplateColumns: '3fr 1fr',
-                              gap: { xs: 1, sm: 1.5, md: 2 },
-                              p: { xs: 1, sm: 1.25, md: 1.5 },
-                              borderBottom: '1px solid',
-                              borderColor: 'divider',
-                              '&:hover': { bgcolor: 'grey.50' }
-                            }}
-                          >
-                            <Typography variant="body2" sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
-                              {sighting.species_name ? (
-                                <>
-                                  {sighting.species_name}
-                                  {sighting.species_scientific_name && (
-                                    <i style={{ color: '#666', marginLeft: '0.25rem' }}> {sighting.species_scientific_name}</i>
-                                  )}
-                                </>
-                              ) : (
-                                <i style={{ color: '#666' }}>{sighting.species_scientific_name || getSpeciesName(sighting.species_id)}</i>
-                              )}
-                            </Typography>
-                            <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
-                              {sighting.count}
-                            </Typography>
-                          </Box>
-                        ))}
+                        {groupSightings.map((sighting) => {
+                          const hasLocation = sighting.latitude !== null && sighting.latitude !== undefined &&
+                                               sighting.longitude !== null && sighting.longitude !== undefined;
+                          const locationTooltip = hasLocation
+                            ? `${sighting.latitude?.toFixed(6)}°N, ${sighting.longitude?.toFixed(6)}°W`
+                            : 'No location recorded';
+
+                          return (
+                            <Box
+                              key={sighting.id}
+                              sx={{
+                                display: 'grid',
+                                gridTemplateColumns: '3fr 90px 1fr',
+                                gap: { xs: 1, sm: 1.5, md: 2 },
+                                p: { xs: 1, sm: 1.25, md: 1.5 },
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                '&:hover': { bgcolor: 'grey.50' }
+                              }}
+                            >
+                              <Typography variant="body2" sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
+                                {sighting.species_name ? (
+                                  <>
+                                    {sighting.species_name}
+                                    {sighting.species_scientific_name && (
+                                      <i style={{ color: '#666', marginLeft: '0.25rem' }}> {sighting.species_scientific_name}</i>
+                                    )}
+                                  </>
+                                ) : (
+                                  <i style={{ color: '#666' }}>{sighting.species_scientific_name || getSpeciesName(sighting.species_id)}</i>
+                                )}
+                              </Typography>
+
+                              {/* Location Column - Only show if location exists */}
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, justifySelf: 'center' }}>
+                                {hasLocation && (
+                                  <Tooltip title={locationTooltip} arrow>
+                                    <span>
+                                      <LocationOn sx={{ fontSize: 24, color: 'primary.main' }} />
+                                    </span>
+                                  </Tooltip>
+                                )}
+                              </Box>
+
+                              <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
+                                {sighting.count}
+                              </Typography>
+                            </Box>
+                          );
+                        })}
                         </Box>
                       );
                     })

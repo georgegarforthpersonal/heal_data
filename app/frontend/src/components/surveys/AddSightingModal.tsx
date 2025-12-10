@@ -3,10 +3,13 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, A
 import { Close } from '@mui/icons-material';
 import type { Species } from '../../services/api';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../icons/WildlifeIcons';
+import LocationMapPicker from './LocationMapPicker';
 
 export interface SightingData {
   species_id: number | null;
   count: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface AddSightingModalProps {
@@ -36,15 +39,21 @@ export function AddSightingModal({
 }: AddSightingModalProps) {
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<number | null>(initialData?.species_id || null);
   const [count, setCount] = useState<number>(initialData?.count || 1);
+  const [latitude, setLatitude] = useState<number | null>(initialData?.latitude || null);
+  const [longitude, setLongitude] = useState<number | null>(initialData?.longitude || null);
 
   // Update local state when initialData changes (for edit mode)
   useEffect(() => {
     if (initialData) {
       setSelectedSpeciesId(initialData.species_id);
       setCount(initialData.count);
+      setLatitude(initialData.latitude || null);
+      setLongitude(initialData.longitude || null);
     } else {
       setSelectedSpeciesId(null);
       setCount(1);
+      setLatitude(null);
+      setLongitude(null);
     }
   }, [initialData, open]);
 
@@ -110,10 +119,14 @@ export function AddSightingModal({
       onSave({
         species_id: selectedSpeciesId,
         count: Math.max(1, count),
+        latitude: latitude,
+        longitude: longitude,
       });
       // Reset for next entry
       setSelectedSpeciesId(null);
       setCount(1);
+      setLatitude(null);
+      setLongitude(null);
       onClose();
     }
   };
@@ -122,7 +135,14 @@ export function AddSightingModal({
     // Reset form
     setSelectedSpeciesId(initialData?.species_id || null);
     setCount(initialData?.count || 1);
+    setLatitude(initialData?.latitude || null);
+    setLongitude(initialData?.longitude || null);
     onClose();
+  };
+
+  const handleLocationChange = (lat: number | null, lng: number | null) => {
+    setLatitude(lat);
+    setLongitude(lng);
   };
 
   const selectedSpecies = species.find(s => s.id === selectedSpeciesId);
@@ -247,6 +267,17 @@ export function AddSightingModal({
               }
             }}
           />
+
+          {/* Location Map Picker */}
+          <Box>
+            <LocationMapPicker
+              latitude={latitude || undefined}
+              longitude={longitude || undefined}
+              onChange={handleLocationChange}
+              label="Sighting Location (Optional)"
+              helperText="Mark where you saw this species on the map, or use your current location"
+            />
+          </Box>
         </Stack>
       </DialogContent>
 

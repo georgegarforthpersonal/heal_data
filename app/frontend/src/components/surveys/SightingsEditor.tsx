@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip } from '@mui/material';
-import { Delete, Edit, Add } from '@mui/icons-material';
+import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip, Tooltip } from '@mui/material';
+import { Delete, Edit, Add, LocationOn, LocationOnOutlined } from '@mui/icons-material';
 import type { Species } from '../../services/api';
 import { AddSightingModal } from './AddSightingModal';
 import type { SightingData } from './AddSightingModal';
+import { LocationModal } from './LocationModal';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../icons/WildlifeIcons';
 import { useResponsive } from '../../hooks/useResponsive';
 
@@ -11,6 +12,8 @@ export interface DraftSighting {
   tempId: string;
   species_id: number | null;
   count: number;
+  latitude?: number | null;
+  longitude?: number | null;
   id?: number;
 }
 
@@ -37,6 +40,8 @@ export function SightingsEditor({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTempId, setEditingTempId] = useState<string | null>(null);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [locationEditingTempId, setLocationEditingTempId] = useState<string | null>(null);
 
   // Sort species by type first, then by name within each type
   const sortedSpecies = useMemo(() => {
@@ -99,7 +104,13 @@ export function SightingsEditor({
     if (editingTempId) {
       const updatedSightings = sightings.map((s) =>
         s.tempId === editingTempId
-          ? { ...s, species_id: sightingData.species_id, count: sightingData.count }
+          ? {
+              ...s,
+              species_id: sightingData.species_id,
+              count: sightingData.count,
+              latitude: sightingData.latitude,
+              longitude: sightingData.longitude,
+            }
           : s
       );
       onSightingsChange(updatedSightings);
@@ -110,6 +121,8 @@ export function SightingsEditor({
           tempId: `temp-${Date.now()}`,
           species_id: sightingData.species_id,
           count: sightingData.count,
+          latitude: sightingData.latitude,
+          longitude: sightingData.longitude,
         },
       ]);
     }
@@ -169,8 +182,31 @@ export function SightingsEditor({
     return sp?.type || 'insect';
   };
 
+  // Location modal handlers
+  const handleLocationClick = (tempId: string) => {
+    setLocationEditingTempId(tempId);
+    setLocationModalOpen(true);
+  };
+
+  const handleLocationModalClose = () => {
+    setLocationModalOpen(false);
+    setLocationEditingTempId(null);
+  };
+
+  const handleLocationSave = (lat: number | null, lng: number | null) => {
+    if (locationEditingTempId) {
+      const updatedSightings = sightings.map((s) =>
+        s.tempId === locationEditingTempId
+          ? { ...s, latitude: lat, longitude: lng }
+          : s
+      );
+      onSightingsChange(updatedSightings);
+    }
+  };
+
   const validSightings = sightings.filter((s) => s.species_id !== null);
   const editingSighting = editingTempId ? sightings.find((s) => s.tempId === editingTempId) : null;
+  const locationEditingSighting = locationEditingTempId ? sightings.find((s) => s.tempId === locationEditingTempId) : null;
 
   // Mobile UI: Cards + Modal
   if (isMobile) {
@@ -317,6 +353,8 @@ export function SightingsEditor({
               ? {
                   species_id: editingSighting.species_id,
                   count: editingSighting.count,
+                  latitude: editingSighting.latitude,
+                  longitude: editingSighting.longitude,
                 }
               : undefined
           }
@@ -344,7 +382,7 @@ export function SightingsEditor({
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: '3fr 120px 60px',
+              gridTemplateColumns: '3fr 90px 110px 80px',
               gap: 2,
               p: 1.5,
               bgcolor: 'grey.50',
@@ -354,6 +392,9 @@ export function SightingsEditor({
           >
             <Typography variant="body2" fontWeight={600} color="text.secondary">
               SPECIES *
+            </Typography>
+            <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">
+              LOCATION
             </Typography>
             <Typography variant="body2" fontWeight={600} color="text.secondary">
               COUNT *
@@ -368,12 +409,17 @@ export function SightingsEditor({
             const isEmpty = sighting.species_id === null;
             const isEmptyLastRow = isLastRow && isEmpty;
 
+            const hasLocation = sighting.latitude !== null && sighting.longitude !== null;
+            const locationTooltip = hasLocation
+              ? `${sighting.latitude?.toFixed(6)}°N, ${sighting.longitude?.toFixed(6)}°W`
+              : 'Click to set location';
+
             return (
               <Box
                 key={sighting.tempId}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: '3fr 120px 60px',
+                  gridTemplateColumns: '3fr 90px 110px 80px',
                   gap: 2,
                   p: 1.5,
                   borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
@@ -476,6 +522,29 @@ export function SightingsEditor({
                   size="small"
                 />
 
+                {/* Location Column */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                  <Tooltip title={locationTooltip} arrow>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleLocationClick(sighting.tempId)}
+                      disabled={isEmptyLastRow}
+                      sx={{
+                        color: hasLocation ? 'primary.main' : 'text.disabled',
+                        '&:hover': {
+                          bgcolor: hasLocation ? 'primary.light' : 'action.hover',
+                        },
+                      }}
+                    >
+                      {hasLocation ? (
+                        <LocationOn sx={{ fontSize: 24 }} />
+                      ) : (
+                        <LocationOnOutlined sx={{ fontSize: 24 }} />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
                 <TextField
                   type="number"
                   value={sighting.count}
@@ -523,6 +592,20 @@ export function SightingsEditor({
           })}
         </Box>
       ) : null}
+
+      {/* Location Modal */}
+      <LocationModal
+        open={locationModalOpen}
+        onClose={handleLocationModalClose}
+        onSave={handleLocationSave}
+        initialLatitude={locationEditingSighting?.latitude}
+        initialLongitude={locationEditingSighting?.longitude}
+        speciesName={
+          locationEditingSighting?.species_id
+            ? getSpeciesDisplayName(locationEditingSighting.species_id)
+            : undefined
+        }
+      />
     </>
   );
 }

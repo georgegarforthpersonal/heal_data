@@ -19,7 +19,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional
 from datetime import date
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from database.connection import get_db
 from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate, SurveyWithSightingsCount,
@@ -348,12 +348,15 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
     if not survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
-    # Get sightings with species names (location comes from survey)
+    # Get sightings with species names and coordinates
+    # Use PostGIS functions to extract lat/lng from geometry column
     sightings = db.query(
         Sighting.id,
         Sighting.survey_id,
         Sighting.species_id,
         Sighting.count,
+        func.ST_Y(Sighting.coordinates).label('latitude'),
+        func.ST_X(Sighting.coordinates).label('longitude'),
         Species.name.label('species_name'),
         Species.scientific_name.label('species_scientific_name')
     ).join(Species, Sighting.species_id == Species.id)\
@@ -366,6 +369,8 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
         "survey_id": row.survey_id,
         "species_id": row.species_id,
         "count": row.count,
+        "latitude": row.latitude,
+        "longitude": row.longitude,
         "species_name": row.species_name,
         "species_scientific_name": row.species_scientific_name
     } for row in sightings]
@@ -397,18 +402,36 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
         species_id=sighting.species_id,
         count=sighting.count
     )
+
     db.add(db_sighting)
     db.commit()
     db.refresh(db_sighting)
 
-    # Get species name
+    # Update the coordinates column with PostGIS geometry if lat/lng provided
+    if sighting.latitude is not None and sighting.longitude is not None:
+        db.execute(
+            text("UPDATE sighting SET coordinates = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) WHERE id = :id")
+            .bindparams(lng=sighting.longitude, lat=sighting.latitude, id=db_sighting.id)
+        )
+        db.commit()
+        db.refresh(db_sighting)
+
+    # Get species name and extract coordinates
     species = db.query(Species).filter(Species.id == sighting.species_id).first()
+
+    # Extract lat/lng from PostGIS geometry
+    coords_result = db.query(
+        func.ST_Y(Sighting.coordinates).label('latitude'),
+        func.ST_X(Sighting.coordinates).label('longitude')
+    ).filter(Sighting.id == db_sighting.id).first()
 
     return {
         "id": db_sighting.id,
         "survey_id": db_sighting.survey_id,
         "species_id": db_sighting.species_id,
         "count": db_sighting.count,
+        "latitude": coords_result.latitude if coords_result else None,
+        "longitude": coords_result.longitude if coords_result else None,
         "species_name": species.name if species else None,
         "species_scientific_name": species.scientific_name if species else None
     }
@@ -441,22 +464,45 @@ async def update_sighting(survey_id: int, sighting_id: int, sighting: SightingUp
             detail=f"Sighting {sighting_id} not found for survey {survey_id}"
         )
 
-    # Update only the fields that were provided
+    # Update only the database fields (excluding latitude/longitude which are not table columns)
     update_data = sighting.model_dump(exclude_unset=True)
+    lat = update_data.pop('latitude', None)
+    lng = update_data.pop('longitude', None)
+
     for field, value in update_data.items():
         setattr(db_sighting, field, value)
 
     db.commit()
     db.refresh(db_sighting)
 
-    # Get species name
+    # Update PostGIS coordinates if lat/lng changed
+    if lat is not None and lng is not None:
+        db.execute(
+            text("UPDATE sighting SET coordinates = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) WHERE id = :id")
+            .bindparams(lng=lng, lat=lat, id=sighting_id)
+        )
+        db.commit()
+    elif 'latitude' in sighting.model_dump(exclude_unset=True) or 'longitude' in sighting.model_dump(exclude_unset=True):
+        # If either lat or lng was explicitly set to None, clear coordinates
+        db.execute(text("UPDATE sighting SET coordinates = NULL WHERE id = :id").bindparams(id=sighting_id))
+        db.commit()
+
+    # Get species name and extract coordinates
     species = db.query(Species).filter(Species.id == db_sighting.species_id).first()
+
+    # Extract lat/lng from PostGIS geometry
+    coords_result = db.query(
+        func.ST_Y(Sighting.coordinates).label('latitude'),
+        func.ST_X(Sighting.coordinates).label('longitude')
+    ).filter(Sighting.id == db_sighting.id).first()
 
     return {
         "id": db_sighting.id,
         "survey_id": db_sighting.survey_id,
         "species_id": db_sighting.species_id,
         "count": db_sighting.count,
+        "latitude": coords_result.latitude if coords_result else None,
+        "longitude": coords_result.longitude if coords_result else None,
         "species_name": species.name if species else None,
         "species_scientific_name": species.scientific_name if species else None
     }

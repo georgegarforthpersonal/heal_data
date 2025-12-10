@@ -177,6 +177,8 @@ export interface Sighting {
   survey_id: number;
   species_id: number;
   count: number;
+  latitude?: number | null;
+  longitude?: number | null;
   species_name?: string | null;
   species_scientific_name?: string | null;
 }

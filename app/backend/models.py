@@ -266,6 +266,16 @@ class Sighting(SightingBase, table=True):
         sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
     )
 
+    # PostGIS geometry column (not directly exposed in API - use latitude/longitude instead)
+    coordinates: Optional[str] = Field(
+        default=None,
+        sa_column=sa.Column(
+            "coordinates",
+            sa.Text,  # Will be cast to/from geometry in queries
+            nullable=True
+        )
+    )
+
     # Relationships
     survey: "Survey" = Relationship(back_populates="sightings")
     species: "Species" = Relationship(back_populates="sightings")
@@ -273,13 +283,16 @@ class Sighting(SightingBase, table=True):
 
 class SightingCreate(SightingBase):
     """Model for creating a new sighting"""
-    pass
+    latitude: Optional[float] = Field(None, ge=-90, le=90, description="Latitude coordinate (WGS84)")
+    longitude: Optional[float] = Field(None, ge=-180, le=180, description="Longitude coordinate (WGS84)")
 
 
 class SightingUpdate(SQLModel):
     """Model for updating a sighting (all fields optional)"""
     species_id: Optional[int] = Field(None, gt=0)
     count: Optional[int] = Field(None, gt=0)
+    latitude: Optional[float] = Field(None, ge=-90, le=90, description="Latitude coordinate (WGS84)")
+    longitude: Optional[float] = Field(None, ge=-180, le=180, description="Longitude coordinate (WGS84)")
 
 
 class SightingRead(SightingBase):
@@ -292,6 +305,8 @@ class SightingWithDetails(SightingRead):
     """Sighting with species details"""
     species_name: Optional[str] = None
     species_scientific_name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 # ============================================================================
