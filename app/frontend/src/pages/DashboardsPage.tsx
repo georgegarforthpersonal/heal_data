@@ -3,7 +3,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tool
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { dashboardAPI } from '../services/api';
-import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResponse } from '../services/api';
+import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResponse, SpeciesSightingLocation } from '../services/api';
+import SightingsMap from '../components/dashboard/SightingsMap';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
 import { notionColors } from '../theme';
 
@@ -32,6 +33,11 @@ export function DashboardsPage() {
   const [occurrenceData, setOccurrenceData] = useState<SpeciesOccurrenceResponse | null>(null);
   const [occurrenceLoading, setOccurrenceLoading] = useState(false);
   const [occurrenceError, setOccurrenceError] = useState<string | null>(null);
+
+  // Sightings map state
+  const [sightingsData, setSightingsData] = useState<SpeciesSightingLocation[]>([]);
+  const [sightingsLoading, setSightingsLoading] = useState(false);
+  const [sightingsError, setSightingsError] = useState<string | null>(null);
 
   // ============================================================================
   // Species Type Configuration
@@ -249,6 +255,38 @@ export function DashboardsPage() {
     };
 
     fetchOccurrences();
+  }, [selectedSpeciesId, chartData?.date_range]);
+
+  // Fetch sightings data when species is selected
+  useEffect(() => {
+    const fetchSightings = async () => {
+      if (!selectedSpeciesId) {
+        setSightingsData([]);
+        return;
+      }
+
+      try {
+        setSightingsLoading(true);
+        setSightingsError(null);
+
+        // Use same date range as cumulative chart if available
+        const startDate = chartData?.date_range.start;
+        const endDate = chartData?.date_range.end;
+
+        const response = await dashboardAPI.getSpeciesSightings(
+          selectedSpeciesId,
+          startDate,
+          endDate
+        );
+        setSightingsData(response);
+      } catch (err) {
+        setSightingsError(err instanceof Error ? err.message : 'Failed to load sightings data');
+      } finally {
+        setSightingsLoading(false);
+      }
+    };
+
+    fetchSightings();
   }, [selectedSpeciesId, chartData?.date_range]);
 
   // ============================================================================
@@ -635,6 +673,45 @@ export function DashboardsPage() {
           >
             <Typography variant="body1">
               {selectedSpeciesId ? 'No occurrence data available' : 'Select a species to view occurrences'}
+            </Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* Sightings Map Section */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mt: 3,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          minHeight: 400
+        }}
+      >
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+          Sighting Locations
+        </Typography>
+
+        {selectedSpeciesId ? (
+          <SightingsMap
+            sightings={sightingsData}
+            loading={sightingsLoading}
+            error={sightingsError}
+          />
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 300,
+              color: 'text.secondary'
+            }}
+          >
+            <Typography variant="body1">
+              Select a species to view sighting locations
             </Typography>
           </Box>
         )}

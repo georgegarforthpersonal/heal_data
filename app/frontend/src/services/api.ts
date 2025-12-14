@@ -224,6 +224,18 @@ export interface SpeciesWithCount {
   total_count: number;
 }
 
+export interface SpeciesSightingLocation {
+  id: number;
+  survey_id: number;
+  species_id: number;
+  count: number;
+  survey_date: string;
+  latitude: number;
+  longitude: number;
+  species_name: string | null;
+  species_scientific_name: string | null;
+}
+
 // ============================================================================
 // API Methods - Surveys
 // ============================================================================
@@ -520,6 +532,17 @@ export const dashboardAPI = {
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
     return fetchAPI(`/dashboard/species-occurrences?${params.toString()}`);
+  },
+
+  /**
+   * Get all sightings with location data for a specific species
+   */
+  getSpeciesSightings: (speciesId: number, startDate?: string, endDate?: string): Promise<SpeciesSightingLocation[]> => {
+    const params = new URLSearchParams();
+    params.append('species_id', speciesId.toString());
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    return fetchAPI(`/dashboard/species-sightings?${params.toString()}`);
   },
 };
 

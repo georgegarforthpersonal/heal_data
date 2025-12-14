@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, IconButton } from '@mui/material';
+import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, LocationOnOutlined } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey } from '../services/api';

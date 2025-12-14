@@ -17,7 +17,8 @@ from models import (
     DateRange,
     SpeciesOccurrenceResponse,
     SpeciesOccurrenceDataPoint,
-    SpeciesWithCount
+    SpeciesWithCount,
+    SightingWithDetails
 )
 
 router = APIRouter()
@@ -341,4 +342,84 @@ async def get_species_occurrences(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch species occurrences: {str(e)}"
+        )
+
+
+@router.get("/species-sightings", response_model=List[Dict[str, Any]])
+async def get_species_sightings(
+    species_id: int = Query(..., description="Species ID to get sightings for"),
+    start_date: Optional[date] = Query(None, description="Filter from this date (inclusive)"),
+    end_date: Optional[date] = Query(None, description="Filter until this date (inclusive)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all sightings with location data for a specific species.
+
+    Returns sightings with coordinates, dates, and survey information.
+    Only returns sightings that have location data (coordinates).
+
+    Args:
+        species_id: ID of the species to get sightings for
+        start_date: Optional start date filter
+        end_date: Optional end date filter
+        db: Database session
+
+    Returns:
+        List of sightings with location and date information
+    """
+    try:
+        # Build date filters
+        date_filter_sql = build_date_filter_sql(start_date, end_date)
+
+        # Query to get all sightings with locations for the species
+        query = text(f"""
+            SELECT
+                sighting.id,
+                sighting.survey_id,
+                sighting.species_id,
+                sighting.count,
+                survey.date as survey_date,
+                ST_Y(sighting.coordinates) as latitude,
+                ST_X(sighting.coordinates) as longitude,
+                species.name as species_name,
+                species.scientific_name as species_scientific_name
+            FROM sighting
+            JOIN survey ON sighting.survey_id = survey.id
+            JOIN species ON sighting.species_id = species.id
+            WHERE sighting.species_id = :species_id
+            AND sighting.coordinates IS NOT NULL
+            {date_filter_sql}
+            ORDER BY survey.date, sighting.id
+        """)
+
+        # Build parameters
+        params = {"species_id": species_id}
+        add_date_params(params, start_date, end_date)
+
+        result = db.execute(query, params)
+        rows = result.fetchall()
+
+        # Transform to response format
+        sightings = [
+            {
+                "id": row.id,
+                "survey_id": row.survey_id,
+                "species_id": row.species_id,
+                "count": row.count,
+                "survey_date": row.survey_date.isoformat(),
+                "latitude": row.latitude,
+                "longitude": row.longitude,
+                "species_name": row.species_name,
+                "species_scientific_name": row.species_scientific_name
+            }
+            for row in rows
+            if row.latitude is not None and row.longitude is not None  # Double check lat/lng exist
+        ]
+
+        return sightings
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch species sightings: {str(e)}"
         )
