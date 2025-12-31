@@ -139,6 +139,13 @@ async def get_surveys(
                 for row in species_breakdown_query
             ]
 
+            # Get survey type name and icon if available
+            survey_type_name = None
+            survey_type_icon = None
+            if survey.survey_type:
+                survey_type_name = survey.survey_type.name
+                survey_type_icon = survey.survey_type.icon
+
             result.append({
                 "id": survey.id,
                 "date": survey.date,
@@ -152,7 +159,10 @@ async def get_surveys(
                 "location_id": survey.location_id,
                 "surveyor_ids": surveyor_ids_list,
                 "sightings_count": sightings_count or 0,
-                "species_breakdown": species_breakdown
+                "species_breakdown": species_breakdown,
+                "survey_type_id": survey.survey_type_id,
+                "survey_type_name": survey_type_name,
+                "survey_type_icon": survey_type_icon
             })
 
         return {
@@ -229,7 +239,8 @@ async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
             conditions_met=survey.conditions_met,
             notes=survey.notes,
             type=survey.type,
-            location_id=survey.location_id
+            location_id=survey.location_id,
+            survey_type_id=survey.survey_type_id
         )
         db.add(db_survey)
         db.flush()  # Get the ID without committing

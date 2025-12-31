@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete, Stack, Box, Typography, IconButton } from '@mui/material';
 import { Close } from '@mui/icons-material';
-import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
+import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../icons/WildlifeIcons';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 
@@ -9,6 +9,7 @@ export interface SightingData {
   species_id: number | null;
   count: number;
   individuals?: DraftIndividualLocation[];
+  location_id?: number | null; // Location ID when location is at sighting level
 }
 
 interface AddSightingModalProps {
@@ -20,6 +21,10 @@ interface AddSightingModalProps {
   initialData?: SightingData;
   mode: 'add' | 'edit';
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
+  // Survey type configuration
+  locationAtSightingLevel?: boolean; // When true, show location dropdown
+  locations?: Location[]; // Available locations for sighting-level selection
+  allowGeolocation?: boolean; // Whether GPS location picker is shown
 }
 
 /**
@@ -39,11 +44,17 @@ export function AddSightingModal({
   initialData,
   mode,
   locationsWithBoundaries,
+  locationAtSightingLevel = false,
+  locations = [],
+  allowGeolocation = true,
 }: AddSightingModalProps) {
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<number | null>(initialData?.species_id || null);
   const [count, setCount] = useState<number>(initialData?.count || 1);
   const [individuals, setIndividuals] = useState<DraftIndividualLocation[]>(
     initialData?.individuals || []
+  );
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
+    initialData?.location_id || null
   );
 
   // Check if selected species is a bird (for breeding status codes)
@@ -58,10 +69,12 @@ export function AddSightingModal({
       setSelectedSpeciesId(initialData.species_id);
       setCount(initialData.count);
       setIndividuals(initialData.individuals || []);
+      setSelectedLocationId(initialData.location_id || null);
     } else {
       setSelectedSpeciesId(null);
       setCount(1);
       setIndividuals([]);
+      setSelectedLocationId(null);
     }
   }, [initialData, open]);
 
@@ -128,11 +141,13 @@ export function AddSightingModal({
         species_id: selectedSpeciesId,
         count: Math.max(1, count),
         individuals: individuals.length > 0 ? individuals : undefined,
+        location_id: locationAtSightingLevel ? selectedLocationId : undefined,
       });
       // Reset for next entry
       setSelectedSpeciesId(null);
       setCount(1);
       setIndividuals([]);
+      setSelectedLocationId(null);
       onClose();
     }
   };
@@ -142,11 +157,15 @@ export function AddSightingModal({
     setSelectedSpeciesId(initialData?.species_id || null);
     setCount(initialData?.count || 1);
     setIndividuals(initialData?.individuals || []);
+    setSelectedLocationId(initialData?.location_id || null);
     onClose();
   };
 
   const selectedSpecies = species.find(s => s.id === selectedSpeciesId);
-  const canSave = selectedSpeciesId !== null && count > 0;
+  const selectedLocation = locations.find(l => l.id === selectedLocationId);
+  // Require location when locationAtSightingLevel is true
+  const canSave = selectedSpeciesId !== null && count > 0 &&
+    (!locationAtSightingLevel || selectedLocationId !== null);
 
   return (
     <Dialog
@@ -268,18 +287,52 @@ export function AddSightingModal({
             }}
           />
 
-          {/* Individual Locations */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Location (Optional)</Typography>
-            <MultiLocationMapPicker
-              locations={individuals}
-              onChange={setIndividuals}
-              breedingCodes={breedingCodes}
-              showBreedingStatus={isBirdSpecies}
-              maxCount={count}
-              locationsWithBoundaries={locationsWithBoundaries}
+          {/* Location Dropdown - when location is at sighting level */}
+          {locationAtSightingLevel && (
+            <Autocomplete
+              options={locations}
+              getOptionLabel={(option) => option.name}
+              value={selectedLocation || null}
+              onChange={(_, newValue) => setSelectedLocationId(newValue?.id || null)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Location *"
+                  placeholder="Select location"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '16px',
+                    }
+                  }}
+                />
+              )}
+              ListboxProps={{
+                sx: {
+                  maxHeight: { xs: '40vh', sm: '300px' },
+                  '& .MuiAutocomplete-option': {
+                    py: 1.5,
+                    px: 2,
+                    fontSize: '16px',
+                  }
+                }
+              }}
             />
-          </Box>
+          )}
+
+          {/* Individual GPS Locations - only show if geolocation is allowed */}
+          {allowGeolocation && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>GPS Location (Optional)</Typography>
+              <MultiLocationMapPicker
+                locations={individuals}
+                onChange={setIndividuals}
+                breedingCodes={breedingCodes}
+                showBreedingStatus={isBirdSpecies}
+                maxCount={count}
+                locationsWithBoundaries={locationsWithBoundaries}
+              />
+            </Box>
+          )}
         </Stack>
       </DialogContent>
 

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip, Tooltip } from '@mui/material';
 import { Delete, Edit, Add, LocationOnOutlined, PinDrop } from '@mui/icons-material';
-import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
+import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
 import { AddSightingModal } from './AddSightingModal';
 import type { SightingData } from './AddSightingModal';
 import { LocationModal } from './LocationModal';
@@ -16,6 +16,8 @@ export interface DraftSighting {
   id?: number;
   // Per-individual location points with breeding status
   individuals?: DraftIndividualLocation[];
+  // Location ID when location is at sighting level
+  location_id?: number | null;
 }
 
 interface SightingsEditorProps {
@@ -25,6 +27,10 @@ interface SightingsEditorProps {
   onSightingsChange: (sightings: DraftSighting[]) => void;
   validationError?: string;
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on maps
+  // Survey type configuration
+  locationAtSightingLevel?: boolean; // When true, show location dropdown per sighting
+  locations?: Location[]; // Available locations for sighting-level selection
+  allowGeolocation?: boolean; // Whether geolocation is allowed (controls geolocation button visibility)
 }
 
 /**
@@ -40,6 +46,9 @@ export function SightingsEditor({
   onSightingsChange,
   validationError,
   locationsWithBoundaries,
+  locationAtSightingLevel = false,
+  locations = [],
+  allowGeolocation = true,
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
@@ -114,6 +123,7 @@ export function SightingsEditor({
               species_id: sightingData.species_id,
               count: sightingData.count,
               individuals: sightingData.individuals,
+              location_id: sightingData.location_id,
             }
           : s
       );
@@ -126,6 +136,7 @@ export function SightingsEditor({
           species_id: sightingData.species_id,
           count: sightingData.count,
           individuals: sightingData.individuals,
+          location_id: sightingData.location_id,
         },
       ]);
     }
@@ -183,6 +194,12 @@ export function SightingsEditor({
   const getSpeciesType = (speciesId: number | null): string => {
     const sp = species.find((s) => s.id === speciesId);
     return sp?.type || 'insect';
+  };
+
+  const getLocationName = (locationId: number | null | undefined): string => {
+    if (!locationId) return '';
+    const loc = locations.find((l) => l.id === locationId);
+    return loc?.name || '';
   };
 
   // Location modal handlers
@@ -295,18 +312,32 @@ export function SightingsEditor({
                           >
                             {speciesName}
                           </Typography>
-                          <Chip
-                            label={`Count: ${sighting.count}`}
-                            size="small"
-                            sx={{
-                              mt: 0.5,
-                              height: 24,
-                              fontSize: '0.75rem',
-                              bgcolor: 'primary.main',
-                              color: 'white',
-                              fontWeight: 600,
-                            }}
-                          />
+                          <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+                            <Chip
+                              label={`Count: ${sighting.count}`}
+                              size="small"
+                              sx={{
+                                height: 24,
+                                fontSize: '0.75rem',
+                                bgcolor: 'primary.main',
+                                color: 'white',
+                                fontWeight: 600,
+                              }}
+                            />
+                            {locationAtSightingLevel && sighting.location_id && (
+                              <Chip
+                                label={getLocationName(sighting.location_id)}
+                                size="small"
+                                sx={{
+                                  height: 24,
+                                  fontSize: '0.75rem',
+                                  bgcolor: 'grey.200',
+                                  color: 'text.primary',
+                                  fontWeight: 500,
+                                }}
+                              />
+                            )}
+                          </Stack>
                         </Box>
 
                         <Stack direction="row" spacing={0.5}>
@@ -361,11 +392,15 @@ export function SightingsEditor({
                   species_id: editingSighting.species_id,
                   count: editingSighting.count,
                   individuals: editingSighting.individuals,
+                  location_id: editingSighting.location_id,
                 }
               : undefined
           }
           mode={editingTempId ? 'edit' : 'add'}
           locationsWithBoundaries={locationsWithBoundaries}
+          locationAtSightingLevel={locationAtSightingLevel}
+          locations={locations}
+          allowGeolocation={allowGeolocation}
         />
       </>
     );
@@ -389,7 +424,9 @@ export function SightingsEditor({
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: '3fr 90px 110px 80px',
+              gridTemplateColumns: locationAtSightingLevel
+                ? '2fr 1.5fr 90px 110px 80px'
+                : '3fr 90px 110px 80px',
               gap: 2,
               p: 1.5,
               bgcolor: 'grey.50',
@@ -400,9 +437,19 @@ export function SightingsEditor({
             <Typography variant="body2" fontWeight={600} color="text.secondary">
               SPECIES *
             </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">
-              LOCATION
-            </Typography>
+            {locationAtSightingLevel && (
+              <Typography variant="body2" fontWeight={600} color="text.secondary">
+                LOCATION *
+              </Typography>
+            )}
+            {allowGeolocation && (
+              <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">
+                GPS
+              </Typography>
+            )}
+            {!allowGeolocation && !locationAtSightingLevel && (
+              <Box /> // Empty spacer to maintain grid alignment
+            )}
             <Typography variant="body2" fontWeight={600} color="text.secondary">
               COUNT *
             </Typography>
@@ -427,7 +474,9 @@ export function SightingsEditor({
                 key={sighting.tempId}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: '3fr 90px 110px 80px',
+                  gridTemplateColumns: locationAtSightingLevel
+                    ? '2fr 1.5fr 90px 110px 80px'
+                    : '3fr 90px 110px 80px',
                   gap: 2,
                   p: 1.5,
                   borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
@@ -530,28 +579,60 @@ export function SightingsEditor({
                   size="small"
                 />
 
-                {/* Location Column */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                  <Tooltip title={locationTooltip} arrow>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleLocationClick(sighting.tempId)}
-                      disabled={isEmptyLastRow}
-                      sx={{
-                        color: hasLocations ? 'primary.main' : 'text.disabled',
-                        '&:hover': {
-                          bgcolor: hasLocations ? 'primary.light' : 'action.hover',
-                        },
-                      }}
-                    >
-                      {hasLocations ? (
-                        <PinDrop sx={{ fontSize: 24 }} />
-                      ) : (
-                        <LocationOnOutlined sx={{ fontSize: 24 }} />
-                      )}
-                    </IconButton>
-                  </Tooltip>
-                </Box>
+                {/* Location Dropdown Column - when location is at sighting level */}
+                {locationAtSightingLevel && (
+                  <Autocomplete
+                    options={locations}
+                    getOptionLabel={(option) => option.name}
+                    value={locations.find((l) => l.id === sighting.location_id) || null}
+                    onChange={(_, newValue) =>
+                      updateSighting(sighting.tempId, 'location_id', newValue?.id || null)
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder={isEmptyLastRow ? '' : 'Select location'}
+                        size="small"
+                        sx={{
+                          '& .MuiInputBase-input': {
+                            fontSize: '0.875rem',
+                            padding: '8.5px 14px'
+                          }
+                        }}
+                      />
+                    )}
+                    size="small"
+                    disabled={isEmptyLastRow}
+                  />
+                )}
+
+                {/* GPS Location Column - for individual geolocation */}
+                {allowGeolocation && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                    <Tooltip title={locationTooltip} arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleLocationClick(sighting.tempId)}
+                        disabled={isEmptyLastRow}
+                        sx={{
+                          color: hasLocations ? 'primary.main' : 'text.disabled',
+                          '&:hover': {
+                            bgcolor: hasLocations ? 'primary.light' : 'action.hover',
+                          },
+                        }}
+                      >
+                        {hasLocations ? (
+                          <PinDrop sx={{ fontSize: 24 }} />
+                        ) : (
+                          <LocationOnOutlined sx={{ fontSize: 24 }} />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
+                {!allowGeolocation && !locationAtSightingLevel && (
+                  <Box /> // Empty spacer to maintain grid alignment
+                )}
 
                 <TextField
                   type="number"

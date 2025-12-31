@@ -58,6 +58,44 @@ async def get_species(survey_type: Optional[str] = None):
         raise HTTPException(status_code=500, detail=f"Failed to fetch species: {str(e)}")
 
 
+@router.get("/by-survey-type/{survey_type_id}", response_model=List[SpeciesRead])
+async def get_species_by_survey_type(survey_type_id: int):
+    """
+    Get species available for a specific survey type.
+
+    Filters species based on the species types configured for the survey type.
+
+    Args:
+        survey_type_id: The survey type ID to filter by
+
+    Returns:
+        List of species whose type matches one of the survey type's allowed species types
+    """
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT s.id, s.name, s.conservation_status, s.type, s.scientific_name
+                FROM species s
+                INNER JOIN species_type st ON st.name = s.type
+                INNER JOIN survey_type_species_type stst ON stst.species_type_id = st.id
+                WHERE stst.survey_type_id = %s
+                ORDER BY COALESCE(s.name, s.scientific_name)
+            """, (survey_type_id,))
+
+            rows = cursor.fetchall()
+
+            return [{
+                "id": row[0],
+                "name": row[1],
+                "conservation_status": row[2],
+                "type": row[3],
+                "scientific_name": row[4],
+            } for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch species for survey type: {str(e)}")
+
+
 @router.get("/{species_id}", response_model=SpeciesRead)
 async def get_species_by_id(species_id: int):
     """Get a specific species by ID"""

@@ -1,7 +1,8 @@
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination } from '@mui/material';
-import { CalendarToday, Person, Visibility, LocationOn } from '@mui/icons-material';
+import { CalendarToday, Person, Visibility, LocationOn, Category } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
+import { SurveyTypeIcon } from '../components/icons/SurveyTypeIcons';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
@@ -363,12 +364,11 @@ export function SurveysPage() {
                   letterSpacing: '0.3px',
                   py: tableSizing.header.py,
                   px: tableSizing.header.px,
-                  display: { xs: 'none', md: 'table-cell' }, // Hide on mobile, show on tablet+
                 }}
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <Person sx={{ fontSize: tableSizing.header.iconSize }} />
-                  <span>Surveyors</span>
+                  <Category sx={{ fontSize: tableSizing.header.iconSize }} />
+                  <span>Survey Type</span>
                 </Stack>
               </TableCell>
               <TableCell
@@ -380,6 +380,7 @@ export function SurveysPage() {
                   letterSpacing: '0.3px',
                   py: tableSizing.header.py,
                   px: tableSizing.header.px,
+                  display: { xs: 'none', sm: 'table-cell' }, // 3rd to hide
                 }}
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -396,7 +397,24 @@ export function SurveysPage() {
                   letterSpacing: '0.3px',
                   py: tableSizing.header.py,
                   px: tableSizing.header.px,
-                  display: { xs: 'none', sm: 'table-cell' }, // Hide on mobile, show on tablet+
+                  display: { xs: 'none', md: 'table-cell' }, // 2nd to hide
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Person sx={{ fontSize: tableSizing.header.iconSize }} />
+                  <span>Surveyors</span>
+                </Stack>
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 500,
+                  fontSize: tableSizing.header.fontSize,
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.3px',
+                  py: tableSizing.header.py,
+                  px: tableSizing.header.px,
+                  display: { xs: 'none', lg: 'table-cell' }, // 1st to hide
                 }}
               >
                 <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -427,39 +445,36 @@ export function SurveysPage() {
                     borderColor: 'divider'
                   }}
                 >
-                  {/* Date Column */}
+                  {/* Date Column - always visible */}
                   <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize }}>
                     {formatDate(survey.date)}
                   </TableCell>
 
-                  {/* Surveyors Column - Avatar Stack */}
-                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, display: { xs: 'none', md: 'table-cell' } }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                      <AvatarGroup
-                        max={4}
-                        sx={{
-                          '& .MuiAvatar-root': {
-                            width: tableSizing.avatar.size,
-                            height: tableSizing.avatar.size,
-                            fontSize: tableSizing.avatar.fontSize,
-                            bgcolor: 'text.secondary',
-                            border: '2px solid white',
-                          }
-                        }}
-                      >
-                        {surveyorNames.map((name, idx) => (
-                          <Tooltip key={idx} title={name} arrow>
-                            <Avatar alt={name}>
-                              {getInitials(name)}
-                            </Avatar>
-                          </Tooltip>
-                        ))}
-                      </AvatarGroup>
-                    </Box>
+                  {/* Survey Type Column - always visible */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
+                    {survey.survey_type_icon ? (
+                      <Tooltip title={survey.survey_type_name || ''} arrow>
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 28,
+                            height: 28,
+                            borderRadius: 1,
+                            bgcolor: 'grey.100',
+                          }}
+                        >
+                          <SurveyTypeIcon icon={survey.survey_type_icon} size={16} />
+                        </Box>
+                      </Tooltip>
+                    ) : (
+                      survey.survey_type_name || '—'
+                    )}
                   </TableCell>
 
-                  {/* Species Column - Species breakdown with icons and tooltips */}
-                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px }}>
+                  {/* Species Column - 3rd to hide (sm+) */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, display: { xs: 'none', sm: 'table-cell' } }}>
                     <Stack direction="row" flexWrap="wrap" gap={1}>
                       {survey.species_breakdown.map((sighting, idx) => {
                         // Select icon based on species type
@@ -544,8 +559,34 @@ export function SurveysPage() {
                     </Stack>
                   </TableCell>
 
-                  {/* Location Column */}
-                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary', display: { xs: 'none', sm: 'table-cell' } }}>
+                  {/* Surveyors Column - 2nd to hide (md+) */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, display: { xs: 'none', md: 'table-cell' } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      <AvatarGroup
+                        max={4}
+                        sx={{
+                          '& .MuiAvatar-root': {
+                            width: tableSizing.avatar.size,
+                            height: tableSizing.avatar.size,
+                            fontSize: tableSizing.avatar.fontSize,
+                            bgcolor: 'text.secondary',
+                            border: '2px solid white',
+                          }
+                        }}
+                      >
+                        {surveyorNames.map((name, idx) => (
+                          <Tooltip key={idx} title={name} arrow>
+                            <Avatar alt={name}>
+                              {getInitials(name)}
+                            </Avatar>
+                          </Tooltip>
+                        ))}
+                      </AvatarGroup>
+                    </Box>
+                  </TableCell>
+
+                  {/* Location Column - 1st to hide (lg+) */}
+                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary', display: { xs: 'none', lg: 'table-cell' } }}>
                     {getLocationName(survey.location_id)}
                   </TableCell>
                 </TableRow>
