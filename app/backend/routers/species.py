@@ -74,7 +74,7 @@ async def get_species_by_survey_type(survey_type_id: int):
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT DISTINCT s.id, s.name, s.conservation_status, s.type, s.scientific_name
+                SELECT s.id, s.name, s.conservation_status, s.type, s.scientific_name
                 FROM species s
                 INNER JOIN species_type st ON st.name = s.type
                 INNER JOIN survey_type_species_type stst ON stst.species_type_id = st.id

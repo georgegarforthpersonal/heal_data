@@ -23,6 +23,7 @@ import {
   FormControlLabel,
   Switch,
   Autocomplete,
+  Stack,
 } from '@mui/material';
 import { Add, Delete, RestoreFromTrash, Edit } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
@@ -38,6 +39,7 @@ import {
   type SpeciesTypeRef,
   type Location,
 } from '../services/api';
+import { SurveyTypeIconSelector, SurveyTypeIcon } from '../components/icons/SurveyTypeIcons';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -97,6 +99,7 @@ export function AdminPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formLocationAtSightingLevel, setFormLocationAtSightingLevel] = useState(false);
   const [formAllowGeolocation, setFormAllowGeolocation] = useState(true);
+  const [formIcon, setFormIcon] = useState<string | null>(null);
   const [formSelectedLocations, setFormSelectedLocations] = useState<Location[]>([]);
   const [formSelectedSpeciesTypes, setFormSelectedSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
 
@@ -209,6 +212,7 @@ export function AdminPage() {
       setFormDescription(details.description || '');
       setFormLocationAtSightingLevel(details.location_at_sighting_level);
       setFormAllowGeolocation(details.allow_geolocation);
+      setFormIcon(details.icon);
       setFormSelectedLocations(details.locations);
       setFormSelectedSpeciesTypes(details.species_types);
       setSurveyTypeDialogOpen(true);
@@ -222,6 +226,7 @@ export function AdminPage() {
     setFormDescription('');
     setFormLocationAtSightingLevel(false);
     setFormAllowGeolocation(true);
+    setFormIcon(null);
     setFormSelectedLocations([]);
     setFormSelectedSpeciesTypes([]);
     setSurveyTypeFormError(null);
@@ -250,6 +255,7 @@ export function AdminPage() {
         description: formDescription.trim() || undefined,
         location_at_sighting_level: formLocationAtSightingLevel,
         allow_geolocation: formAllowGeolocation,
+        icon: formIcon || undefined,
         location_ids: formSelectedLocations.map((l) => l.id),
         species_type_ids: formSelectedSpeciesTypes.map((st) => st.id),
       };
@@ -446,14 +452,34 @@ export function AdminPage() {
                 surveyTypes.map((surveyType) => (
                   <TableRow key={surveyType.id} sx={{ '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
                     <TableCell>
-                      <Typography variant="body1" fontWeight={500}>
-                        {surveyType.name}
-                      </Typography>
-                      {surveyType.description && (
-                        <Typography variant="body2" color="text.secondary">
-                          {surveyType.description}
-                        </Typography>
-                      )}
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        {surveyType.icon && (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 32,
+                              height: 32,
+                              borderRadius: 1,
+                              bgcolor: 'grey.100',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <SurveyTypeIcon icon={surveyType.icon} size={18} />
+                          </Box>
+                        )}
+                        <Box>
+                          <Typography variant="body1" fontWeight={500}>
+                            {surveyType.name}
+                          </Typography>
+                          {surveyType.description && (
+                            <Typography variant="body2" color="text.secondary">
+                              {surveyType.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Stack>
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -624,6 +650,12 @@ export function AdminPage() {
             onChange={(e) => setFormDescription(e.target.value)}
             disabled={savingSurveyType}
           />
+          <Box sx={{ mt: 2 }}>
+            <SurveyTypeIconSelector
+              value={formIcon}
+              onChange={setFormIcon}
+            />
+          </Box>
           <Box sx={{ mt: 2 }}>
             <FormControlLabel
               control={

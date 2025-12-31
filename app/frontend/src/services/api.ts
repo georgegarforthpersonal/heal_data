@@ -155,6 +155,9 @@ export interface Survey {
   surveyor_ids: number[];
   sightings_count: number; // Total count across all species
   species_breakdown: SpeciesTypeCount[]; // Breakdown by species type
+  survey_type_id: number | null;
+  survey_type_name: string | null;
+  survey_type_icon: string | null;
 }
 
 /**
@@ -319,6 +322,7 @@ export interface SurveyType {
   description: string | null;
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
+  icon: string | null;
   is_active: boolean;
 }
 
@@ -338,6 +342,7 @@ export interface SurveyTypeCreate {
   description?: string;
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
+  icon?: string;
   location_ids: number[];
   species_type_ids: number[];
 }
@@ -350,6 +355,7 @@ export interface SurveyTypeUpdate {
   description?: string;
   location_at_sighting_level?: boolean;
   allow_geolocation?: boolean;
+  icon?: string;
   is_active?: boolean;
   location_ids?: number[];
   species_type_ids?: number[];

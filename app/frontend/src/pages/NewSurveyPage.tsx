@@ -427,21 +427,11 @@ export function NewSurveyPage() {
               label="Survey Type"
               required
               error={!!validationErrors.surveyType}
-              helperText={validationErrors.surveyType || (selectedSurveyType?.description || 'Select the type of survey you are conducting')}
+              helperText={validationErrors.surveyType}
             />
           )}
           isOptionEqualToValue={(option, value) => option.id === value.id}
         />
-        {selectedSurveyType && (
-          <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="body2" color="text.secondary">
-              Location: <strong>{locationAtSightingLevel ? 'Per sighting' : 'Per survey'}</strong>
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Geolocation: <strong>{allowGeolocation ? 'Enabled' : 'Disabled'}</strong>
-            </Typography>
-          </Box>
-        )}
       </Paper>
 
       {/* Survey Details Card - Only show when survey type is selected */}

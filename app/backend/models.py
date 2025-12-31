@@ -263,6 +263,7 @@ class SurveyTypeBase(SQLModel):
     description: Optional[str] = Field(None, description="Survey type description")
     location_at_sighting_level: bool = Field(default=False, description="If true, location is set per sighting; if false, per survey")
     allow_geolocation: bool = Field(default=True, description="Whether coordinates can be entered for sightings")
+    icon: Optional[str] = Field(None, max_length=50, description="Lucide icon identifier")
 
 
 class SurveyType(SurveyTypeBase, table=True):
@@ -301,6 +302,7 @@ class SurveyTypeUpdate(SQLModel):
     description: Optional[str] = None
     location_at_sighting_level: Optional[bool] = None
     allow_geolocation: Optional[bool] = None
+    icon: Optional[str] = Field(None, max_length=50)
     is_active: Optional[bool] = None
     location_ids: Optional[List[int]] = None
     species_type_ids: Optional[List[int]] = None
