@@ -81,6 +81,11 @@ alembic history                                    # View history
 alembic downgrade -1                               # Rollback one migration
 ```
 
+**Apply migrations to staging/prod:**
+```bash
+docker compose --profile staging run --rm scripts-staging bash -c "cd /app && PYTHONPATH=/app alembic upgrade head"
+```
+
 ### Species Migration
 
 To update species data with scientific names and NBN Atlas GUIDs, see:

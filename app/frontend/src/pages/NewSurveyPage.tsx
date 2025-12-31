@@ -12,7 +12,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { Save, Cancel } from '@mui/icons-material';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
-import type { Survey, Location, Surveyor, Species } from '../services/api';
+import type { Survey, Location, Surveyor, Species, BreedingStatusCode, LocationWithBoundary } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -64,6 +64,8 @@ export function NewSurveyPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
   const [species, setSpecies] = useState<Species[]>([]);
+  const [breedingCodes, setBreedingCodes] = useState<BreedingStatusCode[]>([]);
+  const [locationsWithBoundaries, setLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,15 +92,19 @@ export function NewSurveyPage() {
         setError(null);
 
         // Fetch all necessary data in parallel
-        const [locationsData, surveyorsData, speciesData] = await Promise.all([
+        const [locationsData, surveyorsData, speciesData, breedingCodesData, boundariesData] = await Promise.all([
           locationsAPI.getAll(),
           surveyorsAPI.getAll(),
           speciesAPI.getAll(),
+          surveysAPI.getBreedingCodes(),
+          locationsAPI.getAllWithBoundaries(),
         ]);
 
         setLocations(locationsData);
         setSurveyors(surveyorsData);
         setSpecies(speciesData);
+        setBreedingCodes(breedingCodesData);
+        setLocationsWithBoundaries(boundariesData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load form data');
         console.error('Error fetching data:', err);
@@ -180,7 +186,7 @@ export function NewSurveyPage() {
 
       const newSurvey = await surveysAPI.create(surveyData);
 
-      // Step 2: Add sightings
+      // Step 2: Add sightings (with individual locations if provided)
       const validSightings = draftSightings.filter(
         (s) => s.species_id !== null && s.count > 0
       );
@@ -192,6 +198,13 @@ export function NewSurveyPage() {
             count: sighting.count,
             latitude: sighting.latitude,
             longitude: sighting.longitude,
+            // Include individual locations with breeding status codes
+            individuals: sighting.individuals?.map((ind) => ({
+              latitude: ind.latitude,
+              longitude: ind.longitude,
+              breeding_status_code: ind.breeding_status_code,
+              notes: ind.notes,
+            })),
           })
         )
       );
@@ -328,8 +341,10 @@ export function NewSurveyPage() {
           <SightingsEditor
             sightings={draftSightings}
             species={species}
+            breedingCodes={breedingCodes}
             onSightingsChange={handleSightingsChange}
             validationError={validationErrors.sightings}
+            locationsWithBoundaries={locationsWithBoundaries}
           />
         </Paper>
     </Box>

@@ -2,17 +2,18 @@
 Locations Router - API endpoints for location management
 
 Endpoints:
-  GET    /api/locations            - List all locations
-  POST   /api/locations            - Create new location
-  GET    /api/locations/{id}       - Get specific location
-  PUT    /api/locations/{id}       - Update location
-  DELETE /api/locations/{id}       - Delete location
+  GET    /api/locations                 - List all locations
+  GET    /api/locations/with-boundaries - List all locations with boundary geometry
+  POST   /api/locations                 - Create new location
+  GET    /api/locations/{id}            - Get specific location
+  PUT    /api/locations/{id}            - Update location
+  DELETE /api/locations/{id}            - Delete location
 """
 
 from fastapi import APIRouter, HTTPException, status
 from typing import List, Optional
 from database.connection import get_db_cursor
-from models import LocationRead, LocationCreate, LocationUpdate
+from models import LocationRead, LocationCreate, LocationUpdate, LocationWithBoundary
 
 router = APIRouter()
 
@@ -56,6 +57,51 @@ async def get_locations(survey_type: Optional[str] = None):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {str(e)}")
+
+
+@router.get("/with-boundaries", response_model=List[LocationWithBoundary])
+async def get_locations_with_boundaries():
+    """
+    Get all locations that have boundary geometry defined.
+
+    Returns locations with their polygon boundaries for map display.
+    Only returns locations where boundary_geometry is not null.
+
+    Returns:
+        List of locations with boundary geometry and styling
+    """
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT
+                    id,
+                    number,
+                    name,
+                    type,
+                    (ST_AsGeoJSON(boundary_geometry)::json->'coordinates'->0) as boundary_geometry,
+                    boundary_fill_color,
+                    boundary_stroke_color,
+                    boundary_fill_opacity
+                FROM location
+                WHERE boundary_geometry IS NOT NULL
+                ORDER BY number
+            """)
+
+            rows = cursor.fetchall()
+
+            return [{
+                "id": row[0],
+                "number": row[1],
+                "name": row[2],
+                "type": row[3],
+                "boundary_geometry": row[4] if row[4] else None,
+                "boundary_fill_color": row[5],
+                "boundary_stroke_color": row[6],
+                "boundary_fill_opacity": row[7]
+            } for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch locations with boundaries: {str(e)}")
 
 
 @router.get("/{location_id}", response_model=LocationRead)

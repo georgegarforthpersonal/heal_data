@@ -2,8 +2,8 @@ import { Box, Typography, Paper, Stack, IconButton, Tooltip, CircularProgress, A
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { dashboardAPI } from '../services/api';
-import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResponse, SpeciesSightingLocation } from '../services/api';
+import { dashboardAPI, locationsAPI } from '../services/api';
+import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResponse, SpeciesSightingLocation, LocationWithBoundary } from '../services/api';
 import SightingsMap from '../components/dashboard/SightingsMap';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
 import { notionColors } from '../theme';
@@ -38,6 +38,9 @@ export function DashboardsPage() {
   const [sightingsData, setSightingsData] = useState<SpeciesSightingLocation[]>([]);
   const [sightingsLoading, setSightingsLoading] = useState(false);
   const [sightingsError, setSightingsError] = useState<string | null>(null);
+
+  // Field boundaries state
+  const [locationsWithBoundaries, setLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
 
   // ============================================================================
   // Species Type Configuration
@@ -288,6 +291,15 @@ export function DashboardsPage() {
 
     fetchSightings();
   }, [selectedSpeciesId, chartData?.date_range]);
+
+  // Fetch field boundaries once on mount
+  useEffect(() => {
+    locationsAPI.getAllWithBoundaries()
+      .then(setLocationsWithBoundaries)
+      .catch((err) => {
+        console.warn('Failed to load field boundaries:', err);
+      });
+  }, []);
 
   // ============================================================================
   // Event Handlers
@@ -699,6 +711,7 @@ export function DashboardsPage() {
             sightings={sightingsData}
             loading={sightingsLoading}
             error={sightingsError}
+            locationsWithBoundaries={locationsWithBoundaries}
           />
         ) : (
           <Box

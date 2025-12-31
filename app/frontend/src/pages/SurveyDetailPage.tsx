@@ -4,7 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
-import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey } from '../services/api';
+import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -40,6 +40,8 @@ export function SurveyDetailPage() {
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [species, setSpecies] = useState<Species[]>([]);
+  const [breedingCodes, setBreedingCodes] = useState<BreedingStatusCode[]>([]);
+  const [locationsWithBoundaries, setLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -80,12 +82,14 @@ export function SurveyDetailPage() {
         setError(null);
 
         // Fetch all data in parallel
-        const [surveyData, sightingsData, surveyorsData, locationsData, speciesData] = await Promise.all([
+        const [surveyData, sightingsData, surveyorsData, locationsData, speciesData, breedingCodesData, boundariesData] = await Promise.all([
           surveysAPI.getById(Number(id)),
           surveysAPI.getSightings(Number(id)),
           surveyorsAPI.getAll(),
           locationsAPI.getAll(),
           speciesAPI.getAll(),
+          surveysAPI.getBreedingCodes(),
+          locationsAPI.getAllWithBoundaries(),
         ]);
 
         setSurvey(surveyData);
@@ -93,6 +97,8 @@ export function SurveyDetailPage() {
         setSurveyors(surveyorsData);
         setLocations(locationsData);
         setSpecies(speciesData);
+        setBreedingCodes(breedingCodesData);
+        setLocationsWithBoundaries(boundariesData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load survey details');
         console.error('Error fetching survey:', err);
@@ -263,13 +269,19 @@ export function SurveyDetailPage() {
     setEditNotes(survey.notes || '');
 
     // Convert existing sightings to DraftSighting format
-    const draftSightings: DraftSighting[] = sightings.map((sighting) => ({
+    // Note: sightings may include individuals array from API (SightingWithIndividuals)
+    const draftSightings: DraftSighting[] = sightings.map((sighting: any) => ({
       tempId: `existing-${sighting.id}`,
       species_id: sighting.species_id,
       count: sighting.count,
       latitude: sighting.latitude,
       longitude: sighting.longitude,
       id: sighting.id, // Keep the real ID for updates/deletes
+      // Include individuals if present (from SightingWithIndividuals)
+      individuals: sighting.individuals?.map((ind: any) => ({
+        ...ind,
+        tempId: `existing-ind-${ind.id}`,
+      })),
     }));
 
     // Add one empty row at the end
@@ -339,13 +351,20 @@ export function SurveyDetailPage() {
               latitude: sighting.latitude,
               longitude: sighting.longitude,
             });
+            // Note: Individual locations are managed separately via the individuals endpoints
           } else {
-            // Add new sighting
+            // Add new sighting with individual locations
             return surveysAPI.addSighting(Number(id), {
               species_id: sighting.species_id!,
               count: sighting.count,
               latitude: sighting.latitude,
               longitude: sighting.longitude,
+              individuals: sighting.individuals?.map((ind) => ({
+                latitude: ind.latitude,
+                longitude: ind.longitude,
+                breeding_status_code: ind.breeding_status_code,
+                notes: ind.notes,
+              })),
             });
           }
         })
@@ -603,8 +622,10 @@ export function SurveyDetailPage() {
             <SightingsEditor
               sightings={editDraftSightings}
               species={species}
+              breedingCodes={breedingCodes}
               onSightingsChange={handleSightingsChange}
               validationError={validationErrors.sightings}
+              locationsWithBoundaries={locationsWithBoundaries}
             />
           ) : (
             <>

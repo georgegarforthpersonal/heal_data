@@ -44,7 +44,17 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
       let errorMessage = `API error: ${response.status}`;
       try {
         const error = await response.json();
-        errorMessage = error.detail || errorMessage;
+        // Handle error.detail which could be a string or an object (FastAPI validation errors)
+        if (error.detail) {
+          if (typeof error.detail === 'string') {
+            errorMessage = error.detail;
+          } else if (Array.isArray(error.detail)) {
+            // FastAPI validation errors come as an array of objects with msg, loc, type
+            errorMessage = error.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+          } else if (typeof error.detail === 'object') {
+            errorMessage = error.detail.msg || error.detail.message || JSON.stringify(error.detail);
+          }
+        }
       } catch {
         // If response body isn't JSON, try to get it as text
         try {
@@ -110,6 +120,16 @@ export interface Location {
   number: number;
   name: string;
   type: string;
+}
+
+/**
+ * Location with optional boundary geometry for map display
+ */
+export interface LocationWithBoundary extends Location {
+  boundary_geometry: [number, number][] | null; // Array of [lng, lat] coordinate pairs
+  boundary_fill_color: string | null;
+  boundary_stroke_color: string | null;
+  boundary_fill_opacity: number | null;
 }
 
 /**
@@ -181,6 +201,47 @@ export interface Sighting {
   longitude?: number | null;
   species_name?: string | null;
   species_scientific_name?: string | null;
+}
+
+/**
+ * BTO Breeding Status Codes (for bird sightings only)
+ */
+export type BreedingCategory = 'non_breeding' | 'possible_breeder' | 'probable_breeder' | 'confirmed_breeder';
+
+export interface BreedingStatusCode {
+  code: string;
+  description: string;
+  full_description: string | null;
+  category: BreedingCategory;
+}
+
+/**
+ * Individual location within a sighting with optional breeding status
+ */
+export interface IndividualLocation {
+  id?: number;
+  latitude: number;
+  longitude: number;
+  breeding_status_code?: string | null;
+  notes?: string | null;
+}
+
+/**
+ * Sighting with individual location points
+ */
+export interface SightingWithIndividuals extends Sighting {
+  individuals: IndividualLocation[];
+}
+
+/**
+ * Request body for creating a sighting (with optional individual locations)
+ */
+export interface SightingCreateRequest {
+  species_id: number;
+  count: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  individuals?: Omit<IndividualLocation, 'id'>[];
 }
 
 /**
@@ -302,9 +363,9 @@ export const surveysAPI = {
   },
 
   /**
-   * Add a sighting to a survey
+   * Add a sighting to a survey (with optional individual locations)
    */
-  addSighting: (surveyId: number, sighting: Partial<Sighting>): Promise<Sighting> => {
+  addSighting: (surveyId: number, sighting: SightingCreateRequest): Promise<SightingWithIndividuals> => {
     return fetchAPI(`/surveys/${surveyId}/sightings`, {
       method: 'POST',
       body: JSON.stringify(sighting),
@@ -326,6 +387,51 @@ export const surveysAPI = {
    */
   deleteSighting: (surveyId: number, sightingId: number): Promise<void> => {
     return fetchAPI(`/surveys/${surveyId}/sightings/${sightingId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Get all BTO breeding status codes (for bird sightings)
+   */
+  getBreedingCodes: (): Promise<BreedingStatusCode[]> => {
+    return fetchAPI('/surveys/breeding-codes');
+  },
+
+  /**
+   * Add an individual location to an existing sighting
+   */
+  addIndividualLocation: (
+    surveyId: number,
+    sightingId: number,
+    individual: Omit<IndividualLocation, 'id'>
+  ): Promise<IndividualLocation> => {
+    return fetchAPI(`/surveys/${surveyId}/sightings/${sightingId}/individuals`, {
+      method: 'POST',
+      body: JSON.stringify(individual),
+    });
+  },
+
+  /**
+   * Update an individual location
+   */
+  updateIndividualLocation: (
+    surveyId: number,
+    sightingId: number,
+    individualId: number,
+    individual: Omit<IndividualLocation, 'id'>
+  ): Promise<IndividualLocation> => {
+    return fetchAPI(`/surveys/${surveyId}/sightings/${sightingId}/individuals/${individualId}`, {
+      method: 'PUT',
+      body: JSON.stringify(individual),
+    });
+  },
+
+  /**
+   * Delete an individual location from a sighting
+   */
+  deleteIndividualLocation: (surveyId: number, sightingId: number, individualId: number): Promise<void> => {
+    return fetchAPI(`/surveys/${surveyId}/sightings/${sightingId}/individuals/${individualId}`, {
       method: 'DELETE',
     });
   },
@@ -460,6 +566,14 @@ export const locationsAPI = {
   getAll: (surveyType?: string): Promise<Location[]> => {
     const query = surveyType ? `?survey_type=${surveyType}` : '';
     return fetchAPI(`/locations${query}`);
+  },
+
+  /**
+   * Get all locations that have boundary geometry defined
+   * Used to display field boundaries on maps regardless of selected location
+   */
+  getAllWithBoundaries: (): Promise<LocationWithBoundary[]> => {
+    return fetchAPI('/locations/with-boundaries');
   },
 
   /**

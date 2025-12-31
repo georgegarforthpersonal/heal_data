@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip, Tooltip } from '@mui/material';
-import { Delete, Edit, Add, LocationOn, LocationOnOutlined } from '@mui/icons-material';
-import type { Species } from '../../services/api';
+import { Delete, Edit, Add, LocationOnOutlined, PinDrop } from '@mui/icons-material';
+import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
 import { AddSightingModal } from './AddSightingModal';
 import type { SightingData } from './AddSightingModal';
 import { LocationModal } from './LocationModal';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../icons/WildlifeIcons';
 import { useResponsive } from '../../hooks/useResponsive';
+import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 
 export interface DraftSighting {
   tempId: string;
@@ -15,13 +16,17 @@ export interface DraftSighting {
   latitude?: number | null;
   longitude?: number | null;
   id?: number;
+  // Per-individual location points with breeding status (new)
+  individuals?: DraftIndividualLocation[];
 }
 
 interface SightingsEditorProps {
   sightings: DraftSighting[];
   species: Species[];
+  breedingCodes?: BreedingStatusCode[];
   onSightingsChange: (sightings: DraftSighting[]) => void;
   validationError?: string;
+  locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on maps
 }
 
 /**
@@ -33,8 +38,10 @@ interface SightingsEditorProps {
 export function SightingsEditor({
   sightings,
   species,
+  breedingCodes = [],
   onSightingsChange,
   validationError,
+  locationsWithBoundaries,
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
@@ -110,6 +117,7 @@ export function SightingsEditor({
               count: sightingData.count,
               latitude: sightingData.latitude,
               longitude: sightingData.longitude,
+              individuals: sightingData.individuals,
             }
           : s
       );
@@ -123,6 +131,7 @@ export function SightingsEditor({
           count: sightingData.count,
           latitude: sightingData.latitude,
           longitude: sightingData.longitude,
+          individuals: sightingData.individuals,
         },
       ]);
     }
@@ -193,11 +202,17 @@ export function SightingsEditor({
     setLocationEditingTempId(null);
   };
 
-  const handleLocationSave = (lat: number | null, lng: number | null) => {
+  const handleLocationSave = (individuals: DraftIndividualLocation[]) => {
     if (locationEditingTempId) {
       const updatedSightings = sightings.map((s) =>
         s.tempId === locationEditingTempId
-          ? { ...s, latitude: lat, longitude: lng }
+          ? {
+              ...s,
+              // Clear legacy single location when using individuals
+              latitude: null,
+              longitude: null,
+              individuals: individuals,
+            }
           : s
       );
       onSightingsChange(updatedSightings);
@@ -348,6 +363,7 @@ export function SightingsEditor({
           onClose={handleModalClose}
           onSave={handleModalSave}
           species={species}
+          breedingCodes={breedingCodes}
           initialData={
             editingSighting
               ? {
@@ -355,10 +371,12 @@ export function SightingsEditor({
                   count: editingSighting.count,
                   latitude: editingSighting.latitude,
                   longitude: editingSighting.longitude,
+                  individuals: editingSighting.individuals,
                 }
               : undefined
           }
           mode={editingTempId ? 'edit' : 'add'}
+          locationsWithBoundaries={locationsWithBoundaries}
         />
       </>
     );
@@ -409,10 +427,11 @@ export function SightingsEditor({
             const isEmpty = sighting.species_id === null;
             const isEmptyLastRow = isLastRow && isEmpty;
 
-            const hasLocation = sighting.latitude !== null && sighting.longitude !== null;
-            const locationTooltip = hasLocation
-              ? `${sighting.latitude?.toFixed(6)}°N, ${sighting.longitude?.toFixed(6)}°W`
-              : 'Click to set location';
+            const individualCount = sighting.individuals?.length || 0;
+            const hasLocations = individualCount > 0;
+            const locationTooltip = hasLocations
+              ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
+              : `Click to add locations (0 of ${sighting.count})`;
 
             return (
               <Box
@@ -530,14 +549,14 @@ export function SightingsEditor({
                       onClick={() => handleLocationClick(sighting.tempId)}
                       disabled={isEmptyLastRow}
                       sx={{
-                        color: hasLocation ? 'primary.main' : 'text.disabled',
+                        color: hasLocations ? 'primary.main' : 'text.disabled',
                         '&:hover': {
-                          bgcolor: hasLocation ? 'primary.light' : 'action.hover',
+                          bgcolor: hasLocations ? 'primary.light' : 'action.hover',
                         },
                       }}
                     >
-                      {hasLocation ? (
-                        <LocationOn sx={{ fontSize: 24 }} />
+                      {hasLocations ? (
+                        <PinDrop sx={{ fontSize: 24 }} />
                       ) : (
                         <LocationOnOutlined sx={{ fontSize: 24 }} />
                       )}
@@ -598,13 +617,20 @@ export function SightingsEditor({
         open={locationModalOpen}
         onClose={handleLocationModalClose}
         onSave={handleLocationSave}
-        initialLatitude={locationEditingSighting?.latitude}
-        initialLongitude={locationEditingSighting?.longitude}
+        initialIndividuals={locationEditingSighting?.individuals}
         speciesName={
           locationEditingSighting?.species_id
             ? getSpeciesDisplayName(locationEditingSighting.species_id)
             : undefined
         }
+        speciesType={
+          locationEditingSighting?.species_id
+            ? getSpeciesType(locationEditingSighting.species_id)
+            : undefined
+        }
+        breedingCodes={breedingCodes}
+        count={locationEditingSighting?.count || 1}
+        locationsWithBoundaries={locationsWithBoundaries}
       />
     </>
   );

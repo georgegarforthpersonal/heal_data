@@ -6,12 +6,14 @@ import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
 import dayjs from 'dayjs';
 import 'leaflet/dist/leaflet.css';
-import type { SpeciesSightingLocation } from '../../services/api';
+import type { SpeciesSightingLocation, LocationWithBoundary } from '../../services/api';
+import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
 
 interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
   loading?: boolean;
   error?: string | null;
+  locationsWithBoundaries?: LocationWithBoundary[];
 }
 
 /**
@@ -60,7 +62,7 @@ function getColorForDate(date: Date, minDate: Date, maxDate: Date): string {
   }
 }
 
-export default function SightingsMap({ sightings, loading, error }: SightingsMapProps) {
+export default function SightingsMap({ sightings, loading, error, locationsWithBoundaries }: SightingsMapProps) {
   // Map type state
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
 
@@ -295,6 +297,11 @@ export default function SightingsMap({ sightings, loading, error }: SightingsMap
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+            )}
+
+            {/* Field boundaries layer (rendered before markers so markers appear on top) */}
+            {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
+              <FieldBoundaryOverlay locations={locationsWithBoundaries} />
             )}
 
             {filteredSightings.map((sighting) => {

@@ -1,61 +1,59 @@
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Typography, Box } from '@mui/material';
 import { Close } from '@mui/icons-material';
-import LocationMapPicker from './LocationMapPicker';
+import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 import { useState, useEffect } from 'react';
+import type { BreedingStatusCode, LocationWithBoundary } from '../../services/api';
 
 interface LocationModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (lat: number | null, lng: number | null) => void;
-  initialLatitude?: number | null;
-  initialLongitude?: number | null;
+  onSave: (individuals: DraftIndividualLocation[]) => void;
+  initialIndividuals?: DraftIndividualLocation[];
   speciesName?: string;
+  speciesType?: string;
+  breedingCodes?: BreedingStatusCode[];
+  count?: number; // Maximum number of individuals (from sighting count)
+  locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
 }
 
 export function LocationModal({
   open,
   onClose,
   onSave,
-  initialLatitude,
-  initialLongitude,
+  initialIndividuals,
   speciesName,
+  speciesType,
+  breedingCodes = [],
+  count = 1,
+  locationsWithBoundaries,
 }: LocationModalProps) {
-  const [latitude, setLatitude] = useState<number | null>(initialLatitude || null);
-  const [longitude, setLongitude] = useState<number | null>(initialLongitude || null);
+  const [individuals, setIndividuals] = useState<DraftIndividualLocation[]>(
+    initialIndividuals || []
+  );
+
+  const isBirdSpecies = speciesType === 'bird';
 
   // Update local state when initial values change
   useEffect(() => {
     if (open) {
-      setLatitude(initialLatitude || null);
-      setLongitude(initialLongitude || null);
+      setIndividuals(initialIndividuals || []);
     }
-  }, [open, initialLatitude, initialLongitude]);
-
-  const handleLocationChange = (lat: number | null, lng: number | null) => {
-    setLatitude(lat);
-    setLongitude(lng);
-  };
+  }, [open, initialIndividuals]);
 
   const handleSave = () => {
-    onSave(latitude, longitude);
+    onSave(individuals);
     onClose();
   };
 
   const handleClear = () => {
-    setLatitude(null);
-    setLongitude(null);
-    onSave(null, null);
-    onClose();
+    setIndividuals([]);
   };
 
   const handleCancel = () => {
     // Reset to initial values
-    setLatitude(initialLatitude || null);
-    setLongitude(initialLongitude || null);
+    setIndividuals(initialIndividuals || []);
     onClose();
   };
-
-  const hasLocation = latitude !== null && longitude !== null;
 
   return (
     <Dialog
@@ -66,6 +64,7 @@ export function LocationModal({
       PaperProps={{
         sx: {
           minHeight: '600px',
+          maxHeight: '90vh',
         }
       }}
     >
@@ -81,11 +80,11 @@ export function LocationModal({
       >
         <Box>
           <Typography variant="h6" fontWeight={600}>
-            Set Sighting Location
+            Set Individual Locations
           </Typography>
           {speciesName && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {speciesName}
+              {speciesName} {count > 1 && `• Count: ${count}`}
             </Typography>
           )}
         </Box>
@@ -95,12 +94,13 @@ export function LocationModal({
       </DialogTitle>
 
       <DialogContent sx={{ pt: 3, pb: 2 }}>
-        <LocationMapPicker
-          latitude={latitude || undefined}
-          longitude={longitude || undefined}
-          onChange={handleLocationChange}
-          label="Sighting Location"
-          helperText="Click on the map to mark where you saw this species, or use your current location"
+        <MultiLocationMapPicker
+          locations={individuals}
+          onChange={setIndividuals}
+          breedingCodes={breedingCodes}
+          showBreedingStatus={isBirdSpecies}
+          maxCount={count}
+          locationsWithBoundaries={locationsWithBoundaries}
         />
       </DialogContent>
 
@@ -114,14 +114,14 @@ export function LocationModal({
         }}
       >
         <Box>
-          {hasLocation && (
+          {individuals.length > 0 && (
             <Button
               onClick={handleClear}
               color="error"
               variant="outlined"
               sx={{ textTransform: 'none', fontWeight: 600 }}
             >
-              Clear Location
+              Clear All
             </Button>
           )}
         </Box>
@@ -138,7 +138,7 @@ export function LocationModal({
             variant="contained"
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Save Location
+            Save
           </Button>
         </Box>
       </DialogActions>

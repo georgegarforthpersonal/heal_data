@@ -13,3 +13,15 @@ body,
   margin: 0;
   padding: 0;
 }
+
+/* Field boundary labels on maps */
+.field-boundary-label {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  padding: 2px 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  border-radius: 4px !important;
+}

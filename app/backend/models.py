@@ -13,6 +13,7 @@ Replaces:
 from datetime import date as date_type, time as time_type, datetime
 from typing import Optional, List
 from decimal import Decimal
+from enum import Enum as PyEnum
 from sqlmodel import Field, SQLModel, Relationship
 import sqlalchemy as sa
 
@@ -152,6 +153,19 @@ class Location(LocationBase, table=True):
         sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
     )
 
+    # Boundary fields (optional polygon for map display)
+    boundary_geometry: Optional[str] = Field(
+        default=None,
+        sa_column=sa.Column(
+            "boundary_geometry",
+            sa.Text,  # PostGIS geometry stored as text, cast in queries
+            nullable=True
+        )
+    )
+    boundary_fill_color: Optional[str] = Field(default="#3388ff", max_length=7)
+    boundary_stroke_color: Optional[str] = Field(default="#3388ff", max_length=7)
+    boundary_fill_opacity: Optional[float] = Field(default=0.2, ge=0, le=1)
+
     # Relationships
     surveys: List["Survey"] = Relationship(back_populates="location")
 
@@ -171,6 +185,16 @@ class LocationUpdate(SQLModel):
 class LocationRead(LocationBase):
     """Model for reading a location (includes ID)"""
     id: int
+
+
+class LocationWithBoundary(LocationRead):
+    """Location with optional boundary geometry for map display"""
+    boundary_geometry: Optional[List[List[float]]] = Field(
+        None, description="Array of [lng, lat] coordinate pairs forming the boundary polygon"
+    )
+    boundary_fill_color: Optional[str] = Field(default="#3388ff")
+    boundary_stroke_color: Optional[str] = Field(default="#3388ff")
+    boundary_fill_opacity: Optional[float] = Field(default=0.2)
 
 
 # ============================================================================
@@ -279,6 +303,10 @@ class Sighting(SightingBase, table=True):
     # Relationships
     survey: "Survey" = Relationship(back_populates="sightings")
     species: "Species" = Relationship(back_populates="sightings")
+    individuals: List["SightingIndividual"] = Relationship(
+        back_populates="sighting",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
 
 class SightingCreate(SightingBase):
@@ -307,6 +335,106 @@ class SightingWithDetails(SightingRead):
     species_scientific_name: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+
+
+# ============================================================================
+# Breeding Status Models (BTO Breeding Evidence Codes)
+# ============================================================================
+
+class BreedingCategory(str, PyEnum):
+    """BTO breeding status categories"""
+    non_breeding = "non_breeding"
+    possible_breeder = "possible_breeder"
+    probable_breeder = "probable_breeder"
+    confirmed_breeder = "confirmed_breeder"
+
+
+class BreedingStatusCode(SQLModel, table=True):
+    """BTO breeding status codes reference table"""
+    __tablename__ = "breeding_status_code"
+
+    code: str = Field(primary_key=True, max_length=2)
+    description: str = Field(max_length=100)
+    full_description: Optional[str] = Field(default=None, description="Full BTO description for tooltip")
+    category: BreedingCategory = Field(
+        sa_column=sa.Column(
+            sa.Enum(BreedingCategory, name='breeding_category', create_type=False),
+            nullable=False
+        )
+    )
+
+
+class BreedingStatusCodeRead(SQLModel):
+    """Model for reading a breeding status code"""
+    code: str
+    description: str
+    full_description: Optional[str] = None
+    category: str
+
+
+# ============================================================================
+# Sighting Individual Models (Per-Point Locations)
+# ============================================================================
+
+class SightingIndividual(SQLModel, table=True):
+    """Individual location point within a sighting with optional breeding status"""
+    __tablename__ = "sighting_individual"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    sighting_id: int = Field(foreign_key="sighting.id", ondelete="CASCADE")
+    # PostGIS geometry column (not directly exposed in API - use latitude/longitude instead)
+    coordinates: str = Field(
+        sa_column=sa.Column(
+            "coordinates",
+            sa.Text,  # Will be cast to/from geometry in queries
+            nullable=False
+        )
+    )
+    breeding_status_code: Optional[str] = Field(
+        default=None,
+        foreign_key="breeding_status_code.code",
+        max_length=2
+    )
+    notes: Optional[str] = Field(default=None)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    sighting: "Sighting" = Relationship(back_populates="individuals")
+    breeding_status: Optional["BreedingStatusCode"] = Relationship()
+
+
+class IndividualLocationBase(SQLModel):
+    """Base individual location fields for API"""
+    latitude: float = Field(ge=-90, le=90, description="Latitude coordinate (WGS84)")
+    longitude: float = Field(ge=-180, le=180, description="Longitude coordinate (WGS84)")
+    breeding_status_code: Optional[str] = Field(None, max_length=2, description="BTO breeding status code")
+    notes: Optional[str] = Field(None, description="Optional notes for this individual")
+
+
+class IndividualLocationCreate(IndividualLocationBase):
+    """Model for creating an individual location"""
+    pass
+
+
+class IndividualLocationRead(IndividualLocationBase):
+    """Model for reading an individual location"""
+    id: int
+
+
+class SightingCreateV2(SightingBase):
+    """Model for creating a sighting with individual locations"""
+    latitude: Optional[float] = Field(None, ge=-90, le=90, description="Legacy single coordinate")
+    longitude: Optional[float] = Field(None, ge=-180, le=180, description="Legacy single coordinate")
+    individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
+
+
+class SightingWithIndividuals(SightingWithDetails):
+    """Sighting with individual location points"""
+    individuals: List[IndividualLocationRead] = Field(default_factory=list, description="Individual location points")
 
 
 # ============================================================================

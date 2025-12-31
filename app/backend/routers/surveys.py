@@ -24,10 +24,40 @@ from database.connection import get_db
 from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate, SurveyWithSightingsCount,
     Sighting, SightingRead, SightingCreate, SightingUpdate, SightingWithDetails,
-    Species, Location, Surveyor, SurveySurveyor, SpeciesTypeCount
+    Species, Location, Surveyor, SurveySurveyor, SpeciesTypeCount,
+    # New models for per-individual locations with breeding status
+    BreedingStatusCode, BreedingStatusCodeRead, SightingIndividual,
+    IndividualLocationCreate, IndividualLocationRead, SightingCreateV2, SightingWithIndividuals
 )
 
 router = APIRouter()
+
+# ============================================================================
+# Breeding Status Codes (BTO breeding evidence codes)
+# IMPORTANT: This route must come BEFORE /{survey_id} to avoid route conflicts
+# ============================================================================
+
+@router.get("/breeding-codes", response_model=List[BreedingStatusCodeRead])
+async def get_breeding_codes(db: Session = Depends(get_db)):
+    """
+    Get all BTO breeding status codes grouped by category.
+
+    Returns:
+        List of breeding status codes with code, description, and category.
+        Categories: non_breeding, possible_breeder, probable_breeder, confirmed_breeder
+    """
+    codes = db.query(BreedingStatusCode).order_by(
+        BreedingStatusCode.category,
+        BreedingStatusCode.code
+    ).all()
+
+    return [{
+        "code": code.code,
+        "description": code.description,
+        "full_description": code.full_description,
+        "category": code.category.value if hasattr(code.category, 'value') else str(code.category)
+    } for code in codes]
+
 
 # ============================================================================
 # Survey CRUD Operations
@@ -329,16 +359,16 @@ async def delete_survey(survey_id: int, db: Session = Depends(get_db)):
 # Sightings Operations (Nested under surveys)
 # ============================================================================
 
-@router.get("/{survey_id}/sightings", response_model=List[SightingWithDetails])
+@router.get("/{survey_id}/sightings", response_model=List[SightingWithIndividuals])
 async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
     """
-    Get all sightings for a survey.
+    Get all sightings for a survey, including individual location points.
 
     Args:
         survey_id: Survey ID
 
     Returns:
-        List of sightings with species and location details
+        List of sightings with species details, legacy coordinates, and individual location points
 
     Raises:
         404: Survey not found
@@ -364,32 +394,55 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
      .order_by(func.coalesce(Species.name, Species.scientific_name))\
      .all()
 
-    return [{
-        "id": row.id,
-        "survey_id": row.survey_id,
-        "species_id": row.species_id,
-        "count": row.count,
-        "latitude": row.latitude,
-        "longitude": row.longitude,
-        "species_name": row.species_name,
-        "species_scientific_name": row.species_scientific_name
-    } for row in sightings]
+    result = []
+    for row in sightings:
+        # Fetch individual locations for this sighting
+        individuals = db.execute(text("""
+            SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
+                   breeding_status_code, notes
+            FROM sighting_individual
+            WHERE sighting_id = :sighting_id
+            ORDER BY id
+        """).bindparams(sighting_id=row.id)).fetchall()
+
+        result.append({
+            "id": row.id,
+            "survey_id": row.survey_id,
+            "species_id": row.species_id,
+            "count": row.count,
+            "latitude": row.latitude,
+            "longitude": row.longitude,
+            "species_name": row.species_name,
+            "species_scientific_name": row.species_scientific_name,
+            "individuals": [
+                {
+                    "id": ind.id,
+                    "latitude": ind.latitude,
+                    "longitude": ind.longitude,
+                    "breeding_status_code": ind.breeding_status_code,
+                    "notes": ind.notes
+                }
+                for ind in individuals
+            ]
+        })
+
+    return result
 
 
-@router.post("/{survey_id}/sightings", response_model=SightingWithDetails, status_code=status.HTTP_201_CREATED)
-async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session = Depends(get_db)):
+@router.post("/{survey_id}/sightings", response_model=SightingWithIndividuals, status_code=status.HTTP_201_CREATED)
+async def create_sighting(survey_id: int, sighting: SightingCreateV2, db: Session = Depends(get_db)):
     """
-    Add a sighting to a survey.
+    Add a sighting to a survey with optional individual location points.
 
     Args:
         survey_id: Survey ID
-        sighting: Sighting data
+        sighting: Sighting data with optional individuals array
 
     Returns:
-        Created sighting
+        Created sighting with individuals
 
     Raises:
-        404: Survey, species, or location not found
+        404: Survey or species not found
     """
     # Check if survey exists
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
@@ -407,14 +460,29 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
     db.commit()
     db.refresh(db_sighting)
 
-    # Update the coordinates column with PostGIS geometry if lat/lng provided
+    # Update the legacy coordinates column with PostGIS geometry if lat/lng provided
     if sighting.latitude is not None and sighting.longitude is not None:
         db.execute(
             text("UPDATE sighting SET coordinates = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) WHERE id = :id")
             .bindparams(lng=sighting.longitude, lat=sighting.latitude, id=db_sighting.id)
         )
         db.commit()
-        db.refresh(db_sighting)
+
+    # Create individual location records
+    for ind in sighting.individuals:
+        db.execute(
+            text("""
+                INSERT INTO sighting_individual (sighting_id, coordinates, breeding_status_code, notes)
+                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :code, :notes)
+            """).bindparams(
+                sighting_id=db_sighting.id,
+                lng=ind.longitude,
+                lat=ind.latitude,
+                code=ind.breeding_status_code,
+                notes=ind.notes
+            )
+        )
+    db.commit()
 
     # Get species name and extract coordinates
     species = db.query(Species).filter(Species.id == sighting.species_id).first()
@@ -425,6 +493,15 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
         func.ST_X(Sighting.coordinates).label('longitude')
     ).filter(Sighting.id == db_sighting.id).first()
 
+    # Fetch created individuals
+    individuals = db.execute(text("""
+        SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
+               breeding_status_code, notes
+        FROM sighting_individual
+        WHERE sighting_id = :sighting_id
+        ORDER BY id
+    """).bindparams(sighting_id=db_sighting.id)).fetchall()
+
     return {
         "id": db_sighting.id,
         "survey_id": db_sighting.survey_id,
@@ -433,7 +510,17 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
         "latitude": coords_result.latitude if coords_result else None,
         "longitude": coords_result.longitude if coords_result else None,
         "species_name": species.name if species else None,
-        "species_scientific_name": species.scientific_name if species else None
+        "species_scientific_name": species.scientific_name if species else None,
+        "individuals": [
+            {
+                "id": ind.id,
+                "latitude": ind.latitude,
+                "longitude": ind.longitude,
+                "breeding_status_code": ind.breeding_status_code,
+                "notes": ind.notes
+            }
+            for ind in individuals
+        ]
     }
 
 
@@ -531,5 +618,185 @@ async def delete_sighting(survey_id: int, sighting_id: int, db: Session = Depend
         )
 
     db.delete(db_sighting)
+    db.commit()
+    return None
+
+
+# ============================================================================
+# Individual Location Operations (Nested under sightings)
+# ============================================================================
+
+@router.post("/{survey_id}/sightings/{sighting_id}/individuals", response_model=IndividualLocationRead, status_code=status.HTTP_201_CREATED)
+async def add_individual_location(
+    survey_id: int,
+    sighting_id: int,
+    individual: IndividualLocationCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Add an individual location to an existing sighting.
+
+    Args:
+        survey_id: Survey ID
+        sighting_id: Sighting ID
+        individual: Individual location data
+
+    Returns:
+        Created individual location
+
+    Raises:
+        404: Survey or sighting not found
+    """
+    # Verify sighting belongs to survey
+    db_sighting = db.query(Sighting)\
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
+
+    if not db_sighting:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sighting {sighting_id} not found for survey {survey_id}"
+        )
+
+    # Insert individual location
+    result = db.execute(
+        text("""
+            INSERT INTO sighting_individual (sighting_id, coordinates, breeding_status_code, notes)
+            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :code, :notes)
+            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, breeding_status_code, notes
+        """).bindparams(
+            sighting_id=sighting_id,
+            lng=individual.longitude,
+            lat=individual.latitude,
+            code=individual.breeding_status_code,
+            notes=individual.notes
+        )
+    ).fetchone()
+    db.commit()
+
+    return {
+        "id": result.id,
+        "latitude": result.latitude,
+        "longitude": result.longitude,
+        "breeding_status_code": result.breeding_status_code,
+        "notes": result.notes
+    }
+
+
+@router.put("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", response_model=IndividualLocationRead)
+async def update_individual_location(
+    survey_id: int,
+    sighting_id: int,
+    individual_id: int,
+    individual: IndividualLocationCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update an individual location.
+
+    Args:
+        survey_id: Survey ID
+        sighting_id: Sighting ID
+        individual_id: Individual location ID
+        individual: Updated individual location data
+
+    Returns:
+        Updated individual location
+
+    Raises:
+        404: Survey, sighting, or individual not found
+    """
+    # Verify sighting belongs to survey
+    db_sighting = db.query(Sighting)\
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
+
+    if not db_sighting:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sighting {sighting_id} not found for survey {survey_id}"
+        )
+
+    # Check individual exists
+    existing = db.execute(
+        text("SELECT id FROM sighting_individual WHERE id = :id AND sighting_id = :sighting_id")
+        .bindparams(id=individual_id, sighting_id=sighting_id)
+    ).fetchone()
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Individual location {individual_id} not found for sighting {sighting_id}"
+        )
+
+    # Update individual location
+    result = db.execute(
+        text("""
+            UPDATE sighting_individual
+            SET coordinates = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
+                breeding_status_code = :code,
+                notes = :notes
+            WHERE id = :id
+            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, breeding_status_code, notes
+        """).bindparams(
+            id=individual_id,
+            lng=individual.longitude,
+            lat=individual.latitude,
+            code=individual.breeding_status_code,
+            notes=individual.notes
+        )
+    ).fetchone()
+    db.commit()
+
+    return {
+        "id": result.id,
+        "latitude": result.latitude,
+        "longitude": result.longitude,
+        "breeding_status_code": result.breeding_status_code,
+        "notes": result.notes
+    }
+
+
+@router.delete("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_individual_location(
+    survey_id: int,
+    sighting_id: int,
+    individual_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Remove an individual location from a sighting.
+
+    Args:
+        survey_id: Survey ID
+        sighting_id: Sighting ID
+        individual_id: Individual location ID
+
+    Raises:
+        404: Survey, sighting, or individual not found
+    """
+    # Verify sighting belongs to survey
+    db_sighting = db.query(Sighting)\
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
+
+    if not db_sighting:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sighting {sighting_id} not found for survey {survey_id}"
+        )
+
+    # Check individual exists and delete
+    result = db.execute(
+        text("DELETE FROM sighting_individual WHERE id = :id AND sighting_id = :sighting_id RETURNING id")
+        .bindparams(id=individual_id, sighting_id=sighting_id)
+    ).fetchone()
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Individual location {individual_id} not found for sighting {sighting_id}"
+        )
+
     db.commit()
     return None
