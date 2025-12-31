@@ -353,10 +353,10 @@ async def get_species_sightings(
     db: Session = Depends(get_db)
 ):
     """
-    Get all sightings with location data for a specific species.
+    Get all individual sighting locations for a specific species.
 
-    Returns sightings with coordinates, dates, and survey information.
-    Only returns sightings that have location data (coordinates).
+    Returns individual location points with coordinates, dates, and survey information.
+    Each row represents one individual location point from a sighting.
 
     Args:
         species_id: ID of the species to get sightings for
@@ -365,31 +365,31 @@ async def get_species_sightings(
         db: Database session
 
     Returns:
-        List of sightings with location and date information
+        List of individual locations with coordinates and date information
     """
     try:
         # Build date filters
         date_filter_sql = build_date_filter_sql(start_date, end_date)
 
-        # Query to get all sightings with locations for the species
+        # Query to get all individual locations for sightings of this species
         query = text(f"""
             SELECT
-                sighting.id,
+                si.id,
                 sighting.survey_id,
                 sighting.species_id,
-                sighting.count,
+                1 as count,
                 survey.date as survey_date,
-                ST_Y(sighting.coordinates) as latitude,
-                ST_X(sighting.coordinates) as longitude,
+                ST_Y(si.coordinates) as latitude,
+                ST_X(si.coordinates) as longitude,
                 species.name as species_name,
                 species.scientific_name as species_scientific_name
-            FROM sighting
+            FROM sighting_individual si
+            JOIN sighting ON si.sighting_id = sighting.id
             JOIN survey ON sighting.survey_id = survey.id
             JOIN species ON sighting.species_id = species.id
             WHERE sighting.species_id = :species_id
-            AND sighting.coordinates IS NOT NULL
             {date_filter_sql}
-            ORDER BY survey.date, sighting.id
+            ORDER BY survey.date, sighting.id, si.id
         """)
 
         # Build parameters

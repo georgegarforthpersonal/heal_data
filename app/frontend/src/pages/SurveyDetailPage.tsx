@@ -274,8 +274,6 @@ export function SurveyDetailPage() {
       tempId: `existing-${sighting.id}`,
       species_id: sighting.species_id,
       count: sighting.count,
-      latitude: sighting.latitude,
-      longitude: sighting.longitude,
       id: sighting.id, // Keep the real ID for updates/deletes
       // Include individuals if present (from SightingWithIndividuals)
       individuals: sighting.individuals?.map((ind: any) => ({
@@ -348,8 +346,6 @@ export function SurveyDetailPage() {
             return surveysAPI.updateSighting(Number(id), sighting.id, {
               species_id: sighting.species_id!,
               count: sighting.count,
-              latitude: sighting.latitude,
-              longitude: sighting.longitude,
             });
             // Note: Individual locations are managed separately via the individuals endpoints
           } else {
@@ -357,8 +353,6 @@ export function SurveyDetailPage() {
             return surveysAPI.addSighting(Number(id), {
               species_id: sighting.species_id!,
               count: sighting.count,
-              latitude: sighting.latitude,
-              longitude: sighting.longitude,
               individuals: sighting.individuals?.map((ind) => ({
                 latitude: ind.latitude,
                 longitude: ind.longitude,
@@ -707,11 +701,16 @@ export function SurveyDetailPage() {
                           </Box>
 
                         {/* Group Rows */}
-                        {groupSightings.map((sighting) => {
-                          const hasLocation = sighting.latitude !== null && sighting.latitude !== undefined &&
-                                               sighting.longitude !== null && sighting.longitude !== undefined;
+                        {groupSightings.map((sighting: any) => {
+                          // Check for individual locations
+                          const individualsWithLocation = sighting.individuals?.filter(
+                            (ind: any) => ind.latitude !== null && ind.latitude !== undefined &&
+                                          ind.longitude !== null && ind.longitude !== undefined
+                          ) || [];
+                          const hasLocation = individualsWithLocation.length > 0;
+
                           const locationTooltip = hasLocation
-                            ? `${sighting.latitude?.toFixed(6)}°N, ${sighting.longitude?.toFixed(6)}°W`
+                            ? `${individualsWithLocation.length} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
                             : 'No location recorded';
 
                           return (

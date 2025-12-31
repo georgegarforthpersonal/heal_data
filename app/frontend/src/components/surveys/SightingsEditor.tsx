@@ -13,10 +13,8 @@ export interface DraftSighting {
   tempId: string;
   species_id: number | null;
   count: number;
-  latitude?: number | null;
-  longitude?: number | null;
   id?: number;
-  // Per-individual location points with breeding status (new)
+  // Per-individual location points with breeding status
   individuals?: DraftIndividualLocation[];
 }
 
@@ -115,8 +113,6 @@ export function SightingsEditor({
               ...s,
               species_id: sightingData.species_id,
               count: sightingData.count,
-              latitude: sightingData.latitude,
-              longitude: sightingData.longitude,
               individuals: sightingData.individuals,
             }
           : s
@@ -129,8 +125,6 @@ export function SightingsEditor({
           tempId: `temp-${Date.now()}`,
           species_id: sightingData.species_id,
           count: sightingData.count,
-          latitude: sightingData.latitude,
-          longitude: sightingData.longitude,
           individuals: sightingData.individuals,
         },
       ]);
@@ -208,9 +202,6 @@ export function SightingsEditor({
         s.tempId === locationEditingTempId
           ? {
               ...s,
-              // Clear legacy single location when using individuals
-              latitude: null,
-              longitude: null,
               individuals: individuals,
             }
           : s
@@ -369,8 +360,6 @@ export function SightingsEditor({
               ? {
                   species_id: editingSighting.species_id,
                   count: editingSighting.count,
-                  latitude: editingSighting.latitude,
-                  longitude: editingSighting.longitude,
                   individuals: editingSighting.individuals,
                 }
               : undefined

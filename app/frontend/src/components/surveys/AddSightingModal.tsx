@@ -1,16 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete, Stack, Box, Typography, IconButton, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
-import { Close, LocationOn, PinDrop } from '@mui/icons-material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete, Stack, Box, Typography, IconButton } from '@mui/material';
+import { Close } from '@mui/icons-material';
 import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../icons/WildlifeIcons';
-import LocationMapPicker from './LocationMapPicker';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 
 export interface SightingData {
   species_id: number | null;
   count: number;
-  latitude?: number | null;
-  longitude?: number | null;
   individuals?: DraftIndividualLocation[];
 }
 
@@ -45,11 +42,6 @@ export function AddSightingModal({
 }: AddSightingModalProps) {
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<number | null>(initialData?.species_id || null);
   const [count, setCount] = useState<number>(initialData?.count || 1);
-  const [latitude, setLatitude] = useState<number | null>(initialData?.latitude || null);
-  const [longitude, setLongitude] = useState<number | null>(initialData?.longitude || null);
-  const [locationMode, setLocationMode] = useState<'single' | 'multi'>(
-    (initialData?.individuals && initialData.individuals.length > 0) ? 'multi' : 'single'
-  );
   const [individuals, setIndividuals] = useState<DraftIndividualLocation[]>(
     initialData?.individuals || []
   );
@@ -65,17 +57,11 @@ export function AddSightingModal({
     if (initialData) {
       setSelectedSpeciesId(initialData.species_id);
       setCount(initialData.count);
-      setLatitude(initialData.latitude || null);
-      setLongitude(initialData.longitude || null);
       setIndividuals(initialData.individuals || []);
-      setLocationMode((initialData.individuals && initialData.individuals.length > 0) ? 'multi' : 'single');
     } else {
       setSelectedSpeciesId(null);
       setCount(1);
-      setLatitude(null);
-      setLongitude(null);
       setIndividuals([]);
-      setLocationMode('single');
     }
   }, [initialData, open]);
 
@@ -141,17 +127,12 @@ export function AddSightingModal({
       onSave({
         species_id: selectedSpeciesId,
         count: Math.max(1, count),
-        latitude: locationMode === 'single' ? latitude : null,
-        longitude: locationMode === 'single' ? longitude : null,
-        individuals: locationMode === 'multi' ? individuals : undefined,
+        individuals: individuals.length > 0 ? individuals : undefined,
       });
       // Reset for next entry
       setSelectedSpeciesId(null);
       setCount(1);
-      setLatitude(null);
-      setLongitude(null);
       setIndividuals([]);
-      setLocationMode('single');
       onClose();
     }
   };
@@ -160,16 +141,8 @@ export function AddSightingModal({
     // Reset form
     setSelectedSpeciesId(initialData?.species_id || null);
     setCount(initialData?.count || 1);
-    setLatitude(initialData?.latitude || null);
-    setLongitude(initialData?.longitude || null);
     setIndividuals(initialData?.individuals || []);
-    setLocationMode((initialData?.individuals && initialData.individuals.length > 0) ? 'multi' : 'single');
     onClose();
-  };
-
-  const handleLocationChange = (lat: number | null, lng: number | null) => {
-    setLatitude(lat);
-    setLongitude(lng);
   };
 
   const selectedSpecies = species.find(s => s.id === selectedSpeciesId);
@@ -295,46 +268,17 @@ export function AddSightingModal({
             }}
           />
 
-          {/* Location Mode Toggle */}
+          {/* Individual Locations */}
           <Box>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-              <Typography variant="subtitle2">Location (Optional)</Typography>
-              <ToggleButtonGroup
-                value={locationMode}
-                exclusive
-                onChange={(_, newValue) => newValue && setLocationMode(newValue)}
-                size="small"
-              >
-                <ToggleButton value="single" aria-label="single location">
-                  <Tooltip title="Single location">
-                    <LocationOn fontSize="small" />
-                  </Tooltip>
-                </ToggleButton>
-                <ToggleButton value="multi" aria-label="multiple locations">
-                  <Tooltip title="Multiple individual locations">
-                    <PinDrop fontSize="small" />
-                  </Tooltip>
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Stack>
-
-            {locationMode === 'single' ? (
-              <LocationMapPicker
-                latitude={latitude || undefined}
-                longitude={longitude || undefined}
-                onChange={handleLocationChange}
-                helperText="Mark where you saw this species on the map, or use your current location"
-              />
-            ) : (
-              <MultiLocationMapPicker
-                locations={individuals}
-                onChange={setIndividuals}
-                breedingCodes={breedingCodes}
-                showBreedingStatus={isBirdSpecies}
-                maxCount={count}
-                locationsWithBoundaries={locationsWithBoundaries}
-              />
-            )}
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>Location (Optional)</Typography>
+            <MultiLocationMapPicker
+              locations={individuals}
+              onChange={setIndividuals}
+              breedingCodes={breedingCodes}
+              showBreedingStatus={isBirdSpecies}
+              maxCount={count}
+              locationsWithBoundaries={locationsWithBoundaries}
+            />
           </Box>
         </Stack>
       </DialogContent>

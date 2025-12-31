@@ -197,8 +197,6 @@ export interface Sighting {
   survey_id: number;
   species_id: number;
   count: number;
-  latitude?: number | null;
-  longitude?: number | null;
   species_name?: string | null;
   species_scientific_name?: string | null;
 }
@@ -239,8 +237,6 @@ export interface SightingWithIndividuals extends Sighting {
 export interface SightingCreateRequest {
   species_id: number;
   count: number;
-  latitude?: number | null;
-  longitude?: number | null;
   individuals?: Omit<IndividualLocation, 'id'>[];
 }
 
