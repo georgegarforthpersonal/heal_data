@@ -339,30 +339,61 @@ export function SurveyDetailPage() {
       );
 
       // Update existing sightings and add new ones
-      await Promise.all(
-        validSightings.map((sighting) => {
-          if (sighting.id) {
-            // Update existing sighting
-            return surveysAPI.updateSighting(Number(id), sighting.id, {
-              species_id: sighting.species_id!,
-              count: sighting.count,
-            });
-            // Note: Individual locations are managed separately via the individuals endpoints
-          } else {
-            // Add new sighting with individual locations
-            return surveysAPI.addSighting(Number(id), {
-              species_id: sighting.species_id!,
-              count: sighting.count,
-              individuals: sighting.individuals?.map((ind) => ({
+      for (const sighting of validSightings) {
+        if (sighting.id) {
+          // Update existing sighting
+          await surveysAPI.updateSighting(Number(id), sighting.id, {
+            species_id: sighting.species_id!,
+            count: sighting.count,
+          });
+
+          // Sync individual locations for this existing sighting
+          // Find the original sighting to compare individuals
+          const originalSighting = sightings.find((s: any) => s.id === sighting.id);
+          const originalIndividuals = originalSighting?.individuals || [];
+          const currentIndividuals = sighting.individuals || [];
+
+          // Find individuals to delete (in original but not in current)
+          const currentIndividualIds = currentIndividuals
+            .filter((ind) => ind.id)
+            .map((ind) => ind.id);
+          const individualsToDelete = originalIndividuals.filter(
+            (ind: any) => ind.id && !currentIndividualIds.includes(ind.id)
+          );
+
+          // Delete removed individuals
+          await Promise.all(
+            individualsToDelete.map((ind: any) =>
+              surveysAPI.deleteIndividualLocation(Number(id), sighting.id!, ind.id)
+            )
+          );
+
+          // Add new individuals (those without id)
+          const newIndividuals = currentIndividuals.filter((ind) => !ind.id);
+          await Promise.all(
+            newIndividuals.map((ind) =>
+              surveysAPI.addIndividualLocation(Number(id), sighting.id!, {
                 latitude: ind.latitude,
                 longitude: ind.longitude,
                 breeding_status_code: ind.breeding_status_code,
                 notes: ind.notes,
-              })),
-            });
-          }
-        })
-      );
+              })
+            )
+          );
+        } else {
+          // Add new sighting with individual locations
+          await surveysAPI.addSighting(Number(id), {
+            species_id: sighting.species_id!,
+            count: sighting.count,
+            individuals: sighting.individuals?.map((ind) => ({
+              latitude: ind.latitude,
+              longitude: ind.longitude,
+              breeding_status_code: ind.breeding_status_code,
+              notes: ind.notes,
+            })),
+          });
+        }
+      }
 
       // Success - navigate back to surveys list with edited parameter
       navigate(`/surveys?edited=${id}`);
