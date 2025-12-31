@@ -59,6 +59,40 @@ async def get_locations(survey_type: Optional[str] = None):
         raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {str(e)}")
 
 
+@router.get("/by-survey-type/{survey_type_id}", response_model=List[LocationRead])
+async def get_locations_by_survey_type(survey_type_id: int):
+    """
+    Get locations available for a specific survey type.
+
+    Args:
+        survey_type_id: The survey type ID to filter by
+
+    Returns:
+        List of locations configured for this survey type
+    """
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT l.id, l.number, l.name, l.type
+                FROM location l
+                INNER JOIN survey_type_location stl ON stl.location_id = l.id
+                WHERE stl.survey_type_id = %s
+                ORDER BY l.name
+            """, (survey_type_id,))
+
+            rows = cursor.fetchall()
+
+            return [{
+                "id": row[0],
+                "number": row[1],
+                "name": row[2],
+                "type": row[3],
+            } for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch locations for survey type: {str(e)}")
+
+
 @router.get("/with-boundaries", response_model=List[LocationWithBoundary])
 async def get_locations_with_boundaries():
     """

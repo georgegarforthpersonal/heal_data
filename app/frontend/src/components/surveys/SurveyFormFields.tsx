@@ -27,6 +27,9 @@ interface SurveyFormFieldsProps {
     location?: string;
     surveyors?: string;
   };
+
+  // Hide location when location is at sighting level
+  hideLocation?: boolean;
 }
 
 /**
@@ -50,6 +53,7 @@ export function SurveyFormFields({
   onSurveyorsChange,
   onNotesChange,
   validationErrors = {},
+  hideLocation = false,
 }: SurveyFormFieldsProps) {
   const [surveyorsOpen, setSurveyorsOpen] = useState(false);
 
@@ -74,26 +78,28 @@ export function SurveyFormFields({
         }}
       />
 
-      {/* Location Dropdown */}
-      <Autocomplete
-        options={locations}
-        getOptionLabel={(option) => option.name}
-        value={locations.find((l) => l.id === locationId) || null}
-        onChange={(_, newValue) => onLocationChange(newValue?.id || null)}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Location *"
-            error={!!validationErrors.location}
-            helperText={validationErrors.location}
-            sx={{
-              '& .MuiInputBase-input': {
-                fontSize: { xs: '16px', sm: '1rem' },
-              }
-            }}
-          />
-        )}
-      />
+      {/* Location Dropdown - hidden when location is at sighting level */}
+      {!hideLocation && (
+        <Autocomplete
+          options={locations}
+          getOptionLabel={(option) => option.name}
+          value={locations.find((l) => l.id === locationId) || null}
+          onChange={(_, newValue) => onLocationChange(newValue?.id || null)}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Location *"
+              error={!!validationErrors.location}
+              helperText={validationErrors.location}
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '16px', sm: '1rem' },
+                }
+              }}
+            />
+          )}
+        />
+      )}
 
       {/* Surveyors Multi-Select */}
       <Autocomplete

@@ -199,6 +199,8 @@ export interface Sighting {
   count: number;
   species_name?: string | null;
   species_scientific_name?: string | null;
+  individuals?: IndividualLocation[]; // Individual locations with breeding status
+  location_id?: number | null; // Location ID when location is at sighting level
 }
 
 /**
@@ -238,6 +240,7 @@ export interface SightingCreateRequest {
   species_id: number;
   count: number;
   individuals?: Omit<IndividualLocation, 'id'>[];
+  location_id?: number | null; // Location ID when location is at sighting level
 }
 
 /**
@@ -292,6 +295,64 @@ export interface SpeciesSightingLocation {
   species_scientific_name: string | null;
   breeding_status_code: string | null;
   breeding_status_description: string | null;
+}
+
+// ============================================================================
+// Survey Type Definitions
+// ============================================================================
+
+/**
+ * Species type reference (e.g., bird, mammal, butterfly)
+ */
+export interface SpeciesTypeRef {
+  id: number;
+  name: string;
+  display_name: string;
+}
+
+/**
+ * Survey type configuration
+ */
+export interface SurveyType {
+  id: number;
+  name: string;
+  description: string | null;
+  location_at_sighting_level: boolean;
+  allow_geolocation: boolean;
+  is_active: boolean;
+}
+
+/**
+ * Survey type with full details including locations and species types
+ */
+export interface SurveyTypeWithDetails extends SurveyType {
+  locations: Location[];
+  species_types: SpeciesTypeRef[];
+}
+
+/**
+ * Request body for creating a survey type
+ */
+export interface SurveyTypeCreate {
+  name: string;
+  description?: string;
+  location_at_sighting_level: boolean;
+  allow_geolocation: boolean;
+  location_ids: number[];
+  species_type_ids: number[];
+}
+
+/**
+ * Request body for updating a survey type
+ */
+export interface SurveyTypeUpdate {
+  name?: string;
+  description?: string;
+  location_at_sighting_level?: boolean;
+  allow_geolocation?: boolean;
+  is_active?: boolean;
+  location_ids?: number[];
+  species_type_ids?: number[];
 }
 
 // ============================================================================
@@ -550,6 +611,13 @@ export const speciesAPI = {
       method: 'DELETE',
     });
   },
+
+  /**
+   * Get species available for a specific survey type
+   */
+  getBySurveyType: (surveyTypeId: number): Promise<Species[]> => {
+    return fetchAPI(`/species/by-survey-type/${surveyTypeId}`);
+  },
 };
 
 // ============================================================================
@@ -607,6 +675,79 @@ export const locationsAPI = {
     return fetchAPI(`/locations/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  /**
+   * Get locations available for a specific survey type
+   */
+  getBySurveyType: (surveyTypeId: number): Promise<Location[]> => {
+    return fetchAPI(`/locations/by-survey-type/${surveyTypeId}`);
+  },
+};
+
+// ============================================================================
+// API Methods - Survey Types
+// ============================================================================
+
+export const surveyTypesAPI = {
+  /**
+   * Get all survey types
+   */
+  getAll: (includeInactive: boolean = false): Promise<SurveyType[]> => {
+    const query = includeInactive ? '?include_inactive=true' : '';
+    return fetchAPI(`/survey-types${query}`);
+  },
+
+  /**
+   * Get a specific survey type by ID with full details
+   */
+  getById: (id: number): Promise<SurveyTypeWithDetails> => {
+    return fetchAPI(`/survey-types/${id}`);
+  },
+
+  /**
+   * Create a new survey type
+   */
+  create: (surveyType: SurveyTypeCreate): Promise<SurveyType> => {
+    return fetchAPI('/survey-types', {
+      method: 'POST',
+      body: JSON.stringify(surveyType),
+    });
+  },
+
+  /**
+   * Update an existing survey type
+   */
+  update: (id: number, surveyType: SurveyTypeUpdate): Promise<SurveyType> => {
+    return fetchAPI(`/survey-types/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(surveyType),
+    });
+  },
+
+  /**
+   * Delete (deactivate) a survey type
+   */
+  delete: (id: number): Promise<void> => {
+    return fetchAPI(`/survey-types/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Reactivate a deactivated survey type
+   */
+  reactivate: (id: number): Promise<SurveyType> => {
+    return fetchAPI(`/survey-types/${id}/reactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Get all species types (reference data)
+   */
+  getSpeciesTypes: (): Promise<SpeciesTypeRef[]> => {
+    return fetchAPI('/survey-types/species-types');
   },
 };
 

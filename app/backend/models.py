@@ -36,6 +36,24 @@ class SurveySurveyor(SQLModel, table=True):
     )
 
 
+class SurveyTypeLocationLink(SQLModel, table=True):
+    """Junction table linking survey types to locations"""
+    __tablename__ = "survey_type_location"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_type_id: int = Field(foreign_key="survey_type.id", ondelete="CASCADE")
+    location_id: int = Field(foreign_key="location.id", ondelete="CASCADE")
+
+
+class SurveyTypeSpeciesTypeLink(SQLModel, table=True):
+    """Junction table linking survey types to species types"""
+    __tablename__ = "survey_type_species_type"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_type_id: int = Field(foreign_key="survey_type.id", ondelete="CASCADE")
+    species_type_id: int = Field(foreign_key="species_type.id", ondelete="CASCADE")
+
+
 # ============================================================================
 # Surveyor Models
 # ============================================================================
@@ -132,6 +150,39 @@ class SpeciesRead(SpeciesBase):
 
 
 # ============================================================================
+# Species Type Models (Reference Table)
+# ============================================================================
+
+class SpeciesTypeBase(SQLModel):
+    """Base species type fields"""
+    name: str = Field(max_length=50, description="Internal name (e.g., 'bird')")
+    display_name: str = Field(max_length=100, description="Display name (e.g., 'Bird')")
+
+
+class SpeciesType(SpeciesTypeBase, table=True):
+    """Species type reference table"""
+    __tablename__ = "species_type"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    survey_types: List["SurveyType"] = Relationship(
+        back_populates="species_types",
+        link_model=SurveyTypeSpeciesTypeLink
+    )
+
+
+class SpeciesTypeRead(SpeciesTypeBase):
+    """Model for reading a species type"""
+    id: int
+
+
+# ============================================================================
 # Location Models
 # ============================================================================
 
@@ -168,6 +219,11 @@ class Location(LocationBase, table=True):
 
     # Relationships
     surveys: List["Survey"] = Relationship(back_populates="location")
+    survey_types: List["SurveyType"] = Relationship(
+        back_populates="locations",
+        link_model=SurveyTypeLocationLink
+    )
+    sightings: List["Sighting"] = Relationship(back_populates="location")
 
 
 class LocationCreate(LocationBase):
@@ -198,6 +254,71 @@ class LocationWithBoundary(LocationRead):
 
 
 # ============================================================================
+# Survey Type Models (Configuration)
+# ============================================================================
+
+class SurveyTypeBase(SQLModel):
+    """Base survey type fields"""
+    name: str = Field(max_length=100, description="Survey type name")
+    description: Optional[str] = Field(None, description="Survey type description")
+    location_at_sighting_level: bool = Field(default=False, description="If true, location is set per sighting; if false, per survey")
+    allow_geolocation: bool = Field(default=True, description="Whether coordinates can be entered for sightings")
+
+
+class SurveyType(SurveyTypeBase, table=True):
+    """Survey type configuration table"""
+    __tablename__ = "survey_type"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    is_active: bool = Field(default=True, description="Whether survey type is active")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    locations: List["Location"] = Relationship(
+        back_populates="survey_types",
+        link_model=SurveyTypeLocationLink
+    )
+    species_types: List["SpeciesType"] = Relationship(
+        back_populates="survey_types",
+        link_model=SurveyTypeSpeciesTypeLink
+    )
+    surveys: List["Survey"] = Relationship(back_populates="survey_type")
+
+
+class SurveyTypeCreate(SurveyTypeBase):
+    """Model for creating a survey type"""
+    location_ids: List[int] = Field(description="List of allowed location IDs")
+    species_type_ids: List[int] = Field(description="List of allowed species type IDs")
+
+
+class SurveyTypeUpdate(SQLModel):
+    """Model for updating a survey type (all fields optional)"""
+    name: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = None
+    location_at_sighting_level: Optional[bool] = None
+    allow_geolocation: Optional[bool] = None
+    is_active: Optional[bool] = None
+    location_ids: Optional[List[int]] = None
+    species_type_ids: Optional[List[int]] = None
+
+
+class SurveyTypeRead(SurveyTypeBase):
+    """Model for reading a survey type"""
+    id: int
+    is_active: bool
+
+
+class SurveyTypeWithDetails(SurveyTypeRead):
+    """Survey type with full location and species type details"""
+    locations: List[LocationRead] = Field(default_factory=list)
+    species_types: List[SpeciesTypeRead] = Field(default_factory=list)
+
+
+# ============================================================================
 # Survey Models
 # ============================================================================
 
@@ -211,7 +332,8 @@ class SurveyBase(SQLModel):
     conditions_met: Optional[bool] = Field(None, description="Whether survey conditions were met")
     notes: Optional[str] = Field(None, description="Additional notes")
     type: str = Field(default="butterfly", max_length=50, description="Type of survey")
-    location_id: int = Field(gt=0, foreign_key="location.id", description="Location ID")
+    location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (required when survey type uses survey-level location)")
+    survey_type_id: Optional[int] = Field(None, foreign_key="survey_type.id", description="Survey type ID")
 
 
 class Survey(SurveyBase, table=True):
@@ -228,7 +350,8 @@ class Survey(SurveyBase, table=True):
     # Relationships
     surveyors: List["Surveyor"] = Relationship(back_populates="surveys", link_model=SurveySurveyor)
     sightings: List["Sighting"] = Relationship(back_populates="survey", cascade_delete=True)
-    location: "Location" = Relationship(back_populates="surveys")
+    location: Optional["Location"] = Relationship(back_populates="surveys")
+    survey_type: Optional["SurveyType"] = Relationship(back_populates="surveys")
 
 
 class SurveyCreate(SurveyBase):
@@ -284,6 +407,7 @@ class Sighting(SightingBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     survey_id: int = Field(foreign_key="survey.id")
+    location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (for sighting-level locations)")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -293,6 +417,7 @@ class Sighting(SightingBase, table=True):
     # Relationships
     survey: "Survey" = Relationship(back_populates="sightings")
     species: "Species" = Relationship(back_populates="sightings")
+    location: Optional["Location"] = Relationship(back_populates="sightings")
     individuals: List["SightingIndividual"] = Relationship(
         back_populates="sighting",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
@@ -301,19 +426,21 @@ class Sighting(SightingBase, table=True):
 
 class SightingCreate(SightingBase):
     """Model for creating a new sighting"""
-    pass
+    location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
 
 
 class SightingUpdate(SQLModel):
     """Model for updating a sighting (all fields optional)"""
     species_id: Optional[int] = Field(None, gt=0)
     count: Optional[int] = Field(None, gt=0)
+    location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
 
 
 class SightingRead(SightingBase):
     """Model for reading a sighting (includes ID)"""
     id: int
     survey_id: int
+    location_id: Optional[int] = None
 
 
 class SightingWithDetails(SightingRead):
