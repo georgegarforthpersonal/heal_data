@@ -327,12 +327,12 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                       <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                         {dayjs(sighting.survey_date).format('MMM DD, YYYY')}
                       </Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>
-                        Survey #{sighting.survey_id}
-                      </Typography>
-                      <Typography variant="body2">
-                        Count: {sighting.count} individuals
-                      </Typography>
+                      {sighting.breeding_status_code && (
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>{sighting.breeding_status_code}</strong>
+                          {sighting.breeding_status_description && ` - ${sighting.breeding_status_description}`}
+                        </Typography>
+                      )}
                     </Box>
                   </Popup>
                 </CircleMarker>

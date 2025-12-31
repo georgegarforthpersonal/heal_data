@@ -377,16 +377,18 @@ async def get_species_sightings(
                 si.id,
                 sighting.survey_id,
                 sighting.species_id,
-                1 as count,
                 survey.date as survey_date,
                 ST_Y(si.coordinates) as latitude,
                 ST_X(si.coordinates) as longitude,
                 species.name as species_name,
-                species.scientific_name as species_scientific_name
+                species.scientific_name as species_scientific_name,
+                si.breeding_status_code,
+                bsc.description as breeding_status_description
             FROM sighting_individual si
             JOIN sighting ON si.sighting_id = sighting.id
             JOIN survey ON sighting.survey_id = survey.id
             JOIN species ON sighting.species_id = species.id
+            LEFT JOIN breeding_status_code bsc ON si.breeding_status_code = bsc.code
             WHERE sighting.species_id = :species_id
             {date_filter_sql}
             ORDER BY survey.date, sighting.id, si.id
@@ -405,12 +407,13 @@ async def get_species_sightings(
                 "id": row.id,
                 "survey_id": row.survey_id,
                 "species_id": row.species_id,
-                "count": row.count,
                 "survey_date": row.survey_date.isoformat(),
                 "latitude": row.latitude,
                 "longitude": row.longitude,
                 "species_name": row.species_name,
-                "species_scientific_name": row.species_scientific_name
+                "species_scientific_name": row.species_scientific_name,
+                "breeding_status_code": row.breeding_status_code,
+                "breeding_status_description": row.breeding_status_description
             }
             for row in rows
             if row.latitude is not None and row.longitude is not None  # Double check lat/lng exist

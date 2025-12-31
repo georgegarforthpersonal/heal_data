@@ -285,12 +285,13 @@ export interface SpeciesSightingLocation {
   id: number;
   survey_id: number;
   species_id: number;
-  count: number;
   survey_date: string;
   latitude: number;
   longitude: number;
   species_name: string | null;
   species_scientific_name: string | null;
+  breeding_status_code: string | null;
+  breeding_status_description: string | null;
 }
 
 // ============================================================================
