@@ -222,7 +222,8 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
         "notes": survey.notes,
         "type": survey.type,
         "location_id": survey.location_id,
-        "surveyor_ids": surveyor_ids_list
+        "surveyor_ids": surveyor_ids_list,
+        "survey_type_id": survey.survey_type_id
     }
 
 

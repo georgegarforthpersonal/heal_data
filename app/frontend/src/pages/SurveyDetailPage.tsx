@@ -81,13 +81,18 @@ export function SurveyDetailPage() {
         setLoading(true);
         setError(null);
 
-        // Fetch all data in parallel
-        const [surveyData, sightingsData, surveyorsData, locationsData, speciesData, breedingCodesData, boundariesData] = await Promise.all([
-          surveysAPI.getById(Number(id)),
+        // First fetch survey to get its survey_type_id
+        const surveyData = await surveysAPI.getById(Number(id));
+
+        // Fetch remaining data in parallel, using survey_type_id for species filtering
+        const [sightingsData, surveyorsData, locationsData, speciesData, breedingCodesData, boundariesData] = await Promise.all([
           surveysAPI.getSightings(Number(id)),
           surveyorsAPI.getAll(),
           locationsAPI.getAll(),
-          speciesAPI.getAll(),
+          // Filter species by survey type if available, otherwise get all
+          surveyData.survey_type_id
+            ? speciesAPI.getBySurveyType(surveyData.survey_type_id)
+            : speciesAPI.getAll(),
           surveysAPI.getBreedingCodes(),
           locationsAPI.getAllWithBoundaries(),
         ]);
