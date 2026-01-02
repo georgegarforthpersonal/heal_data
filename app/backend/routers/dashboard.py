@@ -210,6 +210,44 @@ async def get_cumulative_species(
         )
 
 
+@router.get("/species-types-with-entries", response_model=List[str])
+async def get_species_types_with_entries(
+    db: Session = Depends(get_db)
+):
+    """
+    Get species types that have at least one sighting entry.
+
+    Returns a list of species type strings (e.g., 'bird', 'butterfly') that have
+    at least one sighting in the database. Useful for filtering dashboard icons
+    to only show species types with data.
+
+    Args:
+        db: Database session
+
+    Returns:
+        List of species type strings with entries, ordered alphabetically
+    """
+    try:
+        query = text("""
+            SELECT DISTINCT species.type
+            FROM species
+            JOIN sighting ON species.id = sighting.species_id
+            WHERE species.type IS NOT NULL
+            ORDER BY species.type
+        """)
+
+        result = db.execute(query)
+        rows = result.fetchall()
+
+        return [row.type for row in rows]
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch species types with entries: {str(e)}"
+        )
+
+
 @router.get("/species-by-count", response_model=List[SpeciesWithCount])
 async def get_species_by_count(
     species_type: str = Query(..., description="Species type to filter (e.g., 'bird', 'butterfly')"),

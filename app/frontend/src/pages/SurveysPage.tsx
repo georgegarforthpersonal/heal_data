@@ -1,12 +1,13 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination } from '@mui/material';
-import { CalendarToday, Person, Visibility, LocationOn, Category } from '@mui/icons-material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination, FormControl, Select, MenuItem } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
+import { CalendarToday, Person, Visibility, LocationOn, Category, FilterList } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
-import { SurveyTypeIcon } from '../components/icons/SurveyTypeIcons';
+import { SurveyTypeChip } from '../components/SurveyTypeColors';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
-import { surveysAPI, surveyorsAPI, locationsAPI } from '../services/api';
-import type { Survey, Surveyor, Location, PaginationMeta } from '../services/api';
+import { surveysAPI, surveyorsAPI, locationsAPI, surveyTypesAPI } from '../services/api';
+import type { Survey, Surveyor, Location, PaginationMeta, SurveyType } from '../services/api';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
@@ -65,9 +66,26 @@ export function SurveysPage() {
     total_pages: 0
   });
 
+  // Filter state
+  const [surveyTypes, setSurveyTypes] = useState<SurveyType[]>([]);
+  const [selectedSurveyTypeId, setSelectedSurveyTypeId] = useState<number | ''>('');
+
   // ============================================================================
   // Data Fetching
   // ============================================================================
+
+  // Fetch survey types once on mount
+  useEffect(() => {
+    const fetchSurveyTypes = async () => {
+      try {
+        const types = await surveyTypesAPI.getAll();
+        setSurveyTypes(types);
+      } catch (err) {
+        console.error('Error fetching survey types:', err);
+      }
+    };
+    fetchSurveyTypes();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,10 +94,15 @@ export function SurveysPage() {
         setError(null);
 
         // Build query parameters
-        const queryParams = {
+        const queryParams: { page: number; limit: number; survey_type_id?: number } = {
           page,
           limit
         };
+
+        // Add survey type filter if selected
+        if (selectedSurveyTypeId !== '') {
+          queryParams.survey_type_id = selectedSurveyTypeId;
+        }
 
         // Fetch surveys (paginated), surveyors, and locations in parallel
         const [surveysResponse, surveyorsData, locationsData] = await Promise.all([
@@ -106,7 +129,7 @@ export function SurveysPage() {
     };
 
     fetchData();
-  }, [page, limit]); // Re-fetch when pagination changes
+  }, [page, limit, selectedSurveyTypeId]); // Re-fetch when pagination or filter changes
 
   // ============================================================================
   // Handle created/edited/deleted survey toast and highlighting
@@ -176,6 +199,12 @@ export function SurveysPage() {
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSurveyTypeFilterChange = (event: SelectChangeEvent<number | ''>) => {
+    const value = event.target.value;
+    setSelectedSurveyTypeId(value === '' ? '' : Number(value));
+    setPage(1); // Reset to first page when filter changes
   };
 
   // ============================================================================
@@ -295,22 +324,36 @@ export function SurveysPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      {/* Inline Title and Action */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Typography
-          variant="h2"
-          sx={{
-            fontSize: '1.125rem',
-            fontWeight: 600,
-            color: 'text.primary',
-          }}
-        >
-          Surveys
-        </Typography>
-
-        {/* TODO: Add RBAC permission check - only show this button to admin users */}
-        {/* When implementing: const { hasPermission } = useAuth(); */}
-        {/* Then conditionally render: {hasPermission('create_survey') && <Button.../>} */}
+      {/* Filters and Action Button */}
+      <Stack direction="row" spacing={2} sx={{ mb: 2 }} alignItems="center" justifyContent="space-between">
+        <Stack direction="row" spacing={2} alignItems="center">
+          <FilterList sx={{ color: 'text.secondary', fontSize: 20 }} />
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <Select
+              value={selectedSurveyTypeId}
+              onChange={handleSurveyTypeFilterChange}
+              displayEmpty
+              sx={{
+                fontSize: '0.875rem',
+                '& .MuiSelect-select': {
+                  py: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }
+              }}
+            >
+              <MenuItem value="">
+                <em>All Survey Types</em>
+              </MenuItem>
+              {surveyTypes.map((type) => (
+                <MenuItem key={type.id} value={type.id}>
+                  <SurveyTypeChip name={type.name} color={type.color} size="small" />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
         <Button
           variant="contained"
           size="medium"
@@ -452,24 +495,10 @@ export function SurveysPage() {
 
                   {/* Survey Type Column - always visible */}
                   <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
-                    {survey.survey_type_icon ? (
-                      <Tooltip title={survey.survey_type_name || ''} arrow>
-                        <Box
-                          sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 28,
-                            height: 28,
-                            borderRadius: 1,
-                            bgcolor: 'grey.100',
-                          }}
-                        >
-                          <SurveyTypeIcon icon={survey.survey_type_icon} size={16} />
-                        </Box>
-                      </Tooltip>
+                    {survey.survey_type_name ? (
+                      <SurveyTypeChip name={survey.survey_type_name} color={survey.survey_type_color} size="small" />
                     ) : (
-                      survey.survey_type_name || '—'
+                      '—'
                     )}
                   </TableCell>
 

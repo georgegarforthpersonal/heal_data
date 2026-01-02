@@ -39,7 +39,7 @@ import {
   type SpeciesTypeRef,
   type Location,
 } from '../services/api';
-import { SurveyTypeIconSelector, SurveyTypeIcon } from '../components/icons/SurveyTypeIcons';
+import { SurveyTypeColorSelector, SurveyTypeChip } from '../components/SurveyTypeColors';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -99,7 +99,7 @@ export function AdminPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formLocationAtSightingLevel, setFormLocationAtSightingLevel] = useState(false);
   const [formAllowGeolocation, setFormAllowGeolocation] = useState(true);
-  const [formIcon, setFormIcon] = useState<string | null>(null);
+  const [formColor, setFormColor] = useState<string | null>(null);
   const [formSelectedLocations, setFormSelectedLocations] = useState<Location[]>([]);
   const [formSelectedSpeciesTypes, setFormSelectedSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
 
@@ -212,7 +212,7 @@ export function AdminPage() {
       setFormDescription(details.description || '');
       setFormLocationAtSightingLevel(details.location_at_sighting_level);
       setFormAllowGeolocation(details.allow_geolocation);
-      setFormIcon(details.icon);
+      setFormColor(details.color);
       setFormSelectedLocations(details.locations);
       setFormSelectedSpeciesTypes(details.species_types);
       setSurveyTypeDialogOpen(true);
@@ -226,7 +226,7 @@ export function AdminPage() {
     setFormDescription('');
     setFormLocationAtSightingLevel(false);
     setFormAllowGeolocation(true);
-    setFormIcon(null);
+    setFormColor(null);
     setFormSelectedLocations([]);
     setFormSelectedSpeciesTypes([]);
     setSurveyTypeFormError(null);
@@ -255,7 +255,7 @@ export function AdminPage() {
         description: formDescription.trim() || undefined,
         location_at_sighting_level: formLocationAtSightingLevel,
         allow_geolocation: formAllowGeolocation,
-        icon: formIcon || undefined,
+        color: formColor || undefined,
         location_ids: formSelectedLocations.map((l) => l.id),
         species_type_ids: formSelectedSpeciesTypes.map((st) => st.id),
       };
@@ -303,11 +303,6 @@ export function AdminPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      {/* Header */}
-      <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
-        Admin
-      </Typography>
-
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
@@ -453,32 +448,12 @@ export function AdminPage() {
                   <TableRow key={surveyType.id} sx={{ '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
                     <TableCell>
                       <Stack direction="row" alignItems="center" spacing={1.5}>
-                        {surveyType.icon && (
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: 32,
-                              height: 32,
-                              borderRadius: 1,
-                              bgcolor: 'grey.100',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <SurveyTypeIcon icon={surveyType.icon} size={18} />
-                          </Box>
-                        )}
-                        <Box>
-                          <Typography variant="body1" fontWeight={500}>
-                            {surveyType.name}
+                        <SurveyTypeChip name={surveyType.name} color={surveyType.color} />
+                        {surveyType.description && (
+                          <Typography variant="body2" color="text.secondary">
+                            {surveyType.description}
                           </Typography>
-                          {surveyType.description && (
-                            <Typography variant="body2" color="text.secondary">
-                              {surveyType.description}
-                            </Typography>
-                          )}
-                        </Box>
+                        )}
                       </Stack>
                     </TableCell>
                     <TableCell>
@@ -651,9 +626,9 @@ export function AdminPage() {
             disabled={savingSurveyType}
           />
           <Box sx={{ mt: 2 }}>
-            <SurveyTypeIconSelector
-              value={formIcon}
-              onChange={setFormIcon}
+            <SurveyTypeColorSelector
+              value={formColor}
+              onChange={setFormColor}
             />
           </Box>
           <Box sx={{ mt: 2 }}>

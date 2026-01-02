@@ -42,6 +42,9 @@ export function DashboardsPage() {
   // Field boundaries state
   const [locationsWithBoundaries, setLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
 
+  // Available species types (only those with entries)
+  const [availableSpeciesTypes, setAvailableSpeciesTypes] = useState<string[]>([]);
+
   // ============================================================================
   // Species Type Configuration
   // ============================================================================
@@ -301,6 +304,23 @@ export function DashboardsPage() {
       });
   }, []);
 
+  // Fetch available species types (only those with entries) once on mount
+  useEffect(() => {
+    dashboardAPI.getSpeciesTypesWithEntries()
+      .then((types) => {
+        setAvailableSpeciesTypes(types);
+        // If current selection is not in available types, select first available
+        if (types.length > 0 && !types.includes(selectedSpeciesTypes[0])) {
+          setSelectedSpeciesTypes([types[0]]);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load species types with entries:', err);
+        // Fallback to showing all types if fetch fails
+        setAvailableSpeciesTypes(speciesTypes);
+      });
+  }, []);
+
   // ============================================================================
   // Event Handlers
   // ============================================================================
@@ -406,7 +426,7 @@ export function DashboardsPage() {
         }}
       >
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          {speciesTypes.map(type => {
+          {speciesTypes.filter(type => availableSpeciesTypes.includes(type)).map(type => {
             const Icon = getSpeciesIcon(type);
             const isSelected = selectedSpeciesTypes.includes(type);
 

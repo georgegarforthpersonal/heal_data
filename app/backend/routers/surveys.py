@@ -69,16 +69,18 @@ async def get_surveys(
     limit: int = Query(25, ge=1, le=100, description="Items per page"),
     start_date: Optional[date] = Query(None, description="Filter surveys from this date (inclusive)"),
     end_date: Optional[date] = Query(None, description="Filter surveys until this date (inclusive)"),
+    survey_type_id: Optional[int] = Query(None, description="Filter by survey type ID"),
     db: Session = Depends(get_db)
 ):
     """
-    Get surveys with pagination and optional date range filtering.
+    Get surveys with pagination and optional filtering.
 
     Args:
         page: Page number (starting from 1)
         limit: Number of items per page (max 100)
         start_date: Optional start date filter (YYYY-MM-DD)
         end_date: Optional end date filter (YYYY-MM-DD)
+        survey_type_id: Optional survey type ID filter
 
     Returns:
         Paginated list of surveys with metadata:
@@ -97,6 +99,10 @@ async def get_surveys(
             query = query.filter(Survey.date >= start_date)
         if end_date:
             query = query.filter(Survey.date <= end_date)
+
+        # Apply survey type filter
+        if survey_type_id:
+            query = query.filter(Survey.survey_type_id == survey_type_id)
 
         # Get total count for pagination metadata
         total = query.count()
@@ -139,12 +145,14 @@ async def get_surveys(
                 for row in species_breakdown_query
             ]
 
-            # Get survey type name and icon if available
+            # Get survey type name, icon, and color if available
             survey_type_name = None
             survey_type_icon = None
+            survey_type_color = None
             if survey.survey_type:
                 survey_type_name = survey.survey_type.name
                 survey_type_icon = survey.survey_type.icon
+                survey_type_color = survey.survey_type.color
 
             result.append({
                 "id": survey.id,
@@ -162,7 +170,8 @@ async def get_surveys(
                 "species_breakdown": species_breakdown,
                 "survey_type_id": survey.survey_type_id,
                 "survey_type_name": survey_type_name,
-                "survey_type_icon": survey_type_icon
+                "survey_type_icon": survey_type_icon,
+                "survey_type_color": survey_type_color
             })
 
         return {

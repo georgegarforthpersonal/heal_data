@@ -158,6 +158,7 @@ export interface Survey {
   survey_type_id: number | null;
   survey_type_name: string | null;
   survey_type_icon: string | null;
+  survey_type_color: string | null;
 }
 
 /**
@@ -189,6 +190,7 @@ export interface SurveyQueryParams {
   limit?: number;
   start_date?: string; // YYYY-MM-DD format
   end_date?: string; // YYYY-MM-DD format
+  survey_type_id?: number; // Filter by survey type ID
 }
 
 export interface SurveyDetail extends Omit<Survey, 'sightings_count'> {
@@ -323,6 +325,7 @@ export interface SurveyType {
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
   icon: string | null;
+  color: string | null;
   is_active: boolean;
 }
 
@@ -343,6 +346,7 @@ export interface SurveyTypeCreate {
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
   icon?: string;
+  color?: string;
   location_ids: number[];
   species_type_ids: number[];
 }
@@ -356,6 +360,7 @@ export interface SurveyTypeUpdate {
   location_at_sighting_level?: boolean;
   allow_geolocation?: boolean;
   icon?: string;
+  color?: string;
   is_active?: boolean;
   location_ids?: number[];
   species_type_ids?: number[];
@@ -376,6 +381,7 @@ export const surveysAPI = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.start_date) queryParams.append('start_date', params.start_date);
     if (params?.end_date) queryParams.append('end_date', params.end_date);
+    if (params?.survey_type_id) queryParams.append('survey_type_id', params.survey_type_id.toString());
 
     const queryString = queryParams.toString();
     const endpoint = queryString ? `/surveys?${queryString}` : '/surveys';
@@ -762,6 +768,13 @@ export const surveyTypesAPI = {
 // ============================================================================
 
 export const dashboardAPI = {
+  /**
+   * Get species types that have at least one sighting entry
+   */
+  getSpeciesTypesWithEntries: (): Promise<string[]> => {
+    return fetchAPI('/dashboard/species-types-with-entries');
+  },
+
   /**
    * Get cumulative species counts over time for dashboard chart
    */
