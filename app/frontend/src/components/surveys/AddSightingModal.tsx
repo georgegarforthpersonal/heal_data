@@ -199,7 +199,7 @@ export function AddSightingModal({
       </DialogTitle>
 
       {/* Content */}
-      <DialogContent sx={{ pt: 4, pb: 3 }}>
+      <DialogContent sx={{ pt: 4, pb: 3, overflow: 'visible' }}>
         <Stack spacing={3}>
           {/* Species Autocomplete - Takes up most of the space */}
           <Box>
@@ -250,7 +250,7 @@ export function AddSightingModal({
                 <TextField
                   {...params}
                   label="Species *"
-                  placeholder="Start typing to search..."
+                  InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
                   autoFocus
                   sx={{
                     '& .MuiInputBase-input': {
