@@ -636,10 +636,16 @@ export function SightingsEditor({
 
                 <TextField
                   type="number"
-                  value={sighting.count}
-                  onChange={(e) =>
-                    updateSighting(sighting.tempId, 'count', Math.max(1, parseInt(e.target.value) || 1))
-                  }
+                  value={sighting.count || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateSighting(sighting.tempId, 'count', val === '' ? 0 : Math.max(0, parseInt(val) || 0));
+                  }}
+                  onBlur={() => {
+                    if (sighting.count < 1) {
+                      updateSighting(sighting.tempId, 'count', 1);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && sighting.species_id !== null) {
                       e.preventDefault();

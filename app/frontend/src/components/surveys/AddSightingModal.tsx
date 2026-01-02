@@ -276,8 +276,14 @@ export function AddSightingModal({
           <TextField
             label="Count *"
             type="number"
-            value={count}
-            onChange={(e) => setCount(Math.max(1, parseInt(e.target.value) || 1))}
+            value={count || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCount(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
+            }}
+            onBlur={() => {
+              if (count < 1) setCount(1);
+            }}
             inputProps={{ min: 1 }}
             fullWidth
             sx={{
