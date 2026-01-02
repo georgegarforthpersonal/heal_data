@@ -492,12 +492,7 @@ export function DashboardsPage() {
                 tickLine={false}
                 axisLine={{ stroke: '#e0e0e0' }}
               />
-              <YAxis
-                tick={{ fontSize: 12, fill: '#666' }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => value.toLocaleString()}
-              />
+              <YAxis hide={true} />
               <RechartsTooltip content={<CustomTooltip />} />
               {chartDataPrepared.types.map(type => (
                 <Area
@@ -653,13 +648,7 @@ export function DashboardsPage() {
                 tickLine={false}
                 axisLine={{ stroke: '#e0e0e0' }}
               />
-              <YAxis
-                tick={{ fontSize: 12, fill: '#666' }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => value.toLocaleString()}
-                label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#666' } }}
-              />
+              <YAxis hide={true} />
               <RechartsTooltip
                 content={({ active, payload }) => {
                   if (!active || !payload || payload.length === 0) return null;
