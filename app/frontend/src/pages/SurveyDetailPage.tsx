@@ -738,16 +738,21 @@ export function SurveyDetailPage() {
 
                         {/* Group Rows */}
                         {groupSightings.map((sighting: any) => {
-                          // Check for individual locations
+                          // Check for individual locations (GPS points)
                           const individualsWithLocation = sighting.individuals?.filter(
                             (ind: any) => ind.latitude !== null && ind.latitude !== undefined &&
                                           ind.longitude !== null && ind.longitude !== undefined
                           ) || [];
-                          const hasLocation = individualsWithLocation.length > 0;
+                          const hasIndividualLocations = individualsWithLocation.length > 0;
 
-                          const locationTooltip = hasLocation
-                            ? `${individualsWithLocation.length} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
-                            : 'No location recorded';
+                          // Check for sighting-level location (e.g., transect section)
+                          const hasSightingLocation = !!sighting.location_name;
+
+                          const locationTooltip = hasSightingLocation
+                            ? sighting.location_name
+                            : hasIndividualLocations
+                              ? `${individualsWithLocation.length} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
+                              : 'No location recorded';
 
                           return (
                             <Box
@@ -775,15 +780,21 @@ export function SurveyDetailPage() {
                                 )}
                               </Typography>
 
-                              {/* Location Column - Only show if location exists */}
+                              {/* Location Column - Show sighting location name or GPS indicator */}
                               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, justifySelf: 'center' }}>
-                                {hasLocation && (
+                                {hasSightingLocation ? (
+                                  <Tooltip title={locationTooltip} arrow>
+                                    <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.813rem' }, color: 'text.secondary' }}>
+                                      {sighting.location_name}
+                                    </Typography>
+                                  </Tooltip>
+                                ) : hasIndividualLocations ? (
                                   <Tooltip title={locationTooltip} arrow>
                                     <span>
                                       <LocationOn sx={{ fontSize: 24, color: 'primary.main' }} />
                                     </span>
                                   </Tooltip>
-                                )}
+                                ) : null}
                               </Box>
 
                               <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>

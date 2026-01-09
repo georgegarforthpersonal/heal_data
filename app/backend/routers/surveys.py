@@ -163,7 +163,6 @@ async def get_surveys(
                 "temperature_celsius": survey.temperature_celsius,
                 "conditions_met": survey.conditions_met,
                 "notes": survey.notes,
-                "type": survey.type,
                 "location_id": survey.location_id,
                 "surveyor_ids": surveyor_ids_list,
                 "sightings_count": sightings_count or 0,
@@ -220,7 +219,6 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
         "temperature_celsius": survey.temperature_celsius,
         "conditions_met": survey.conditions_met,
         "notes": survey.notes,
-        "type": survey.type,
         "location_id": survey.location_id,
         "surveyor_ids": surveyor_ids_list,
         "survey_type_id": survey.survey_type_id
@@ -248,7 +246,6 @@ async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
             temperature_celsius=survey.temperature_celsius,
             conditions_met=survey.conditions_met,
             notes=survey.notes,
-            type=survey.type,
             location_id=survey.location_id,
             survey_type_id=survey.survey_type_id
         )
@@ -275,8 +272,8 @@ async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
             "temperature_celsius": db_survey.temperature_celsius,
             "conditions_met": db_survey.conditions_met,
             "notes": db_survey.notes,
-            "survey_type": db_survey.type,
             "location_id": db_survey.location_id,
+            "survey_type_id": db_survey.survey_type_id,
             "surveyor_ids": survey.surveyor_ids
         }
 
@@ -306,12 +303,6 @@ async def update_survey(survey_id: int, survey: SurveyUpdate, db: Session = Depe
 
     # Update only the fields that were provided
     update_data = survey.model_dump(exclude_unset=True, exclude={'surveyor_ids'})
-
-    # Handle the survey_type field mapping
-    if 'type' in update_data:
-        update_data['type'] = update_data.pop('type')
-    if 'survey_type' in update_data:
-        update_data['type'] = update_data.pop('survey_type')
 
     for field, value in update_data.items():
         setattr(db_survey, field, value)
@@ -350,8 +341,8 @@ async def update_survey(survey_id: int, survey: SurveyUpdate, db: Session = Depe
         "temperature_celsius": db_survey.temperature_celsius,
         "conditions_met": db_survey.conditions_met,
         "notes": db_survey.notes,
-        "survey_type": db_survey.type,
         "location_id": db_survey.location_id,
+        "survey_type_id": db_survey.survey_type_id,
         "surveyor_ids": surveyor_ids_list
     }
 
@@ -399,15 +390,18 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
     if not survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
-    # Get sightings with species names
+    # Get sightings with species names and location names
     sightings = db.query(
         Sighting.id,
         Sighting.survey_id,
         Sighting.species_id,
+        Sighting.location_id,
         Sighting.count,
         Species.name.label('species_name'),
-        Species.scientific_name.label('species_scientific_name')
+        Species.scientific_name.label('species_scientific_name'),
+        Location.name.label('location_name')
     ).join(Species, Sighting.species_id == Species.id)\
+     .outerjoin(Location, Sighting.location_id == Location.id)\
      .filter(Sighting.survey_id == survey_id)\
      .order_by(func.coalesce(Species.name, Species.scientific_name))\
      .all()
@@ -427,6 +421,8 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
             "id": row.id,
             "survey_id": row.survey_id,
             "species_id": row.species_id,
+            "location_id": row.location_id,
+            "location_name": row.location_name,
             "count": row.count,
             "species_name": row.species_name,
             "species_scientific_name": row.species_scientific_name,

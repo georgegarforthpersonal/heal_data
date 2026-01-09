@@ -335,7 +335,6 @@ class SurveyBase(SQLModel):
     temperature_celsius: Optional[Decimal] = Field(None, description="Temperature in Celsius")
     conditions_met: Optional[bool] = Field(None, description="Whether survey conditions were met")
     notes: Optional[str] = Field(None, description="Additional notes")
-    type: str = Field(default="butterfly", max_length=50, description="Type of survey")
     location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (required when survey type uses survey-level location)")
     survey_type_id: Optional[int] = Field(None, foreign_key="survey_type.id", description="Survey type ID")
 
@@ -372,7 +371,6 @@ class SurveyUpdate(SQLModel):
     temperature_celsius: Optional[Decimal] = None
     conditions_met: Optional[bool] = None
     notes: Optional[str] = None
-    type: Optional[str] = Field(None, max_length=50)
     location_id: Optional[int] = Field(None, gt=0)
     surveyor_ids: Optional[List[int]] = None
 
@@ -451,6 +449,7 @@ class SightingWithDetails(SightingRead):
     """Sighting with species details"""
     species_name: Optional[str] = None
     species_scientific_name: Optional[str] = None
+    location_name: Optional[str] = None
 
 
 # ============================================================================

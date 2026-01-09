@@ -1,13 +1,13 @@
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Stack, Button, Avatar, AvatarGroup, Tooltip, CircularProgress, Alert, Snackbar, Pagination, FormControl, Select, MenuItem } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
-import { CalendarToday, Person, Visibility, LocationOn, Category, FilterList } from '@mui/icons-material';
+import { CalendarToday, Person, Visibility, Category, FilterList } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
 import { SurveyTypeChip } from '../components/SurveyTypeColors';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
-import { surveysAPI, surveyorsAPI, locationsAPI, surveyTypesAPI } from '../services/api';
-import type { Survey, Surveyor, Location, PaginationMeta, SurveyType } from '../services/api';
+import { surveysAPI, surveyorsAPI, surveyTypesAPI } from '../services/api';
+import type { Survey, Surveyor, PaginationMeta, SurveyType } from '../services/api';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
@@ -47,7 +47,6 @@ export function SurveysPage() {
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -104,11 +103,10 @@ export function SurveysPage() {
           queryParams.survey_type_id = selectedSurveyTypeId;
         }
 
-        // Fetch surveys (paginated), surveyors, and locations in parallel
-        const [surveysResponse, surveyorsData, locationsData] = await Promise.all([
+        // Fetch surveys (paginated) and surveyors in parallel
+        const [surveysResponse, surveyorsData] = await Promise.all([
           surveysAPI.getAll(queryParams),
           surveyorsAPI.getAll(),
-          locationsAPI.getAll(),
         ]);
 
         setSurveys(surveysResponse.data);
@@ -119,7 +117,6 @@ export function SurveysPage() {
           total_pages: surveysResponse.total_pages
         });
         setSurveyors(surveyorsData);
-        setLocations(locationsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load surveys');
         console.error('Error fetching data:', err);
@@ -218,14 +215,6 @@ export function SurveysPage() {
     const surveyor = surveyors.find(s => s.id === id);
     if (!surveyor) return 'Unknown';
     return `${surveyor.first_name} ${surveyor.last_name}`.trim() || surveyor.first_name;
-  };
-
-  /**
-   * Get location name from ID
-   */
-  const getLocationName = (id: number): string => {
-    const location = locations.find(l => l.id === id);
-    return location?.name || 'Unknown';
   };
 
   /**
@@ -448,23 +437,6 @@ export function SurveysPage() {
                   <span>Surveyors</span>
                 </Stack>
               </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 500,
-                  fontSize: tableSizing.header.fontSize,
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px',
-                  py: tableSizing.header.py,
-                  px: tableSizing.header.px,
-                  display: { xs: 'none', lg: 'table-cell' }, // 1st to hide
-                }}
-              >
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <LocationOn sx={{ fontSize: tableSizing.header.iconSize }} />
-                  <span>Location</span>
-                </Stack>
-              </TableCell>
             </TableRow>
           </TableHead>
 
@@ -612,11 +584,6 @@ export function SurveysPage() {
                         ))}
                       </AvatarGroup>
                     </Box>
-                  </TableCell>
-
-                  {/* Location Column - 1st to hide (lg+) */}
-                  <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary', display: { xs: 'none', lg: 'table-cell' } }}>
-                    {getLocationName(survey.location_id)}
                   </TableCell>
                 </TableRow>
               );
