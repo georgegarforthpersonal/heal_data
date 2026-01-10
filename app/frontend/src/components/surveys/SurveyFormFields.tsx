@@ -105,7 +105,7 @@ export function SurveyFormFields({
       <Autocomplete
         multiple
         options={surveyors}
-        getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+        getOptionLabel={(option) => option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
         value={selectedSurveyors}
         open={surveyorsOpen}
         onOpen={() => setSurveyorsOpen(true)}
@@ -133,7 +133,7 @@ export function SurveyFormFields({
         renderTags={(value, getTagProps) =>
           value.map((option, index) => (
             <Chip
-              label={`${option.first_name} ${option.last_name}`}
+              label={option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
               {...getTagProps({ index })}
               size="small"
               key={option.id}

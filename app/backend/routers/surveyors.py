@@ -12,12 +12,47 @@ Refactored to use SQLModel ORM instead of raw SQL.
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database.connection import get_db
 from models import Surveyor, SurveyorRead, SurveyorCreate, SurveyorUpdate
 
 router = APIRouter()
+
+
+def _check_surveyor_duplicate(
+    db: Session,
+    first_name: str,
+    last_name: Optional[str],
+    exclude_id: Optional[int] = None
+) -> None:
+    """
+    Check if a surveyor with the same name already exists.
+    Raises HTTPException with 409 Conflict if duplicate found.
+
+    Uses case-insensitive comparison and treats NULL/empty last_name as equivalent.
+    """
+    # Normalize: treat empty string as None for comparison
+    normalized_last = last_name.strip() if last_name else None
+    if normalized_last == '':
+        normalized_last = None
+
+    query = db.query(Surveyor).filter(
+        func.lower(Surveyor.first_name) == first_name.lower(),
+        func.lower(func.coalesce(Surveyor.last_name, '')) == (normalized_last or '').lower()
+    )
+
+    if exclude_id is not None:
+        query = query.filter(Surveyor.id != exclude_id)
+
+    existing = query.first()
+    if existing:
+        full_name = f"{first_name} {last_name}".strip() if last_name else first_name
+        raise HTTPException(
+            status_code=409,
+            detail=f"A surveyor named '{full_name}' already exists"
+        )
 
 
 @router.get("", response_model=List[SurveyorRead])
@@ -36,7 +71,11 @@ async def get_surveyors(include_inactive: bool = False, db: Session = Depends(ge
     if not include_inactive:
         query = query.filter(Surveyor.is_active == True)
 
-    surveyors = query.order_by(Surveyor.last_name, Surveyor.first_name).all()
+    # Sort by last_name (NULLs last), then first_name
+    surveyors = query.order_by(
+        func.coalesce(Surveyor.last_name, 'ZZZZZ'),
+        Surveyor.first_name
+    ).all()
     return surveyors
 
 
@@ -52,6 +91,9 @@ async def get_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=SurveyorRead, status_code=status.HTTP_201_CREATED)
 async def create_surveyor(surveyor: SurveyorCreate, db: Session = Depends(get_db)):
     """Create a new surveyor"""
+    # Check for duplicate name
+    _check_surveyor_duplicate(db, surveyor.first_name, surveyor.last_name)
+
     db_surveyor = Surveyor.model_validate(surveyor)
     db.add(db_surveyor)
     db.commit()
@@ -66,8 +108,15 @@ async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Sessio
     if not db_surveyor:
         raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
 
-    # Update only the fields that were provided
+    # Determine final name values for duplicate check
     update_data = surveyor.model_dump(exclude_unset=True)
+    final_first_name = update_data.get('first_name', db_surveyor.first_name)
+    final_last_name = update_data.get('last_name', db_surveyor.last_name)
+
+    # Check for duplicate (excluding current surveyor)
+    _check_surveyor_duplicate(db, final_first_name, final_last_name, exclude_id=surveyor_id)
+
+    # Update only the fields that were provided
     for field, value in update_data.items():
         setattr(db_surveyor, field, value)
 

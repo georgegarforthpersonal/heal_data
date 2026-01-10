@@ -103,7 +103,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 export interface Surveyor {
   id: number;
   first_name: string;
-  last_name: string;
+  last_name: string | null;
   is_active: boolean;
 }
 
