@@ -245,7 +245,7 @@ export function CreateSurveyModal({
                 <Autocomplete
                   multiple
                   options={surveyors}
-                  getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                  getOptionLabel={(option) => option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
                   value={selectedSurveyors}
                   onChange={(_, newValue) => setSelectedSurveyors(newValue)}
                   renderInput={(params) => (
@@ -259,7 +259,7 @@ export function CreateSurveyModal({
                   renderTags={(value, getTagProps) =>
                     value.map((option, index) => (
                       <Chip
-                        label={`${option.first_name} ${option.last_name}`}
+                        label={option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
                         {...getTagProps({ index })}
                         size="small"
                       />

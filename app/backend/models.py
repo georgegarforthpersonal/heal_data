@@ -61,7 +61,7 @@ class SurveyTypeSpeciesTypeLink(SQLModel, table=True):
 class SurveyorBase(SQLModel):
     """Base surveyor fields - shared between Create and Read"""
     first_name: str = Field(max_length=255, description="Surveyor's first name")
-    last_name: str = Field(max_length=255, description="Surveyor's last name")
+    last_name: Optional[str] = Field(default=None, max_length=255, description="Surveyor's last name (optional)")
 
 
 class Surveyor(SurveyorBase, table=True):

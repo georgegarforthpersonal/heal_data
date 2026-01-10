@@ -151,14 +151,17 @@ export function AdminPage() {
 
   // Surveyor handlers
   const handleAddSurveyor = async () => {
-    if (!newFirstName.trim() || !newLastName.trim()) {
-      setAddSurveyorError('Both first name and last name are required');
+    if (!newFirstName.trim()) {
+      setAddSurveyorError('First name is required');
       return;
     }
     try {
       setAddingSurveyor(true);
       setAddSurveyorError(null);
-      await surveyorsAPI.create({ first_name: newFirstName.trim(), last_name: newLastName.trim() });
+      await surveyorsAPI.create({
+        first_name: newFirstName.trim(),
+        last_name: newLastName.trim() || null
+      });
       setNewFirstName('');
       setNewLastName('');
       setAddSurveyorDialogOpen(false);
@@ -357,7 +360,7 @@ export function AdminPage() {
                   <TableRow key={surveyor.id} sx={{ '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
                     <TableCell>
                       <Typography variant="body1">
-                        {surveyor.first_name} {surveyor.last_name}
+                        {surveyor.first_name}{surveyor.last_name ? ` ${surveyor.last_name}` : ''}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -573,7 +576,7 @@ export function AdminPage() {
           <Typography>
             Are you sure you want to deactivate{' '}
             <strong>
-              {surveyorToDeactivate?.first_name} {surveyorToDeactivate?.last_name}
+              {surveyorToDeactivate?.first_name}{surveyorToDeactivate?.last_name ? ` ${surveyorToDeactivate.last_name}` : ''}
             </strong>
             ?
           </Typography>

@@ -214,7 +214,7 @@ export function SurveysPage() {
   const getSurveyorName = (id: number): string => {
     const surveyor = surveyors.find(s => s.id === id);
     if (!surveyor) return 'Unknown';
-    return `${surveyor.first_name} ${surveyor.last_name}`.trim() || surveyor.first_name;
+    return surveyor.last_name ? `${surveyor.first_name} ${surveyor.last_name}` : surveyor.first_name;
   };
 
   /**
