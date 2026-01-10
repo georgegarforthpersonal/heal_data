@@ -154,7 +154,7 @@ def backup_database(prefix: str, label: str) -> Path:
 
 
 def dump_staging() -> Path:
-    """Create a full dump of staging database."""
+    """Create a full dump of staging database (public schema only)."""
     backups_dir = Path(__file__).parent / "data" / "backups"
     backups_dir.mkdir(parents=True, exist_ok=True)
 
@@ -167,6 +167,7 @@ def dump_staging() -> Path:
         "pg_dump",
         "-Fc",           # Custom format
         "-v",            # Verbose
+        "--schema=public",  # Only dump public schema (not neon_auth, etc.)
         "--no-owner",    # Don't include ownership commands
         "--no-acl",      # Don't include access privileges
         "-f", str(output_path),
@@ -190,6 +191,32 @@ def dump_staging() -> Path:
     return output_path
 
 
+def drop_prod_schema() -> None:
+    """Drop all objects in the prod public schema."""
+    import psycopg2
+    params = get_connection_params('PROD_DB')
+
+    logger.info("Dropping all objects in production public schema...")
+
+    conn = psycopg2.connect(**params)
+    conn.autocommit = True  # DDL commands need autocommit
+    cursor = conn.cursor()
+
+    try:
+        # Drop and recreate public schema (cleanest way to remove everything)
+        cursor.execute("DROP SCHEMA public CASCADE")
+        cursor.execute("CREATE SCHEMA public")
+        cursor.execute("GRANT ALL ON SCHEMA public TO PUBLIC")
+        logger.info("  Dropped and recreated public schema")
+
+        # Enable PostGIS extension (required for geometry columns)
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+        logger.info("  Enabled PostGIS extension")
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def restore_to_prod(dump_path: Path) -> None:
     """Restore dump to production database."""
     connection_string = build_connection_string('PROD_DB')
@@ -197,8 +224,6 @@ def restore_to_prod(dump_path: Path) -> None:
     cmd = [
         "pg_restore",
         "-v",            # Verbose
-        "--clean",       # Drop existing objects before restoring
-        "--if-exists",   # Don't error if objects don't exist
         "--no-owner",    # Don't try to set ownership
         "--no-acl",      # Don't restore access privileges
         "-d", connection_string,
@@ -210,19 +235,22 @@ def restore_to_prod(dump_path: Path) -> None:
 
     result = subprocess.run(cmd, capture_output=True, text=True)
 
-    # pg_restore may return non-zero even on success due to --clean warnings
-    # Check stderr for actual errors
+    # pg_restore may return non-zero even on success due to warnings
     if result.returncode != 0:
-        # Filter out common harmless warnings
+        # Filter out harmless warnings
         errors = [line for line in result.stderr.split('\n')
-                  if 'ERROR' in line and 'does not exist' not in line]
+                  if 'ERROR' in line
+                  and 'does not exist' not in line
+                  and 'transaction_timeout' not in line
+                  and 'neon_auth' not in line
+                  and 'schema "public" already exists' not in line]
         if errors:
             logger.error(f"pg_restore encountered errors:")
-            for error in errors[:10]:  # Show first 10 errors
+            for error in errors[:10]:
                 logger.error(f"  {error}")
             raise RuntimeError("Restore failed with errors")
         else:
-            logger.info("Restore completed (with expected warnings about non-existent objects)")
+            logger.info("Restore completed (with expected warnings)")
     else:
         logger.info("Restore completed successfully")
 
@@ -295,7 +323,9 @@ def run_copy(dry_run: bool, skip_backup: bool, yes: bool) -> int:
     else:
         logger.info("1. [SKIPPED] Backup production database")
     logger.info("2. Dump staging database (schema + data)")
-    logger.info("3. Restore dump to production (drops existing objects)")
+    logger.info("3. Drop production public schema (clean slate)")
+    logger.info("4. Enable PostGIS extension in production")
+    logger.info("5. Restore staging dump to production")
     logger.info("")
     logger.info("After this operation:")
     logger.info("  - Production will have the SAME schema as staging")
@@ -342,11 +372,12 @@ def run_copy(dry_run: bool, skip_backup: bool, yes: bool) -> int:
         logger.error(f"Dump failed: {e}")
         return 1
 
-    # 6. Restore to prod
+    # 6. Drop prod schema and restore
     logger.info("\n" + "-" * 80)
-    logger.info("Step 3: Restoring to production...")
+    logger.info("Step 3: Dropping production schema and restoring...")
     logger.info("-" * 80)
     try:
+        drop_prod_schema()
         restore_to_prod(staging_dump)
     except RuntimeError as e:
         logger.error(f"Restore failed: {e}")
