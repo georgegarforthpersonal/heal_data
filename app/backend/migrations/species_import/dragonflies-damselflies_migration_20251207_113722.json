@@ -1,0 +1,296 @@
+{
+  "species_type": "dragonflies-damselflies",
+  "timestamp": "2025-12-07T11:37:22.614197",
+  "summary": {
+    "total_db_species": 0,
+    "high_confidence": 0,
+    "low_confidence": 0,
+    "no_match": 0,
+    "new_api_species": 47
+  },
+  "matches": [],
+  "new_species": [
+    {
+      "common_name": "Banded Demoiselle",
+      "scientific_name": "Calopteryx splendens",
+      "occurrence_count": 99120,
+      "guid": "NBNSYS0000005617"
+    },
+    {
+      "common_name": "Brown Hawker",
+      "scientific_name": "Aeshna grandis",
+      "occurrence_count": 112216,
+      "guid": "NBNSYS0000005625"
+    },
+    {
+      "common_name": "Scarce Blue-tailed Damselfly",
+      "scientific_name": "Ischnura pumilio",
+      "occurrence_count": 7822,
+      "guid": "NBNSYS0000005601"
+    },
+    {
+      "common_name": "Common Darter",
+      "scientific_name": "Sympetrum striolatum",
+      "occurrence_count": 267715,
+      "guid": "NBNSYS0000005645"
+    },
+    {
+      "common_name": "Broad-bodied Chaser",
+      "scientific_name": "Libellula depressa",
+      "occurrence_count": 78875,
+      "guid": "NBNSYS0000005637"
+    },
+    {
+      "common_name": "Beautiful Demoiselle",
+      "scientific_name": "Calopteryx virgo",
+      "occurrence_count": 42783,
+      "guid": "NBNSYS0000005616"
+    },
+    {
+      "common_name": "Azure Hawker",
+      "scientific_name": "Aeshna caerulea",
+      "occurrence_count": 1460,
+      "guid": "NBNSYS0000005623"
+    },
+    {
+      "common_name": "Large Red Damselfly",
+      "scientific_name": "Pyrrhosoma nymphula",
+      "occurrence_count": 200873,
+      "guid": "NBNSYS0000005599"
+    },
+    {
+      "common_name": "Keeled Skimmer",
+      "scientific_name": "Orthetrum coerulescens",
+      "occurrence_count": 27960,
+      "guid": "NBNSYS0000005640"
+    },
+    {
+      "common_name": "Common Hawker",
+      "scientific_name": "Aeshna juncea",
+      "occurrence_count": 49209,
+      "guid": "NBNSYS0000005624"
+    },
+    {
+      "common_name": "Ruddy Darter",
+      "scientific_name": "Sympetrum sanguineum",
+      "occurrence_count": 60308,
+      "guid": "NBNSYS0000005650"
+    },
+    {
+      "common_name": "Scarce Emerald Damselfly",
+      "scientific_name": "Lestes dryas",
+      "occurrence_count": 2127,
+      "guid": "NBNSYS0000005614"
+    },
+    {
+      "common_name": "Common Club-tail",
+      "scientific_name": "Gomphus vulgatissimus",
+      "occurrence_count": 5546,
+      "guid": "NBNSYS0000005620"
+    },
+    {
+      "common_name": "Migrant Hawker",
+      "scientific_name": "Aeshna mixta",
+      "occurrence_count": 103800,
+      "guid": "NBNSYS0000005627"
+    },
+    {
+      "common_name": "Four-spotted Chaser",
+      "scientific_name": "Libellula quadrimaculata",
+      "occurrence_count": 104430,
+      "guid": "NBNSYS0000005639"
+    },
+    {
+      "common_name": "Dainty Damselfly",
+      "scientific_name": "Coenagrion scitulum",
+      "occurrence_count": 149,
+      "guid": "NBNSYS0000005604"
+    },
+    {
+      "common_name": "White-faced Darter",
+      "scientific_name": "Leucorrhinia dubia",
+      "occurrence_count": 5513,
+      "guid": "NHMSYS0020546892"
+    },
+    {
+      "common_name": "Southern Damselfly",
+      "scientific_name": "Coenagrion mercuriale",
+      "occurrence_count": 15308,
+      "guid": "NBNSYS0000005603"
+    },
+    {
+      "common_name": "Black Darter",
+      "scientific_name": "Sympetrum danae",
+      "occurrence_count": 40359,
+      "guid": "NBNSYS0000005651"
+    },
+    {
+      "common_name": "Variable Damselfly",
+      "scientific_name": "Coenagrion pulchellum",
+      "occurrence_count": 14733,
+      "guid": "NBNSYS0000005605"
+    },
+    {
+      "common_name": "Northern Damselfly",
+      "scientific_name": "Coenagrion hastulatum",
+      "occurrence_count": 2150,
+      "guid": "NBNSYS0000005607"
+    },
+    {
+      "common_name": "Red-eyed Damselfly",
+      "scientific_name": "Erythromma najas",
+      "occurrence_count": 54421,
+      "guid": "NBNSYS0000005610"
+    },
+    {
+      "common_name": "Emperor Dragonfly",
+      "scientific_name": "Anax imperator",
+      "occurrence_count": 120557,
+      "guid": "NBNSYS0000005630"
+    },
+    {
+      "common_name": "Azure Damselfly",
+      "scientific_name": "Coenagrion puella",
+      "occurrence_count": 199285,
+      "guid": "NBNSYS0000005606"
+    },
+    {
+      "common_name": "Common Blue Damselfly",
+      "scientific_name": "Enallagma cyathigerum",
+      "occurrence_count": 229552,
+      "guid": "NBNSYS0000005602"
+    },
+    {
+      "common_name": "Golden-ringed Dragonfly",
+      "scientific_name": "Cordulegaster boltonii",
+      "occurrence_count": 49195,
+      "guid": "NBNSYS0000005621"
+    },
+    {
+      "common_name": "Brilliant Emerald",
+      "scientific_name": "Somatochlora metallica",
+      "occurrence_count": 3228,
+      "guid": "NHMSYS0020546972"
+    },
+    {
+      "common_name": "Emerald Damselfly",
+      "scientific_name": "Lestes sponsa",
+      "occurrence_count": 75028,
+      "guid": "NBNSYS0000005613"
+    },
+    {
+      "common_name": "Willow Emerald Damselfly",
+      "scientific_name": "Chalcolestes viridis",
+      "occurrence_count": 13604,
+      "guid": "NHMSYS0021009068"
+    },
+    {
+      "common_name": "Southern Emerald Damselfly",
+      "scientific_name": "Lestes barbarus",
+      "occurrence_count": 399,
+      "guid": "NBNSYS0000005612"
+    },
+    {
+      "common_name": "Southern Migrant Hawker",
+      "scientific_name": "Aeshna affinis",
+      "occurrence_count": 1681,
+      "guid": "NHMSYS0020546806"
+    },
+    {
+      "common_name": "Small Red-eyed Damselfly",
+      "scientific_name": "Erythromma viridulum",
+      "occurrence_count": 15204,
+      "guid": "NHMSYS0000344177"
+    },
+    {
+      "common_name": "Blue-tailed Damselfly",
+      "scientific_name": "Ischnura elegans",
+      "occurrence_count": 228123,
+      "guid": "NHMSYS0000344179"
+    },
+    {
+      "common_name": "Small Red Damselfly",
+      "scientific_name": "Ceriagrion tenellum",
+      "occurrence_count": 11451,
+      "guid": "NBNSYS0000005611"
+    },
+    {
+      "common_name": "Red-veined Darter",
+      "scientific_name": "Sympetrum fonscolombii",
+      "occurrence_count": 6212,
+      "guid": "NHMSYS0000344188"
+    },
+    {
+      "common_name": "Downy Emerald",
+      "scientific_name": "Cordulia aenea",
+      "occurrence_count": 11318,
+      "guid": "NBNSYS0000005632"
+    },
+    {
+      "common_name": "Irish Damselfly",
+      "scientific_name": "Coenagrion lunulatum",
+      "occurrence_count": 441,
+      "guid": "NBNSYS0000005609"
+    },
+    {
+      "common_name": "Southern Hawker",
+      "scientific_name": "Aeshna cyanea",
+      "occurrence_count": 118877,
+      "guid": "NBNSYS0000005626"
+    },
+    {
+      "common_name": "Green-eyed Hawker",
+      "scientific_name": "Aeshna isoceles",
+      "occurrence_count": 7299,
+      "guid": "NHMSYS0021689820"
+    },
+    {
+      "common_name": "Scarce Chaser",
+      "scientific_name": "Libellula fulva",
+      "occurrence_count": 10935,
+      "guid": "NBNSYS0000005638"
+    },
+    {
+      "common_name": "Northern Emerald",
+      "scientific_name": "Somatochlora arctica",
+      "occurrence_count": 1769,
+      "guid": "NBNSYS0000005635"
+    },
+    {
+      "common_name": "Vagrant Emperor",
+      "scientific_name": "Anax ephippiger",
+      "occurrence_count": 613,
+      "guid": "NHMSYS0021009098"
+    },
+    {
+      "common_name": "Lesser Emperor",
+      "scientific_name": "Anax parthenope",
+      "occurrence_count": 3026,
+      "guid": "NHMSYS0000344169"
+    },
+    {
+      "common_name": "Black-tailed Skimmer",
+      "scientific_name": "Orthetrum cancellatum",
+      "occurrence_count": 68783,
+      "guid": "NBNSYS0000005641"
+    },
+    {
+      "common_name": "Hairy Dragonfly",
+      "scientific_name": "Brachytron pratense",
+      "occurrence_count": 28929,
+      "guid": "NBNSYS0000005622"
+    },
+    {
+      "common_name": "White-legged Damselfly",
+      "scientific_name": "Platycnemis pennipes",
+      "occurrence_count": 22540,
+      "guid": "NBNSYS0000005598"
+    },
+    {
+      "common_name": "Yellow-winged Darter",
+      "scientific_name": "Sympetrum flaveolum",
+      "occurrence_count": 1805,
+      "guid": "NBNSYS0000005649"
+    }
+  ]
+}

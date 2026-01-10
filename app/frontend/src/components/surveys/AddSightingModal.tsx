@@ -1,0 +1,382 @@
+import { useState, useEffect, useMemo } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete, Stack, Box, Typography, IconButton } from '@mui/material';
+import { Close } from '@mui/icons-material';
+import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
+import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../icons/WildlifeIcons';
+import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
+
+export interface SightingData {
+  species_id: number | null;
+  count: number;
+  individuals?: DraftIndividualLocation[];
+  location_id?: number | null; // Location ID when location is at sighting level
+}
+
+interface AddSightingModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSave: (sighting: SightingData) => void;
+  species: Species[];
+  breedingCodes?: BreedingStatusCode[];
+  initialData?: SightingData;
+  mode: 'add' | 'edit';
+  locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
+  // Survey type configuration
+  locationAtSightingLevel?: boolean; // When true, show location dropdown
+  locations?: Location[]; // Available locations for sighting-level selection
+  allowGeolocation?: boolean; // Whether GPS location picker is shown
+}
+
+/**
+ * AddSightingModal - Full-screen modal for adding/editing individual sightings
+ *
+ * Features:
+ * - Full-screen on mobile for maximum autocomplete space
+ * - Grouped species list with icons
+ * - Simple two-field interface: species + count
+ */
+export function AddSightingModal({
+  open,
+  onClose,
+  onSave,
+  species,
+  breedingCodes = [],
+  initialData,
+  mode,
+  locationsWithBoundaries,
+  locationAtSightingLevel = false,
+  locations = [],
+  allowGeolocation = true,
+}: AddSightingModalProps) {
+  const [selectedSpeciesId, setSelectedSpeciesId] = useState<number | null>(initialData?.species_id || null);
+  const [count, setCount] = useState<number>(initialData?.count || 1);
+  const [individuals, setIndividuals] = useState<DraftIndividualLocation[]>(
+    initialData?.individuals || []
+  );
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
+    initialData?.location_id || null
+  );
+
+  // Check if selected species is a bird (for breeding status codes)
+  const isBirdSpecies = useMemo(() => {
+    const sp = species.find((s) => s.id === selectedSpeciesId);
+    return sp?.type === 'bird';
+  }, [selectedSpeciesId, species]);
+
+  // Update local state when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      setSelectedSpeciesId(initialData.species_id);
+      setCount(initialData.count);
+      setIndividuals(initialData.individuals || []);
+      setSelectedLocationId(initialData.location_id || null);
+    } else {
+      setSelectedSpeciesId(null);
+      setCount(1);
+      setIndividuals([]);
+      setSelectedLocationId(null);
+    }
+  }, [initialData, open]);
+
+  // Sort species by type first, then by name within each type
+  const sortedSpecies = [...species].sort((a, b) => {
+    if (a.type !== b.type) {
+      return a.type.localeCompare(b.type);
+    }
+    const nameA = a.name || a.scientific_name || '';
+    const nameB = b.name || b.scientific_name || '';
+    return nameA.localeCompare(nameB);
+  });
+
+  // Format category name for display
+  const formatCategoryName = (category: string): string => {
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  };
+
+  // Get icon component for species type
+  const getSpeciesIcon = (type: string) => {
+    switch (type) {
+      case 'butterfly':
+        return ButterflyIcon;
+      case 'bird':
+        return BirdIcon;
+      case 'moth':
+        return MothIcon;
+      case 'beetle':
+        return BeetleIcon;
+      case 'fly':
+        return FlyIcon;
+      case 'bee-wasp-ant':
+        return BeeIcon;
+      case 'bug':
+        return BugIcon;
+      case 'dragonfly-damselfly':
+        return DragonflyIcon;
+      case 'grasshopper-cricket':
+        return GrasshopperIcon;
+      case 'insect':
+        return EarwigIcon;
+      case 'gall':
+        return LeafIcon;
+      case 'spider':
+        return SpiderIcon;
+      case 'bat':
+        return BatIcon;
+      case 'mammal':
+        return MammalIcon;
+      case 'reptile':
+        return ReptileIcon;
+      case 'amphibian':
+        return AmphibianIcon;
+      case 'fungi':
+        return MushroomIcon;
+      default:
+        return EarwigIcon;
+    }
+  };
+
+  const handleSave = () => {
+    if (selectedSpeciesId) {
+      onSave({
+        species_id: selectedSpeciesId,
+        count: Math.max(1, count),
+        individuals: individuals.length > 0 ? individuals : undefined,
+        location_id: locationAtSightingLevel ? selectedLocationId : undefined,
+      });
+      // Reset for next entry
+      setSelectedSpeciesId(null);
+      setCount(1);
+      setIndividuals([]);
+      setSelectedLocationId(null);
+      onClose();
+    }
+  };
+
+  const handleCancel = () => {
+    // Reset form
+    setSelectedSpeciesId(initialData?.species_id || null);
+    setCount(initialData?.count || 1);
+    setIndividuals(initialData?.individuals || []);
+    setSelectedLocationId(initialData?.location_id || null);
+    onClose();
+  };
+
+  const selectedSpecies = species.find(s => s.id === selectedSpeciesId);
+  const selectedLocation = locations.find(l => l.id === selectedLocationId);
+  // Require location when locationAtSightingLevel is true
+  const canSave = selectedSpeciesId !== null && count > 0 &&
+    (!locationAtSightingLevel || selectedLocationId !== null);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={handleCancel}
+      fullScreen
+      sx={{
+        '& .MuiDialog-paper': {
+          bgcolor: 'background.default',
+        }
+      }}
+    >
+      {/* Header */}
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          py: 2,
+          mb: 2,
+        }}
+      >
+        <Typography variant="h6" fontWeight={600}>
+          {mode === 'add' ? 'Add Sighting' : 'Edit Sighting'}
+        </Typography>
+        <IconButton onClick={handleCancel} edge="end">
+          <Close />
+        </IconButton>
+      </DialogTitle>
+
+      {/* Content */}
+      <DialogContent sx={{ pt: 4, pb: 3, overflow: 'visible' }}>
+        <Stack spacing={3}>
+          {/* Species Autocomplete - Takes up most of the space */}
+          <Box>
+            <Autocomplete
+              options={sortedSpecies}
+              groupBy={(option) => formatCategoryName(option.type)}
+              renderGroup={(params) => {
+                const type = params.group.toLowerCase();
+                const SpeciesIcon = getSpeciesIcon(type);
+
+                return (
+                  <li key={params.key}>
+                    <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: '1px solid', borderColor: 'divider' }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <SpeciesIcon sx={{ fontSize: '18px', color: 'text.secondary' }} />
+                        <Typography variant="body2" fontWeight={600} color="text.secondary">
+                          {params.group}
+                        </Typography>
+                      </Stack>
+                    </Box>
+                    <ul style={{ padding: 0, margin: 0 }}>{params.children}</ul>
+                  </li>
+                );
+              }}
+              getOptionLabel={(option) => {
+                if (option.name) {
+                  return `${option.name} ${option.scientific_name || ''}`.trim();
+                }
+                return option.scientific_name || '';
+              }}
+              value={selectedSpecies || null}
+              onChange={(_, newValue) => setSelectedSpeciesId(newValue?.id || null)}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  {option.name ? (
+                    <>
+                      {option.name}
+                      {option.scientific_name && (
+                        <i style={{ color: '#666', marginLeft: '0.5rem' }}>{option.scientific_name}</i>
+                      )}
+                    </>
+                  ) : (
+                    <i style={{ color: '#666' }}>{option.scientific_name}</i>
+                  )}
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Species *"
+                  InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
+                  autoFocus
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '16px',
+                    }
+                  }}
+                />
+              )}
+              ListboxProps={{
+                sx: {
+                  maxHeight: { xs: '50vh', sm: '400px' },
+                  '& .MuiAutocomplete-option': {
+                    py: 1.5,
+                    px: 2,
+                    fontSize: '16px',
+                  }
+                }
+              }}
+            />
+          </Box>
+
+          {/* Count Input */}
+          <TextField
+            label="Count *"
+            type="number"
+            value={count || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCount(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
+            }}
+            onBlur={() => {
+              if (count < 1) setCount(1);
+            }}
+            inputProps={{ min: 1 }}
+            fullWidth
+            sx={{
+              '& .MuiInputBase-input': {
+                fontSize: '16px',
+              }
+            }}
+          />
+
+          {/* Location Dropdown - when location is at sighting level */}
+          {locationAtSightingLevel && (
+            <Autocomplete
+              options={locations}
+              getOptionLabel={(option) => option.name}
+              value={selectedLocation || null}
+              onChange={(_, newValue) => setSelectedLocationId(newValue?.id || null)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Location *"
+                  placeholder="Select location"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '16px',
+                    }
+                  }}
+                />
+              )}
+              ListboxProps={{
+                sx: {
+                  maxHeight: { xs: '40vh', sm: '300px' },
+                  '& .MuiAutocomplete-option': {
+                    py: 1.5,
+                    px: 2,
+                    fontSize: '16px',
+                  }
+                }
+              }}
+            />
+          )}
+
+          {/* Individual GPS Locations - only show if geolocation is allowed */}
+          {allowGeolocation && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>GPS Location (Optional)</Typography>
+              <MultiLocationMapPicker
+                locations={individuals}
+                onChange={setIndividuals}
+                breedingCodes={breedingCodes}
+                showBreedingStatus={isBirdSpecies}
+                maxCount={count}
+                locationsWithBoundaries={locationsWithBoundaries}
+              />
+            </Box>
+          )}
+        </Stack>
+      </DialogContent>
+
+      {/* Actions */}
+      <DialogActions
+        sx={{
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          p: 2,
+          gap: 1,
+        }}
+      >
+        <Button
+          onClick={handleCancel}
+          variant="outlined"
+          fullWidth
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '16px',
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          fullWidth
+          disabled={!canSave}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '16px',
+          }}
+        >
+          {mode === 'add' ? 'Add' : 'Save'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}

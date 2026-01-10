@@ -1,7 +1,7 @@
-version: '3.8'
-
 services:
+  # Local PostgreSQL database - only for development
   db:
+    profiles: ["dev"]
     image: postgres:15
     container_name: heal_butterflies_db
     environment:
@@ -12,32 +12,106 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
 
-  app:
-    build: .
-    container_name: heal_butterflies_app_dev
+  frontend:
+    build:
+      context: app/frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: heal_butterflies_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./app/frontend/src:/app/src
+      - ./app/frontend/public:/app/public
+      - ./app/frontend/index.html:/app/index.html
+    restart: unless-stopped
+
+  # Development API - connects to local PostgreSQL container
+  api:
+    profiles: ["dev"]
+    build:
+      context: app/backend
+      dockerfile: Dockerfile
+    container_name: heal_butterflies_api
     env_file:
       - .env.dev
     ports:
-      - "8501:8501"
+      - "8000:8000"
     volumes:
-      - ./app:/app/app
+      - ./app/backend:/app
     restart: unless-stopped
     depends_on:
       - db
 
-  app-prod:
-    build: .
-    container_name: heal_butterflies_app_prod
+  # Staging API - connects to Neon staging database
+  api-staging:
+    profiles: ["staging"]
+    build:
+      context: app/backend
+      dockerfile: Dockerfile
+    container_name: heal_butterflies_api
+    env_file:
+      - .env.staging
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app/backend:/app
+    restart: unless-stopped
+
+  # Production API - connects to Neon production database
+  api-prod:
+    profiles: ["prod"]
+    build:
+      context: app/backend
+      dockerfile: Dockerfile
+    container_name: heal_butterflies_api
     env_file:
       - .env.prod
     ports:
-      - "8501:8501"
+      - "8000:8000"
     volumes:
-      - ./app:/app/app
+      - ./app/backend:/app
     restart: unless-stopped
+
+  # Scripts runner - Development
+  scripts-dev:
+    profiles: ["dev"]
+    build:
+      context: app/backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env.dev
+    volumes:
+      - ./app/backend:/app
+    depends_on:
+      - db
+    command: /bin/bash
+
+  # Scripts runner - Staging
+  scripts-staging:
+    profiles: ["staging"]
+    build:
+      context: app/backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env.staging
+    volumes:
+      - ./app/backend:/app
+    command: /bin/bash
+
+  # Scripts runner - Production
+  scripts-prod:
+    profiles: ["prod"]
+    build:
+      context: app/backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env.prod
+    volumes:
+      - ./app/backend:/app
+    command: /bin/bash
 
 volumes:
   postgres_data:

@@ -1,0 +1,417 @@
+"""
+Copy staging database to production.
+
+This script creates a complete copy of the staging database (schema + data)
+and restores it to production, replacing all existing prod data.
+
+WARNING: This is a destructive operation that will completely replace
+the production database contents.
+
+Usage:
+    python copy_staging_to_prod.py                           # Dry-run (preview only)
+    python copy_staging_to_prod.py --no-dry-run --yes        # Apply copy
+    python copy_staging_to_prod.py --skip-backup             # Skip prod backup (dangerous!)
+
+Environment variables required (use migrate-run to set these):
+    STAGING_DB_HOST, STAGING_DB_PORT, STAGING_DB_NAME, STAGING_DB_USER, STAGING_DB_PASSWORD
+    PROD_DB_HOST, PROD_DB_PORT, PROD_DB_NAME, PROD_DB_USER, PROD_DB_PASSWORD
+
+Note: For Neon databases, use the direct endpoint (not -pooler) for best results.
+"""
+
+import logging
+import os
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from script_utils import get_arg_parser
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+def get_connection_params(prefix: str) -> dict:
+    """
+    Build connection parameters from prefixed environment variables.
+    """
+    required = ['HOST', 'PORT', 'NAME', 'USER', 'PASSWORD']
+    params = {}
+    missing = []
+
+    for key in required:
+        env_var = f"{prefix}_{key}"
+        value = os.environ.get(env_var)
+        if not value:
+            missing.append(env_var)
+        else:
+            param_name = {
+                'HOST': 'host',
+                'PORT': 'port',
+                'NAME': 'database',
+                'USER': 'user',
+                'PASSWORD': 'password'
+            }[key]
+            params[param_name] = value
+
+    sslmode = os.environ.get(f"{prefix}_SSLMODE")
+    if sslmode:
+        params['sslmode'] = sslmode
+
+    if missing:
+        raise ValueError(f"Missing environment variables: {', '.join(missing)}")
+
+    return params
+
+
+def build_connection_string(prefix: str) -> str:
+    """Build a PostgreSQL connection string for pg_dump/pg_restore."""
+    params = get_connection_params(prefix)
+    sslmode = params.get('sslmode', 'prefer')
+    return (
+        f"postgresql://{params['user']}:{params['password']}"
+        f"@{params['host']}:{params['port']}/{params['database']}"
+        f"?sslmode={sslmode}"
+    )
+
+
+def get_db_stats(prefix: str) -> dict:
+    """Get basic stats about a database using psql."""
+    import psycopg2
+    params = get_connection_params(prefix)
+
+    stats = {}
+    try:
+        conn = psycopg2.connect(**params)
+        cursor = conn.cursor()
+
+        # Get table count
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+        """)
+        stats['tables'] = cursor.fetchone()[0]
+
+        # Get total row count across key tables
+        for table in ['survey', 'sighting', 'species', 'surveyor', 'location']:
+            try:
+                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                stats[table] = cursor.fetchone()[0]
+            except:
+                stats[table] = 'N/A'
+
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Could not get stats for {prefix}: {e}")
+        stats = {'error': str(e)}
+
+    return stats
+
+
+def backup_database(prefix: str, label: str) -> Path:
+    """Backup database using pg_dump."""
+    backups_dir = Path(__file__).parent / "data" / "backups"
+    backups_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = backups_dir / f"copy_{label}_{timestamp}.dump"
+
+    connection_string = build_connection_string(prefix)
+
+    cmd = [
+        "pg_dump",
+        "-Fc",  # Custom format
+        "-v",   # Verbose
+        "-f", str(output_path),
+        connection_string
+    ]
+
+    logger.info(f"Backing up {label} database to {output_path}...")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        logger.error(f"pg_dump failed for {label}: {result.stderr}")
+        raise RuntimeError(f"Backup failed for {label} database")
+
+    size_bytes = output_path.stat().st_size
+    if size_bytes < 1024:
+        size_str = f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        size_str = f"{size_bytes / 1024:.1f} KB"
+    else:
+        size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+
+    logger.info(f"Backup complete: {output_path} ({size_str})")
+    return output_path
+
+
+def dump_staging() -> Path:
+    """Create a full dump of staging database."""
+    backups_dir = Path(__file__).parent / "data" / "backups"
+    backups_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = backups_dir / f"staging_full_{timestamp}.dump"
+
+    connection_string = build_connection_string('STAGING_DB')
+
+    cmd = [
+        "pg_dump",
+        "-Fc",           # Custom format
+        "-v",            # Verbose
+        "--no-owner",    # Don't include ownership commands
+        "--no-acl",      # Don't include access privileges
+        "-f", str(output_path),
+        connection_string
+    ]
+
+    logger.info(f"Dumping staging database to {output_path}...")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        logger.error(f"pg_dump failed: {result.stderr}")
+        raise RuntimeError("Failed to dump staging database")
+
+    size_bytes = output_path.stat().st_size
+    if size_bytes < 1024 * 1024:
+        size_str = f"{size_bytes / 1024:.1f} KB"
+    else:
+        size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+
+    logger.info(f"Dump complete: {output_path} ({size_str})")
+    return output_path
+
+
+def restore_to_prod(dump_path: Path) -> None:
+    """Restore dump to production database."""
+    connection_string = build_connection_string('PROD_DB')
+
+    cmd = [
+        "pg_restore",
+        "-v",            # Verbose
+        "--clean",       # Drop existing objects before restoring
+        "--if-exists",   # Don't error if objects don't exist
+        "--no-owner",    # Don't try to set ownership
+        "--no-acl",      # Don't restore access privileges
+        "-d", connection_string,
+        str(dump_path)
+    ]
+
+    logger.info("Restoring to production database...")
+    logger.info("This may take a moment...")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    # pg_restore may return non-zero even on success due to --clean warnings
+    # Check stderr for actual errors
+    if result.returncode != 0:
+        # Filter out common harmless warnings
+        errors = [line for line in result.stderr.split('\n')
+                  if 'ERROR' in line and 'does not exist' not in line]
+        if errors:
+            logger.error(f"pg_restore encountered errors:")
+            for error in errors[:10]:  # Show first 10 errors
+                logger.error(f"  {error}")
+            raise RuntimeError("Restore failed with errors")
+        else:
+            logger.info("Restore completed (with expected warnings about non-existent objects)")
+    else:
+        logger.info("Restore completed successfully")
+
+
+def run_copy(dry_run: bool, skip_backup: bool, yes: bool) -> int:
+    """Main copy orchestration."""
+    mode = "DRY RUN" if dry_run else "LIVE"
+
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("=" * 80)
+    logger.info("   COPY STAGING TO PRODUCTION")
+    logger.info(f"   Mode: {mode}")
+    logger.info("=" * 80)
+    logger.info("=" * 80)
+
+    if not dry_run:
+        logger.warning("")
+        logger.warning("   *** WARNING: THIS WILL REPLACE ALL PRODUCTION DATA ***")
+        logger.warning("")
+
+    # 1. Validate environment
+    try:
+        get_connection_params('STAGING_DB')
+        get_connection_params('PROD_DB')
+    except ValueError as e:
+        logger.error(str(e))
+        logger.error("\nMake sure to run this script using ./migrate-run")
+        return 1
+
+    # 2. Get database stats for preview
+    logger.info("\nGathering database information...")
+
+    staging_stats = get_db_stats('STAGING_DB')
+    prod_stats = get_db_stats('PROD_DB')
+
+    logger.info("\n" + "=" * 80)
+    logger.info("DATABASE COMPARISON")
+    logger.info("=" * 80)
+
+    logger.info("\nSTAGING (source):")
+    if 'error' not in staging_stats:
+        logger.info(f"  Tables: {staging_stats.get('tables', 'N/A')}")
+        logger.info(f"  Surveys: {staging_stats.get('survey', 'N/A')}")
+        logger.info(f"  Sightings: {staging_stats.get('sighting', 'N/A')}")
+        logger.info(f"  Species: {staging_stats.get('species', 'N/A')}")
+        logger.info(f"  Surveyors: {staging_stats.get('surveyor', 'N/A')}")
+        logger.info(f"  Locations: {staging_stats.get('location', 'N/A')}")
+    else:
+        logger.error(f"  Could not connect: {staging_stats['error']}")
+        return 1
+
+    logger.info("\nPRODUCTION (destination - will be replaced):")
+    if 'error' not in prod_stats:
+        logger.info(f"  Tables: {prod_stats.get('tables', 'N/A')}")
+        logger.info(f"  Surveys: {prod_stats.get('survey', 'N/A')}")
+        logger.info(f"  Sightings: {prod_stats.get('sighting', 'N/A')}")
+        logger.info(f"  Species: {prod_stats.get('species', 'N/A')}")
+        logger.info(f"  Surveyors: {prod_stats.get('surveyor', 'N/A')}")
+        logger.info(f"  Locations: {prod_stats.get('location', 'N/A')}")
+    else:
+        logger.error(f"  Could not connect: {prod_stats['error']}")
+        return 1
+
+    logger.info("\n" + "=" * 80)
+    logger.info("OPERATION PLAN")
+    logger.info("=" * 80)
+    if not skip_backup:
+        logger.info("1. Backup production database")
+    else:
+        logger.info("1. [SKIPPED] Backup production database")
+    logger.info("2. Dump staging database (schema + data)")
+    logger.info("3. Restore dump to production (drops existing objects)")
+    logger.info("")
+    logger.info("After this operation:")
+    logger.info("  - Production will have the SAME schema as staging")
+    logger.info("  - Production will have the SAME data as staging")
+    logger.info("  - All existing production data will be GONE")
+
+    if dry_run:
+        logger.info("\n" + "=" * 80)
+        logger.info("DRY RUN complete. Run with --no-dry-run to apply.")
+        logger.info("=" * 80)
+        return 0
+
+    # 3. Confirm
+    if not yes:
+        logger.info("\n" + "=" * 80)
+        logger.warning("THIS WILL PERMANENTLY REPLACE PRODUCTION DATA!")
+        logger.info("=" * 80)
+        response = input("\nType 'yes' to confirm: ").strip().lower()
+        if response != 'yes':
+            logger.info("Aborted.")
+            return 0
+
+    # 4. Backup prod
+    if not skip_backup:
+        logger.info("\n" + "-" * 80)
+        logger.info("Step 1: Backing up production...")
+        logger.info("-" * 80)
+        try:
+            prod_backup = backup_database('PROD_DB', 'prod_before_copy')
+            logger.info(f"Production backed up to: {prod_backup}")
+        except RuntimeError as e:
+            logger.error(f"Backup failed: {e}")
+            return 1
+    else:
+        logger.warning("\nSkipping production backup (--skip-backup)")
+
+    # 5. Dump staging
+    logger.info("\n" + "-" * 80)
+    logger.info("Step 2: Dumping staging database...")
+    logger.info("-" * 80)
+    try:
+        staging_dump = dump_staging()
+    except RuntimeError as e:
+        logger.error(f"Dump failed: {e}")
+        return 1
+
+    # 6. Restore to prod
+    logger.info("\n" + "-" * 80)
+    logger.info("Step 3: Restoring to production...")
+    logger.info("-" * 80)
+    try:
+        restore_to_prod(staging_dump)
+    except RuntimeError as e:
+        logger.error(f"Restore failed: {e}")
+        logger.error("Production may be in an inconsistent state!")
+        logger.error(f"You can restore from backup if needed")
+        return 1
+
+    # 7. Verify
+    logger.info("\n" + "-" * 80)
+    logger.info("Verifying production...")
+    logger.info("-" * 80)
+    new_prod_stats = get_db_stats('PROD_DB')
+
+    if 'error' not in new_prod_stats:
+        logger.info(f"  Surveys: {new_prod_stats.get('survey', 'N/A')}")
+        logger.info(f"  Sightings: {new_prod_stats.get('sighting', 'N/A')}")
+        logger.info(f"  Species: {new_prod_stats.get('species', 'N/A')}")
+
+        # Compare with staging
+        if (new_prod_stats.get('survey') == staging_stats.get('survey') and
+            new_prod_stats.get('sighting') == staging_stats.get('sighting')):
+            logger.info("\n  Counts match staging - copy successful!")
+        else:
+            logger.warning("\n  Counts differ from staging - please verify manually")
+    else:
+        logger.warning(f"  Could not verify: {new_prod_stats['error']}")
+
+    logger.info("\n" + "=" * 80)
+    logger.info("COPY COMPLETE!")
+    logger.info("=" * 80)
+    logger.info(f"\nProduction now mirrors staging.")
+    if not skip_backup:
+        logger.info(f"Original production backed up to: {prod_backup}")
+
+    return 0
+
+
+def main():
+    parser = get_arg_parser(description=__doc__)
+    parser.add_argument(
+        '--yes', '-y',
+        action='store_true',
+        help='Skip confirmation prompt'
+    )
+    parser.add_argument(
+        '--skip-backup',
+        action='store_true',
+        help='Skip production backup (DANGEROUS!)'
+    )
+    args = parser.parse_args()
+
+    try:
+        exit_code = run_copy(
+            dry_run=args.dry_run,
+            skip_backup=args.skip_backup,
+            yes=args.yes
+        )
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        logger.info("\nAborted by user.")
+        sys.exit(1)
+    except Exception as e:
+        logger.exception(f"Copy failed: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

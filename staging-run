@@ -1,0 +1,46 @@
+#!/bin/bash
+# Staging script runner
+# Usage: ./staging-run <script_name.py> [--build] [script arguments...]
+
+set -e
+
+# Parse arguments
+BUILD_FLAG=""
+SCRIPT_NAME=""
+SCRIPT_ARGS=()
+
+for arg in "$@"; do
+    if [ "$arg" == "--build" ]; then
+        BUILD_FLAG="--build"
+    elif [ -z "$SCRIPT_NAME" ]; then
+        SCRIPT_NAME="$arg"
+    else
+        SCRIPT_ARGS+=("$arg")
+    fi
+done
+
+if [ -z "$SCRIPT_NAME" ]; then
+    echo "Error: No script name provided"
+    echo "Usage: ./staging-run <script_name.py> [--build] [script arguments...]"
+    echo ""
+    echo "Available scripts:"
+    ls -1 app/backend/scripts/*.py 2>/dev/null | xargs -n 1 basename || echo "  No scripts found"
+    exit 1
+fi
+
+if [ ! -f "app/backend/scripts/$SCRIPT_NAME" ]; then
+    echo "Error: Script 'app/backend/scripts/$SCRIPT_NAME' not found"
+    echo ""
+    echo "Available scripts:"
+    ls -1 app/backend/scripts/*.py 2>/dev/null | xargs -n 1 basename || echo "  No scripts found"
+    exit 1
+fi
+
+# Build if requested
+if [ "$BUILD_FLAG" == "--build" ]; then
+    echo "🔨 Building Docker image..."
+    docker compose --profile staging build scripts-staging
+fi
+
+echo "⚠️  STAGING: Running $SCRIPT_NAME ${SCRIPT_ARGS[*]}"
+docker compose --profile staging run --rm scripts-staging bash -c "cd /app && PYTHONPATH=/app python scripts/$SCRIPT_NAME ${SCRIPT_ARGS[*]}"

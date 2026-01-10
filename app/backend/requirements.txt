@@ -1,0 +1,25 @@
+# FastAPI Backend Dependencies
+
+# Web framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Database
+psycopg2-binary>=2.9.7
+sqlmodel>=0.0.14
+alembic>=1.13.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Testing
+requests>=2.31.0  # For testing API endpoints
+
+# Fuzzy matching for species name matching
+rapidfuzz>=3.0.0
+
+# Excel file reading
+openpyxl>=3.0.0
+
+# Development tools (optional)
+# httpx>=0.26.0  # For testing API endpoints

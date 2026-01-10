@@ -1,0 +1,597 @@
+"""
+SQLModel Database Models
+
+Unified models using SQLModel (SQLAlchemy + Pydantic) for both:
+- Database ORM operations
+- FastAPI request/response validation
+
+Replaces:
+- app/database/models.py (dataclasses)
+- schemas/models.py (Pydantic schemas)
+"""
+
+from datetime import date as date_type, time as time_type, datetime
+from typing import Optional, List
+from decimal import Decimal
+from enum import Enum as PyEnum
+from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+
+
+# ============================================================================
+# Junction Tables
+# ============================================================================
+
+class SurveySurveyor(SQLModel, table=True):
+    """Junction table linking surveys to surveyors (many-to-many)"""
+    __tablename__ = "survey_surveyor"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_id: int = Field(foreign_key="survey.id", ondelete="CASCADE")
+    surveyor_id: int = Field(foreign_key="surveyor.id", ondelete="CASCADE")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+
+class SurveyTypeLocationLink(SQLModel, table=True):
+    """Junction table linking survey types to locations"""
+    __tablename__ = "survey_type_location"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_type_id: int = Field(foreign_key="survey_type.id", ondelete="CASCADE")
+    location_id: int = Field(foreign_key="location.id", ondelete="CASCADE")
+
+
+class SurveyTypeSpeciesTypeLink(SQLModel, table=True):
+    """Junction table linking survey types to species types"""
+    __tablename__ = "survey_type_species_type"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_type_id: int = Field(foreign_key="survey_type.id", ondelete="CASCADE")
+    species_type_id: int = Field(foreign_key="species_type.id", ondelete="CASCADE")
+
+
+# ============================================================================
+# Surveyor Models
+# ============================================================================
+
+class SurveyorBase(SQLModel):
+    """Base surveyor fields - shared between Create and Read"""
+    first_name: str = Field(max_length=255, description="Surveyor's first name")
+    last_name: str = Field(max_length=255, description="Surveyor's last name")
+
+
+class Surveyor(SurveyorBase, table=True):
+    """Surveyor database model"""
+    __tablename__ = "surveyor"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+    is_active: bool = Field(default=True, description="Whether surveyor is active")
+
+    # Relationships
+    surveys: List["Survey"] = Relationship(back_populates="surveyors", link_model=SurveySurveyor)
+
+
+class SurveyorCreate(SurveyorBase):
+    """Model for creating a new surveyor"""
+    pass
+
+
+class SurveyorUpdate(SQLModel):
+    """Model for updating a surveyor (all fields optional)"""
+    first_name: Optional[str] = Field(None, max_length=255)
+    last_name: Optional[str] = Field(None, max_length=255)
+    is_active: Optional[bool] = None
+
+
+class SurveyorRead(SurveyorBase):
+    """Model for reading a surveyor (includes ID)"""
+    id: int
+    is_active: bool
+
+
+# ============================================================================
+# Species Models
+# ============================================================================
+
+class SpeciesBase(SQLModel):
+    """Base species fields"""
+    name: Optional[str] = Field(None, max_length=255, description="Species common name")
+    conservation_status: Optional[str] = Field(None, max_length=50, description="Conservation status")
+    type: str = Field(default="butterfly", max_length=50, description="Type of species (butterfly, bird, fungi)")
+    scientific_name: Optional[str] = Field(None, max_length=255, description="Scientific/Latin name from NBN Atlas")
+    nbn_atlas_guid: Optional[str] = Field(None, max_length=255, description="NBN Atlas GUID for reference")
+
+
+class Species(SpeciesBase, table=True):
+    """Species database model"""
+    __tablename__ = "species"
+    __table_args__ = (
+        sa.Index('ix_species_scientific_name', 'scientific_name'),
+        sa.Index('ix_species_nbn_atlas_guid', 'nbn_atlas_guid'),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    sightings: List["Sighting"] = Relationship(back_populates="species")
+
+
+class SpeciesCreate(SpeciesBase):
+    """Model for creating a new species"""
+    pass
+
+
+class SpeciesUpdate(SQLModel):
+    """Model for updating a species (all fields optional)"""
+    name: Optional[str] = Field(None, max_length=255)
+    conservation_status: Optional[str] = Field(None, max_length=50)
+    type: Optional[str] = Field(None, max_length=50)
+    scientific_name: Optional[str] = Field(None, max_length=255)
+    nbn_atlas_guid: Optional[str] = Field(None, max_length=255)
+
+
+class SpeciesRead(SpeciesBase):
+    """Model for reading a species (includes ID)"""
+    id: int
+
+
+# ============================================================================
+# Species Type Models (Reference Table)
+# ============================================================================
+
+class SpeciesTypeBase(SQLModel):
+    """Base species type fields"""
+    name: str = Field(max_length=50, description="Internal name (e.g., 'bird')")
+    display_name: str = Field(max_length=100, description="Display name (e.g., 'Bird')")
+
+
+class SpeciesType(SpeciesTypeBase, table=True):
+    """Species type reference table"""
+    __tablename__ = "species_type"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    survey_types: List["SurveyType"] = Relationship(
+        back_populates="species_types",
+        link_model=SurveyTypeSpeciesTypeLink
+    )
+
+
+class SpeciesTypeRead(SpeciesTypeBase):
+    """Model for reading a species type"""
+    id: int
+
+
+# ============================================================================
+# Location Models
+# ============================================================================
+
+class LocationBase(SQLModel):
+    """Base location fields"""
+    number: int = Field(ge=1, description="Location number")
+    name: str = Field(max_length=255, description="Location name")
+    type: str = Field(default="butterfly", max_length=50, description="Type (butterfly, bird, fungi)")
+
+
+class Location(LocationBase, table=True):
+    """Location database model"""
+    __tablename__ = "location"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Boundary fields (optional polygon for map display)
+    boundary_geometry: Optional[str] = Field(
+        default=None,
+        sa_column=sa.Column(
+            "boundary_geometry",
+            sa.Text,  # PostGIS geometry stored as text, cast in queries
+            nullable=True
+        )
+    )
+    boundary_fill_color: Optional[str] = Field(default="#3388ff", max_length=7)
+    boundary_stroke_color: Optional[str] = Field(default="#3388ff", max_length=7)
+    boundary_fill_opacity: Optional[float] = Field(default=0.2, ge=0, le=1)
+
+    # Relationships
+    surveys: List["Survey"] = Relationship(back_populates="location")
+    survey_types: List["SurveyType"] = Relationship(
+        back_populates="locations",
+        link_model=SurveyTypeLocationLink
+    )
+    sightings: List["Sighting"] = Relationship(back_populates="location")
+
+
+class LocationCreate(LocationBase):
+    """Model for creating a new location"""
+    pass
+
+
+class LocationUpdate(SQLModel):
+    """Model for updating a location (all fields optional)"""
+    number: Optional[int] = Field(None, ge=1)
+    name: Optional[str] = Field(None, max_length=255)
+    type: Optional[str] = Field(None, max_length=50)
+
+
+class LocationRead(LocationBase):
+    """Model for reading a location (includes ID)"""
+    id: int
+
+
+class LocationWithBoundary(LocationRead):
+    """Location with optional boundary geometry for map display"""
+    boundary_geometry: Optional[List[List[float]]] = Field(
+        None, description="Array of [lng, lat] coordinate pairs forming the boundary polygon"
+    )
+    boundary_fill_color: Optional[str] = Field(default="#3388ff")
+    boundary_stroke_color: Optional[str] = Field(default="#3388ff")
+    boundary_fill_opacity: Optional[float] = Field(default=0.2)
+
+
+# ============================================================================
+# Survey Type Models (Configuration)
+# ============================================================================
+
+class SurveyTypeBase(SQLModel):
+    """Base survey type fields"""
+    name: str = Field(max_length=100, description="Survey type name")
+    description: Optional[str] = Field(None, description="Survey type description")
+    location_at_sighting_level: bool = Field(default=False, description="If true, location is set per sighting; if false, per survey")
+    allow_geolocation: bool = Field(default=True, description="Whether coordinates can be entered for sightings")
+    icon: Optional[str] = Field(None, max_length=50, description="Lucide icon identifier (deprecated)")
+    color: Optional[str] = Field(None, max_length=20, description="Notion-style color key (e.g., 'blue', 'purple')")
+
+
+class SurveyType(SurveyTypeBase, table=True):
+    """Survey type configuration table"""
+    __tablename__ = "survey_type"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    is_active: bool = Field(default=True, description="Whether survey type is active")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    locations: List["Location"] = Relationship(
+        back_populates="survey_types",
+        link_model=SurveyTypeLocationLink
+    )
+    species_types: List["SpeciesType"] = Relationship(
+        back_populates="survey_types",
+        link_model=SurveyTypeSpeciesTypeLink
+    )
+    surveys: List["Survey"] = Relationship(back_populates="survey_type")
+
+
+class SurveyTypeCreate(SurveyTypeBase):
+    """Model for creating a survey type"""
+    location_ids: List[int] = Field(description="List of allowed location IDs")
+    species_type_ids: List[int] = Field(description="List of allowed species type IDs")
+
+
+class SurveyTypeUpdate(SQLModel):
+    """Model for updating a survey type (all fields optional)"""
+    name: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = None
+    location_at_sighting_level: Optional[bool] = None
+    allow_geolocation: Optional[bool] = None
+    icon: Optional[str] = Field(None, max_length=50)
+    color: Optional[str] = Field(None, max_length=20)
+    is_active: Optional[bool] = None
+    location_ids: Optional[List[int]] = None
+    species_type_ids: Optional[List[int]] = None
+
+
+class SurveyTypeRead(SurveyTypeBase):
+    """Model for reading a survey type"""
+    id: int
+    is_active: bool
+
+
+class SurveyTypeWithDetails(SurveyTypeRead):
+    """Survey type with full location and species type details"""
+    locations: List[LocationRead] = Field(default_factory=list)
+    species_types: List[SpeciesTypeRead] = Field(default_factory=list)
+
+
+# ============================================================================
+# Survey Models
+# ============================================================================
+
+class SurveyBase(SQLModel):
+    """Base survey fields"""
+    date: date_type = Field(description="Survey date")
+    start_time: Optional[time_type] = Field(None, description="Survey start time")
+    end_time: Optional[time_type] = Field(None, description="Survey end time")
+    sun_percentage: Optional[int] = Field(None, ge=0, le=100, description="Percentage of sun (0-100)")
+    temperature_celsius: Optional[Decimal] = Field(None, description="Temperature in Celsius")
+    conditions_met: Optional[bool] = Field(None, description="Whether survey conditions were met")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (required when survey type uses survey-level location)")
+    survey_type_id: Optional[int] = Field(None, foreign_key="survey_type.id", description="Survey type ID")
+
+
+class Survey(SurveyBase, table=True):
+    """Survey database model"""
+    __tablename__ = "survey"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    surveyors: List["Surveyor"] = Relationship(back_populates="surveys", link_model=SurveySurveyor)
+    sightings: List["Sighting"] = Relationship(back_populates="survey", cascade_delete=True)
+    location: Optional["Location"] = Relationship(back_populates="surveys")
+    survey_type: Optional["SurveyType"] = Relationship(back_populates="surveys")
+
+
+class SurveyCreate(SurveyBase):
+    """Model for creating a new survey"""
+    surveyor_ids: List[int] = Field(description="List of surveyor IDs")
+
+
+class SurveyUpdate(SQLModel):
+    """Model for updating a survey (all fields optional)"""
+    date: Optional[date_type] = None
+    start_time: Optional[time_type] = None
+    end_time: Optional[time_type] = None
+    sun_percentage: Optional[int] = Field(None, ge=0, le=100)
+    temperature_celsius: Optional[Decimal] = None
+    conditions_met: Optional[bool] = None
+    notes: Optional[str] = None
+    location_id: Optional[int] = Field(None, gt=0)
+    surveyor_ids: Optional[List[int]] = None
+
+
+class SurveyRead(SurveyBase):
+    """Model for reading a survey (includes ID and surveyors)"""
+    id: int
+    surveyor_ids: List[int] = Field(default_factory=list, description="List of surveyor IDs")
+
+
+class SpeciesTypeCount(SQLModel):
+    """Count of sightings by species type"""
+    type: str = Field(description="Species type (butterfly, bird, fungi)")
+    count: int = Field(description="Number of sightings of this type")
+
+
+class SurveyWithSightingsCount(SurveyRead):
+    """Survey with count of sightings"""
+    sightings_count: int = Field(default=0, description="Total number of sightings")
+    species_breakdown: List[SpeciesTypeCount] = Field(default_factory=list, description="Breakdown by species type")
+
+
+# ============================================================================
+# Sighting Models
+# ============================================================================
+
+class SightingBase(SQLModel):
+    """Base sighting fields"""
+    species_id: int = Field(gt=0, foreign_key="species.id", description="Species ID")
+    count: int = Field(gt=0, description="Number of individuals sighted")
+
+
+class Sighting(SightingBase, table=True):
+    """Sighting database model"""
+    __tablename__ = "sighting"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_id: int = Field(foreign_key="survey.id")
+    location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (for sighting-level locations)")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    survey: "Survey" = Relationship(back_populates="sightings")
+    species: "Species" = Relationship(back_populates="sightings")
+    location: Optional["Location"] = Relationship(back_populates="sightings")
+    individuals: List["SightingIndividual"] = Relationship(
+        back_populates="sighting",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+
+
+class SightingCreate(SightingBase):
+    """Model for creating a new sighting"""
+    location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
+
+
+class SightingUpdate(SQLModel):
+    """Model for updating a sighting (all fields optional)"""
+    species_id: Optional[int] = Field(None, gt=0)
+    count: Optional[int] = Field(None, gt=0)
+    location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
+
+
+class SightingRead(SightingBase):
+    """Model for reading a sighting (includes ID)"""
+    id: int
+    survey_id: int
+    location_id: Optional[int] = None
+
+
+class SightingWithDetails(SightingRead):
+    """Sighting with species details"""
+    species_name: Optional[str] = None
+    species_scientific_name: Optional[str] = None
+    location_name: Optional[str] = None
+
+
+# ============================================================================
+# Breeding Status Models (BTO Breeding Evidence Codes)
+# ============================================================================
+
+class BreedingCategory(str, PyEnum):
+    """BTO breeding status categories"""
+    non_breeding = "non_breeding"
+    possible_breeder = "possible_breeder"
+    probable_breeder = "probable_breeder"
+    confirmed_breeder = "confirmed_breeder"
+
+
+class BreedingStatusCode(SQLModel, table=True):
+    """BTO breeding status codes reference table"""
+    __tablename__ = "breeding_status_code"
+
+    code: str = Field(primary_key=True, max_length=2)
+    description: str = Field(max_length=100)
+    full_description: Optional[str] = Field(default=None, description="Full BTO description for tooltip")
+    category: BreedingCategory = Field(
+        sa_column=sa.Column(
+            sa.Enum(BreedingCategory, name='breeding_category', create_type=False),
+            nullable=False
+        )
+    )
+
+
+class BreedingStatusCodeRead(SQLModel):
+    """Model for reading a breeding status code"""
+    code: str
+    description: str
+    full_description: Optional[str] = None
+    category: str
+
+
+# ============================================================================
+# Sighting Individual Models (Per-Point Locations)
+# ============================================================================
+
+class SightingIndividual(SQLModel, table=True):
+    """Individual location point within a sighting with optional breeding status"""
+    __tablename__ = "sighting_individual"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    sighting_id: int = Field(foreign_key="sighting.id", ondelete="CASCADE")
+    # PostGIS geometry column (not directly exposed in API - use latitude/longitude instead)
+    coordinates: str = Field(
+        sa_column=sa.Column(
+            "coordinates",
+            sa.Text,  # Will be cast to/from geometry in queries
+            nullable=False
+        )
+    )
+    breeding_status_code: Optional[str] = Field(
+        default=None,
+        foreign_key="breeding_status_code.code",
+        max_length=2
+    )
+    notes: Optional[str] = Field(default=None)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    sighting: "Sighting" = Relationship(back_populates="individuals")
+    breeding_status: Optional["BreedingStatusCode"] = Relationship()
+
+
+class IndividualLocationBase(SQLModel):
+    """Base individual location fields for API"""
+    latitude: float = Field(ge=-90, le=90, description="Latitude coordinate (WGS84)")
+    longitude: float = Field(ge=-180, le=180, description="Longitude coordinate (WGS84)")
+    breeding_status_code: Optional[str] = Field(None, max_length=2, description="BTO breeding status code")
+    notes: Optional[str] = Field(None, description="Optional notes for this individual")
+
+
+class IndividualLocationCreate(IndividualLocationBase):
+    """Model for creating an individual location"""
+    pass
+
+
+class IndividualLocationRead(IndividualLocationBase):
+    """Model for reading an individual location"""
+    id: int
+
+
+class SightingCreateV2(SightingBase):
+    """Model for creating a sighting with individual locations"""
+    individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
+
+
+class SightingWithIndividuals(SightingWithDetails):
+    """Sighting with individual location points"""
+    individuals: List[IndividualLocationRead] = Field(default_factory=list, description="Individual location points")
+
+
+# ============================================================================
+# Dashboard Models
+# ============================================================================
+
+class CumulativeSpeciesDataPoint(SQLModel):
+    """Single data point for cumulative species chart"""
+    date: date_type = Field(description="Survey date")
+    type: str = Field(description="Species type")
+    cumulative_count: int = Field(description="Cumulative unique species count up to this date")
+    new_species: List[str] = Field(default_factory=list, description="Names of new species first seen on this date")
+
+
+class DateRange(SQLModel):
+    """Date range metadata"""
+    start: date_type = Field(description="Start date")
+    end: date_type = Field(description="End date")
+
+
+class CumulativeSpeciesResponse(SQLModel):
+    """Response for cumulative species endpoint"""
+    data: List[CumulativeSpeciesDataPoint] = Field(description="Cumulative species data points")
+    date_range: DateRange = Field(description="Date range of the data")
+
+
+class SpeciesOccurrenceDataPoint(SQLModel):
+    """Single data point for species occurrence chart"""
+    survey_date: date_type = Field(description="Survey date")
+    survey_id: int = Field(description="Survey ID")
+    occurrence_count: int = Field(description="Total count of individuals seen in this survey")
+
+
+class SpeciesOccurrenceResponse(SQLModel):
+    """Response for species occurrence endpoint"""
+    data: List[SpeciesOccurrenceDataPoint] = Field(description="Occurrence data points by survey")
+    date_range: DateRange = Field(description="Date range of the data")
+    species_name: str = Field(description="Name of the species")
+
+
+class SpeciesWithCount(SQLModel):
+    """Species with total occurrence count"""
+    id: int = Field(description="Species ID")
+    name: Optional[str] = Field(description="Common name")
+    scientific_name: Optional[str] = Field(description="Scientific name")
+    type: str = Field(description="Species type")
+    total_count: int = Field(description="Total occurrence count across all surveys")

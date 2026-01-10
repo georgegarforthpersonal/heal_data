@@ -1,114 +1,156 @@
-# Heal Butterflies 🦋
+# Heal Butterflies
 
-Butterfly and bird survey tracking application using Neon PostgreSQL.
+Wildlife survey tracking application for butterflies, birds, and spiders. Built with FastAPI backend, React frontend, and PostgreSQL database.
 
-## 🚀 Deployment (Streamlit Community Cloud)
+## Project Structure
 
-### Quick Deploy:
-1. **Push to GitHub** (make sure `.streamlit/secrets.toml` is NOT committed)
-2. Go to https://share.streamlit.io
-3. Click "New app" and select your repository
-4. Main file: `app/streamlit_app.py`
-5. Add secrets in Streamlit Cloud (copy from `.streamlit/secrets.toml`)
-6. Click "Deploy"!
-
-### Setting Secrets in Streamlit Cloud:
-In the Streamlit Cloud dashboard, go to **App Settings > Secrets** and paste:
-```toml
-[database]
-DB_HOST = "ep-bold-lab-ab6agv1j-pooler.eu-west-2.aws.neon.tech"
-DB_PORT = "5432"
-DB_NAME = "neondb"
-DB_USER = "neondb_owner"
-DB_PASSWORD = "npg_7KYAbqUne5OX"
-DB_SSLMODE = "require"
+```
+heal_butterflies/
+├── app/
+│   ├── backend/              # FastAPI REST API
+│   │   ├── main.py          # API entry point
+│   │   ├── models.py        # Database models (SQLModel)
+│   │   ├── database/        # Database connection & pooling
+│   │   ├── routers/         # API endpoints (surveys, species, locations, surveyors)
+│   │   ├── clients/         # External API clients (NBN Atlas)
+│   │   ├── scripts/         # Utility scripts (match_species.py)
+│   │   ├── script_utils/    # Script utilities (arg parser)
+│   │   └── alembic/         # Database migrations
+│   │
+│   └── frontend/            # React + TypeScript SPA
+│       ├── src/
+│       │   ├── pages/       # Page components
+│       │   ├── components/  # Reusable UI components
+│       │   └── services/    # API client
+│       └── Dockerfile
+│
+├── docker-compose.yml       # Multi-environment Docker setup
+├── dev-run                  # Script runner for dev environment
+├── staging-run              # Script runner for staging environment
+├── prod-run                 # Script runner for prod environment
+├── start-env.sh             # Environment starter
+├── migrate-db               # Database migration runner
+└── match-species            # Species matching helper
 ```
 
-### Populate Data After Deployment:
-Run the populate scripts locally once (they connect to Neon):
+## Starting Services
+
 ```bash
-python3 app/scripts/populate_butterflies.py
-python3 app/scripts/populate_birds.py
+./start-env.sh <env>  # env: dev | staging | prod
 ```
 
----
+**Environments:**
+- `dev` - Local PostgreSQL container (safe for development)
+- `staging` - Neon staging database
+- `prod` - Neon production database (requires confirmation)
 
-## 💻 Local Development
+**Access:**
+- Frontend: http://localhost:5173
+- API: http://localhost:8000
+- API Docs: http://localhost:8000/api/docs
 
-### First Time Setup
-
-1. **Start local database and populate with data:**
+**Stop services:**
 ```bash
-docker compose up -d db
-./run-script populate_butterflies.py
-./run-script populate_birds.py
+docker compose --profile <env> down
 ```
 
-2. **Start the app:**
+## Running Scripts
+
 ```bash
-docker compose up app
+./dev-run <script_name.py> [arguments]      # Development
+./staging-run <script_name.py> [arguments]  # Staging
+./prod-run <script_name.py> [arguments]     # Production (requires confirmation)
 ```
 
-3. **Access the app:**
-Open http://localhost:8501 (no login required in dev)
+**Options:**
+- Add `--build` flag to rebuild Docker image
 
-### Daily Development
-
-**Run against local database (dev):**
+**Example:**
 ```bash
-docker compose up app          # Starts app + local DB
+./dev-run match_species.py
+./match-species  # Quick helper: runs match_species.py against prod DB
 ```
 
-**Run against production database:**
+## Database Migrations
+
 ```bash
-docker compose up app-prod     # Connects to Neon prod DB
+cd app/backend
+alembic revision --autogenerate -m "description"  # Create migration
+alembic upgrade head                               # Apply migrations
+alembic history                                    # View history
+alembic downgrade -1                               # Rollback one migration
 ```
 
-**Repopulate data (dev only):**
+**Apply migrations to staging/prod:**
 ```bash
-./run-script populate_butterflies.py
-./run-script populate_birds.py
+docker compose --profile staging run --rm scripts-staging bash -c "cd /app && PYTHONPATH=/app alembic upgrade head"
 ```
 
-**Stop everything:**
+### Species Migration
+
+To update species data with scientific names and NBN Atlas GUIDs, see:
+**[SPECIES_MIGRATION_GUIDE.md](SPECIES_MIGRATION_GUIDE.md)**
+
+Quick summary:
+1. Match species: `./dev-run match_species.py -s butterflies --validate --export results.json`
+2. Apply schema: `./migrate-db dev upgrade head`
+3. Apply data: `./dev-run apply_species_migration.py results.json --apply`
+
+**Note**: The `migrate-db` script requires explicit environment (dev/staging/prod) for safety.
+
+## Environment Configuration
+
+- `.env.dev` - Local PostgreSQL
+- `.env.staging` - Neon staging
+- `.env.prod` - Neon production
+
+Selected via Docker Compose profiles.
+
+## Tech Stack
+
+**Backend:**
+- FastAPI - REST API framework
+- SQLModel - ORM/validation (SQLAlchemy + Pydantic)
+- PostgreSQL - Database
+- Alembic - Database migrations
+- Uvicorn - ASGI server
+
+**Frontend:**
+- React - UI framework
+- TypeScript - Type safety
+- Vite - Build tool
+
+**Infrastructure:**
+- Docker - Containerization
+- Neon - Serverless PostgreSQL (staging/prod)
+
+## Common Commands
+
 ```bash
-docker compose down
+# View logs
+docker logs -f heal_butterflies_api
+docker logs -f heal_butterflies_frontend
+
+# Restart services
+docker compose --profile <env> restart api
+docker compose --profile <env> restart frontend
+
+# Rebuild everything
+docker compose --profile <env> down
+docker compose build
+docker compose --profile <env> up -d
+
+# Health check
+curl http://localhost:8000/api/health
 ```
 
-### Environment Details
+## API Endpoints
 
-- **Dev** (`.env.dev`): Local PostgreSQL, no login required
-- **Prod** (`.env.prod`): Neon cloud DB, login: heal/nightingale
-- **Safety**: Populate scripts cannot run against production
+Key endpoints:
+- `GET /api/surveys` - List all surveys
+- `GET /api/species` - List all species
+- `GET /api/locations` - List all locations
+- `GET /api/surveyors` - List all surveyors
+- `GET /api/health` - Health check
 
----
-
-## 🗄️ Database
-
-This application uses **Neon** (serverless PostgreSQL) for the database.
-
-**Connection details:**
-- Database: Neon PostgreSQL (eu-west-2)
-- SSL: Required
-- Connection pooling: Enabled
-
-**To reset/clear all data:**
-```bash
-psql 'postgresql://neondb_owner:npg_7KYAbqUne5OX@ep-bold-lab-ab6agv1j-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require' \
-  -c "TRUNCATE sighting, survey_surveyor, survey, species, transect, surveyor CASCADE;"
-```
-
----
-
-## 📁 Project Structure
-```
-app/
-├── streamlit_app.py          # Main app entry point
-├── pages/                    # Survey management UI
-├── dashboards/               # Data visualization
-├── database/                 # Database connection & models
-└── scripts/                  # Data import scripts
-    ├── populate_butterflies.py
-    ├── populate_birds.py
-    └── data/                 # CSV/Excel source files
-```
+Full API documentation: http://localhost:8000/api/docs

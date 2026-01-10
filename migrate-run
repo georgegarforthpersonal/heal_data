@@ -1,0 +1,80 @@
+#!/bin/bash
+# Migration script runner - loads both staging and prod database credentials
+# Usage: ./migrate-run <script_name.py> [script arguments...]
+#
+# This script loads .env.staging and .env.prod, transforms the DB_* variables
+# to STAGING_DB_* and PROD_DB_* prefixes, and passes them to Docker.
+#
+# Available scripts:
+#   migrate_bird_surveys.py  - Migrate bird surveys from prod to staging
+#   copy_staging_to_prod.py  - Copy staging database to production
+
+set -e
+
+SCRIPT_NAME="$1"
+shift 2>/dev/null || true
+SCRIPT_ARGS=("$@")
+
+if [ -z "$SCRIPT_NAME" ]; then
+    echo "Usage: ./migrate-run <script_name.py> [script arguments...]"
+    echo ""
+    echo "Available scripts:"
+    echo "  migrate_bird_surveys.py  - Migrate bird surveys from prod to staging"
+    echo "  copy_staging_to_prod.py  - Copy staging database to production"
+    exit 1
+fi
+
+if [ ! -f "app/backend/scripts/$SCRIPT_NAME" ]; then
+    echo "Error: Script 'app/backend/scripts/$SCRIPT_NAME' not found"
+    echo ""
+    echo "Available scripts:"
+    echo "  migrate_bird_surveys.py  - Migrate bird surveys from prod to staging"
+    echo "  copy_staging_to_prod.py  - Copy staging database to production"
+    exit 1
+fi
+
+# Check both env files exist
+if [ ! -f ".env.staging" ]; then
+    echo "Error: .env.staging not found"
+    exit 1
+fi
+
+if [ ! -f ".env.prod" ]; then
+    echo "Error: .env.prod not found"
+    exit 1
+fi
+
+# Load and transform staging env vars
+load_env_with_prefix() {
+    local env_file=$1
+    local prefix=$2
+    local env_vars=""
+
+    while IFS='=' read -r key value || [ -n "$key" ]; do
+        # Skip comments and empty lines
+        [[ -z "$key" || "$key" == \#* ]] && continue
+
+        # Only transform DB_* variables
+        if [[ "$key" == DB_* ]]; then
+            new_key="${prefix}_${key#DB_}"
+            env_vars="$env_vars -e $new_key=$value"
+        fi
+    done < "$env_file"
+
+    echo "$env_vars"
+}
+
+STAGING_ENV=$(load_env_with_prefix ".env.staging" "STAGING_DB")
+PROD_ENV=$(load_env_with_prefix ".env.prod" "PROD_DB")
+
+echo "================================================================"
+echo "   Running: $SCRIPT_NAME"
+echo "   (Connected to BOTH staging AND prod databases)"
+echo "================================================================"
+echo ""
+
+# Run using the staging Docker image but with both sets of credentials
+docker compose --profile staging run --rm \
+    $STAGING_ENV \
+    $PROD_ENV \
+    scripts-staging bash -c "cd /app && PYTHONPATH=/app python scripts/$SCRIPT_NAME ${SCRIPT_ARGS[*]}"
