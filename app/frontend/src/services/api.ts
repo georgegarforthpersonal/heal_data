@@ -117,9 +117,7 @@ export interface Species {
 
 export interface Location {
   id: number;
-  number: number;
   name: string;
-  type: string;
 }
 
 /**

@@ -188,9 +188,7 @@ class SpeciesTypeRead(SpeciesTypeBase):
 
 class LocationBase(SQLModel):
     """Base location fields"""
-    number: int = Field(ge=1, description="Location number")
     name: str = Field(max_length=255, description="Location name")
-    type: str = Field(default="butterfly", max_length=50, description="Type (butterfly, bird, fungi)")
 
 
 class Location(LocationBase, table=True):
@@ -233,9 +231,7 @@ class LocationCreate(LocationBase):
 
 class LocationUpdate(SQLModel):
     """Model for updating a location (all fields optional)"""
-    number: Optional[int] = Field(None, ge=1)
     name: Optional[str] = Field(None, max_length=255)
-    type: Optional[str] = Field(None, max_length=50)
 
 
 class LocationRead(LocationBase):

@@ -11,7 +11,7 @@ Endpoints:
 """
 
 from fastapi import APIRouter, HTTPException, status
-from typing import List, Optional
+from typing import List
 from database.connection import get_db_cursor
 from models import LocationRead, LocationCreate, LocationUpdate, LocationWithBoundary
 
@@ -19,40 +19,26 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[LocationRead])
-async def get_locations(survey_type: Optional[str] = None):
+async def get_locations():
     """
-    Get all locations, optionally filtered by type.
-
-    Args:
-        survey_type: Filter by type (butterfly, bird, fungi). Optional.
+    Get all locations.
 
     Returns:
         List of locations
     """
     try:
         with get_db_cursor() as cursor:
-            if survey_type:
-                cursor.execute("""
-                    SELECT id, number, name, type
-                    FROM location
-                    WHERE type = %s
-                    ORDER BY number
-                """, (survey_type,))
-            else:
-                cursor.execute("""
-                    SELECT id, number, name, type
-                    FROM location
-                    ORDER BY number
-                """)
+            cursor.execute("""
+                SELECT id, name
+                FROM location
+                ORDER BY name
+            """)
 
             rows = cursor.fetchall()
 
             return [{
                 "id": row[0],
-                "number": row[1],
-                "name": row[2],
-                "type": row[3],
-
+                "name": row[1],
             } for row in rows]
 
     except Exception as e:
@@ -73,7 +59,7 @@ async def get_locations_by_survey_type(survey_type_id: int):
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT l.id, l.number, l.name, l.type
+                SELECT l.id, l.name
                 FROM location l
                 INNER JOIN survey_type_location stl ON stl.location_id = l.id
                 WHERE stl.survey_type_id = %s
@@ -84,9 +70,7 @@ async def get_locations_by_survey_type(survey_type_id: int):
 
             return [{
                 "id": row[0],
-                "number": row[1],
-                "name": row[2],
-                "type": row[3],
+                "name": row[1],
             } for row in rows]
 
     except Exception as e:
@@ -109,29 +93,25 @@ async def get_locations_with_boundaries():
             cursor.execute("""
                 SELECT
                     id,
-                    number,
                     name,
-                    type,
                     (ST_AsGeoJSON(boundary_geometry)::json->'coordinates'->0) as boundary_geometry,
                     boundary_fill_color,
                     boundary_stroke_color,
                     boundary_fill_opacity
                 FROM location
                 WHERE boundary_geometry IS NOT NULL
-                ORDER BY number
+                ORDER BY name
             """)
 
             rows = cursor.fetchall()
 
             return [{
                 "id": row[0],
-                "number": row[1],
-                "name": row[2],
-                "type": row[3],
-                "boundary_geometry": row[4] if row[4] else None,
-                "boundary_fill_color": row[5],
-                "boundary_stroke_color": row[6],
-                "boundary_fill_opacity": row[7]
+                "name": row[1],
+                "boundary_geometry": row[2] if row[2] else None,
+                "boundary_fill_color": row[3],
+                "boundary_stroke_color": row[4],
+                "boundary_fill_opacity": row[5]
             } for row in rows]
 
     except Exception as e:
@@ -144,7 +124,7 @@ async def get_location(location_id: int):
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                SELECT id, number, name, type
+                SELECT id, name
                 FROM location
                 WHERE id = %s
             """, (location_id,))
@@ -155,10 +135,7 @@ async def get_location(location_id: int):
 
             return {
                 "id": row[0],
-                "number": row[1],
-                "name": row[2],
-                "type": row[3],
-
+                "name": row[1],
             }
 
     except HTTPException:
@@ -173,19 +150,16 @@ async def create_location(location: LocationCreate):
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""
-                INSERT INTO location (number, name, type)
-                VALUES (%s, %s, %s)
-                RETURNING id, number, name, type
-            """, (location.number, location.name, location.type))
+                INSERT INTO location (name)
+                VALUES (%s)
+                RETURNING id, name
+            """, (location.name,))
 
             row = cursor.fetchone()
 
             return {
                 "id": row[0],
-                "number": row[1],
-                "name": row[2],
-                "type": row[3],
-
+                "name": row[1],
             }
 
     except Exception as e:
@@ -202,34 +176,18 @@ async def update_location(location_id: int, location: LocationUpdate):
             if not cursor.fetchone():
                 raise HTTPException(status_code=404, detail=f"Location {location_id} not found")
 
-            # Build dynamic UPDATE query
-            update_fields = []
-            update_values = []
-
-            if location.number is not None:
-                update_fields.append("number = %s")
-                update_values.append(location.number)
             if location.name is not None:
-                update_fields.append("name = %s")
-                update_values.append(location.name)
-            if location.type is not None:
-                update_fields.append("type = %s")
-                update_values.append(location.type)
-
-            if update_fields:
-                update_values.append(location_id)
-                query = f"""
+                cursor.execute("""
                     UPDATE location
-                    SET {', '.join(update_fields)}
+                    SET name = %s
                     WHERE id = %s
-                    RETURNING id, number, name, type
-                """
-                cursor.execute(query, update_values)
+                    RETURNING id, name
+                """, (location.name, location_id))
                 row = cursor.fetchone()
             else:
                 # No fields to update, just fetch current state
                 cursor.execute("""
-                    SELECT id, number, name, type
+                    SELECT id, name
                     FROM location
                     WHERE id = %s
                 """, (location_id,))
@@ -237,10 +195,7 @@ async def update_location(location_id: int, location: LocationUpdate):
 
             return {
                 "id": row[0],
-                "number": row[1],
-                "name": row[2],
-                "type": row[3],
-
+                "name": row[1],
             }
 
     except HTTPException:
