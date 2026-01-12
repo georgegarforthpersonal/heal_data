@@ -88,7 +88,10 @@ export function SurveyDetailPage() {
         const [sightingsData, surveyorsData, locationsData, speciesData, breedingCodesData, boundariesData] = await Promise.all([
           surveysAPI.getSightings(Number(id)),
           surveyorsAPI.getAll(),
-          locationsAPI.getAll(),
+          // Filter locations by survey type if available, otherwise get all
+          surveyData.survey_type_id
+            ? locationsAPI.getBySurveyType(surveyData.survey_type_id)
+            : locationsAPI.getAll(),
           // Filter species by survey type if available, otherwise get all
           surveyData.survey_type_id
             ? speciesAPI.getBySurveyType(surveyData.survey_type_id)
