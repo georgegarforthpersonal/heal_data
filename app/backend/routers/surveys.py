@@ -25,9 +25,8 @@ from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate, SurveyWithSightingsCount,
     Sighting, SightingRead, SightingCreate, SightingUpdate, SightingWithDetails,
     Species, Location, Surveyor, SurveySurveyor, SpeciesTypeCount,
-    # New models for per-individual locations with breeding status
     BreedingStatusCode, BreedingStatusCodeRead, SightingIndividual,
-    IndividualLocationCreate, IndividualLocationRead, SightingCreateV2, SightingWithIndividuals
+    IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals
 )
 
 router = APIRouter()
@@ -442,7 +441,7 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{survey_id}/sightings", response_model=SightingWithIndividuals, status_code=status.HTTP_201_CREATED)
-async def create_sighting(survey_id: int, sighting: SightingCreateV2, db: Session = Depends(get_db)):
+async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session = Depends(get_db)):
     """
     Add a sighting to a survey with optional individual location points.
 
@@ -465,7 +464,8 @@ async def create_sighting(survey_id: int, sighting: SightingCreateV2, db: Sessio
     db_sighting = Sighting(
         survey_id=survey_id,
         species_id=sighting.species_id,
-        count=sighting.count
+        count=sighting.count,
+        location_id=sighting.location_id
     )
 
     db.add(db_sighting)

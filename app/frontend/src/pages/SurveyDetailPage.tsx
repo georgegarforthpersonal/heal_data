@@ -3,8 +3,8 @@ import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
-import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI } from '../services/api';
-import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary } from '../services/api';
+import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI } from '../services/api';
+import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -36,6 +36,7 @@ export function SurveyDetailPage() {
   // ============================================================================
 
   const [survey, setSurvey] = useState<SurveyDetail | null>(null);
+  const [surveyType, setSurveyType] = useState<SurveyType | null>(null);
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -85,7 +86,7 @@ export function SurveyDetailPage() {
         const surveyData = await surveysAPI.getById(Number(id));
 
         // Fetch remaining data in parallel, using survey_type_id for species filtering
-        const [sightingsData, surveyorsData, locationsData, speciesData, breedingCodesData, boundariesData] = await Promise.all([
+        const [sightingsData, surveyorsData, locationsData, speciesData, breedingCodesData, boundariesData, surveyTypeData] = await Promise.all([
           surveysAPI.getSightings(Number(id)),
           surveyorsAPI.getAll(),
           // Filter locations by survey type if available, otherwise get all
@@ -98,9 +99,14 @@ export function SurveyDetailPage() {
             : speciesAPI.getAll(),
           surveysAPI.getBreedingCodes(),
           locationsAPI.getAllWithBoundaries(),
+          // Fetch survey type configuration
+          surveyData.survey_type_id
+            ? surveyTypesAPI.getById(surveyData.survey_type_id)
+            : Promise.resolve(null),
         ]);
 
         setSurvey(surveyData);
+        setSurveyType(surveyTypeData);
         setSightings(sightingsData);
         setSurveyors(surveyorsData);
         setLocations(locationsData);
@@ -231,6 +237,13 @@ export function SurveyDetailPage() {
   }
 
   // ============================================================================
+  // Computed Values - Survey Type Configuration
+  // ============================================================================
+
+  const locationAtSightingLevel = surveyType?.location_at_sighting_level ?? false;
+  const allowGeolocation = surveyType?.allow_geolocation ?? true;
+
+  // ============================================================================
   // Validation
   // ============================================================================
 
@@ -241,7 +254,8 @@ export function SurveyDetailPage() {
       errors.date = 'Date is required';
     }
 
-    if (!editLocationId) {
+    // Location is only required if NOT at sighting level
+    if (!locationAtSightingLevel && !editLocationId) {
       errors.location = 'Location is required';
     }
 
@@ -255,6 +269,14 @@ export function SurveyDetailPage() {
     );
     if (validSightings.length === 0) {
       errors.sightings = 'At least one sighting is required';
+    }
+
+    // If location at sighting level, check that each sighting has a location
+    if (locationAtSightingLevel) {
+      const sightingsWithoutLocation = validSightings.filter((s) => !s.location_id);
+      if (sightingsWithoutLocation.length > 0) {
+        errors.sightings = 'Each sighting must have a location selected';
+      }
     }
 
     setValidationErrors(errors);
@@ -283,6 +305,8 @@ export function SurveyDetailPage() {
       species_id: sighting.species_id,
       count: sighting.count,
       id: sighting.id, // Keep the real ID for updates/deletes
+      // Include location_id for sighting-level location
+      location_id: sighting.location_id,
       // Include individuals if present (from SightingWithIndividuals)
       individuals: sighting.individuals?.map((ind: any) => ({
         ...ind,
@@ -316,11 +340,15 @@ export function SurveyDetailPage() {
       // Step 1: Update survey
       const surveyData: Partial<Survey> = {
         date: editDate!.format('YYYY-MM-DD'),
-        location_id: editLocationId!,
         surveyor_ids: editSelectedSurveyors.map((s) => s.id),
         type: 'butterfly', // Keep existing type
         notes: editNotes.trim() || null,
       };
+
+      // Only include location_id if NOT at sighting level
+      if (!locationAtSightingLevel) {
+        surveyData.location_id = editLocationId!;
+      }
 
       await surveysAPI.update(Number(id), surveyData);
 
@@ -353,6 +381,7 @@ export function SurveyDetailPage() {
           await surveysAPI.updateSighting(Number(id), sighting.id, {
             species_id: sighting.species_id!,
             count: sighting.count,
+            location_id: locationAtSightingLevel ? sighting.location_id : undefined,
           });
 
           // Sync individual locations for this existing sighting
@@ -393,6 +422,7 @@ export function SurveyDetailPage() {
           await surveysAPI.addSighting(Number(id), {
             species_id: sighting.species_id!,
             count: sighting.count,
+            location_id: locationAtSightingLevel ? sighting.location_id : undefined,
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
               longitude: ind.longitude,
@@ -496,7 +526,7 @@ export function SurveyDetailPage() {
                   disabled={
                     saving ||
                     !editDate ||
-                    !editLocationId ||
+                    (!locationAtSightingLevel && !editLocationId) ||
                     editSelectedSurveyors.length === 0 ||
                     editDraftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
                   }
@@ -586,6 +616,7 @@ export function SurveyDetailPage() {
               onSurveyorsChange={setEditSelectedSurveyors}
               onNotesChange={setEditNotes}
               validationErrors={validationErrors}
+              hideLocation={locationAtSightingLevel}
             />
           ) : (
             <Stack spacing={2}>
@@ -613,18 +644,22 @@ export function SurveyDetailPage() {
                 <Typography variant="body1">{survey.surveyor_ids.map(getSurveyorName).join(', ')}</Typography>
               </Box>
 
-              <Divider />
+              {/* Location - only show if NOT at sighting level */}
+              {!locationAtSightingLevel && (
+                <>
+                  <Divider />
 
-              {/* Location */}
-              <Box>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                  <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                    Location
-                  </Typography>
-                </Stack>
-                <Typography variant="body1">{getLocationName(survey.location_id)}</Typography>
-              </Box>
+                  <Box>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                      <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                        Location
+                      </Typography>
+                    </Stack>
+                    <Typography variant="body1">{getLocationName(survey.location_id)}</Typography>
+                  </Box>
+                </>
+              )}
 
               {/* Notes */}
               {survey.notes && (
@@ -659,6 +694,9 @@ export function SurveyDetailPage() {
               onSightingsChange={handleSightingsChange}
               validationError={validationErrors.sightings}
               locationsWithBoundaries={locationsWithBoundaries}
+              locationAtSightingLevel={locationAtSightingLevel}
+              locations={locations}
+              allowGeolocation={allowGeolocation}
             />
           ) : (
             <>

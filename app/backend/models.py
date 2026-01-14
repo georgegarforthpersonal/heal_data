@@ -422,11 +422,6 @@ class Sighting(SightingBase, table=True):
     )
 
 
-class SightingCreate(SightingBase):
-    """Model for creating a new sighting"""
-    location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
-
-
 class SightingUpdate(SQLModel):
     """Model for updating a sighting (all fields optional)"""
     species_id: Optional[int] = Field(None, gt=0)
@@ -536,8 +531,9 @@ class IndividualLocationRead(IndividualLocationBase):
     id: int
 
 
-class SightingCreateV2(SightingBase):
+class SightingCreate(SightingBase):
     """Model for creating a sighting with individual locations"""
+    location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
     individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
 
 
