@@ -538,6 +538,7 @@ class IndividualLocationRead(IndividualLocationBase):
 
 class SightingCreateV2(SightingBase):
     """Model for creating a sighting with individual locations"""
+    location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
     individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
 
 

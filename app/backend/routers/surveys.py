@@ -465,7 +465,8 @@ async def create_sighting(survey_id: int, sighting: SightingCreateV2, db: Sessio
     db_sighting = Sighting(
         survey_id=survey_id,
         species_id=sighting.species_id,
-        count=sighting.count
+        count=sighting.count,
+        location_id=sighting.location_id
     )
 
     db.add(db_sighting)
