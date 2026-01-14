@@ -443,14 +443,27 @@ export function SightingsEditor({
         </Alert>
       )}
 
-      {sightings.length > 0 ? (
+      {/* Calculate grid columns based on which fields are shown */}
+      {(() => {
+        // Grid columns: Species, [Location], [GPS/Spacer], Count, Notes, Delete
+        const getGridColumns = () => {
+          if (locationAtSightingLevel && allowGeolocation) {
+            return '2fr 1.2fr 70px 60px 2fr 40px'; // 6 cols
+          }
+          if (locationAtSightingLevel && !allowGeolocation) {
+            return '2fr 1.2fr 60px 2.5fr 40px'; // 5 cols (no GPS)
+          }
+          // !locationAtSightingLevel - always show GPS or spacer
+          return '2fr 70px 60px 2.5fr 40px'; // 5 cols
+        };
+        const gridColumns = getGridColumns();
+
+        return sightings.length > 0 ? (
         <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: locationAtSightingLevel
-                ? '2fr 1.2fr 90px 80px 1.2fr 50px'
-                : '2.5fr 90px 80px 1.5fr 50px',
+              gridTemplateColumns: gridColumns,
               gap: 2,
               p: 1.5,
               bgcolor: 'grey.50',
@@ -499,9 +512,7 @@ export function SightingsEditor({
                 key={sighting.tempId}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: locationAtSightingLevel
-                    ? '2fr 1.2fr 90px 80px 1.2fr 50px'
-                    : '2.5fr 90px 80px 1.5fr 50px',
+                  gridTemplateColumns: gridColumns,
                   gap: 2,
                   p: 1.5,
                   borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
@@ -725,7 +736,8 @@ export function SightingsEditor({
             );
           })}
         </Box>
-      ) : null}
+      ) : null;
+      })()}
 
       {/* Location Modal */}
       <LocationModal
