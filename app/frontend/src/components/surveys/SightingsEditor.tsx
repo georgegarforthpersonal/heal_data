@@ -692,20 +692,36 @@ export function SightingsEditor({
                   }}
                 />
 
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => removeSightingRow(sighting.tempId)}
-                  disabled={sightings.length === 1}
-                  sx={{
-                    justifySelf: 'center',
-                    opacity: isEmptyLastRow ? 0.3 : 1,
-                    width: 40,
-                    height: 40,
-                  }}
-                >
-                  <Delete sx={{ fontSize: 20 }} />
-                </IconButton>
+                <Stack direction="row" spacing={0.5} sx={{ justifySelf: 'center' }}>
+                  <Tooltip title={sighting.notes ? sighting.notes : 'Add notes'} arrow>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleEditClick(sighting.tempId)}
+                      disabled={isEmptyLastRow}
+                      sx={{
+                        opacity: isEmptyLastRow ? 0.3 : 1,
+                        width: 32,
+                        height: 32,
+                        color: sighting.notes ? 'warning.main' : 'text.disabled',
+                      }}
+                    >
+                      <StickyNote2Outlined sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Tooltip>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => removeSightingRow(sighting.tempId)}
+                    disabled={sightings.length === 1}
+                    sx={{
+                      opacity: isEmptyLastRow ? 0.3 : 1,
+                      width: 32,
+                      height: 32,
+                    }}
+                  >
+                    <Delete sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Stack>
               </Box>
             );
           })}
@@ -731,6 +747,31 @@ export function SightingsEditor({
         breedingCodes={breedingCodes}
         count={locationEditingSighting?.count || 1}
         locationsWithBoundaries={locationsWithBoundaries}
+      />
+
+      {/* Add/Edit Sighting Modal - for editing notes on desktop */}
+      <AddSightingModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        onSave={handleModalSave}
+        species={species}
+        breedingCodes={breedingCodes}
+        initialData={
+          editingSighting
+            ? {
+                species_id: editingSighting.species_id,
+                count: editingSighting.count,
+                individuals: editingSighting.individuals,
+                location_id: editingSighting.location_id,
+                notes: editingSighting.notes,
+              }
+            : undefined
+        }
+        mode={editingTempId ? 'edit' : 'add'}
+        locationsWithBoundaries={locationsWithBoundaries}
+        locationAtSightingLevel={locationAtSightingLevel}
+        locations={locations}
+        allowGeolocation={allowGeolocation}
       />
     </>
   );
