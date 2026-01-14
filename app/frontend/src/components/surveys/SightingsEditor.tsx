@@ -449,8 +449,8 @@ export function SightingsEditor({
             sx={{
               display: 'grid',
               gridTemplateColumns: locationAtSightingLevel
-                ? '2fr 1.5fr 90px 110px 80px'
-                : '3fr 90px 110px 80px',
+                ? '2fr 1.2fr 90px 80px 1.2fr 50px'
+                : '2.5fr 90px 80px 1.5fr 50px',
               gap: 2,
               p: 1.5,
               bgcolor: 'grey.50',
@@ -477,9 +477,10 @@ export function SightingsEditor({
             <Typography variant="body2" fontWeight={600} color="text.secondary">
               COUNT *
             </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">
-              ACTIONS
+            <Typography variant="body2" fontWeight={600} color="text.secondary">
+              NOTES
             </Typography>
+            <Box /> {/* Actions column - no header needed */}
           </Box>
 
           {sightings.map((sighting, index) => {
@@ -499,8 +500,8 @@ export function SightingsEditor({
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: locationAtSightingLevel
-                    ? '2fr 1.5fr 90px 110px 80px'
-                    : '3fr 90px 110px 80px',
+                    ? '2fr 1.2fr 90px 80px 1.2fr 50px'
+                    : '2.5fr 90px 80px 1.5fr 50px',
                   gap: 2,
                   p: 1.5,
                   borderBottom: index < sightings.length - 1 ? '1px solid' : 'none',
@@ -692,36 +693,34 @@ export function SightingsEditor({
                   }}
                 />
 
-                <Stack direction="row" spacing={0.5} sx={{ justifySelf: 'center' }}>
-                  <Tooltip title={sighting.notes ? sighting.notes : 'Add notes'} arrow>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditClick(sighting.tempId)}
-                      disabled={isEmptyLastRow}
-                      sx={{
-                        opacity: isEmptyLastRow ? 0.3 : 1,
-                        width: 32,
-                        height: 32,
-                        color: sighting.notes ? 'warning.main' : 'text.disabled',
-                      }}
-                    >
-                      <StickyNote2Outlined sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => removeSightingRow(sighting.tempId)}
-                    disabled={sightings.length === 1}
-                    sx={{
-                      opacity: isEmptyLastRow ? 0.3 : 1,
-                      width: 32,
-                      height: 32,
-                    }}
-                  >
-                    <Delete sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Stack>
+                <TextField
+                  value={sighting.notes || ''}
+                  onChange={(e) => updateSighting(sighting.tempId, 'notes', e.target.value || null)}
+                  size="small"
+                  placeholder="Notes..."
+                  disabled={isEmptyLastRow}
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                      padding: '8.5px 14px'
+                    }
+                  }}
+                />
+
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => removeSightingRow(sighting.tempId)}
+                  disabled={sightings.length === 1}
+                  sx={{
+                    justifySelf: 'center',
+                    opacity: isEmptyLastRow ? 0.3 : 1,
+                    width: 36,
+                    height: 36,
+                  }}
+                >
+                  <Delete sx={{ fontSize: 20 }} />
+                </IconButton>
               </Box>
             );
           })}
@@ -749,30 +748,6 @@ export function SightingsEditor({
         locationsWithBoundaries={locationsWithBoundaries}
       />
 
-      {/* Add/Edit Sighting Modal - for editing notes on desktop */}
-      <AddSightingModal
-        open={modalOpen}
-        onClose={handleModalClose}
-        onSave={handleModalSave}
-        species={species}
-        breedingCodes={breedingCodes}
-        initialData={
-          editingSighting
-            ? {
-                species_id: editingSighting.species_id,
-                count: editingSighting.count,
-                individuals: editingSighting.individuals,
-                location_id: editingSighting.location_id,
-                notes: editingSighting.notes,
-              }
-            : undefined
-        }
-        mode={editingTempId ? 'edit' : 'add'}
-        locationsWithBoundaries={locationsWithBoundaries}
-        locationAtSightingLevel={locationAtSightingLevel}
-        locations={locations}
-        allowGeolocation={allowGeolocation}
-      />
     </>
   );
 }
