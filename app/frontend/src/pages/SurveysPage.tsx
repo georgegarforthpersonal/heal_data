@@ -30,7 +30,6 @@ import type { Survey, Surveyor, PaginationMeta, SurveyType } from '../services/a
  *   - amphibian → AmphibianIcon (🐸)
  *   - fungi → MushroomIcon (🍄)
  * - Supports multiple species per survey (e.g., "🦋45 🐦23 🐍3")
- * - Note: survey.type field is deprecated, use species_breakdown instead
  *
  * Following DEVELOPMENT.md conventions:
  * - Built inline first (no premature component extraction)

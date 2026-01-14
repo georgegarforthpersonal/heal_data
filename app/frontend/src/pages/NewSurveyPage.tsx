@@ -255,7 +255,6 @@ export function NewSurveyPage() {
       const surveyData: Partial<Survey> & { survey_type_id?: number } = {
         date: date!.format('YYYY-MM-DD'),
         surveyor_ids: selectedSurveyors.map((s) => s.id),
-        type: 'butterfly', // Default type
         notes: notes.trim() || null,
         survey_type_id: selectedSurveyType?.id,
       };
