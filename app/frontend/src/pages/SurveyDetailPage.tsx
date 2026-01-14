@@ -242,6 +242,7 @@ export function SurveyDetailPage() {
 
   const locationAtSightingLevel = surveyType?.location_at_sighting_level ?? false;
   const allowGeolocation = surveyType?.allow_geolocation ?? true;
+  const allowSightingNotes = surveyType?.allow_sighting_notes ?? true;
 
   // ============================================================================
   // Validation
@@ -700,6 +701,7 @@ export function SurveyDetailPage() {
               locationAtSightingLevel={locationAtSightingLevel}
               locations={locations}
               allowGeolocation={allowGeolocation}
+              allowSightingNotes={allowSightingNotes}
             />
           ) : (
             <>
@@ -845,7 +847,7 @@ export function SurveyDetailPage() {
                                 <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
                                   {sighting.count}
                                 </Typography>
-                                {sighting.notes && (
+                                {allowSightingNotes && sighting.notes && (
                                   <Tooltip title={sighting.notes} arrow>
                                     <StickyNote2Outlined sx={{ fontSize: 18, color: 'warning.main' }} />
                                   </Tooltip>

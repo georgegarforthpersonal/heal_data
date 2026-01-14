@@ -99,6 +99,7 @@ export function AdminPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formLocationAtSightingLevel, setFormLocationAtSightingLevel] = useState(false);
   const [formAllowGeolocation, setFormAllowGeolocation] = useState(true);
+  const [formAllowSightingNotes, setFormAllowSightingNotes] = useState(true);
   const [formColor, setFormColor] = useState<string | null>(null);
   const [formSelectedLocations, setFormSelectedLocations] = useState<Location[]>([]);
   const [formSelectedSpeciesTypes, setFormSelectedSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
@@ -215,6 +216,7 @@ export function AdminPage() {
       setFormDescription(details.description || '');
       setFormLocationAtSightingLevel(details.location_at_sighting_level);
       setFormAllowGeolocation(details.allow_geolocation);
+      setFormAllowSightingNotes(details.allow_sighting_notes);
       setFormColor(details.color);
       setFormSelectedLocations(details.locations);
       setFormSelectedSpeciesTypes(details.species_types);
@@ -229,6 +231,7 @@ export function AdminPage() {
     setFormDescription('');
     setFormLocationAtSightingLevel(false);
     setFormAllowGeolocation(true);
+    setFormAllowSightingNotes(true);
     setFormColor(null);
     setFormSelectedLocations([]);
     setFormSelectedSpeciesTypes([]);
@@ -258,6 +261,7 @@ export function AdminPage() {
         description: formDescription.trim() || undefined,
         location_at_sighting_level: formLocationAtSightingLevel,
         allow_geolocation: formAllowGeolocation,
+        allow_sighting_notes: formAllowSightingNotes,
         color: formColor || undefined,
         location_ids: formSelectedLocations.map((l) => l.id),
         species_type_ids: formSelectedSpeciesTypes.map((st) => st.id),
@@ -429,6 +433,7 @@ export function AdminPage() {
                 <TableCell>Name</TableCell>
                 <TableCell>Location Level</TableCell>
                 <TableCell>Geolocation</TableCell>
+                <TableCell>Sighting Notes</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
@@ -471,6 +476,14 @@ export function AdminPage() {
                         label={surveyType.allow_geolocation ? 'Enabled' : 'Disabled'}
                         size="small"
                         color={surveyType.allow_geolocation ? 'info' : 'default'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={surveyType.allow_sighting_notes ? 'Enabled' : 'Disabled'}
+                        size="small"
+                        color={surveyType.allow_sighting_notes ? 'warning' : 'default'}
                         variant="outlined"
                       />
                     </TableCell>
@@ -666,6 +679,23 @@ export function AdminPage() {
               {formAllowGeolocation
                 ? 'Users can add GPS coordinates to sightings'
                 : 'GPS coordinates are disabled for this survey type'}
+            </Typography>
+          </Box>
+          <Box sx={{ mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formAllowSightingNotes}
+                  onChange={(e) => setFormAllowSightingNotes(e.target.checked)}
+                  disabled={savingSurveyType}
+                />
+              }
+              label="Allow sighting notes"
+            />
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4, mt: -1 }}>
+              {formAllowSightingNotes
+                ? 'Users can add notes to individual sightings'
+                : 'Sighting notes are disabled for this survey type'}
             </Typography>
           </Box>
           <Autocomplete

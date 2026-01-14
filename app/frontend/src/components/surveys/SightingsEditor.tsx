@@ -33,6 +33,7 @@ interface SightingsEditorProps {
   locationAtSightingLevel?: boolean; // When true, show location dropdown per sighting
   locations?: Location[]; // Available locations for sighting-level selection
   allowGeolocation?: boolean; // Whether geolocation is allowed (controls geolocation button visibility)
+  allowSightingNotes?: boolean; // Whether notes can be entered for individual sightings
 }
 
 /**
@@ -51,6 +52,7 @@ export function SightingsEditor({
   locationAtSightingLevel = false,
   locations = [],
   allowGeolocation = true,
+  allowSightingNotes = true,
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
@@ -341,7 +343,7 @@ export function SightingsEditor({
                                 }}
                               />
                             )}
-                            {sighting.notes && (
+                            {allowSightingNotes && sighting.notes && (
                               <Tooltip title={sighting.notes} arrow>
                                 <Chip
                                   icon={<StickyNote2Outlined sx={{ fontSize: 14 }} />}
@@ -425,6 +427,7 @@ export function SightingsEditor({
           locationAtSightingLevel={locationAtSightingLevel}
           locations={locations}
           allowGeolocation={allowGeolocation}
+          allowSightingNotes={allowSightingNotes}
         />
       </>
     );
@@ -445,16 +448,37 @@ export function SightingsEditor({
 
       {/* Calculate grid columns based on which fields are shown */}
       {(() => {
-        // Grid columns: Species, [Location], [GPS/Spacer], Count, Notes, Delete
+        // Build grid columns dynamically: Species, [Location], [GPS/Spacer], Count, [Notes], Delete
         const getGridColumns = () => {
-          if (locationAtSightingLevel && allowGeolocation) {
-            return '2fr 1.2fr 70px 60px 2fr 40px'; // 6 cols
+          const cols: string[] = [];
+
+          // Species column - flexible
+          cols.push(locationAtSightingLevel ? '2fr' : '2.5fr');
+
+          // Location column (if at sighting level)
+          if (locationAtSightingLevel) {
+            cols.push('1.2fr');
           }
-          if (locationAtSightingLevel && !allowGeolocation) {
-            return '2fr 1.2fr 60px 2.5fr 40px'; // 5 cols (no GPS)
+
+          // GPS column (if allowed) or spacer (if no location and no GPS)
+          if (allowGeolocation) {
+            cols.push('70px');
+          } else if (!locationAtSightingLevel) {
+            cols.push('70px'); // spacer
           }
-          // !locationAtSightingLevel - always show GPS or spacer
-          return '2fr 70px 60px 2.5fr 40px'; // 5 cols
+
+          // Count column - fixed small width
+          cols.push('60px');
+
+          // Notes column (if allowed) - flexible
+          if (allowSightingNotes) {
+            cols.push('2fr');
+          }
+
+          // Delete button - fixed small width
+          cols.push('40px');
+
+          return cols.join(' ');
         };
         const gridColumns = getGridColumns();
 
@@ -490,9 +514,11 @@ export function SightingsEditor({
             <Typography variant="body2" fontWeight={600} color="text.secondary">
               COUNT *
             </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.secondary">
-              NOTES
-            </Typography>
+            {allowSightingNotes && (
+              <Typography variant="body2" fontWeight={600} color="text.secondary">
+                NOTES
+              </Typography>
+            )}
             <Box /> {/* Actions column - no header needed */}
           </Box>
 
@@ -704,19 +730,21 @@ export function SightingsEditor({
                   }}
                 />
 
-                <TextField
-                  value={sighting.notes || ''}
-                  onChange={(e) => updateSighting(sighting.tempId, 'notes', e.target.value || null)}
-                  size="small"
-                  placeholder="Notes..."
-                  disabled={isEmptyLastRow}
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                      padding: '8.5px 14px'
-                    }
-                  }}
-                />
+                {allowSightingNotes && (
+                  <TextField
+                    value={sighting.notes || ''}
+                    onChange={(e) => updateSighting(sighting.tempId, 'notes', e.target.value || null)}
+                    size="small"
+                    placeholder="Notes..."
+                    disabled={isEmptyLastRow}
+                    sx={{
+                      '& .MuiInputBase-input': {
+                        fontSize: '0.875rem',
+                        padding: '8.5px 14px'
+                      }
+                    }}
+                  />
+                )}
 
                 <IconButton
                   size="small"

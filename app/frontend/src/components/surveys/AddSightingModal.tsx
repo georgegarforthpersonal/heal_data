@@ -26,6 +26,7 @@ interface AddSightingModalProps {
   locationAtSightingLevel?: boolean; // When true, show location dropdown
   locations?: Location[]; // Available locations for sighting-level selection
   allowGeolocation?: boolean; // Whether GPS location picker is shown
+  allowSightingNotes?: boolean; // Whether notes field is shown
 }
 
 /**
@@ -48,6 +49,7 @@ export function AddSightingModal({
   locationAtSightingLevel = false,
   locations = [],
   allowGeolocation = true,
+  allowSightingNotes = true,
 }: AddSightingModalProps) {
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<number | null>(initialData?.species_id || null);
   const [count, setCount] = useState<number>(initialData?.count || 1);
@@ -348,21 +350,23 @@ export function AddSightingModal({
           )}
 
           {/* Notes Input */}
-          <TextField
-            label="Notes (Optional)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            multiline
-            minRows={2}
-            maxRows={4}
-            fullWidth
-            placeholder="Add any notes about this sighting..."
-            sx={{
-              '& .MuiInputBase-input': {
-                fontSize: '16px',
-              }
-            }}
-          />
+          {allowSightingNotes && (
+            <TextField
+              label="Notes (Optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              multiline
+              minRows={2}
+              maxRows={4}
+              fullWidth
+              placeholder="Add any notes about this sighting..."
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: '16px',
+                }
+              }}
+            />
+          )}
         </Stack>
       </DialogContent>
 

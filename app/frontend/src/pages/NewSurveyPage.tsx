@@ -334,6 +334,7 @@ export function NewSurveyPage() {
 
   const locationAtSightingLevel = selectedSurveyType?.location_at_sighting_level ?? false;
   const allowGeolocation = selectedSurveyType?.allow_geolocation ?? true;
+  const allowSightingNotes = selectedSurveyType?.allow_sighting_notes ?? true;
 
   // Determine if save button should be disabled
   const hasValidSightings = draftSightings.filter((s) => s.species_id !== null && s.count > 0).length > 0;
@@ -486,6 +487,7 @@ export function NewSurveyPage() {
             locationAtSightingLevel={locationAtSightingLevel}
             locations={locations}
             allowGeolocation={allowGeolocation}
+            allowSightingNotes={allowSightingNotes}
           />
         </Paper>
       )}
