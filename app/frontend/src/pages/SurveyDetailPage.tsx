@@ -710,15 +710,41 @@ export function SurveyDetailPage() {
               </Typography>
 
               {/* Sightings Table */}
-              {sightings.length > 0 ? (
+              {(() => {
+                // Build grid columns dynamically to match edit mode
+                const getGridColumns = () => {
+                  const cols: string[] = [];
+                  // Species column - flexible
+                  cols.push(locationAtSightingLevel ? '2fr' : '2.5fr');
+                  // Location column (if at sighting level)
+                  if (locationAtSightingLevel) {
+                    cols.push('1.2fr');
+                  }
+                  // GPS column (if allowed) or spacer (if no location and no GPS)
+                  if (allowGeolocation) {
+                    cols.push('70px');
+                  } else if (!locationAtSightingLevel) {
+                    cols.push('70px'); // spacer
+                  }
+                  // Count column - fixed small width
+                  cols.push('60px');
+                  // Notes column (if allowed) - flexible
+                  if (allowSightingNotes) {
+                    cols.push('2fr');
+                  }
+                  return cols.join(' ');
+                };
+                const gridColumns = getGridColumns();
+
+                return sightings.length > 0 ? (
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
-                  {/* Table Header - Hidden on mobile */}
+                  {/* Table Header */}
                   <Box
                     sx={{
                       display: { xs: 'none', sm: 'grid' },
-                      gridTemplateColumns: '3fr 90px 1fr',
-                      gap: { sm: 1.5, md: 2 },
-                      p: { sm: 1, md: 1.5 },
+                      gridTemplateColumns: gridColumns,
+                      gap: 2,
+                      p: 1.5,
                       bgcolor: 'grey.50',
                       borderBottom: '1px solid',
                       borderColor: 'divider'
@@ -727,12 +753,27 @@ export function SurveyDetailPage() {
                     <Typography variant="body2" fontWeight={600} color="text.secondary">
                       SPECIES
                     </Typography>
-                    <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">
-                      LOCATION
-                    </Typography>
+                    {locationAtSightingLevel && (
+                      <Typography variant="body2" fontWeight={600} color="text.secondary">
+                        LOCATION
+                      </Typography>
+                    )}
+                    {allowGeolocation && (
+                      <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">
+                        GPS
+                      </Typography>
+                    )}
+                    {!allowGeolocation && !locationAtSightingLevel && (
+                      <Box /> // Empty spacer
+                    )}
                     <Typography variant="body2" fontWeight={600} color="text.secondary">
                       COUNT
                     </Typography>
+                    {allowSightingNotes && (
+                      <Typography variant="body2" fontWeight={600} color="text.secondary">
+                        NOTES
+                      </Typography>
+                    )}
                   </Box>
 
                   {/* Table Rows - Grouped by Species Type */}
@@ -764,18 +805,18 @@ export function SurveyDetailPage() {
                               borderTop: groupIndex > 0 ? '1px solid' : 'none',
                               borderColor: 'divider',
                               bgcolor: 'grey.50',
-                              px: { xs: 1, sm: 1.25, md: 1.5 },
-                              py: { xs: 0.75, sm: 1 },
+                              px: 1.5,
+                              py: 1,
                               mt: groupIndex > 0 ? 2 : 0
                             }}
                           >
                             <Stack direction="row" alignItems="center" spacing={0.75}>
-                              <SpeciesIcon sx={{ fontSize: { xs: '14px', sm: '16px' }, color: 'text.secondary' }} />
+                              <SpeciesIcon sx={{ fontSize: '16px', color: 'text.secondary' }} />
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
                                 fontWeight={600}
-                                sx={{ fontSize: { xs: '0.688rem', sm: '0.75rem' }, letterSpacing: '0.05em' }}
+                                sx={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}
                               >
                                 {formatTypeName(type)} · {groupSightings.length}
                               </Typography>
@@ -794,26 +835,26 @@ export function SurveyDetailPage() {
                           // Check for sighting-level location (e.g., transect section)
                           const hasSightingLocation = !!sighting.location_name;
 
-                          const locationTooltip = hasSightingLocation
-                            ? sighting.location_name
-                            : hasIndividualLocations
-                              ? `${individualsWithLocation.length} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
-                              : 'No location recorded';
+                          const locationTooltip = hasIndividualLocations
+                            ? `${individualsWithLocation.length} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
+                            : 'No location recorded';
 
                           return (
                             <Box
                               key={sighting.id}
                               sx={{
                                 display: 'grid',
-                                gridTemplateColumns: '3fr 90px 1fr',
-                                gap: { xs: 1, sm: 1.5, md: 2 },
-                                p: { xs: 1, sm: 1.25, md: 1.5 },
+                                gridTemplateColumns: gridColumns,
+                                gap: 2,
+                                p: 1.5,
                                 borderBottom: '1px solid',
                                 borderColor: 'divider',
+                                alignItems: 'center',
                                 '&:hover': { bgcolor: 'grey.50' }
                               }}
                             >
-                              <Typography variant="body2" sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
+                              {/* Species Column */}
+                              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
                                 {sighting.species_name ? (
                                   <>
                                     {sighting.species_name}
@@ -826,33 +867,49 @@ export function SurveyDetailPage() {
                                 )}
                               </Typography>
 
-                              {/* Location Column - Show sighting location name or GPS indicator */}
-                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, justifySelf: 'center' }}>
-                                {hasSightingLocation ? (
-                                  <Tooltip title={locationTooltip} arrow>
-                                    <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.813rem' }, color: 'text.secondary' }}>
-                                      {sighting.location_name}
-                                    </Typography>
-                                  </Tooltip>
-                                ) : hasIndividualLocations ? (
-                                  <Tooltip title={locationTooltip} arrow>
-                                    <span>
-                                      <LocationOn sx={{ fontSize: 24, color: 'primary.main' }} />
-                                    </span>
-                                  </Tooltip>
-                                ) : null}
-                              </Box>
-
-                              <Stack direction="row" alignItems="center" spacing={1}>
-                                <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
-                                  {sighting.count}
+                              {/* Location Column - when location is at sighting level */}
+                              {locationAtSightingLevel && (
+                                <Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                                  {sighting.location_name || '-'}
                                 </Typography>
-                                {allowSightingNotes && sighting.notes && (
-                                  <Tooltip title={sighting.notes} arrow>
-                                    <StickyNote2Outlined sx={{ fontSize: 18, color: 'warning.main' }} />
-                                  </Tooltip>
-                                )}
-                              </Stack>
+                              )}
+
+                              {/* GPS Column - for individual geolocation */}
+                              {allowGeolocation && (
+                                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                  {hasIndividualLocations ? (
+                                    <Tooltip title={locationTooltip} arrow>
+                                      <LocationOn sx={{ fontSize: 24, color: 'primary.main' }} />
+                                    </Tooltip>
+                                  ) : (
+                                    <Typography variant="body2" color="text.disabled">-</Typography>
+                                  )}
+                                </Box>
+                              )}
+                              {!allowGeolocation && !locationAtSightingLevel && (
+                                <Box /> // Empty spacer
+                              )}
+
+                              {/* Count Column */}
+                              <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
+                                {sighting.count}
+                              </Typography>
+
+                              {/* Notes Column */}
+                              {allowSightingNotes && (
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontSize: '0.875rem',
+                                    color: sighting.notes ? 'text.secondary' : 'text.disabled',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {sighting.notes || '-'}
+                                </Typography>
+                              )}
                             </Box>
                           );
                         })}
@@ -865,7 +922,8 @@ export function SurveyDetailPage() {
                 <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
                   No sightings recorded yet.
                 </Typography>
-              )}
+              );
+              })()}
             </>
           )}
         </Paper>

@@ -83,6 +83,7 @@ async def get_survey_type(survey_type_id: int, db: Session = Depends(get_db)):
         description=survey_type.description,
         location_at_sighting_level=survey_type.location_at_sighting_level,
         allow_geolocation=survey_type.allow_geolocation,
+        allow_sighting_notes=survey_type.allow_sighting_notes,
         icon=survey_type.icon,
         color=survey_type.color,
         is_active=survey_type.is_active,
@@ -121,6 +122,7 @@ async def create_survey_type(survey_type: SurveyTypeCreate, db: Session = Depend
         description=survey_type.description,
         location_at_sighting_level=survey_type.location_at_sighting_level,
         allow_geolocation=survey_type.allow_geolocation,
+        allow_sighting_notes=survey_type.allow_sighting_notes,
         icon=survey_type.icon,
         color=survey_type.color
     )
