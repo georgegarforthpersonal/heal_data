@@ -341,7 +341,6 @@ export function SurveyDetailPage() {
       const surveyData: Partial<Survey> = {
         date: editDate!.format('YYYY-MM-DD'),
         surveyor_ids: editSelectedSurveyors.map((s) => s.id),
-        type: 'butterfly', // Keep existing type
         notes: editNotes.trim() || null,
       };
 

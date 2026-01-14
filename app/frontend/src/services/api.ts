@@ -148,7 +148,6 @@ export interface Survey {
   temperature_celsius: string | null;
   conditions_met: boolean | null;
   notes: string | null;
-  type: string; // DEPRECATED - use species_breakdown instead
   location_id: number;
   surveyor_ids: number[];
   sightings_count: number; // Total count across all species
