@@ -203,6 +203,7 @@ export interface Sighting {
   species_scientific_name?: string | null;
   individuals?: IndividualLocation[]; // Individual locations with breeding status
   location_id?: number | null; // Location ID when location is at sighting level
+  notes?: string | null; // Optional notes for this sighting
 }
 
 /**
@@ -243,6 +244,7 @@ export interface SightingCreateRequest {
   count: number;
   individuals?: Omit<IndividualLocation, 'id'>[];
   location_id?: number | null; // Location ID when location is at sighting level
+  notes?: string | null; // Optional notes for this sighting
 }
 
 /**
@@ -321,6 +323,7 @@ export interface SurveyType {
   description: string | null;
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
+  allow_sighting_notes: boolean;
   icon: string | null;
   color: string | null;
   is_active: boolean;
@@ -342,6 +345,7 @@ export interface SurveyTypeCreate {
   description?: string;
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
+  allow_sighting_notes: boolean;
   icon?: string;
   color?: string;
   location_ids: number[];
@@ -356,6 +360,7 @@ export interface SurveyTypeUpdate {
   description?: string;
   location_at_sighting_level?: boolean;
   allow_geolocation?: boolean;
+  allow_sighting_notes?: boolean;
   icon?: string;
   color?: string;
   is_active?: boolean;

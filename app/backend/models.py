@@ -259,6 +259,7 @@ class SurveyTypeBase(SQLModel):
     description: Optional[str] = Field(None, description="Survey type description")
     location_at_sighting_level: bool = Field(default=False, description="If true, location is set per sighting; if false, per survey")
     allow_geolocation: bool = Field(default=True, description="Whether coordinates can be entered for sightings")
+    allow_sighting_notes: bool = Field(default=True, description="Whether notes can be entered for individual sightings")
     icon: Optional[str] = Field(None, max_length=50, description="Lucide icon identifier (deprecated)")
     color: Optional[str] = Field(None, max_length=20, description="Notion-style color key (e.g., 'blue', 'purple')")
 
@@ -299,6 +300,7 @@ class SurveyTypeUpdate(SQLModel):
     description: Optional[str] = None
     location_at_sighting_level: Optional[bool] = None
     allow_geolocation: Optional[bool] = None
+    allow_sighting_notes: Optional[bool] = None
     icon: Optional[str] = Field(None, max_length=50)
     color: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
@@ -406,6 +408,7 @@ class Sighting(SightingBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     survey_id: int = Field(foreign_key="survey.id")
     location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (for sighting-level locations)")
+    notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -427,6 +430,7 @@ class SightingUpdate(SQLModel):
     species_id: Optional[int] = Field(None, gt=0)
     count: Optional[int] = Field(None, gt=0)
     location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
+    notes: Optional[str] = Field(None, description="Optional notes for this sighting")
 
 
 class SightingRead(SightingBase):
@@ -434,6 +438,7 @@ class SightingRead(SightingBase):
     id: int
     survey_id: int
     location_id: Optional[int] = None
+    notes: Optional[str] = None
 
 
 class SightingWithDetails(SightingRead):
@@ -534,6 +539,7 @@ class IndividualLocationRead(IndividualLocationBase):
 class SightingCreate(SightingBase):
     """Model for creating a sighting with individual locations"""
     location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
+    notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
 
 

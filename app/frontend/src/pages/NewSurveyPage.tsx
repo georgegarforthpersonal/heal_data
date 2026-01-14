@@ -277,6 +277,7 @@ export function NewSurveyPage() {
             species_id: sighting.species_id!,
             count: sighting.count,
             location_id: selectedSurveyType?.location_at_sighting_level ? sighting.location_id : undefined,
+            notes: sighting.notes,
             // Include individual locations with breeding status codes
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
@@ -284,7 +285,7 @@ export function NewSurveyPage() {
               breeding_status_code: ind.breeding_status_code,
               notes: ind.notes,
             })),
-          } as any)
+          })
         )
       );
 
@@ -333,6 +334,7 @@ export function NewSurveyPage() {
 
   const locationAtSightingLevel = selectedSurveyType?.location_at_sighting_level ?? false;
   const allowGeolocation = selectedSurveyType?.allow_geolocation ?? true;
+  const allowSightingNotes = selectedSurveyType?.allow_sighting_notes ?? true;
 
   // Determine if save button should be disabled
   const hasValidSightings = draftSightings.filter((s) => s.species_id !== null && s.count > 0).length > 0;
@@ -485,6 +487,7 @@ export function NewSurveyPage() {
             locationAtSightingLevel={locationAtSightingLevel}
             locations={locations}
             allowGeolocation={allowGeolocation}
+            allowSightingNotes={allowSightingNotes}
           />
         </Paper>
       )}

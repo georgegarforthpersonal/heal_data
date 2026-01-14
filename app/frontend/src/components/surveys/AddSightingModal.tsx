@@ -10,6 +10,7 @@ export interface SightingData {
   count: number;
   individuals?: DraftIndividualLocation[];
   location_id?: number | null; // Location ID when location is at sighting level
+  notes?: string | null; // Optional notes for this sighting
 }
 
 interface AddSightingModalProps {
@@ -25,6 +26,7 @@ interface AddSightingModalProps {
   locationAtSightingLevel?: boolean; // When true, show location dropdown
   locations?: Location[]; // Available locations for sighting-level selection
   allowGeolocation?: boolean; // Whether GPS location picker is shown
+  allowSightingNotes?: boolean; // Whether notes field is shown
 }
 
 /**
@@ -47,6 +49,7 @@ export function AddSightingModal({
   locationAtSightingLevel = false,
   locations = [],
   allowGeolocation = true,
+  allowSightingNotes = true,
 }: AddSightingModalProps) {
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<number | null>(initialData?.species_id || null);
   const [count, setCount] = useState<number>(initialData?.count || 1);
@@ -56,6 +59,7 @@ export function AddSightingModal({
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
     initialData?.location_id || null
   );
+  const [notes, setNotes] = useState<string>(initialData?.notes || '');
 
   // Check if selected species is a bird (for breeding status codes)
   const isBirdSpecies = useMemo(() => {
@@ -70,11 +74,13 @@ export function AddSightingModal({
       setCount(initialData.count);
       setIndividuals(initialData.individuals || []);
       setSelectedLocationId(initialData.location_id || null);
+      setNotes(initialData.notes || '');
     } else {
       setSelectedSpeciesId(null);
       setCount(1);
       setIndividuals([]);
       setSelectedLocationId(null);
+      setNotes('');
     }
   }, [initialData, open]);
 
@@ -142,12 +148,14 @@ export function AddSightingModal({
         count: Math.max(1, count),
         individuals: individuals.length > 0 ? individuals : undefined,
         location_id: locationAtSightingLevel ? selectedLocationId : undefined,
+        notes: notes.trim() || null,
       });
       // Reset for next entry
       setSelectedSpeciesId(null);
       setCount(1);
       setIndividuals([]);
       setSelectedLocationId(null);
+      setNotes('');
       onClose();
     }
   };
@@ -158,6 +166,7 @@ export function AddSightingModal({
     setCount(initialData?.count || 1);
     setIndividuals(initialData?.individuals || []);
     setSelectedLocationId(initialData?.location_id || null);
+    setNotes(initialData?.notes || '');
     onClose();
   };
 
@@ -338,6 +347,25 @@ export function AddSightingModal({
                 locationsWithBoundaries={locationsWithBoundaries}
               />
             </Box>
+          )}
+
+          {/* Notes Input */}
+          {allowSightingNotes && (
+            <TextField
+              label="Notes (Optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              multiline
+              minRows={2}
+              maxRows={4}
+              fullWidth
+              placeholder="Add any notes about this sighting..."
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: '16px',
+                }
+              }}
+            />
           )}
         </Stack>
       </DialogContent>
