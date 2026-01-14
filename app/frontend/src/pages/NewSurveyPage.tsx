@@ -277,6 +277,7 @@ export function NewSurveyPage() {
             species_id: sighting.species_id!,
             count: sighting.count,
             location_id: selectedSurveyType?.location_at_sighting_level ? sighting.location_id : undefined,
+            notes: sighting.notes,
             // Include individual locations with breeding status codes
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
@@ -284,7 +285,7 @@ export function NewSurveyPage() {
               breeding_status_code: ind.breeding_status_code,
               notes: ind.notes,
             })),
-          } as any)
+          })
         )
       );
 

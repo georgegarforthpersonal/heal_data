@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip, Tooltip } from '@mui/material';
-import { Delete, Edit, Add, LocationOnOutlined, PinDrop } from '@mui/icons-material';
+import { Delete, Edit, Add, LocationOnOutlined, PinDrop, StickyNote2Outlined } from '@mui/icons-material';
 import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
 import { AddSightingModal } from './AddSightingModal';
 import type { SightingData } from './AddSightingModal';
@@ -18,6 +18,8 @@ export interface DraftSighting {
   individuals?: DraftIndividualLocation[];
   // Location ID when location is at sighting level
   location_id?: number | null;
+  // Optional notes for this sighting
+  notes?: string | null;
 }
 
 interface SightingsEditorProps {
@@ -124,6 +126,7 @@ export function SightingsEditor({
               count: sightingData.count,
               individuals: sightingData.individuals,
               location_id: sightingData.location_id,
+              notes: sightingData.notes,
             }
           : s
       );
@@ -137,6 +140,7 @@ export function SightingsEditor({
           count: sightingData.count,
           individuals: sightingData.individuals,
           location_id: sightingData.location_id,
+          notes: sightingData.notes,
         },
       ]);
     }
@@ -337,6 +341,25 @@ export function SightingsEditor({
                                 }}
                               />
                             )}
+                            {sighting.notes && (
+                              <Tooltip title={sighting.notes} arrow>
+                                <Chip
+                                  icon={<StickyNote2Outlined sx={{ fontSize: 14 }} />}
+                                  label="Notes"
+                                  size="small"
+                                  sx={{
+                                    height: 24,
+                                    fontSize: '0.75rem',
+                                    bgcolor: 'warning.light',
+                                    color: 'warning.contrastText',
+                                    fontWeight: 500,
+                                    '& .MuiChip-icon': {
+                                      color: 'inherit',
+                                    },
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
                           </Stack>
                         </Box>
 
@@ -393,6 +416,7 @@ export function SightingsEditor({
                   count: editingSighting.count,
                   individuals: editingSighting.individuals,
                   location_id: editingSighting.location_id,
+                  notes: editingSighting.notes,
                 }
               : undefined
           }

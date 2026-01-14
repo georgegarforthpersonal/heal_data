@@ -406,6 +406,7 @@ class Sighting(SightingBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     survey_id: int = Field(foreign_key="survey.id")
     location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (for sighting-level locations)")
+    notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -427,6 +428,7 @@ class SightingUpdate(SQLModel):
     species_id: Optional[int] = Field(None, gt=0)
     count: Optional[int] = Field(None, gt=0)
     location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
+    notes: Optional[str] = Field(None, description="Optional notes for this sighting")
 
 
 class SightingRead(SightingBase):
@@ -434,6 +436,7 @@ class SightingRead(SightingBase):
     id: int
     survey_id: int
     location_id: Optional[int] = None
+    notes: Optional[str] = None
 
 
 class SightingWithDetails(SightingRead):
@@ -534,6 +537,7 @@ class IndividualLocationRead(IndividualLocationBase):
 class SightingCreate(SightingBase):
     """Model for creating a sighting with individual locations"""
     location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
+    notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
 
 

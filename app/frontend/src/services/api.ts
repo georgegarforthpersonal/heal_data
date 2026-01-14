@@ -203,6 +203,7 @@ export interface Sighting {
   species_scientific_name?: string | null;
   individuals?: IndividualLocation[]; // Individual locations with breeding status
   location_id?: number | null; // Location ID when location is at sighting level
+  notes?: string | null; // Optional notes for this sighting
 }
 
 /**
@@ -243,6 +244,7 @@ export interface SightingCreateRequest {
   count: number;
   individuals?: Omit<IndividualLocation, 'id'>[];
   location_id?: number | null; // Location ID when location is at sighting level
+  notes?: string | null; // Optional notes for this sighting
 }
 
 /**

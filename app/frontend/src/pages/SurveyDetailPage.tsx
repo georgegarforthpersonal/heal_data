@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, StickyNote2Outlined } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
@@ -307,6 +307,8 @@ export function SurveyDetailPage() {
       id: sighting.id, // Keep the real ID for updates/deletes
       // Include location_id for sighting-level location
       location_id: sighting.location_id,
+      // Include notes for this sighting
+      notes: sighting.notes,
       // Include individuals if present (from SightingWithIndividuals)
       individuals: sighting.individuals?.map((ind: any) => ({
         ...ind,
@@ -381,6 +383,7 @@ export function SurveyDetailPage() {
             species_id: sighting.species_id!,
             count: sighting.count,
             location_id: locationAtSightingLevel ? sighting.location_id : undefined,
+            notes: sighting.notes,
           });
 
           // Sync individual locations for this existing sighting
@@ -422,6 +425,7 @@ export function SurveyDetailPage() {
             species_id: sighting.species_id!,
             count: sighting.count,
             location_id: locationAtSightingLevel ? sighting.location_id : undefined,
+            notes: sighting.notes,
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
               longitude: ind.longitude,
@@ -837,9 +841,16 @@ export function SurveyDetailPage() {
                                 ) : null}
                               </Box>
 
-                              <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
-                                {sighting.count}
-                              </Typography>
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.813rem', sm: '0.875rem' } }}>
+                                  {sighting.count}
+                                </Typography>
+                                {sighting.notes && (
+                                  <Tooltip title={sighting.notes} arrow>
+                                    <StickyNote2Outlined sx={{ fontSize: 18, color: 'warning.main' }} />
+                                  </Tooltip>
+                                )}
+                              </Stack>
                             </Box>
                           );
                         })}
