@@ -297,38 +297,26 @@ def match_species(parsed_list: list[ParsedSpecies], cursor) -> tuple[list[MatchR
 def fuzzy_match_unmatched(
     unmatched: list[MatchResult],
     db_species: list[tuple],
-    dry_run: bool
 ) -> list[MatchResult]:
     """
-    Attempt fuzzy matching for unmatched species and get user approval.
+    Attempt fuzzy matching for unmatched species with individual approval.
 
     Args:
         unmatched: List of MatchResult with no_match
         db_species: List of (id, name, scientific_name, type) tuples from DB
-        dry_run: If True, skip interactive prompts
 
     Returns:
-        List of MatchResult with approved fuzzy matches (or still unmatched)
+        List of MatchResult with user-approved fuzzy matches
     """
     if not unmatched:
         return []
-
-    logger.info("\n" + "="*80)
-    logger.info("FUZZY MATCHING FOR UNMATCHED SPECIES")
-    logger.info("="*80)
-
-    if dry_run:
-        logger.info("(Skipping interactive fuzzy matching in dry-run mode)")
-        logger.info("Run with --no-dry-run to approve fuzzy matches interactively")
-        return unmatched
 
     # Build lists for fuzzy matching
     db_common_names = [(row[1], row[0], row[1]) for row in db_species if row[1]]  # (name, id, name)
     db_scientific_names = [(row[2], row[0], row[1] or row[2]) for row in db_species if row[2]]  # (sci_name, id, display_name)
 
-    results = []
-    approved_count = 0
-    rejected_count = 0
+    approved_matches = []
+    skipped = []
 
     for i, result in enumerate(unmatched, 1):
         parsed = result.parsed_species
@@ -379,7 +367,7 @@ def fuzzy_match_unmatched(
 
         if not sorted_candidates:
             logger.info("  No fuzzy matches found")
-            results.append(result)
+            skipped.append(result)
             continue
 
         # Display options
@@ -388,22 +376,21 @@ def fuzzy_match_unmatched(
             logger.info(f"    {idx}. {name} (score: {score}, matched by {match_type})")
 
         # Get user input
+        quit_all = False
         while True:
             response = input("  Enter 1-3 to accept, 's' to skip, 'q' to skip all remaining: ").strip().lower()
 
             if response == 'q':
                 # Skip all remaining
                 logger.info("  Skipping all remaining fuzzy matches")
-                results.append(result)
-                results.extend(unmatched[i:])  # Add remaining as-is
-                rejected_count += len(unmatched) - i + 1
-                logger.info(f"\nFuzzy matching complete: {approved_count} approved, {rejected_count} rejected")
-                return results
+                skipped.append(result)
+                skipped.extend(unmatched[i:])  # Add remaining as-is
+                quit_all = True
+                break
 
             if response == 's':
                 logger.info("  Skipped")
-                results.append(result)
-                rejected_count += 1
+                skipped.append(result)
                 break
 
             if response in ['1', '2', '3']:
@@ -411,22 +398,24 @@ def fuzzy_match_unmatched(
                 if idx < len(sorted_candidates):
                     db_id, name, score, match_type = sorted_candidates[idx]
                     logger.info(f"  Accepted: {name}")
-                    results.append(MatchResult(
+                    approved_matches.append(MatchResult(
                         parsed_species=parsed,
                         db_species_id=db_id,
                         db_species_name=name,
                         match_type="fuzzy",
                         fuzzy_score=score
                     ))
-                    approved_count += 1
                     break
                 else:
                     logger.info("  Invalid option, try again")
             else:
                 logger.info("  Invalid input. Enter 1-3, 's' to skip, or 'q' to quit")
 
-    logger.info(f"\nFuzzy matching complete: {approved_count} approved, {rejected_count} rejected")
-    return results
+        if quit_all:
+            break
+
+    logger.info(f"\nFuzzy matching complete: {len(approved_matches)} approved, {len(skipped)} skipped")
+    return approved_matches
 
 
 def display_results(results: list[MatchResult]) -> tuple[list[MatchResult], list[MatchResult]]:
@@ -491,12 +480,23 @@ def create_survey_and_sightings(
     """Create the survey and sightings in database."""
 
     if dry_run:
+        # Count match types for summary
+        exact_matches = sum(1 for r in matched_results if r.match_type in ("common_name", "scientific_name"))
+        fuzzy_matches = sum(1 for r in matched_results if r.match_type == "fuzzy")
+
         logger.info("\n" + "="*80)
         logger.info("DRY-RUN MODE - SUMMARY")
         logger.info("="*80)
         logger.info("No changes made to database.")
-        logger.info(f"Would create 1 survey dated {SURVEY_DATE}")
-        logger.info(f"Would create {len(matched_results)} sightings (count=1 each)")
+        logger.info("")
+        logger.info(f"{len(matched_results)} species would be imported:")
+        logger.info(f"  - {exact_matches} exact matches")
+        if fuzzy_matches:
+            logger.info(f"  - {fuzzy_matches} fuzzy matches (user-approved)")
+        logger.info("")
+        logger.info(f"This would create:")
+        logger.info(f"  - 1 survey (type: {SURVEY_TYPE_NAME}, date: {SURVEY_DATE})")
+        logger.info(f"  - {len(matched_results)} sightings (count=1 each)")
         logger.info("")
         logger.info("To apply changes, run with --no-dry-run flag.")
         logger.info("="*80 + "\n")
@@ -633,18 +633,15 @@ def main(dry_run: bool = True):
                 logger.info("PHASE 3: FUZZY MATCHING")
                 logger.info("="*80)
 
-                fuzzy_results = fuzzy_match_unmatched(unmatched, db_species, dry_run)
+                fuzzy_matches = fuzzy_match_unmatched(unmatched, db_species)
 
-                # Add newly matched species to matched list
-                fuzzy_matched = [r for r in fuzzy_results if r.db_species_id]
-                still_unmatched = [r for r in fuzzy_results if not r.db_species_id]
+                if fuzzy_matches:
+                    logger.info(f"\nAdded {len(fuzzy_matches)} fuzzy matches to import list")
+                    matched.extend(fuzzy_matches)
 
-                if fuzzy_matched:
-                    logger.info(f"\nAdded {len(fuzzy_matched)} fuzzy matches to import list")
-                    matched.extend(fuzzy_matched)
-
-                if still_unmatched:
-                    logger.info(f"{len(still_unmatched)} species remain unmatched and will not be imported")
+                still_unmatched_count = len(unmatched) - len(fuzzy_matches)
+                if still_unmatched_count > 0:
+                    logger.info(f"{still_unmatched_count} species remain unmatched and will not be imported")
 
             # Phase 4: Confirm and import
             if matched:
