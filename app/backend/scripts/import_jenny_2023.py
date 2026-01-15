@@ -62,8 +62,8 @@ SECTION_HEADERS = {
     "Psocoptera",
 }
 
-# Stop words that indicate end of species data
-STOP_WORDS = ["photo", "interest", "recorded"]
+# Phrases that indicate end of species data (must be at start of line)
+STOP_PHRASES = ["for interest", "here are some photos"]
 
 
 # ============================================================================
@@ -119,7 +119,7 @@ def is_section_header(text: str) -> Optional[str]:
 def should_stop_parsing(text: str) -> bool:
     """Check if we've reached content that indicates end of species data."""
     text_lower = text.lower()
-    return any(word in text_lower for word in STOP_WORDS)
+    return any(phrase in text_lower for phrase in STOP_PHRASES)
 
 
 def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
