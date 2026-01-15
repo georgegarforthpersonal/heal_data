@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from docx import Document
+from rapidfuzz import fuzz, process
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -85,7 +86,8 @@ class MatchResult:
     parsed_species: ParsedSpecies
     db_species_id: Optional[int]
     db_species_name: Optional[str]
-    match_type: str  # "common_name", "scientific_name", "no_match"
+    match_type: str  # "common_name", "scientific_name", "fuzzy", "no_match"
+    fuzzy_score: Optional[int] = None  # Score for fuzzy matches (0-100)
 
 
 # ============================================================================
@@ -224,7 +226,7 @@ def preview_parsed_data(species_list: list[ParsedSpecies], limit: int = 10):
 # MATCHING FUNCTIONS
 # ============================================================================
 
-def match_species(parsed_list: list[ParsedSpecies], cursor) -> list[MatchResult]:
+def match_species(parsed_list: list[ParsedSpecies], cursor) -> tuple[list[MatchResult], list[tuple]]:
     """
     Match parsed species against database.
 
@@ -232,6 +234,9 @@ def match_species(parsed_list: list[ParsedSpecies], cursor) -> list[MatchResult]
     1. Try exact match on Species.name (common name) - case insensitive
     2. If no match, try exact match on Species.scientific_name - case insensitive
     3. If no match, report as unmatched
+
+    Returns:
+        Tuple of (results list, db_species list for fuzzy matching)
     """
     # Load all species from database
     cursor.execute("""
@@ -286,6 +291,141 @@ def match_species(parsed_list: list[ParsedSpecies], cursor) -> list[MatchResult]
             match_type="no_match"
         ))
 
+    return results, db_species
+
+
+def fuzzy_match_unmatched(
+    unmatched: list[MatchResult],
+    db_species: list[tuple],
+    dry_run: bool
+) -> list[MatchResult]:
+    """
+    Attempt fuzzy matching for unmatched species and get user approval.
+
+    Args:
+        unmatched: List of MatchResult with no_match
+        db_species: List of (id, name, scientific_name, type) tuples from DB
+        dry_run: If True, skip interactive prompts
+
+    Returns:
+        List of MatchResult with approved fuzzy matches (or still unmatched)
+    """
+    if not unmatched:
+        return []
+
+    logger.info("\n" + "="*80)
+    logger.info("FUZZY MATCHING FOR UNMATCHED SPECIES")
+    logger.info("="*80)
+
+    if dry_run:
+        logger.info("(Skipping interactive fuzzy matching in dry-run mode)")
+        logger.info("Run with --no-dry-run to approve fuzzy matches interactively")
+        return unmatched
+
+    # Build lists for fuzzy matching
+    db_common_names = [(row[1], row[0], row[1]) for row in db_species if row[1]]  # (name, id, name)
+    db_scientific_names = [(row[2], row[0], row[1] or row[2]) for row in db_species if row[2]]  # (sci_name, id, display_name)
+
+    results = []
+    approved_count = 0
+    rejected_count = 0
+
+    for i, result in enumerate(unmatched, 1):
+        parsed = result.parsed_species
+        logger.info(f"\n[{i}/{len(unmatched)}] {parsed.common_name} ({parsed.scientific_name})")
+        logger.info(f"  Section: {parsed.section}")
+
+        # Find best matches by common name
+        common_matches = process.extract(
+            parsed.common_name,
+            [x[0] for x in db_common_names],
+            scorer=fuzz.ratio,
+            limit=3
+        )
+
+        # Find best matches by scientific name
+        scientific_matches = process.extract(
+            parsed.scientific_name,
+            [x[0] for x in db_scientific_names],
+            scorer=fuzz.ratio,
+            limit=3
+        )
+
+        # Combine and deduplicate, keeping best scores
+        candidates = {}
+
+        for match_name, score, _ in common_matches:
+            for db_name, db_id, display_name in db_common_names:
+                if db_name == match_name:
+                    key = db_id
+                    if key not in candidates or candidates[key][1] < score:
+                        candidates[key] = (display_name, score, "common name")
+                    break
+
+        for match_name, score, _ in scientific_matches:
+            for sci_name, db_id, display_name in db_scientific_names:
+                if sci_name == match_name:
+                    key = db_id
+                    if key not in candidates or candidates[key][1] < score:
+                        candidates[key] = (display_name, score, "scientific name")
+                    break
+
+        # Sort by score descending
+        sorted_candidates = sorted(
+            [(db_id, name, score, match_type) for db_id, (name, score, match_type) in candidates.items()],
+            key=lambda x: x[2],
+            reverse=True
+        )[:3]
+
+        if not sorted_candidates:
+            logger.info("  No fuzzy matches found")
+            results.append(result)
+            continue
+
+        # Display options
+        logger.info("  Suggested matches:")
+        for idx, (db_id, name, score, match_type) in enumerate(sorted_candidates, 1):
+            logger.info(f"    {idx}. {name} (score: {score}, matched by {match_type})")
+
+        # Get user input
+        while True:
+            response = input("  Enter 1-3 to accept, 's' to skip, 'q' to skip all remaining: ").strip().lower()
+
+            if response == 'q':
+                # Skip all remaining
+                logger.info("  Skipping all remaining fuzzy matches")
+                results.append(result)
+                results.extend(unmatched[i:])  # Add remaining as-is
+                rejected_count += len(unmatched) - i + 1
+                logger.info(f"\nFuzzy matching complete: {approved_count} approved, {rejected_count} rejected")
+                return results
+
+            if response == 's':
+                logger.info("  Skipped")
+                results.append(result)
+                rejected_count += 1
+                break
+
+            if response in ['1', '2', '3']:
+                idx = int(response) - 1
+                if idx < len(sorted_candidates):
+                    db_id, name, score, match_type = sorted_candidates[idx]
+                    logger.info(f"  Accepted: {name}")
+                    results.append(MatchResult(
+                        parsed_species=parsed,
+                        db_species_id=db_id,
+                        db_species_name=name,
+                        match_type="fuzzy",
+                        fuzzy_score=score
+                    ))
+                    approved_count += 1
+                    break
+                else:
+                    logger.info("  Invalid option, try again")
+            else:
+                logger.info("  Invalid input. Enter 1-3, 's' to skip, or 'q' to quit")
+
+    logger.info(f"\nFuzzy matching complete: {approved_count} approved, {rejected_count} rejected")
     return results
 
 
@@ -304,8 +444,11 @@ def display_results(results: list[MatchResult]) -> tuple[list[MatchResult], list
     # Count match types
     common_matches = sum(1 for r in matched if r.match_type == "common_name")
     scientific_matches = sum(1 for r in matched if r.match_type == "scientific_name")
+    fuzzy_matches = sum(1 for r in matched if r.match_type == "fuzzy")
     logger.info(f"  - By common name: {common_matches}")
     logger.info(f"  - By scientific name: {scientific_matches}")
+    if fuzzy_matches:
+        logger.info(f"  - By fuzzy match: {fuzzy_matches}")
 
     # Show matched species (sample)
     if matched:
@@ -313,7 +456,12 @@ def display_results(results: list[MatchResult]) -> tuple[list[MatchResult], list
         logger.info(f"MATCHED SPECIES ({len(matched)})")
         logger.info("-"*80)
         for r in matched[:20]:
-            match_indicator = "(common name)" if r.match_type == "common_name" else "(scientific name)"
+            if r.match_type == "common_name":
+                match_indicator = "(common name)"
+            elif r.match_type == "scientific_name":
+                match_indicator = "(scientific name)"
+            else:
+                match_indicator = f"(fuzzy, score={r.fuzzy_score})"
             logger.info(f"  + {r.parsed_species.common_name} -> {r.db_species_name} {match_indicator}")
         if len(matched) > 20:
             logger.info(f"  ... and {len(matched) - 20} more")
@@ -472,17 +620,36 @@ def main(dry_run: bool = True):
 
         # Phase 2: Match against database
         logger.info("\n" + "="*80)
-        logger.info("PHASE 2: MATCHING SPECIES")
+        logger.info("PHASE 2: MATCHING SPECIES (EXACT)")
         logger.info("="*80)
 
         with get_db_cursor() as cursor:
-            results = match_species(parsed_species, cursor)
+            results, db_species = match_species(parsed_species, cursor)
             matched, unmatched = display_results(results)
 
-            # Phase 3: Confirm and import
+            # Phase 3: Fuzzy match unmatched species
+            if unmatched:
+                logger.info("\n" + "="*80)
+                logger.info("PHASE 3: FUZZY MATCHING")
+                logger.info("="*80)
+
+                fuzzy_results = fuzzy_match_unmatched(unmatched, db_species, dry_run)
+
+                # Add newly matched species to matched list
+                fuzzy_matched = [r for r in fuzzy_results if r.db_species_id]
+                still_unmatched = [r for r in fuzzy_results if not r.db_species_id]
+
+                if fuzzy_matched:
+                    logger.info(f"\nAdded {len(fuzzy_matched)} fuzzy matches to import list")
+                    matched.extend(fuzzy_matched)
+
+                if still_unmatched:
+                    logger.info(f"{len(still_unmatched)} species remain unmatched and will not be imported")
+
+            # Phase 4: Confirm and import
             if matched:
                 logger.info("\n" + "="*80)
-                logger.info("PHASE 3: IMPORT")
+                logger.info("PHASE 4: IMPORT")
                 logger.info("="*80)
 
                 success = create_survey_and_sightings(cursor, matched, dry_run)
