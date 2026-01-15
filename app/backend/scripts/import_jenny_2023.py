@@ -46,23 +46,24 @@ SURVEY_LOCATION = None
 DATA_FILE = Path(__file__).parent / "data" / "Heal Somerset Appendix 2023.docx"
 
 # Section headers that indicate start of species lists
-SECTION_HEADERS = {
+# Note: some use "-" (hyphen) and some use "–" (en-dash)
+SECTION_HEADERS = [
     "Lepidoptera - Macro Moths",
     "Lepidoptera - Butterflies",
     "Coleoptera - Beetles",
     "Diptera - Flies",
+    "Trichoptera",  # Caddisflies
+    "Psocoptera",   # Bark flies/lice
     "Hemiptera - Bugs",
-    "Hymenoptera",
-    "Odonata",
-    "Orthoptera",
-    "Galls",
-    "Arachnids",
+    "Hymenoptera",  # Bees, Wasps and Ants
+    "Odonata",      # Dragonflies and Damselflies
+    "Orthoptera",   # Grasshoppers and Bush-crickets
     "Non Lepidoptera mines",
-    "Trichoptera",
-    "Psocoptera",
-}
+    "Galls",
+    "Arachnids",    # Spiders and Harvestmen
+]
 
-# Phrases that indicate end of species data (must be at start of line)
+# Phrases that indicate end of species data
 STOP_PHRASES = ["for interest", "here are some photos"]
 
 
@@ -91,27 +92,14 @@ class MatchResult:
 # PARSING FUNCTIONS
 # ============================================================================
 
-def looks_like_scientific_name(text: str) -> bool:
-    """
-    Check if text looks like a scientific name (Genus species format).
-
-    Scientific names typically:
-    - Have at least 2 words
-    - Genus is capitalized
-    - Species epithet is lowercase
-    """
-    parts = text.split()
-    if len(parts) < 2:
-        return False
-    # Genus is capitalized, species is lowercase
-    return parts[0][0].isupper() and len(parts[1]) > 0 and parts[1][0].islower()
-
-
 def is_section_header(text: str) -> Optional[str]:
-    """Check if text is a section header and return normalized version."""
-    text_stripped = text.strip()
+    """Check if text is a section header and return the matched header."""
+    # Normalize dashes (en-dash to hyphen)
+    text_normalized = text.replace('–', '-').strip()
+
     for header in SECTION_HEADERS:
-        if text_stripped.startswith(header) or header in text_stripped:
+        header_normalized = header.replace('–', '-')
+        if text_normalized.startswith(header_normalized):
             return header
     return None
 
@@ -122,58 +110,60 @@ def should_stop_parsing(text: str) -> bool:
     return any(phrase in text_lower for phrase in STOP_PHRASES)
 
 
-def extract_all_text_elements(doc) -> list[str]:
+def parse_species_line(line: str) -> Optional[tuple[str, str]]:
     """
-    Extract all text elements from a Word document, including tables.
+    Parse a line containing scientific name and common name.
 
-    Returns text in document order, handling both paragraphs and table cells.
+    Expected format: "Genus species Common Name possibly with notes"
+    Scientific name is always the first two words (Genus species).
+
+    Returns (scientific_name, common_name) or None if not parseable.
     """
-    elements = []
+    # Split on whitespace
+    parts = line.split()
+    if len(parts) < 3:
+        return None
 
-    # Iterate through the document body's XML to maintain order
-    from docx.document import Document as DocxDocument
-    from docx.oxml.ns import qn
+    # First word should be capitalized (Genus)
+    # Second word should be lowercase (species epithet)
+    if not parts[0] or not parts[0][0].isupper():
+        return None
+    if not parts[1] or not parts[1][0].islower():
+        return None
 
-    body = doc.element.body
-    for child in body:
-        if child.tag == qn('w:p'):  # Paragraph
-            text = child.text
-            if text:
-                # Get full paragraph text including runs
-                para_text = ''.join(node.text or '' for node in child.iter(qn('w:t')))
-                if para_text.strip():
-                    elements.append(para_text.strip())
-        elif child.tag == qn('w:tbl'):  # Table
-            # Process table rows
-            for row in child.iter(qn('w:tr')):
-                for cell in row.iter(qn('w:tc')):
-                    cell_text = ''.join(node.text or '' for node in cell.iter(qn('w:t')))
-                    if cell_text.strip():
-                        elements.append(cell_text.strip())
+    scientific_name = f"{parts[0]} {parts[1]}"
+    common_name = ' '.join(parts[2:])
 
-    return elements
+    # Clean up common name - remove observation notes after " – " or " - "
+    for separator in [' – ', ' - ']:
+        if separator in common_name:
+            common_name = common_name.split(separator)[0].strip()
+            break
+
+    return scientific_name, common_name
 
 
 def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
     """
     Parse the docx file and extract species records.
 
-    The document has sections followed by alternating entries:
-    scientific name, then common name (may be in tables or paragraphs).
+    Document structure:
+    - Section headers (e.g., "Lepidoptera - Macro Moths")
+    - Under each header: rows with "<scientific_name> <common_name>"
+    - Blank rows between sections
     """
     logger.info(f"Reading document: {file_path}")
 
     doc = Document(file_path)
 
-    # Extract all text elements in order (paragraphs and table cells)
-    all_text = extract_all_text_elements(doc)
-    logger.info(f"Extracted {len(all_text)} text elements from document")
-
     species_list = []
     current_section = None
-    pending_scientific_name = None
 
-    for text in all_text:
+    # Read all paragraphs from the document
+    for para in doc.paragraphs:
+        text = para.text.strip()
+
+        # Skip empty lines
         if not text:
             continue
 
@@ -186,7 +176,6 @@ def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
         section = is_section_header(text)
         if section:
             current_section = section
-            pending_scientific_name = None
             logger.debug(f"Entered section: {section}")
             continue
 
@@ -194,28 +183,15 @@ def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
         if current_section is None:
             continue
 
-        # Skip metadata lines (but allow longer common names with descriptions)
-        if text.startswith("By"):
-            continue
-
-        # Handle species entry (alternating scientific/common names)
-        if pending_scientific_name is None:
-            # This should be a scientific name
-            if looks_like_scientific_name(text):
-                pending_scientific_name = text
-        else:
-            # This should be the common name - clean up any extra whitespace
-            common_name = ' '.join(text.split())
-            # Remove trailing observation notes like "– adult daytime observation"
-            if ' – ' in common_name:
-                common_name = common_name.split(' – ')[0].strip()
-
+        # Try to parse as a species line
+        result = parse_species_line(text)
+        if result:
+            scientific_name, common_name = result
             species_list.append(ParsedSpecies(
-                scientific_name=pending_scientific_name,
+                scientific_name=scientific_name,
                 common_name=common_name,
                 section=current_section,
             ))
-            pending_scientific_name = None
 
     logger.info(f"Parsed {len(species_list)} species from document")
     return species_list
