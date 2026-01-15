@@ -122,23 +122,58 @@ def should_stop_parsing(text: str) -> bool:
     return any(phrase in text_lower for phrase in STOP_PHRASES)
 
 
+def extract_all_text_elements(doc) -> list[str]:
+    """
+    Extract all text elements from a Word document, including tables.
+
+    Returns text in document order, handling both paragraphs and table cells.
+    """
+    elements = []
+
+    # Iterate through the document body's XML to maintain order
+    from docx.document import Document as DocxDocument
+    from docx.oxml.ns import qn
+
+    body = doc.element.body
+    for child in body:
+        if child.tag == qn('w:p'):  # Paragraph
+            text = child.text
+            if text:
+                # Get full paragraph text including runs
+                para_text = ''.join(node.text or '' for node in child.iter(qn('w:t')))
+                if para_text.strip():
+                    elements.append(para_text.strip())
+        elif child.tag == qn('w:tbl'):  # Table
+            # Process table rows
+            for row in child.iter(qn('w:tr')):
+                for cell in row.iter(qn('w:tc')):
+                    cell_text = ''.join(node.text or '' for node in cell.iter(qn('w:t')))
+                    if cell_text.strip():
+                        elements.append(cell_text.strip())
+
+    return elements
+
+
 def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
     """
     Parse the docx file and extract species records.
 
-    The document has sections followed by alternating lines:
-    scientific name, then common name.
+    The document has sections followed by alternating entries:
+    scientific name, then common name (may be in tables or paragraphs).
     """
     logger.info(f"Reading document: {file_path}")
 
     doc = Document(file_path)
 
+    # Extract all text elements in order (paragraphs and table cells)
+    all_text = extract_all_text_elements(doc)
+    logger.info(f"Extracted {len(all_text)} text elements from document")
+
     species_list = []
     current_section = None
     pending_scientific_name = None
 
-    for para in doc.paragraphs:
-        text = para.text.strip()
+    for text in all_text:
         if not text:
             continue
 
@@ -159,8 +194,8 @@ def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
         if current_section is None:
             continue
 
-        # Skip metadata lines
-        if text.startswith("By") or len(text) > 100:
+        # Skip metadata lines (but allow longer common names with descriptions)
+        if text.startswith("By"):
             continue
 
         # Handle species entry (alternating scientific/common names)
@@ -169,10 +204,15 @@ def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
             if looks_like_scientific_name(text):
                 pending_scientific_name = text
         else:
-            # This should be the common name
+            # This should be the common name - clean up any extra whitespace
+            common_name = ' '.join(text.split())
+            # Remove trailing observation notes like "– adult daytime observation"
+            if ' – ' in common_name:
+                common_name = common_name.split(' – ')[0].strip()
+
             species_list.append(ParsedSpecies(
                 scientific_name=pending_scientific_name,
-                common_name=text,
+                common_name=common_name,
                 section=current_section,
             ))
             pending_scientific_name = None
