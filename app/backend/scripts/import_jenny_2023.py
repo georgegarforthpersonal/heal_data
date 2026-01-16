@@ -331,13 +331,29 @@ def fuzzy_match_unmatched(
             limit=3
         )
 
-        # Find best matches by scientific name
+        # Find best matches by scientific name (full name)
         scientific_matches = process.extract(
             parsed.scientific_name,
             [x[0] for x in db_scientific_names],
             scorer=fuzz.ratio,
             limit=3
         )
+
+        # Also try matching just the species epithet (second word) for taxonomic synonyms
+        # e.g., "Pyrophaena rosarum" should match "Platycheirus rosarum"
+        parsed_parts = parsed.scientific_name.split()
+        if len(parsed_parts) >= 2:
+            species_epithet = parsed_parts[1].lower()
+            epithet_matches = [
+                (sci_name, 85, idx)  # Give epithet matches a score of 85
+                for idx, (sci_name, db_id, display_name) in enumerate(db_scientific_names)
+                if sci_name and len(sci_name.split()) >= 2 and sci_name.split()[1].lower() == species_epithet
+            ][:3]
+            # Add epithet matches that aren't already in scientific_matches
+            existing_names = {m[0] for m in scientific_matches}
+            for match in epithet_matches:
+                if match[0] not in existing_names:
+                    scientific_matches.append(match)
 
         # Build candidate lists for each match type
         common_candidates = []
