@@ -349,7 +349,7 @@ def fuzzy_match_unmatched(
             species_epithet = parsed_parts[1].lower()
             epithet_matches = [
                 (sci_name, 85, idx)  # Give epithet matches a score of 85
-                for idx, (sci_name, db_id, display_name) in enumerate(db_scientific_names)
+                for idx, (sci_name, db_id) in enumerate(db_scientific_names)
                 if sci_name and len(sci_name.split()) >= 2 and sci_name.split()[1].lower() == species_epithet
             ][:3]
             # Add epithet matches that aren't already in scientific_matches
