@@ -311,9 +311,12 @@ def fuzzy_match_unmatched(
     if not unmatched:
         return []
 
+    # Build lookup for full species info: id -> (common_name, scientific_name)
+    species_lookup = {row[0]: (row[1], row[2]) for row in db_species}
+
     # Build lists for fuzzy matching
-    db_common_names = [(row[1], row[0], row[1]) for row in db_species if row[1]]  # (name, id, name)
-    db_scientific_names = [(row[2], row[0], row[1] or row[2]) for row in db_species if row[2]]  # (sci_name, id, display_name)
+    db_common_names = [(row[1], row[0]) for row in db_species if row[1]]  # (name, id)
+    db_scientific_names = [(row[2], row[0]) for row in db_species if row[2]]  # (sci_name, id)
 
     approved_matches = []
     skipped = []
@@ -355,19 +358,21 @@ def fuzzy_match_unmatched(
                 if match[0] not in existing_names:
                     scientific_matches.append(match)
 
-        # Build candidate lists for each match type
+        # Build candidate lists for each match type: (db_id, common_name, scientific_name, score)
         common_candidates = []
         for match_name, score, _ in common_matches:
-            for db_name, db_id, display_name in db_common_names:
+            for db_name, db_id in db_common_names:
                 if db_name == match_name:
-                    common_candidates.append((db_id, display_name, score))
+                    common_name, scientific_name = species_lookup[db_id]
+                    common_candidates.append((db_id, common_name, scientific_name, score))
                     break
 
         scientific_candidates = []
         for match_name, score, _ in scientific_matches:
-            for sci_name, db_id, display_name in db_scientific_names:
+            for sci_name, db_id in db_scientific_names:
                 if sci_name == match_name:
-                    scientific_candidates.append((db_id, display_name, score))
+                    common_name, scientific_name = species_lookup[db_id]
+                    scientific_candidates.append((db_id, common_name, scientific_name, score))
                     break
 
         if not common_candidates and not scientific_candidates:
@@ -379,15 +384,15 @@ def fuzzy_match_unmatched(
         logger.info("  By common name:")
         option_num = 1
         all_options = []
-        for db_id, name, score in common_candidates:
-            logger.info(f"    {option_num}. {name} (score: {score})")
-            all_options.append((db_id, name, score, "common name"))
+        for db_id, common_name, scientific_name, score in common_candidates:
+            logger.info(f"    {option_num}. {common_name} ({scientific_name}) [score: {score:.0f}]")
+            all_options.append((db_id, common_name, scientific_name, score, "common name"))
             option_num += 1
 
         logger.info("  By scientific name:")
-        for db_id, name, score in scientific_candidates:
-            logger.info(f"    {option_num}. {name} (score: {score})")
-            all_options.append((db_id, name, score, "scientific name"))
+        for db_id, common_name, scientific_name, score in scientific_candidates:
+            logger.info(f"    {option_num}. {common_name} ({scientific_name}) [score: {score:.0f}]")
+            all_options.append((db_id, common_name, scientific_name, score, "scientific name"))
             option_num += 1
 
         max_option = len(all_options)
@@ -413,12 +418,13 @@ def fuzzy_match_unmatched(
             if response.isdigit():
                 idx = int(response) - 1
                 if 0 <= idx < max_option:
-                    db_id, name, score, match_type = all_options[idx]
-                    logger.info(f"  Accepted: {name} (matched by {match_type})")
+                    db_id, common_name, scientific_name, score, match_type = all_options[idx]
+                    display_name = common_name or scientific_name
+                    logger.info(f"  Accepted: {common_name} ({scientific_name})")
                     approved_matches.append(MatchResult(
                         parsed_species=parsed,
                         db_species_id=db_id,
-                        db_species_name=name,
+                        db_species_name=display_name,
                         match_type="fuzzy",
                         fuzzy_score=score
                     ))
