@@ -339,46 +339,47 @@ def fuzzy_match_unmatched(
             limit=3
         )
 
-        # Combine and deduplicate, keeping best scores
-        candidates = {}
-
+        # Build candidate lists for each match type
+        common_candidates = []
         for match_name, score, _ in common_matches:
             for db_name, db_id, display_name in db_common_names:
                 if db_name == match_name:
-                    key = db_id
-                    if key not in candidates or candidates[key][1] < score:
-                        candidates[key] = (display_name, score, "common name")
+                    common_candidates.append((db_id, display_name, score))
                     break
 
+        scientific_candidates = []
         for match_name, score, _ in scientific_matches:
             for sci_name, db_id, display_name in db_scientific_names:
                 if sci_name == match_name:
-                    key = db_id
-                    if key not in candidates or candidates[key][1] < score:
-                        candidates[key] = (display_name, score, "scientific name")
+                    scientific_candidates.append((db_id, display_name, score))
                     break
 
-        # Sort by score descending
-        sorted_candidates = sorted(
-            [(db_id, name, score, match_type) for db_id, (name, score, match_type) in candidates.items()],
-            key=lambda x: x[2],
-            reverse=True
-        )[:3]
-
-        if not sorted_candidates:
+        if not common_candidates and not scientific_candidates:
             logger.info("  No fuzzy matches found")
             skipped.append(result)
             continue
 
-        # Display options
-        logger.info("  Suggested matches:")
-        for idx, (db_id, name, score, match_type) in enumerate(sorted_candidates, 1):
-            logger.info(f"    {idx}. {name} (score: {score}, matched by {match_type})")
+        # Display options - common name matches first, then scientific
+        logger.info("  By common name:")
+        option_num = 1
+        all_options = []
+        for db_id, name, score in common_candidates:
+            logger.info(f"    {option_num}. {name} (score: {score})")
+            all_options.append((db_id, name, score, "common name"))
+            option_num += 1
+
+        logger.info("  By scientific name:")
+        for db_id, name, score in scientific_candidates:
+            logger.info(f"    {option_num}. {name} (score: {score})")
+            all_options.append((db_id, name, score, "scientific name"))
+            option_num += 1
+
+        max_option = len(all_options)
 
         # Get user input
         quit_all = False
         while True:
-            response = input("  Enter 1-3 to accept, 's' to skip, 'q' to skip all remaining: ").strip().lower()
+            response = input(f"  Enter 1-{max_option} to accept, 's' to skip, 'q' to skip all remaining: ").strip().lower()
 
             if response == 'q':
                 # Skip all remaining
@@ -393,11 +394,11 @@ def fuzzy_match_unmatched(
                 skipped.append(result)
                 break
 
-            if response in ['1', '2', '3']:
+            if response.isdigit():
                 idx = int(response) - 1
-                if idx < len(sorted_candidates):
-                    db_id, name, score, match_type = sorted_candidates[idx]
-                    logger.info(f"  Accepted: {name}")
+                if 0 <= idx < max_option:
+                    db_id, name, score, match_type = all_options[idx]
+                    logger.info(f"  Accepted: {name} (matched by {match_type})")
                     approved_matches.append(MatchResult(
                         parsed_species=parsed,
                         db_species_id=db_id,
@@ -407,9 +408,9 @@ def fuzzy_match_unmatched(
                     ))
                     break
                 else:
-                    logger.info("  Invalid option, try again")
+                    logger.info(f"  Invalid option. Enter 1-{max_option}, 's' to skip, or 'q' to quit")
             else:
-                logger.info("  Invalid input. Enter 1-3, 's' to skip, or 'q' to quit")
+                logger.info(f"  Invalid input. Enter 1-{max_option}, 's' to skip, or 'q' to quit")
 
         if quit_all:
             break
