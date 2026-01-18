@@ -400,9 +400,9 @@ def fuzzy_match_unmatched(
         # Get user input
         quit_all = False
         while True:
-            response = input(f"  Enter 1-{max_option} to accept, 's' to skip, 'q' to skip all remaining: ").strip().lower()
+            response = input(f"  Enter 1-{max_option} to accept, 's' to skip, 'q' to skip all, '?' to search: ").strip()
 
-            if response == 'q':
+            if response.lower() == 'q':
                 # Skip all remaining
                 logger.info("  Skipping all remaining fuzzy matches")
                 skipped.append(result)
@@ -410,10 +410,74 @@ def fuzzy_match_unmatched(
                 quit_all = True
                 break
 
-            if response == 's':
+            if response.lower() == 's':
                 logger.info("  Skipped")
                 skipped.append(result)
                 break
+
+            if response == '?':
+                # Manual search mode
+                search_term = input("  Enter search term: ").strip()
+                if not search_term:
+                    continue
+
+                logger.info(f"  Searching for: '{search_term}'")
+
+                # Search common names
+                search_common_matches = process.extract(
+                    search_term,
+                    [x[0] for x in db_common_names],
+                    scorer=fuzz.ratio,
+                    limit=3
+                )
+                # Search scientific names
+                search_scientific_matches = process.extract(
+                    search_term,
+                    [x[0] for x in db_scientific_names],
+                    scorer=fuzz.ratio,
+                    limit=3
+                )
+
+                # Build new candidate lists
+                search_common_candidates = []
+                for match_name, score, _ in search_common_matches:
+                    for db_name, db_id in db_common_names:
+                        if db_name == match_name:
+                            common_name, scientific_name = species_lookup[db_id]
+                            search_common_candidates.append((db_id, common_name, scientific_name, score))
+                            break
+
+                search_scientific_candidates = []
+                for match_name, score, _ in search_scientific_matches:
+                    for sci_name, db_id in db_scientific_names:
+                        if sci_name == match_name:
+                            common_name, scientific_name = species_lookup[db_id]
+                            search_scientific_candidates.append((db_id, common_name, scientific_name, score))
+                            break
+
+                if not search_common_candidates and not search_scientific_candidates:
+                    logger.info("  No matches found for search term")
+                    continue
+
+                # Display search results
+                logger.info("  Search results by common name:")
+                search_option_num = 1
+                search_options = []
+                for db_id, common_name, scientific_name, score in search_common_candidates:
+                    logger.info(f"    {search_option_num}. {common_name} ({scientific_name}) [score: {score:.0f}]")
+                    search_options.append((db_id, common_name, scientific_name, score, "common name"))
+                    search_option_num += 1
+
+                logger.info("  Search results by scientific name:")
+                for db_id, common_name, scientific_name, score in search_scientific_candidates:
+                    logger.info(f"    {search_option_num}. {common_name} ({scientific_name}) [score: {score:.0f}]")
+                    search_options.append((db_id, common_name, scientific_name, score, "scientific name"))
+                    search_option_num += 1
+
+                # Update options for next iteration
+                all_options = search_options
+                max_option = len(all_options)
+                continue
 
             if response.isdigit():
                 idx = int(response) - 1
@@ -432,7 +496,7 @@ def fuzzy_match_unmatched(
                 else:
                     logger.info(f"  Invalid option. Enter 1-{max_option}, 's' to skip, or 'q' to quit")
             else:
-                logger.info(f"  Invalid input. Enter 1-{max_option}, 's' to skip, or 'q' to quit")
+                logger.info(f"  Invalid input. Enter 1-{max_option}, 's' to skip, 'q' to quit, or '?' to search")
 
         if quit_all:
             break
