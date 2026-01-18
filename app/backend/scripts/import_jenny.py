@@ -1,17 +1,19 @@
 """
-Import Jenny's 2023 species data from appendix document.
+Import Jenny's species data from appendix documents.
 
 Reads species observations from a Word document and creates sightings
 against a single survey record.
 
 Usage:
-    ./dev-run import_jenny_2023.py              # Dry-run (preview only)
-    ./dev-run import_jenny_2023.py --no-dry-run # Apply to database
+    ./dev-run import_jenny.py                      # Dry-run 2023 (default)
+    ./dev-run import_jenny.py --year 2024          # Dry-run 2024
+    ./dev-run import_jenny.py --year 2024 --no-dry-run  # Apply 2024 to database
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
 
 import logging
+import re
 import sys
 from pathlib import Path
 from dataclasses import dataclass
@@ -40,32 +42,58 @@ logger = logging.getLogger(__name__)
 
 # Survey Configuration
 SURVEY_TYPE_NAME = "Jenny General Survey"
-SURVEY_DATE = "2023-12-31"
-SURVEY_LOCATION = None
 
-# Data File
-DATA_FILE = Path(__file__).parent / "data" / "Heal Somerset Appendix 2023.docx"
+# Year-specific configuration
+YEAR_CONFIG = {
+    2023: {
+        "data_file": Path(__file__).parent / "data" / "Heal Somerset Appendix 2023.docx",
+        "survey_date": "2023-12-31",
+        "survey_notes": "Jenny's 2023 species observations imported from appendix document",
+    },
+    2024: {
+        "data_file": Path(__file__).parent / "data" / "Heal Somerset Appendix 2024.docx",
+        "survey_date": "2024-12-31",
+        "survey_notes": "Jenny's 2024 species observations imported from appendix document",
+    },
+}
+
+SURVEY_LOCATION = None
 
 # Section headers that indicate start of species lists
 # Note: some use "-" (hyphen) and some use "–" (en-dash)
+# Headers are matched case-insensitively
 SECTION_HEADERS = [
+    # Lepidoptera
     "Lepidoptera - Macro Moths",
     "Lepidoptera - Butterflies",
+    # Other insects
     "Coleoptera - Beetles",
+    "Coleoptera",
     "Diptera - Flies",
-    "Trichoptera",  # Caddisflies
-    "Psocoptera",   # Bark flies/lice
+    "Diptera",
+    "Trichoptera",      # Caddisflies
+    "Psocoptera",       # Bark flies/lice
     "Hemiptera - Bugs",
-    "Hymenoptera",  # Bees, Wasps and Ants
-    "Odonata",      # Dragonflies and Damselflies
-    "Orthoptera",   # Grasshoppers and Bush-crickets
+    "Hemiptera",
+    "Hymenoptera",      # Bees, Wasps and Ants
+    "Odonata",          # Dragonflies and Damselflies
+    "Orthoptera",       # Grasshoppers and Bush-crickets
+    "Dermaptera",       # Earwigs (2024)
+    "Mecoptera",        # Scorpion Flies (2024)
+    # Non-insect invertebrates
+    "Philosciidae",     # Woodlice (2024)
+    "Arachnids",        # Spiders and Harvestmen
+    # Other taxa
     "Non Lepidoptera mines",
     "Galls",
-    "Arachnids",    # Spiders and Harvestmen
+    "Fungi",            # (2024)
 ]
 
 # Phrases that indicate end of species data
 STOP_PHRASES = ["for interest", "here are some photos"]
+
+# Regex pattern for Bradley-Fletcher numbers at start of moth lines (e.g., "54.009", "66.003")
+BRADLEY_FLETCHER_PATTERN = re.compile(r'^\d{2}\.\d{3}\s+')
 
 
 # ============================================================================
@@ -95,12 +123,15 @@ class MatchResult:
 # ============================================================================
 
 def is_section_header(text: str) -> Optional[str]:
-    """Check if text is a section header and return the matched header."""
-    # Normalize dashes (en-dash to hyphen)
-    text_normalized = text.replace('–', '-').strip()
+    """Check if text is a section header and return the matched header.
+
+    Handles both title case (2023) and uppercase (2024) headers.
+    """
+    # Normalize dashes (en-dash to hyphen) and case
+    text_normalized = text.replace('–', '-').strip().lower()
 
     for header in SECTION_HEADERS:
-        header_normalized = header.replace('–', '-')
+        header_normalized = header.replace('–', '-').lower()
         if text_normalized.startswith(header_normalized):
             return header
     return None
@@ -112,15 +143,40 @@ def should_stop_parsing(text: str) -> bool:
     return any(phrase in text_lower for phrase in STOP_PHRASES)
 
 
+def is_continuation_line(line: str) -> bool:
+    """Check if line is a continuation/note line that should be skipped.
+
+    Examples: "adult emerged 14/12", "adult emerged 15/09"
+    """
+    line_lower = line.lower().strip()
+    # Skip lines that look like continuation notes
+    if line_lower.startswith('adult emerged'):
+        return True
+    # Skip very short lines that are likely notes
+    if len(line.split()) <= 2 and not any(c.isupper() for c in line[:1]):
+        return True
+    return False
+
+
 def parse_species_line(line: str) -> Optional[tuple[str, str]]:
     """
     Parse a line containing scientific name and common name.
 
-    Expected format: "Genus species Common Name possibly with notes"
-    Scientific name is always the first two words (Genus species).
+    Expected formats:
+    - "Genus species Common Name possibly with notes"
+    - "NN.NNN Genus species Common Name" (Bradley-Fletcher number for moths)
+
+    Scientific name is always Genus species (two words).
 
     Returns (scientific_name, common_name) or None if not parseable.
     """
+    # Skip continuation lines
+    if is_continuation_line(line):
+        return None
+
+    # Strip Bradley-Fletcher numbers from the start (e.g., "54.009 ", "66.003 ")
+    line = BRADLEY_FLETCHER_PATTERN.sub('', line)
+
     # Split on whitespace
     parts = line.split()
     if len(parts) < 3:
@@ -562,9 +618,12 @@ def display_results(results: list[MatchResult]) -> tuple[list[MatchResult], list
 def create_survey_and_sightings(
     cursor,
     matched_results: list[MatchResult],
-    dry_run: bool
+    dry_run: bool,
+    year_config: dict,
 ) -> bool:
     """Create the survey and sightings in database."""
+    survey_date = year_config["survey_date"]
+    survey_notes = year_config["survey_notes"]
 
     if dry_run:
         # Count match types for summary
@@ -582,7 +641,7 @@ def create_survey_and_sightings(
             logger.info(f"  - {fuzzy_matches} fuzzy matches (user-approved)")
         logger.info("")
         logger.info(f"This would create:")
-        logger.info(f"  - 1 survey (type: {SURVEY_TYPE_NAME}, date: {SURVEY_DATE})")
+        logger.info(f"  - 1 survey (type: {SURVEY_TYPE_NAME}, date: {survey_date})")
         logger.info(f"  - {len(matched_results)} sightings (count=1 each)")
         logger.info("")
         logger.info("To apply changes, run with --no-dry-run flag.")
@@ -594,7 +653,7 @@ def create_survey_and_sightings(
     logger.info("FINAL CONFIRMATION REQUIRED")
     logger.info("="*80)
     logger.info("You are about to MODIFY THE DATABASE:")
-    logger.info(f"  - Create 1 survey (type: {SURVEY_TYPE_NAME}, date: {SURVEY_DATE})")
+    logger.info(f"  - Create 1 survey (type: {SURVEY_TYPE_NAME}, date: {survey_date})")
     logger.info(f"  - Create {len(matched_results)} sightings (count=1 each)")
     logger.info("")
     logger.info("This operation will commit changes to the database.")
@@ -623,10 +682,10 @@ def create_survey_and_sightings(
             VALUES (%s, %s, %s, %s)
             RETURNING id
         """, (
-            SURVEY_DATE,
+            survey_date,
             survey_type_id,
             SURVEY_LOCATION,
-            "Jenny's 2023 species observations imported from appendix document"
+            survey_notes,
         ))
         survey_id = cursor.fetchone()[0]
         logger.info(f"Created survey with ID {survey_id}")
@@ -651,7 +710,7 @@ def create_survey_and_sightings(
         logger.info("IMPORT SUCCESSFUL")
         logger.info("="*80)
         logger.info(f"Survey ID: {survey_id}")
-        logger.info(f"Date: {SURVEY_DATE}")
+        logger.info(f"Date: {survey_date}")
         logger.info(f"Survey Type: {SURVEY_TYPE_NAME}")
         logger.info(f"Sightings: {sightings_created}")
         logger.info("="*80 + "\n")
@@ -667,36 +726,43 @@ def create_survey_and_sightings(
 # MAIN
 # ============================================================================
 
-def main(dry_run: bool = True):
+def main(dry_run: bool = True, year: int = 2023):
     """Main script execution."""
     try:
+        # Validate year
+        if year not in YEAR_CONFIG:
+            logger.error(f"Unsupported year: {year}. Supported years: {list(YEAR_CONFIG.keys())}")
+            return 1
+
+        year_config = YEAR_CONFIG[year]
+        data_file = year_config["data_file"]
+
         # Print mode banner
+        logger.info("\n" + "="*80)
+        logger.info(f"IMPORTING JENNY'S {year} DATA")
+        logger.info("="*80)
+
         if dry_run:
-            logger.info("\n" + "="*80)
             logger.info("DRY-RUN MODE (Default)")
-            logger.info("="*80)
             logger.info("No database changes will be made.")
             logger.info("This is a safe preview of what would happen.")
             logger.info("Use --no-dry-run to apply changes to the database.")
-            logger.info("="*80 + "\n")
         else:
-            logger.info("\n" + "="*80)
             logger.info("LIVE MODE - DATABASE WRITES ENABLED")
-            logger.info("="*80)
             logger.info("This will make changes to the database!")
             logger.info("Confirmation will be required.")
-            logger.info("="*80 + "\n")
+        logger.info("="*80 + "\n")
 
         # Phase 1: Parse the docx file
         logger.info("="*80)
         logger.info("PHASE 1: PARSING DOCUMENT")
         logger.info("="*80)
 
-        if not DATA_FILE.exists():
-            logger.error(f"Data file not found: {DATA_FILE}")
+        if not data_file.exists():
+            logger.error(f"Data file not found: {data_file}")
             return 1
 
-        parsed_species = parse_docx_file(DATA_FILE)
+        parsed_species = parse_docx_file(data_file)
 
         if not parsed_species:
             logger.error("No species found in document")
@@ -736,7 +802,7 @@ def main(dry_run: bool = True):
                 logger.info("PHASE 4: IMPORT")
                 logger.info("="*80)
 
-                success = create_survey_and_sightings(cursor, matched, dry_run)
+                success = create_survey_and_sightings(cursor, matched, dry_run, year_config)
                 return 0 if success else 1
             else:
                 logger.error("No species matched - nothing to import")
@@ -752,6 +818,13 @@ def main(dry_run: bool = True):
 
 if __name__ == "__main__":
     parser = get_arg_parser(description=__doc__)
+    parser.add_argument(
+        '--year',
+        type=int,
+        default=2023,
+        choices=list(YEAR_CONFIG.keys()),
+        help='Year of data to import (default: 2023)'
+    )
     args = parser.parse_args()
-    exit_code = main(dry_run=args.dry_run)
+    exit_code = main(dry_run=args.dry_run, year=args.year)
     sys.exit(exit_code)
