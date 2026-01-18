@@ -847,9 +847,11 @@ export function SurveyDetailPage() {
                                           ind.longitude !== null && ind.longitude !== undefined
                           ) || [];
                           const hasIndividualLocations = individualsWithLocation.length > 0;
+                          const individualCount = individualsWithLocation.reduce((sum: number, ind: any) => sum + (ind.count || 1), 0);
+                          const locationCount = individualsWithLocation.length;
 
                           const locationTooltip = hasIndividualLocations
-                            ? `${individualsWithLocation.length} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
+                            ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} across ${locationCount} location${locationCount > 1 ? 's' : ''}`
                             : 'No location recorded';
 
                           return (
