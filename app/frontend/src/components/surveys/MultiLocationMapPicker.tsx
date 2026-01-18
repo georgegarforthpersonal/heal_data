@@ -16,7 +16,10 @@ import {
   FormControl,
   InputLabel,
   ListSubheader,
+  TextField,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MapIcon from '@mui/icons-material/Map';
@@ -34,6 +37,7 @@ export interface DraftIndividualLocation {
   id?: number;
   latitude: number;
   longitude: number;
+  count: number;
   breeding_status_code?: string | null;
   notes?: string | null;
 }
@@ -112,10 +116,13 @@ export default function MultiLocationMapPicker({
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
 
-  const isAtMax = maxCount !== undefined && locations.length >= maxCount;
+  // Calculate total count across all locations
+  const totalCount = locations.reduce((sum, loc) => sum + loc.count, 0);
+  const remainingCount = maxCount !== undefined ? maxCount - totalCount : undefined;
+  const isAtMax = remainingCount !== undefined && remainingCount <= 0;
   const groupedCodes = groupBreedingCodes(breedingCodes);
 
-  // Handle map click - add new individual
+  // Handle map click - add new individual location
   const handleMapClick = useCallback(
     (latlng: LatLng) => {
       if (isAtMax) return;
@@ -124,12 +131,37 @@ export default function MultiLocationMapPicker({
         tempId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         latitude: latlng.lat,
         longitude: latlng.lng,
+        count: 1,
         breeding_status_code: null,
         notes: null,
       };
       onChange([...locations, newLocation]);
     },
     [locations, onChange, isAtMax]
+  );
+
+  // Update count for a specific location
+  const handleCountChange = useCallback(
+    (tempId: string, newCount: number) => {
+      // Ensure count is at least 1
+      const validCount = Math.max(1, newCount);
+
+      // Check if new count would exceed max
+      if (maxCount !== undefined) {
+        const otherLocationsTotal = locations
+          .filter((loc) => loc.tempId !== tempId)
+          .reduce((sum, loc) => sum + loc.count, 0);
+        const maxAllowed = maxCount - otherLocationsTotal;
+        if (validCount > maxAllowed) return;
+      }
+
+      onChange(
+        locations.map((loc) =>
+          loc.tempId === tempId ? { ...loc, count: validCount } : loc
+        )
+      );
+    },
+    [locations, onChange, maxCount]
   );
 
   // Update breeding status for a specific individual
@@ -175,20 +207,23 @@ export default function MultiLocationMapPicker({
   // Get helper text based on state
   const getHelperText = () => {
     if (locations.length === 0) {
-      return 'Click on the map to add the first individual location, or use GPS.';
+      return 'Click on the map to add a location, or use GPS.';
     }
     if (isAtMax) {
-      return `Maximum of ${maxCount} individual${maxCount === 1 ? '' : 's'} reached.`;
+      return `All ${maxCount} individual${maxCount === 1 ? '' : 's'} have been assigned to locations.`;
     }
-    return 'Click on the map to add more individual locations.';
+    if (remainingCount !== undefined && remainingCount > 0) {
+      return `${remainingCount} individual${remainingCount === 1 ? '' : 's'} remaining. Click on the map to add another location.`;
+    }
+    return 'Click on the map to add more locations.';
   };
 
   // Get progress text
   const getProgressText = () => {
     if (maxCount === undefined) {
-      return `${locations.length} individual${locations.length === 1 ? '' : 's'}`;
+      return `${totalCount} individual${totalCount === 1 ? '' : 's'} across ${locations.length} location${locations.length === 1 ? '' : 's'}`;
     }
-    return `${locations.length} of ${maxCount} located`;
+    return `${totalCount} of ${maxCount} across ${locations.length} location${locations.length === 1 ? '' : 's'}`;
   };
 
   return (
@@ -317,11 +352,11 @@ export default function MultiLocationMapPicker({
                 borderLeftColor: getMarkerColor(loc.breeding_status_code, breedingCodes),
               }}
             >
-              <Stack spacing={1}>
-                {/* Header row: Individual # and delete button */}
+              <Stack spacing={1.5}>
+                {/* Header row: Location # and delete button */}
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Individual {index + 1}
+                    Location {index + 1}
                   </Typography>
                   <IconButton
                     size="small"
@@ -333,12 +368,47 @@ export default function MultiLocationMapPicker({
                   </IconButton>
                 </Stack>
 
-                {/* Location */}
+                {/* Coordinates */}
                 <Stack direction="row" alignItems="center" spacing={0.5}>
                   <LocationOnIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                   <Typography variant="body2" color="text.secondary">
                     {loc.latitude.toFixed(6)}, {loc.longitude.toFixed(6)}
                   </Typography>
+                </Stack>
+
+                {/* Count input */}
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Typography variant="body2" sx={{ minWidth: 40 }}>
+                    Count:
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleCountChange(loc.tempId, loc.count - 1)}
+                    disabled={disabled || loc.count <= 1}
+                  >
+                    <RemoveIcon fontSize="small" />
+                  </IconButton>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={loc.count}
+                    onChange={(e) => handleCountChange(loc.tempId, parseInt(e.target.value, 10) || 1)}
+                    disabled={disabled}
+                    inputProps={{ min: 1, style: { textAlign: 'center', width: 50 } }}
+                    sx={{ width: 70 }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => handleCountChange(loc.tempId, loc.count + 1)}
+                    disabled={disabled || (remainingCount !== undefined && remainingCount <= 0)}
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                  {maxCount !== undefined && (
+                    <Typography variant="caption" color="text.secondary">
+                      ({remainingCount !== undefined && remainingCount > 0 ? `${remainingCount} remaining` : 'max reached'})
+                    </Typography>
+                  )}
                 </Stack>
 
                 {/* Breeding Status (birds only) */}

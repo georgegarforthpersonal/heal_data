@@ -410,7 +410,7 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
         # Fetch individual locations for this sighting
         individuals = db.execute(text("""
             SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-                   breeding_status_code, notes
+                   count, breeding_status_code, notes
             FROM sighting_individual
             WHERE sighting_id = :sighting_id
             ORDER BY id
@@ -430,6 +430,7 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
                     "id": ind.id,
                     "latitude": ind.latitude,
                     "longitude": ind.longitude,
+                    "count": ind.count,
                     "breeding_status_code": ind.breeding_status_code,
                     "notes": ind.notes
                 }
@@ -460,6 +461,15 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
     if not survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
+    # Validate that sum of individual counts doesn't exceed sighting count
+    if sighting.individuals:
+        total_individual_count = sum(ind.count for ind in sighting.individuals)
+        if total_individual_count > sighting.count:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sum of individual counts ({total_individual_count}) exceeds sighting count ({sighting.count})"
+            )
+
     # Create sighting
     db_sighting = Sighting(
         survey_id=survey_id,
@@ -476,12 +486,13 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
     for ind in sighting.individuals:
         db.execute(
             text("""
-                INSERT INTO sighting_individual (sighting_id, coordinates, breeding_status_code, notes)
-                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :code, :notes)
+                INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes)
+                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes)
             """).bindparams(
                 sighting_id=db_sighting.id,
                 lng=ind.longitude,
                 lat=ind.latitude,
+                count=ind.count,
                 code=ind.breeding_status_code,
                 notes=ind.notes
             )
@@ -494,7 +505,7 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
     # Fetch created individuals
     individuals = db.execute(text("""
         SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-               breeding_status_code, notes
+               count, breeding_status_code, notes
         FROM sighting_individual
         WHERE sighting_id = :sighting_id
         ORDER BY id
@@ -512,6 +523,7 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
                 "id": ind.id,
                 "latitude": ind.latitude,
                 "longitude": ind.longitude,
+                "count": ind.count,
                 "breeding_status_code": ind.breeding_status_code,
                 "notes": ind.notes
             }
@@ -632,16 +644,29 @@ async def add_individual_location(
             detail=f"Sighting {sighting_id} not found for survey {survey_id}"
         )
 
+    # Validate that adding this individual won't exceed sighting count
+    existing_total = db.execute(
+        text("SELECT COALESCE(SUM(count), 0) FROM sighting_individual WHERE sighting_id = :sighting_id")
+        .bindparams(sighting_id=sighting_id)
+    ).scalar()
+
+    if existing_total + individual.count > db_sighting.count:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Adding {individual.count} individuals would exceed sighting count ({db_sighting.count}). Current total: {existing_total}"
+        )
+
     # Insert individual location
     result = db.execute(
         text("""
-            INSERT INTO sighting_individual (sighting_id, coordinates, breeding_status_code, notes)
-            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :code, :notes)
-            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, breeding_status_code, notes
+            INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes)
+            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes)
+            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes
         """).bindparams(
             sighting_id=sighting_id,
             lng=individual.longitude,
             lat=individual.latitude,
+            count=individual.count,
             code=individual.breeding_status_code,
             notes=individual.notes
         )
@@ -652,6 +677,7 @@ async def add_individual_location(
         "id": result.id,
         "latitude": result.latitude,
         "longitude": result.longitude,
+        "count": result.count,
         "breeding_status_code": result.breeding_status_code,
         "notes": result.notes
     }
@@ -691,9 +717,9 @@ async def update_individual_location(
             detail=f"Sighting {sighting_id} not found for survey {survey_id}"
         )
 
-    # Check individual exists
+    # Check individual exists and get current count
     existing = db.execute(
-        text("SELECT id FROM sighting_individual WHERE id = :id AND sighting_id = :sighting_id")
+        text("SELECT id, count FROM sighting_individual WHERE id = :id AND sighting_id = :sighting_id")
         .bindparams(id=individual_id, sighting_id=sighting_id)
     ).fetchone()
 
@@ -703,19 +729,35 @@ async def update_individual_location(
             detail=f"Individual location {individual_id} not found for sighting {sighting_id}"
         )
 
+    # Validate that updating this individual's count won't exceed sighting count
+    # Calculate: (total - current_count + new_count) <= sighting.count
+    existing_total = db.execute(
+        text("SELECT COALESCE(SUM(count), 0) FROM sighting_individual WHERE sighting_id = :sighting_id")
+        .bindparams(sighting_id=sighting_id)
+    ).scalar()
+
+    new_total = existing_total - existing.count + individual.count
+    if new_total > db_sighting.count:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Updating count to {individual.count} would exceed sighting count ({db_sighting.count}). New total would be: {new_total}"
+        )
+
     # Update individual location
     result = db.execute(
         text("""
             UPDATE sighting_individual
             SET coordinates = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
+                count = :count,
                 breeding_status_code = :code,
                 notes = :notes
             WHERE id = :id
-            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, breeding_status_code, notes
+            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes
         """).bindparams(
             id=individual_id,
             lng=individual.longitude,
             lat=individual.latitude,
+            count=individual.count,
             code=individual.breeding_status_code,
             notes=individual.notes
         )
@@ -726,6 +768,7 @@ async def update_individual_location(
         "id": result.id,
         "latitude": result.latitude,
         "longitude": result.longitude,
+        "count": result.count,
         "breeding_status_code": result.breeding_status_code,
         "notes": result.notes
     }

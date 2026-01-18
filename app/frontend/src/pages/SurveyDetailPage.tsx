@@ -415,6 +415,7 @@ export function SurveyDetailPage() {
               surveysAPI.addIndividualLocation(Number(id), sighting.id!, {
                 latitude: ind.latitude,
                 longitude: ind.longitude,
+                count: ind.count,
                 breeding_status_code: ind.breeding_status_code,
                 notes: ind.notes,
               })
@@ -430,6 +431,7 @@ export function SurveyDetailPage() {
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
               longitude: ind.longitude,
+              count: ind.count,
               breeding_status_code: ind.breeding_status_code,
               notes: ind.notes,
             })),
