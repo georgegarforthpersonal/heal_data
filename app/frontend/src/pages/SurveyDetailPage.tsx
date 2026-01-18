@@ -408,6 +408,20 @@ export function SurveyDetailPage() {
             )
           );
 
+          // Update existing individuals (those with id that are still in the list)
+          const existingIndividuals = currentIndividuals.filter((ind) => ind.id);
+          await Promise.all(
+            existingIndividuals.map((ind) =>
+              surveysAPI.updateIndividualLocation(Number(id), sighting.id!, ind.id!, {
+                latitude: ind.latitude,
+                longitude: ind.longitude,
+                count: ind.count,
+                breeding_status_code: ind.breeding_status_code,
+                notes: ind.notes,
+              })
+            )
+          );
+
           // Add new individuals (those without id)
           const newIndividuals = currentIndividuals.filter((ind) => !ind.id);
           await Promise.all(
