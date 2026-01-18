@@ -18,8 +18,6 @@ import {
   ListSubheader,
   TextField,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MapIcon from '@mui/icons-material/Map';
@@ -143,25 +141,36 @@ export default function MultiLocationMapPicker({
   // Update count for a specific location
   const handleCountChange = useCallback(
     (tempId: string, newCount: number) => {
-      // Ensure count is at least 1
-      const validCount = Math.max(1, newCount);
-
       // Check if new count would exceed max
       if (maxCount !== undefined) {
         const otherLocationsTotal = locations
           .filter((loc) => loc.tempId !== tempId)
           .reduce((sum, loc) => sum + loc.count, 0);
         const maxAllowed = maxCount - otherLocationsTotal;
-        if (validCount > maxAllowed) return;
+        if (newCount > maxAllowed) return;
       }
 
       onChange(
         locations.map((loc) =>
-          loc.tempId === tempId ? { ...loc, count: validCount } : loc
+          loc.tempId === tempId ? { ...loc, count: newCount } : loc
         )
       );
     },
     [locations, onChange, maxCount]
+  );
+
+  // Validate count on blur (ensure at least 1)
+  const handleCountBlur = useCallback(
+    (tempId: string, currentCount: number) => {
+      if (currentCount < 1) {
+        onChange(
+          locations.map((loc) =>
+            loc.tempId === tempId ? { ...loc, count: 1 } : loc
+          )
+        );
+      }
+    },
+    [locations, onChange]
   );
 
   // Update breeding status for a specific individual
@@ -378,35 +387,23 @@ export default function MultiLocationMapPicker({
 
                 {/* Count input */}
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <Typography variant="body2" sx={{ minWidth: 40 }}>
-                    Count:
-                  </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleCountChange(loc.tempId, loc.count - 1)}
-                    disabled={disabled || loc.count <= 1}
-                  >
-                    <RemoveIcon fontSize="small" />
-                  </IconButton>
                   <TextField
                     size="small"
                     type="number"
-                    value={loc.count}
-                    onChange={(e) => handleCountChange(loc.tempId, parseInt(e.target.value, 10) || 1)}
+                    label="Count"
+                    value={loc.count || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleCountChange(loc.tempId, val === '' ? 0 : parseInt(val, 10) || 0);
+                    }}
+                    onBlur={() => handleCountBlur(loc.tempId, loc.count)}
                     disabled={disabled}
-                    inputProps={{ min: 1, style: { textAlign: 'center', width: 50 } }}
-                    sx={{ width: 70 }}
+                    inputProps={{ min: 1 }}
+                    sx={{ width: 100 }}
                   />
-                  <IconButton
-                    size="small"
-                    onClick={() => handleCountChange(loc.tempId, loc.count + 1)}
-                    disabled={disabled || (remainingCount !== undefined && remainingCount <= 0)}
-                  >
-                    <AddIcon fontSize="small" />
-                  </IconButton>
                   {maxCount !== undefined && (
                     <Typography variant="caption" color="text.secondary">
-                      ({remainingCount !== undefined && remainingCount > 0 ? `${remainingCount} remaining` : 'max reached'})
+                      {remainingCount !== undefined && remainingCount > 0 ? `${remainingCount} remaining` : 'max reached'}
                     </Typography>
                   )}
                 </Stack>
