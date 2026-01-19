@@ -127,7 +127,7 @@ SPECIES_CONFIG = {
         "db_type": "moth",
         "api_filter": "taxonGroup_s:\"insect - moth\"",
         "display_name": "Moths",
-        "min_occurrence": 1000,  # Include moths with 1000+ occurrences
+        "min_occurrence": 0,  # Include moths with 1000+ occurrences
         "allowed_ranks": ["species"]  # Only species-level records
     },
     "beetles": {

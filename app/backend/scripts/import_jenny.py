@@ -1,13 +1,15 @@
 """
-Import Jenny's species data from appendix documents.
+Import Jenny's species data from appendix and report documents.
 
 Reads species observations from a Word document and creates sightings
 against a single survey record.
 
 Usage:
-    ./dev-run import_jenny.py                      # Dry-run 2023 (default)
-    ./dev-run import_jenny.py --year 2024          # Dry-run 2024
-    ./dev-run import_jenny.py --year 2024 --no-dry-run  # Apply 2024 to database
+    ./staging-run import_jenny.py                           # Dry-run 2023 (default)
+    ./staging-run import_jenny.py --year 2024               # Dry-run 2024 appendix
+    ./staging-run import_jenny.py --year micro-moth-2023    # Dry-run micro moth 2023
+    ./staging-run import_jenny.py --year micro-moth-2024    # Dry-run micro moth 2024
+    ./staging-run import_jenny.py --year 2024 --no-dry-run  # Apply 2024 to database
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
@@ -17,7 +19,7 @@ import re
 import sys
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 from docx import Document
 from rapidfuzz import fuzz, process
@@ -41,7 +43,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 # Survey Configuration
-SURVEY_TYPE_NAME = "Jenny General Survey"
+SURVEY_TYPE_NAME = "Jenny"
 
 # Year-specific configuration
 YEAR_CONFIG = {
@@ -54,6 +56,16 @@ YEAR_CONFIG = {
         "data_file": Path(__file__).parent / "data" / "Heal Somerset Appendix 2024.docx",
         "survey_date": "2024-12-31",
         "survey_notes": "Jenny's 2024 species observations imported from appendix document",
+    },
+    "micro-moth-2023": {
+        "data_file": Path(__file__).parent / "data" / "Heal Rewilding Somerset Micro Moth report 2023.docx",
+        "survey_date": "2023-12-31",
+        "survey_notes": "Jenny's 2023 micro moth observations imported from report",
+    },
+    "micro-moth-2024": {
+        "data_file": Path(__file__).parent / "data" / "Micro Moth Report 2024.docx",
+        "survey_date": "2024-12-31",
+        "survey_notes": "Jenny's 2024 micro moth observations imported from report",
     },
 }
 
@@ -87,13 +99,58 @@ SECTION_HEADERS = [
     "Non Lepidoptera mines",
     "Galls",
     "Fungi",            # (2024)
+    # Micro moth family headers (for micro moth reports)
+    "MICROPTERIGIDAE",
+    "NEPTICULIDAE",
+    "HELIOZELIDAE",
+    "ADELIDAE",
+    "TISCHERIIDAE",
+    "PSYCHIDAE",
+    "TINEIDAE",
+    "BUCCULATRICIDAE",
+    "GRACILLARIIDAE",
+    "YPONOMEUTIDAE",
+    "PLUTELLIDAE",
+    "GLYPHIPTERIGIDAE",
+    "LYONETIIDAE",
+    "PRAYDIDAE",
+    "BEDELLIIDAE",
+    "OECOPHORIDAE",
+    "CHIMABACHIDAE",
+    "PELEOPODIDAE",
+    "DEPRESSARIIDAE",
+    "GELECHIIDAE",
+    "COLEOPHORIDAE",
+    "ELACHISTIDAE",
+    "MOMPHIDAE",
+    "BLASTOBASIDAE",
+    "EPERMENIIDAE",
+    "CHOREUTIDAE",
+    "TORTRICIDAE",
+    "PYRALIDAE",
+    "CRAMBIDAE",
 ]
 
 # Phrases that indicate end of species data
-STOP_PHRASES = ["for interest", "here are some photos"]
+STOP_PHRASES = [
+    "for interest",
+    "here are some photos",
+    "small selection of photos",
+    "below is a",
+    "sources of information",
+    "acknowledgements",
+]
 
 # Regex pattern for Bradley-Fletcher numbers at start of moth lines (e.g., "54.009", "66.003")
-BRADLEY_FLETCHER_PATTERN = re.compile(r'^\d{2}\.\d{3}\s+')
+BRADLEY_FLETCHER_PATTERN = re.compile(r'^\d{1,2}\.\d{3}\s+')
+
+# Regex pattern for micro moth format: "Genus species (Common Name) – notes"
+# Captures scientific name, common name in parentheses, and optional notes after " – "
+MICRO_MOTH_PATTERN = re.compile(r'^([A-Z][a-z]+)\s+([a-z]+)\s+\(([^)]+)\)(?:\s*[–-]\s*(.+))?')
+
+# Keywords that indicate notes should be extracted (for appendix format)
+# If the text after scientific name contains any of these, extract notes
+NOTES_KEYWORDS = ['gall', 'rust', 'mine', 'fungus', 'larva']
 
 
 # ============================================================================
@@ -106,6 +163,7 @@ class ParsedSpecies:
     scientific_name: str
     common_name: str
     section: str
+    notes: Optional[str] = None
 
 
 @dataclass
@@ -146,11 +204,21 @@ def should_stop_parsing(text: str) -> bool:
 def is_continuation_line(line: str) -> bool:
     """Check if line is a continuation/note line that should be skipped.
 
-    Examples: "adult emerged 14/12", "adult emerged 15/09"
+    Examples: "adult emerged 14/12", "adult emerged 15/09", "National status – common"
     """
     line_lower = line.lower().strip()
     # Skip lines that look like continuation notes
     if line_lower.startswith('adult emerged'):
+        return True
+    # Skip National status lines (from micro moth reports)
+    if line_lower.startswith('national status'):
+        return True
+    # Skip site notes and breeding notes lines (from micro moth reports)
+    if line_lower.startswith('site notes'):
+        return True
+    if line_lower.startswith('breeding notes'):
+        return True
+    if line_lower.startswith('notes –') or line_lower.startswith('notes -'):
         return True
     # Skip very short lines that are likely notes
     if len(line.split()) <= 2 and not any(c.isupper() for c in line[:1]):
@@ -158,26 +226,40 @@ def is_continuation_line(line: str) -> bool:
     return False
 
 
-def parse_species_line(line: str) -> Optional[tuple[str, str]]:
+def parse_species_line(line: str) -> Optional[tuple[str, str, Optional[str]]]:
     """
-    Parse a line containing scientific name and common name.
+    Parse a line containing scientific name, common name, and optional notes.
 
     Expected formats:
-    - "Genus species Common Name possibly with notes"
+    - "Genus species Common Name possibly with notes" (appendix format)
     - "NN.NNN Genus species Common Name" (Bradley-Fletcher number for moths)
+    - "NN.NNN Genus species (Common Name) – notes" (micro moth report format)
 
     Scientific name is always Genus species (two words).
 
-    Returns (scientific_name, common_name) or None if not parseable.
+    Returns (scientific_name, common_name, notes) or None if not parseable.
+    Notes are:
+    - Always extracted for micro moth format
+    - Only extracted for appendix format if keywords (gall, rust, mine, fungus, larva) are present
     """
     # Skip continuation lines
     if is_continuation_line(line):
         return None
 
-    # Strip Bradley-Fletcher numbers from the start (e.g., "54.009 ", "66.003 ")
+    # Strip Bradley-Fletcher numbers from the start (e.g., "4.009 ", "66.003 ")
     line = BRADLEY_FLETCHER_PATTERN.sub('', line)
 
-    # Split on whitespace
+    # Try micro moth format first: "Genus species (Common Name) – notes"
+    micro_match = MICRO_MOTH_PATTERN.match(line)
+    if micro_match:
+        genus, species, common_name, notes = micro_match.groups()
+        scientific_name = f"{genus} {species}"
+        # Notes may be None if no " – " was found after the common name
+        if notes:
+            notes = notes.strip()
+        return scientific_name, common_name.strip(), notes
+
+    # Fall back to original format: "Genus species Common Name – notes"
     parts = line.split()
     if len(parts) < 3:
         return None
@@ -190,15 +272,31 @@ def parse_species_line(line: str) -> Optional[tuple[str, str]]:
         return None
 
     scientific_name = f"{parts[0]} {parts[1]}"
-    common_name = ' '.join(parts[2:])
+    second_column = ' '.join(parts[2:])  # Everything after scientific name
 
-    # Clean up common name - remove observation notes after " – " or " - "
+    # Check if second column contains any keywords for notes extraction
+    second_column_lower = second_column.lower()
+    has_keyword = any(keyword in second_column_lower for keyword in NOTES_KEYWORDS)
+
+    notes = None
+    common_name = second_column
+
+    # Extract notes based on separator
     for separator in [' – ', ' - ']:
-        if separator in common_name:
-            common_name = common_name.split(separator)[0].strip()
+        if separator in second_column:
+            parts_split = second_column.split(separator, 1)
+            common_name = parts_split[0].strip()
+            if has_keyword:
+                # Only include notes if keyword found
+                notes = parts_split[1].strip() if len(parts_split) > 1 else None
             break
+    else:
+        # No separator found
+        if has_keyword:
+            # If keyword present but no separator, use whole second column as notes
+            notes = second_column
 
-    return scientific_name, common_name
+    return scientific_name, common_name, notes
 
 
 def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
@@ -244,11 +342,12 @@ def parse_docx_file(file_path: Path) -> list[ParsedSpecies]:
         # Try to parse as a species line
         result = parse_species_line(text)
         if result:
-            scientific_name, common_name = result
+            scientific_name, common_name, notes = result
             species_list.append(ParsedSpecies(
                 scientific_name=scientific_name,
                 common_name=common_name,
                 section=current_section,
+                notes=notes,
             ))
 
     logger.info(f"Parsed {len(species_list)} species from document")
@@ -274,6 +373,15 @@ def preview_parsed_data(species_list: list[ParsedSpecies], limit: int = 10):
             logger.info(f"  - {sp.common_name} ({sp.scientific_name})")
         if len(species) > 3:
             logger.info(f"  ... and {len(species) - 3} more")
+
+    # Summary of notes
+    species_with_notes = [sp for sp in species_list if sp.notes]
+    logger.info(f"\nSpecies with notes: {len(species_with_notes)}/{len(species_list)}")
+    if species_with_notes:
+        logger.info("Sample notes:")
+        for sp in species_with_notes[:5]:
+            notes_preview = sp.notes[:60] + "..." if len(sp.notes) > 60 else sp.notes
+            logger.info(f"  - {sp.common_name}: {notes_preview}")
 
     logger.info("\n" + "="*80)
 
@@ -694,13 +802,14 @@ def create_survey_and_sightings(
         sightings_created = 0
         for result in matched_results:
             cursor.execute("""
-                INSERT INTO sighting (survey_id, species_id, count, location_id)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO sighting (survey_id, species_id, count, location_id, notes)
+                VALUES (%s, %s, %s, %s, %s)
             """, (
                 survey_id,
                 result.db_species_id,
                 1,  # Presence record = count of 1
-                None  # No specific location
+                None,  # No specific location
+                result.parsed_species.notes,  # Notes from parsed data
             ))
             sightings_created += 1
 
@@ -726,12 +835,12 @@ def create_survey_and_sightings(
 # MAIN
 # ============================================================================
 
-def main(dry_run: bool = True, year: int = 2023):
+def main(dry_run: bool = True, year: Union[int, str] = 2023):
     """Main script execution."""
     try:
         # Validate year
         if year not in YEAR_CONFIG:
-            logger.error(f"Unsupported year: {year}. Supported years: {list(YEAR_CONFIG.keys())}")
+            logger.error(f"Unsupported year: {year}. Supported options: {list(YEAR_CONFIG.keys())}")
             return 1
 
         year_config = YEAR_CONFIG[year]
@@ -816,14 +925,23 @@ def main(dry_run: bool = True, year: int = 2023):
         return 1
 
 
+def parse_year_arg(value: str):
+    """Parse year argument - can be integer year or string key like 'micro-moth-2023'."""
+    # Try to parse as integer first
+    try:
+        return int(value)
+    except ValueError:
+        return value
+
+
 if __name__ == "__main__":
     parser = get_arg_parser(description=__doc__)
     parser.add_argument(
         '--year',
-        type=int,
+        type=parse_year_arg,
         default=2023,
         choices=list(YEAR_CONFIG.keys()),
-        help='Year of data to import (default: 2023)'
+        help=f'Year/dataset to import. Options: {", ".join(str(k) for k in YEAR_CONFIG.keys())} (default: 2023)'
     )
     args = parser.parse_args()
     exit_code = main(dry_run=args.dry_run, year=args.year)
