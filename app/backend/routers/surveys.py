@@ -396,6 +396,7 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
         Sighting.species_id,
         Sighting.location_id,
         Sighting.count,
+        Sighting.notes,
         Species.name.label('species_name'),
         Species.scientific_name.label('species_scientific_name'),
         Location.name.label('location_name')
@@ -423,6 +424,7 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
             "location_id": row.location_id,
             "location_name": row.location_name,
             "count": row.count,
+            "notes": row.notes,
             "species_name": row.species_name,
             "species_scientific_name": row.species_scientific_name,
             "individuals": [
