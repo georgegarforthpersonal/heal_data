@@ -20,6 +20,7 @@ Usage:
     ./dev-run migrate_species.py -s insects                  # Dry-run for other insects not in above categories
     ./dev-run migrate_species.py -s mites                    # Dry-run for mites (Acari)
     ./dev-run migrate_species.py -s fungi                    # Dry-run for fungi and lichens
+    ./dev-run migrate_species.py -s woodlice                 # Dry-run for woodlice (Isopoda)
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
@@ -153,7 +154,7 @@ SPECIES_CONFIG = {
         "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
         "filter_by_order": "Hymenoptera",
         "display_name": "Bees, Wasps and Ants (Hymenoptera)",
-        "min_occurrence": 100,
+        "min_occurrence": 0,
         "allowed_ranks": ["species"],
         "require_common_name": False
     },
@@ -231,6 +232,15 @@ SPECIES_CONFIG = {
                 "require_common_name": False
             }
         ]
+    },
+    "woodlice": {
+        "db_type": "woodlouse",
+        "api_filter": "taxonGroup_s:crustacean",
+        "filter_by_order": "Isopoda",
+        "display_name": "Woodlice (Isopoda)",
+        "min_occurrence": 0,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
     }
 }
 
@@ -1627,7 +1637,7 @@ if __name__ == "__main__":
             "reptiles", "amphibians", "moths",
             "beetles", "flies", "bees-wasps-ants", "bugs",
             "dragonflies-damselflies", "grasshoppers-crickets", "insects",
-            "mites", "fungi"
+            "mites", "fungi", "woodlice"
         ],
         help="Type of species to process"
     )
