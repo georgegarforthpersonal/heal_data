@@ -749,7 +749,7 @@ def create_survey_and_sightings(
             logger.info(f"  - {fuzzy_matches} fuzzy matches (user-approved)")
         logger.info("")
         logger.info(f"This would create:")
-        logger.info(f"  - 1 survey (type: {SURVEY_TYPE_NAME}, date: {survey_date})")
+        logger.info(f"  - 1 survey (type: {SURVEY_TYPE_NAME}, date: {survey_date}, surveyor: Jenny)")
         logger.info(f"  - {len(matched_results)} sightings (count=1 each)")
         logger.info("")
         logger.info("To apply changes, run with --no-dry-run flag.")
@@ -761,7 +761,7 @@ def create_survey_and_sightings(
     logger.info("FINAL CONFIRMATION REQUIRED")
     logger.info("="*80)
     logger.info("You are about to MODIFY THE DATABASE:")
-    logger.info(f"  - Create 1 survey (type: {SURVEY_TYPE_NAME}, date: {survey_date})")
+    logger.info(f"  - Create 1 survey (type: {SURVEY_TYPE_NAME}, date: {survey_date}, surveyor: Jenny)")
     logger.info(f"  - Create {len(matched_results)} sightings (count=1 each)")
     logger.info("")
     logger.info("This operation will commit changes to the database.")
@@ -784,6 +784,16 @@ def create_survey_and_sightings(
             return False
         survey_type_id = row[0]
 
+        # Get Jenny's surveyor ID
+        cursor.execute(
+            "SELECT id FROM surveyor WHERE first_name = 'Jenny'"
+        )
+        row = cursor.fetchone()
+        if not row:
+            logger.error("Surveyor 'Jenny' not found!")
+            return False
+        jenny_surveyor_id = row[0]
+
         # Create the survey
         cursor.execute("""
             INSERT INTO survey (date, survey_type_id, location_id, notes)
@@ -797,6 +807,13 @@ def create_survey_and_sightings(
         ))
         survey_id = cursor.fetchone()[0]
         logger.info(f"Created survey with ID {survey_id}")
+
+        # Link Jenny as the surveyor
+        cursor.execute("""
+            INSERT INTO survey_surveyor (survey_id, surveyor_id)
+            VALUES (%s, %s)
+        """, (survey_id, jenny_surveyor_id))
+        logger.info(f"Linked surveyor Jenny (ID {jenny_surveyor_id}) to survey")
 
         # Create sightings
         sightings_created = 0
