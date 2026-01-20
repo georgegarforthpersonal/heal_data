@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete, Stack, Box, Typography, IconButton } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../icons/WildlifeIcons';
+import { getSpeciesIcon } from '../../config';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 
 export interface SightingData {
@@ -97,48 +97,6 @@ export function AddSightingModal({
   // Format category name for display
   const formatCategoryName = (category: string): string => {
     return category.charAt(0).toUpperCase() + category.slice(1);
-  };
-
-  // Get icon component for species type
-  const getSpeciesIcon = (type: string) => {
-    switch (type) {
-      case 'butterfly':
-        return ButterflyIcon;
-      case 'bird':
-        return BirdIcon;
-      case 'moth':
-        return MothIcon;
-      case 'beetle':
-        return BeetleIcon;
-      case 'fly':
-        return FlyIcon;
-      case 'bee-wasp-ant':
-        return BeeIcon;
-      case 'bug':
-        return BugIcon;
-      case 'dragonfly-damselfly':
-        return DragonflyIcon;
-      case 'grasshopper-cricket':
-        return GrasshopperIcon;
-      case 'insect':
-        return EarwigIcon;
-      case 'gall':
-        return LeafIcon;
-      case 'spider':
-        return SpiderIcon;
-      case 'bat':
-        return BatIcon;
-      case 'mammal':
-        return MammalIcon;
-      case 'reptile':
-        return ReptileIcon;
-      case 'amphibian':
-        return AmphibianIcon;
-      case 'fungi':
-        return MushroomIcon;
-      default:
-        return EarwigIcon;
-    }
   };
 
   const handleSave = () => {

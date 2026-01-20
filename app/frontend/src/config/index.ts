@@ -5,3 +5,4 @@
  */
 
 export * from './responsive';
+export * from './speciesTypes';

@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import { dashboardAPI, locationsAPI } from '../services/api';
 import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResponse, SpeciesSightingLocation, LocationWithBoundary } from '../services/api';
 import SightingsMap from '../components/dashboard/SightingsMap';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
+import { speciesTypes, getSpeciesIcon, getSpeciesDisplayName } from '../config';
 import { notionColors } from '../theme';
 
 /**
@@ -46,80 +46,11 @@ export function DashboardsPage() {
   const [availableSpeciesTypes, setAvailableSpeciesTypes] = useState<string[]>([]);
 
   // ============================================================================
-  // Species Type Configuration
+  // Chart Configuration
   // ============================================================================
 
-  const speciesTypes = [
-    'butterfly',
-    'bird',
-    'moth',
-    'beetle',
-    'fly',
-    'bee-wasp-ant',
-    'bug',
-    'dragonfly-damselfly',
-    'grasshopper-cricket',
-    'insect',
-    'gall',
-    'spider',
-    'bat',
-    'mammal',
-    'reptile',
-    'amphibian',
-    'fungi'
-  ];
-
-  // Map species types to icon components
-  const getSpeciesIcon = (type: string) => {
-    switch (type) {
-      case 'butterfly': return ButterflyIcon;
-      case 'bird': return BirdIcon;
-      case 'moth': return MothIcon;
-      case 'beetle': return BeetleIcon;
-      case 'fly': return FlyIcon;
-      case 'bee-wasp-ant': return BeeIcon;
-      case 'bug': return BugIcon;
-      case 'dragonfly-damselfly': return DragonflyIcon;
-      case 'grasshopper-cricket': return GrasshopperIcon;
-      case 'insect': return EarwigIcon;
-      case 'gall': return LeafIcon;
-      case 'spider': return SpiderIcon;
-      case 'bat': return BatIcon;
-      case 'mammal': return MammalIcon;
-      case 'reptile': return ReptileIcon;
-      case 'amphibian': return AmphibianIcon;
-      case 'fungi': return MushroomIcon;
-      default: return EarwigIcon;
-    }
-  };
-
-  // Chart configuration constants
   const HEAL_PURPLE = '#8B8AC7';
   const CHART_MARGIN = { top: 10, right: 10, left: 0, bottom: 0 };
-
-  // Format species type name for display
-  const formatTypeName = (type: string): string => {
-    const typeNameMap: { [key: string]: string } = {
-      'bee-wasp-ant': 'Bees, Wasps & Ants',
-      'grasshopper-cricket': 'Grasshoppers & Crickets',
-      'dragonfly-damselfly': 'Dragonflies & Damselflies',
-      'butterfly': 'Butterflies',
-      'bird': 'Birds',
-      'moth': 'Moths',
-      'beetle': 'Beetles',
-      'fly': 'Flies',
-      'bug': 'Bugs',
-      'insect': 'Insects',
-      'gall': 'Galls',
-      'spider': 'Spiders',
-      'bat': 'Bats',
-      'mammal': 'Mammals',
-      'reptile': 'Reptiles',
-      'amphibian': 'Amphibians',
-      'fungi': 'Fungi'
-    };
-    return typeNameMap[type] || type.charAt(0).toUpperCase() + type.slice(1) + 's';
-  };
 
   // Format timestamp for x-axis (Year for Jan, Month name for Apr/Jul/Oct)
   const formatXAxisTick = (timestamp: number): string => {
@@ -157,7 +88,7 @@ export function DashboardsPage() {
           {date}
         </Typography>
         <Typography variant="body2" sx={{ mb: 1 }}>
-          Total: {count} {formatTypeName(currentType).toLowerCase()}
+          Total: {count} {getSpeciesDisplayName(currentType).toLowerCase()}
         </Typography>
 
         {newSpeciesList.length > 0 && (
@@ -431,7 +362,7 @@ export function DashboardsPage() {
             const isSelected = selectedSpeciesTypes.includes(type);
 
             return (
-              <Tooltip key={type} title={formatTypeName(type)} arrow>
+              <Tooltip key={type} title={getSpeciesDisplayName(type)} arrow>
                 <IconButton
                   onClick={() => handleToggle(type)}
                   sx={{

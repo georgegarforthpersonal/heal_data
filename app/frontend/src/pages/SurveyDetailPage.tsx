@@ -8,7 +8,7 @@ import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, Breed
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
+import { getSpeciesIcon } from '../config';
 import { PageHeader } from '../components/layout/PageHeader';
 
 /**
@@ -163,50 +163,6 @@ export function SurveyDetailPage() {
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  /**
-   * Get icon component for species type
-   */
-  const getSpeciesIcon = (type: string) => {
-    switch (type) {
-      case 'butterfly':
-        return ButterflyIcon;
-      case 'bird':
-        return BirdIcon;
-      case 'moth':
-        return MothIcon;
-      case 'beetle':
-        return BeetleIcon;
-      case 'fly':
-        return FlyIcon;
-      case 'bee-wasp-ant':
-        return BeeIcon;
-      case 'bug':
-        return BugIcon;
-      case 'dragonfly-damselfly':
-        return DragonflyIcon;
-      case 'grasshopper-cricket':
-        return GrasshopperIcon;
-      case 'insect':
-        return EarwigIcon;
-      case 'gall':
-        return LeafIcon;
-      case 'spider':
-        return SpiderIcon;
-      case 'bat':
-        return BatIcon;
-      case 'mammal':
-        return MammalIcon;
-      case 'reptile':
-        return ReptileIcon;
-      case 'amphibian':
-        return AmphibianIcon;
-      case 'fungi':
-        return MushroomIcon;
-      default:
-        return EarwigIcon; // Default fallback
-    }
   };
 
   // ============================================================================
