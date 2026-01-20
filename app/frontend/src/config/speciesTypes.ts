@@ -7,6 +7,7 @@
  * - Type identifiers
  */
 
+import type { JSX } from 'react';
 import type { SvgIconProps } from '@mui/material';
 import {
   ButterflyIcon,
