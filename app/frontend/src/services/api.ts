@@ -225,6 +225,7 @@ export interface IndividualLocation {
   id?: number;
   latitude: number;
   longitude: number;
+  count: number;
   breeding_status_code?: string | null;
   notes?: string | null;
 }

@@ -503,10 +503,11 @@ export function SightingsEditor({
             const isEmpty = sighting.species_id === null;
             const isEmptyLastRow = isLastRow && isEmpty;
 
-            const individualCount = sighting.individuals?.length || 0;
-            const hasLocations = individualCount > 0;
+            const individualCount = sighting.individuals?.reduce((sum, ind) => sum + ind.count, 0) || 0;
+            const locationCount = sighting.individuals?.length || 0;
+            const hasLocations = locationCount > 0;
             const locationTooltip = hasLocations
-              ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
+              ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} across ${locationCount} location${locationCount > 1 ? 's' : ''}`
               : `Click to add locations (0 of ${sighting.count})`;
 
             return (

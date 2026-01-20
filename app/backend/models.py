@@ -501,6 +501,7 @@ class SightingIndividual(SQLModel, table=True):
             nullable=False
         )
     )
+    count: int = Field(default=1, ge=1, description="Number of individuals at this location")
     breeding_status_code: Optional[str] = Field(
         default=None,
         foreign_key="breeding_status_code.code",
@@ -522,6 +523,7 @@ class IndividualLocationBase(SQLModel):
     """Base individual location fields for API"""
     latitude: float = Field(ge=-90, le=90, description="Latitude coordinate (WGS84)")
     longitude: float = Field(ge=-180, le=180, description="Longitude coordinate (WGS84)")
+    count: int = Field(default=1, ge=1, description="Number of individuals at this location")
     breeding_status_code: Optional[str] = Field(None, max_length=2, description="BTO breeding status code")
     notes: Optional[str] = Field(None, description="Optional notes for this individual")
 

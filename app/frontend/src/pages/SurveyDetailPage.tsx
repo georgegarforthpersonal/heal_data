@@ -364,6 +364,20 @@ export function SurveyDetailPage() {
             )
           );
 
+          // Update existing individuals (those with id that are still in the list)
+          const existingIndividuals = currentIndividuals.filter((ind) => ind.id);
+          await Promise.all(
+            existingIndividuals.map((ind) =>
+              surveysAPI.updateIndividualLocation(Number(id), sighting.id!, ind.id!, {
+                latitude: ind.latitude,
+                longitude: ind.longitude,
+                count: ind.count,
+                breeding_status_code: ind.breeding_status_code,
+                notes: ind.notes,
+              })
+            )
+          );
+
           // Add new individuals (those without id)
           const newIndividuals = currentIndividuals.filter((ind) => !ind.id);
           await Promise.all(
@@ -371,6 +385,7 @@ export function SurveyDetailPage() {
               surveysAPI.addIndividualLocation(Number(id), sighting.id!, {
                 latitude: ind.latitude,
                 longitude: ind.longitude,
+                count: ind.count,
                 breeding_status_code: ind.breeding_status_code,
                 notes: ind.notes,
               })
@@ -386,6 +401,7 @@ export function SurveyDetailPage() {
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
               longitude: ind.longitude,
+              count: ind.count,
               breeding_status_code: ind.breeding_status_code,
               notes: ind.notes,
             })),
@@ -787,9 +803,11 @@ export function SurveyDetailPage() {
                                           ind.longitude !== null && ind.longitude !== undefined
                           ) || [];
                           const hasIndividualLocations = individualsWithLocation.length > 0;
+                          const individualCount = individualsWithLocation.reduce((sum: number, ind: any) => sum + (ind.count || 1), 0);
+                          const locationCount = individualsWithLocation.length;
 
                           const locationTooltip = hasIndividualLocations
-                            ? `${individualsWithLocation.length} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} located`
+                            ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} across ${locationCount} location${locationCount > 1 ? 's' : ''}`
                             : 'No location recorded';
 
                           return (
