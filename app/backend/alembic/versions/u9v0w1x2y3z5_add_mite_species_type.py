@@ -1,7 +1,7 @@
 """Add mite species type
 
-Revision ID: u9v0w1x2y3z4
-Revises: t8u9v0w1x2y3
+Revision ID: u9v0w1x2y3z5
+Revises: u9v0w1x2y3z4
 Create Date: 2026-01-17
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'u9v0w1x2y3z4'
-down_revision: Union[str, None] = 't8u9v0w1x2y3'
+revision: str = 'u9v0w1x2y3z5'
+down_revision: Union[str, None] = 'u9v0w1x2y3z4'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

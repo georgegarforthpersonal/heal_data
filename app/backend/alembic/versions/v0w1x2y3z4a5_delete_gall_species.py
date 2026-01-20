@@ -1,7 +1,7 @@
 """Delete all species of type gall
 
 Revision ID: v0w1x2y3z4a5
-Revises: u9v0w1x2y3z4
+Revises: u9v0w1x2y3z5
 Create Date: 2026-01-17
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'v0w1x2y3z4a5'
-down_revision: Union[str, None] = 'u9v0w1x2y3z4'
+down_revision: Union[str, None] = 'u9v0w1x2y3z5'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
