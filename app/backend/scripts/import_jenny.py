@@ -14,9 +14,11 @@ Usage:
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
 
+import csv
 import logging
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Union
@@ -461,7 +463,7 @@ def match_species(parsed_list: list[ParsedSpecies], cursor) -> tuple[list[MatchR
 def fuzzy_match_unmatched(
     unmatched: list[MatchResult],
     db_species: list[tuple],
-) -> list[MatchResult]:
+) -> tuple[list[MatchResult], list[MatchResult]]:
     """
     Attempt fuzzy matching for unmatched species with individual approval.
 
@@ -470,10 +472,10 @@ def fuzzy_match_unmatched(
         db_species: List of (id, name, scientific_name, type) tuples from DB
 
     Returns:
-        List of MatchResult with user-approved fuzzy matches
+        Tuple of (approved_matches, skipped) - both lists of MatchResult
     """
     if not unmatched:
-        return []
+        return [], []
 
     # Build lookup for full species info: id -> (common_name, scientific_name)
     species_lookup = {row[0]: (row[1], row[2]) for row in db_species}
@@ -666,7 +668,81 @@ def fuzzy_match_unmatched(
             break
 
     logger.info(f"\nFuzzy matching complete: {len(approved_matches)} approved, {len(skipped)} skipped")
-    return approved_matches
+    return approved_matches, skipped
+
+
+def write_mappings_csv(
+    approved: list[MatchResult],
+    skipped: list[MatchResult],
+    db_species: list[tuple],
+    year: Union[int, str],
+) -> Optional[Path]:
+    """
+    Write user-defined fuzzy mappings and skipped species to a CSV file.
+
+    Args:
+        approved: List of MatchResult that were approved via fuzzy matching
+        skipped: List of MatchResult that were skipped or had no match
+        db_species: List of (id, name, scientific_name, type) tuples from DB
+        year: The year/dataset being imported (for filename)
+
+    Returns:
+        Path to the created CSV file, or None if nothing to write
+    """
+    if not approved and not skipped:
+        return None
+
+    # Build lookup for scientific names: id -> scientific_name
+    scientific_lookup = {row[0]: row[2] for row in db_species}
+
+    # Generate filename with timestamp
+    # For integer years (2023, 2024), add "appendix" to distinguish from micro-moth
+    if isinstance(year, int):
+        dataset_name = f"appendix_{year}"
+    else:
+        dataset_name = str(year)  # e.g., "micro-moth-2023"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_filename = f"jenny_mappings_{dataset_name}_{timestamp}.csv"
+    csv_path = Path(__file__).parent / csv_filename
+
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+
+        # Write header
+        writer.writerow([
+            'original_common_name',
+            'original_scientific_name',
+            'matched_db_name',
+            'matched_db_scientific_name',
+            'fuzzy_score',
+            'status',
+        ])
+
+        # Write approved mappings
+        for result in approved:
+            matched_scientific = scientific_lookup.get(result.db_species_id, '')
+            writer.writerow([
+                result.parsed_species.common_name,
+                result.parsed_species.scientific_name,
+                result.db_species_name or '',
+                matched_scientific or '',
+                result.fuzzy_score or '',
+                'approved',
+            ])
+
+        # Write skipped species
+        for result in skipped:
+            writer.writerow([
+                result.parsed_species.common_name,
+                result.parsed_species.scientific_name,
+                '',
+                '',
+                '',
+                'skipped',
+            ])
+
+    logger.info(f"Wrote {len(approved) + len(skipped)} mappings to {csv_path}")
+    return csv_path
 
 
 def display_results(results: list[MatchResult]) -> tuple[list[MatchResult], list[MatchResult]]:
@@ -912,7 +988,7 @@ def main(dry_run: bool = True, year: Union[int, str] = 2023):
                 logger.info("PHASE 3: FUZZY MATCHING")
                 logger.info("="*80)
 
-                fuzzy_matches = fuzzy_match_unmatched(unmatched, db_species)
+                fuzzy_matches, skipped_matches = fuzzy_match_unmatched(unmatched, db_species)
 
                 if fuzzy_matches:
                     logger.info(f"\nAdded {len(fuzzy_matches)} fuzzy matches to import list")
@@ -921,6 +997,10 @@ def main(dry_run: bool = True, year: Union[int, str] = 2023):
                 still_unmatched_count = len(unmatched) - len(fuzzy_matches)
                 if still_unmatched_count > 0:
                     logger.info(f"{still_unmatched_count} species remain unmatched and will not be imported")
+
+                # Write CSV of user-defined mappings and skipped species
+                if fuzzy_matches or skipped_matches:
+                    write_mappings_csv(fuzzy_matches, skipped_matches, db_species, year)
 
             # Phase 4: Confirm and import
             if matched:
