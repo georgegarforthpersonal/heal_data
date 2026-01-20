@@ -5,7 +5,7 @@ Usage:
     ./dev-run migrate_species.py -s butterflies              # Dry-run (preview only)
     ./dev-run migrate_species.py -s butterflies --no-dry-run # Apply to database
     ./dev-run migrate_species.py -s birds --export file.json --no-dry-run
-    ./dev-run migrate_species.py -s spiders                  # Dry-run for spiders
+    ./dev-run migrate_species.py -s spiders                  # Dry-run for spiders and harvestmen
     ./dev-run migrate_species.py -s mammals                  # Dry-run for mammals
     ./dev-run migrate_species.py -s bats                     # Dry-run for bats
     ./dev-run migrate_species.py -s reptiles                 # Dry-run for reptiles
@@ -18,6 +18,9 @@ Usage:
     ./dev-run migrate_species.py -s dragonflies-damselflies  # Dry-run for Odonata
     ./dev-run migrate_species.py -s grasshoppers-crickets    # Dry-run for Orthoptera
     ./dev-run migrate_species.py -s insects                  # Dry-run for other insects not in above categories
+    ./dev-run migrate_species.py -s mites                    # Dry-run for mites (Acari)
+    ./dev-run migrate_species.py -s fungi                    # Dry-run for fungi and lichens
+    ./dev-run migrate_species.py -s woodlice                 # Dry-run for woodlice (Isopoda)
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
 """
@@ -73,10 +76,24 @@ SPECIES_CONFIG = {
     },
     "spiders": {
         "db_type": "spider",
-        "api_filter": "taxonGroup_s:\"spider (Araneae)\"",
-        "display_name": "Spiders",
-        "min_occurrence": 0,  # Include all spiders with common names
-        "allowed_ranks": ["species", "genus", "family"]  # Include family/genus (e.g., "crab spiders", "Zebra Spider")
+        "display_name": "Spiders and Harvestmen",
+        "allowed_ranks": ["species", "genus", "family"],  # Include family/genus (e.g., "crab spiders", "Zebra Spider")
+        # Subgroups allow different filter criteria for spiders vs harvestmen
+        "subgroups": [
+            {
+                "name": "Spiders",
+                "api_filter": "taxonGroup_s:\"spider (Araneae)\"",
+                "min_occurrence": 0,
+                "require_common_name": True  # Spiders need common names
+            },
+            {
+                "name": "Harvestmen",
+                "api_filter": "taxonGroup_s:\"harvestman (Opiliones)\"",
+                "min_occurrence": 0,  # Include all (NBN API returns 0 for occurrence counts in filtered queries)
+                "require_common_name": False,  # Harvestmen don't have common names in NBN
+                "allowed_ranks": ["species"]  # Only species-level records
+            }
+        ]
     },
     "mammals": {
         "db_type": "mammal",
@@ -110,7 +127,7 @@ SPECIES_CONFIG = {
         "db_type": "moth",
         "api_filter": "taxonGroup_s:\"insect - moth\"",
         "display_name": "Moths",
-        "min_occurrence": 1000,  # Include moths with 1000+ occurrences
+        "min_occurrence": 0,  # Include moths with 1000+ occurrences
         "allowed_ranks": ["species"]  # Only species-level records
     },
     "beetles": {
@@ -125,11 +142,9 @@ SPECIES_CONFIG = {
     },
     "flies": {
         "db_type": "fly",
-        "api_filter": "taxonGroup_s:insect*",
-        "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
-        "filter_by_order": "Diptera",
+        "api_filter": "taxonGroup_s:\"insect - true fly (Diptera)\"",
         "display_name": "True Flies (Diptera)",
-        "min_occurrence": 100,
+        "min_occurrence": 0,  # NBN Atlas bulk queries don't return reliable occurrence counts
         "allowed_ranks": ["species"],
         "require_common_name": False
     },
@@ -139,7 +154,7 @@ SPECIES_CONFIG = {
         "api_filter_exclude": ["taxonGroup_s:\"insect - butterfly\"", "taxonGroup_s:\"insect - moth\""],
         "filter_by_order": "Hymenoptera",
         "display_name": "Bees, Wasps and Ants (Hymenoptera)",
-        "min_occurrence": 100,
+        "min_occurrence": 0,
         "allowed_ranks": ["species"],
         "require_common_name": False
     },
@@ -188,6 +203,42 @@ SPECIES_CONFIG = {
         ],
         "display_name": "Insects (Other)",
         "min_occurrence": 100,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
+    "mites": {
+        "db_type": "mite",
+        "api_filter": "taxonGroup_s:\"acarine (Acari)\"",
+        "display_name": "Mites (Acari)",
+        "min_occurrence": 0,
+        "allowed_ranks": ["species"],
+        "require_common_name": False
+    },
+    "fungi": {
+        "db_type": "fungus",
+        "display_name": "Fungi and Lichens",
+        "allowed_ranks": ["species"],
+        "subgroups": [
+            {
+                "name": "Fungi",
+                "api_filter": "taxonGroup_s:fungus",
+                "min_occurrence": 0,
+                "require_common_name": False
+            },
+            {
+                "name": "Lichens",
+                "api_filter": "taxonGroup_s:lichen",
+                "min_occurrence": 0,
+                "require_common_name": False
+            }
+        ]
+    },
+    "woodlice": {
+        "db_type": "woodlouse",
+        "api_filter": "taxonGroup_s:crustacean",
+        "filter_by_order": "Isopoda",
+        "display_name": "Woodlice (Isopoda)",
+        "min_occurrence": 0,
         "allowed_ranks": ["species"],
         "require_common_name": False
     }
@@ -241,6 +292,12 @@ HARDCODED_MAPPINGS = {
     },
     "insects": {
         # Add other insect mappings here as needed
+    },
+    "mites": {
+        # Add mite mappings here as needed
+    },
+    "fungi": {
+        # Add fungi/lichen mappings here as needed
     }
 }
 
@@ -262,7 +319,8 @@ class APISpecies:
 class DBSpecies:
     """Species from database"""
     id: int
-    name: str
+    name: Optional[str]
+    scientific_name: Optional[str]
     conservation_status: Optional[str]
 
 
@@ -292,15 +350,10 @@ class MatchResult:
 def fetch_api_species(species_type: str) -> list[APISpecies]:
     """Fetch species from NBN Atlas API (once per run)."""
     config = SPECIES_CONFIG[species_type]
-    min_occurrence = config.get('min_occurrence', 100)
     allowed_ranks = config.get('allowed_ranks', ['species'])
-    require_common_name = config.get('require_common_name', True)
 
     logger.info(f"Fetching {config['display_name']} from NBN Atlas API...")
-    logger.info(f"Minimum occurrence threshold: {min_occurrence}")
     logger.info(f"Allowed ranks: {', '.join(allowed_ranks)}")
-    if not require_common_name:
-        logger.info(f"Including species without common names")
 
     # For 'insects' type, fetch existing species from specific insect groups to avoid duplicates
     exclude_existing = set()
@@ -309,6 +362,19 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
         exclude_existing = fetch_existing_species_scientific_names(specific_insect_types)
         if exclude_existing:
             logger.info(f"Will exclude {len(exclude_existing)} species already in specific insect groups")
+
+    # Check if config uses subgroups (for different filter criteria per taxon group)
+    subgroups = config.get('subgroups')
+    if subgroups:
+        return _fetch_api_species_with_subgroups(config, subgroups, allowed_ranks, exclude_existing, species_type)
+
+    # Standard single-group fetch
+    min_occurrence = config.get('min_occurrence', 100)
+    require_common_name = config.get('require_common_name', True)
+
+    logger.info(f"Minimum occurrence threshold: {min_occurrence}")
+    if not require_common_name:
+        logger.info(f"Including species without common names")
 
     # Build filter query list (include base filter + exclusions if any)
     filter_queries = [config['api_filter']]
@@ -325,75 +391,10 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
             page_size=100
         )
 
-        # Exclusion keywords for mammals category
-        MARINE_MAMMAL_KEYWORDS = [
-            'seal', 'whale', 'dolphin', 'porpoise', 'walrus', 'orca'
-        ]
-        BAT_KEYWORDS = [
-            'bat', 'pipistrelle', 'noctule', 'horseshoe', 'barbastelle',
-            'serotine', 'myotis', 'plecotus', 'nyctalus'
-        ]
-        MARINE_REPTILE_KEYWORDS = [
-            'turtle', 'terrapin'
-        ]
-
-        api_species = []
-        excluded_count = 0
-
-        # Get order filter if specified
-        filter_by_order = config.get('filter_by_order')
-
-        for record in raw_records:
-            rank = record.get('rank')
-            common_name = record.get('commonNameSingle', '')
-            order = record.get('order', '')
-
-            # Filter by taxonomic order if specified
-            if filter_by_order:
-                if order != filter_by_order:
-                    excluded_count += 1
-                    continue
-
-            # For mammals type, exclude marine mammals and bats
-            if species_type == "mammals" and common_name:
-                is_marine = any(kw.lower() in common_name.lower() for kw in MARINE_MAMMAL_KEYWORDS)
-                is_bat = any(kw.lower() in common_name.lower() for kw in BAT_KEYWORDS)
-
-                if is_marine or is_bat:
-                    excluded_count += 1
-                    continue
-
-            # For bats type, include ONLY bats
-            if species_type == "bats" and common_name:
-                is_bat = any(kw.lower() in common_name.lower() for kw in BAT_KEYWORDS)
-
-                if not is_bat:
-                    excluded_count += 1
-                    continue
-
-            # For reptiles type, exclude marine reptiles (turtles, terrapins)
-            if species_type == "reptiles" and common_name:
-                is_marine = any(kw.lower() in common_name.lower() for kw in MARINE_REPTILE_KEYWORDS)
-
-                if is_marine:
-                    excluded_count += 1
-                    continue
-
-            # Standard filtering
-            has_common_name = bool(record.get('commonNameSingle'))
-            meets_common_name_requirement = has_common_name or not require_common_name
-
-            if (
-                rank in allowed_ranks and
-                meets_common_name_requirement and
-                record.get('occurrenceCount', 0) >= min_occurrence
-            ):
-                api_species.append(APISpecies(
-                    common_name=record.get('commonNameSingle', ''),
-                    scientific_name=record['scientificName'],
-                    occurrence_count=record.get('occurrenceCount', 0),
-                    guid=record.get('guid')
-                ))
+        api_species = _filter_records(
+            raw_records, allowed_ranks, min_occurrence, require_common_name,
+            config, species_type
+        )
 
         # For 'insects' type, filter out species that already exist in other specific groups
         if species_type == "insects" and exclude_existing:
@@ -404,19 +405,167 @@ def fetch_api_species(species_type: str) -> list[APISpecies]:
                 logger.info(f"Excluded {filtered_count} species that already exist in other insect groups")
 
         logger.info(f"Found {len(api_species)} {config['display_name'].lower()} from API")
-        if filter_by_order and excluded_count > 0:
-            logger.info(f"Filtered to {filter_by_order} order (excluded {excluded_count} records from other orders)")
-        if species_type == "mammals" and excluded_count > 0:
-            logger.info(f"Excluded {excluded_count} marine mammals and bats")
-        if species_type == "bats" and excluded_count > 0:
-            logger.info(f"Excluded {excluded_count} non-bat mammals")
-        if species_type == "reptiles" and excluded_count > 0:
-            logger.info(f"Excluded {excluded_count} marine reptiles")
 
         return api_species
 
     finally:
         client.close()
+
+
+def _fetch_api_species_with_subgroups(
+    config: dict,
+    subgroups: list[dict],
+    allowed_ranks: list[str],
+    exclude_existing: set,
+    species_type: str
+) -> list[APISpecies]:
+    """Fetch species using subgroups with different filter criteria."""
+    all_species = []
+    seen_guids = set()  # Avoid duplicates across subgroups
+
+    client = NBNAtlasClient()
+    try:
+        for subgroup in subgroups:
+            subgroup_name = subgroup.get('name', 'Unknown')
+            api_filter = subgroup['api_filter']
+            min_occurrence = subgroup.get('min_occurrence', 100)
+            require_common_name = subgroup.get('require_common_name', True)
+            # Use subgroup-specific allowed_ranks if provided, otherwise fall back to top-level
+            subgroup_allowed_ranks = subgroup.get('allowed_ranks', allowed_ranks)
+
+            logger.info(f"  Fetching {subgroup_name}...")
+            logger.info(f"    Filter: {api_filter}")
+            logger.info(f"    Min occurrence: {min_occurrence}")
+            logger.info(f"    Allowed ranks: {', '.join(subgroup_allowed_ranks)}")
+            if not require_common_name:
+                logger.info(f"    Including species without common names")
+
+            raw_records = client.search_all(
+                query="*:*",
+                filter_query=api_filter,
+                page_size=100
+            )
+
+            subgroup_species = _filter_records(
+                raw_records, subgroup_allowed_ranks, min_occurrence, require_common_name,
+                config, species_type
+            )
+
+            # Add only unique species (by GUID)
+            added_count = 0
+            for species in subgroup_species:
+                if species.guid not in seen_guids:
+                    seen_guids.add(species.guid)
+                    all_species.append(species)
+                    added_count += 1
+
+            logger.info(f"    Found {added_count} {subgroup_name.lower()}")
+
+        # For 'insects' type, filter out species that already exist in other specific groups
+        if species_type == "insects" and exclude_existing:
+            original_count = len(all_species)
+            all_species = [s for s in all_species if s.scientific_name not in exclude_existing]
+            filtered_count = original_count - len(all_species)
+            if filtered_count > 0:
+                logger.info(f"Excluded {filtered_count} species that already exist in other insect groups")
+
+        logger.info(f"Found {len(all_species)} {config['display_name'].lower()} from API (total)")
+
+        return all_species
+
+    finally:
+        client.close()
+
+
+def _filter_records(
+    raw_records: list[dict],
+    allowed_ranks: list[str],
+    min_occurrence: int,
+    require_common_name: bool,
+    config: dict,
+    species_type: str
+) -> list[APISpecies]:
+    """Filter raw API records and convert to APISpecies objects."""
+    # Exclusion keywords for mammals category
+    MARINE_MAMMAL_KEYWORDS = [
+        'seal', 'whale', 'dolphin', 'porpoise', 'walrus', 'orca'
+    ]
+    BAT_KEYWORDS = [
+        'bat', 'pipistrelle', 'noctule', 'horseshoe', 'barbastelle',
+        'serotine', 'myotis', 'plecotus', 'nyctalus'
+    ]
+    MARINE_REPTILE_KEYWORDS = [
+        'turtle', 'terrapin'
+    ]
+
+    api_species = []
+    excluded_count = 0
+
+    # Get order filter if specified
+    filter_by_order = config.get('filter_by_order')
+
+    for record in raw_records:
+        rank = record.get('rank')
+        common_name = record.get('commonNameSingle', '')
+        order = record.get('order', '')
+
+        # Filter by taxonomic order if specified
+        if filter_by_order:
+            if order != filter_by_order:
+                excluded_count += 1
+                continue
+
+        # For mammals type, exclude marine mammals and bats
+        if species_type == "mammals" and common_name:
+            is_marine = any(kw.lower() in common_name.lower() for kw in MARINE_MAMMAL_KEYWORDS)
+            is_bat = any(kw.lower() in common_name.lower() for kw in BAT_KEYWORDS)
+
+            if is_marine or is_bat:
+                excluded_count += 1
+                continue
+
+        # For bats type, include ONLY bats
+        if species_type == "bats" and common_name:
+            is_bat = any(kw.lower() in common_name.lower() for kw in BAT_KEYWORDS)
+
+            if not is_bat:
+                excluded_count += 1
+                continue
+
+        # For reptiles type, exclude marine reptiles (turtles, terrapins)
+        if species_type == "reptiles" and common_name:
+            is_marine = any(kw.lower() in common_name.lower() for kw in MARINE_REPTILE_KEYWORDS)
+
+            if is_marine:
+                excluded_count += 1
+                continue
+
+        # Standard filtering
+        has_common_name = bool(record.get('commonNameSingle'))
+        meets_common_name_requirement = has_common_name or not require_common_name
+
+        if (
+            rank in allowed_ranks and
+            meets_common_name_requirement and
+            record.get('occurrenceCount', 0) >= min_occurrence
+        ):
+            api_species.append(APISpecies(
+                common_name=record.get('commonNameSingle', ''),
+                scientific_name=record['scientificName'],
+                occurrence_count=record.get('occurrenceCount', 0),
+                guid=record.get('guid')
+            ))
+
+    if filter_by_order and excluded_count > 0:
+        logger.info(f"Filtered to {filter_by_order} order (excluded {excluded_count} records from other orders)")
+    if species_type == "mammals" and excluded_count > 0:
+        logger.info(f"Excluded {excluded_count} marine mammals and bats")
+    if species_type == "bats" and excluded_count > 0:
+        logger.info(f"Excluded {excluded_count} non-bat mammals")
+    if species_type == "reptiles" and excluded_count > 0:
+        logger.info(f"Excluded {excluded_count} marine reptiles")
+
+    return api_species
 
 
 def fetch_existing_species_scientific_names(exclude_types: list[str]) -> set[str]:
@@ -449,7 +598,7 @@ def fetch_db_species(species_type: str) -> list[DBSpecies]:
 
     with get_db_cursor() as cursor:
         cursor.execute("""
-            SELECT id, name, conservation_status
+            SELECT id, name, scientific_name, conservation_status
             FROM species
             WHERE type = %s
             ORDER BY name
@@ -460,7 +609,8 @@ def fetch_db_species(species_type: str) -> list[DBSpecies]:
             DBSpecies(
                 id=row[0],
                 name=row[1],
-                conservation_status=row[2]
+                scientific_name=row[2],
+                conservation_status=row[3]
             )
             for row in rows
         ]
@@ -486,10 +636,22 @@ def fuzzy_match_species(
     Matches against both common names and scientific names.
     Returns the best match with score and type, plus top N candidates.
     """
-    # Check for hardcoded mapping first
+    # Handle species with no name and no scientific name
+    if not db_species.name and not db_species.scientific_name:
+        logger.warning(f"Species ID {db_species.id} has no name and no scientific name, skipping match")
+        return MatchResult(
+            db_species=db_species,
+            api_species=None,
+            match_score=0,
+            match_type="no_match",
+            matched_field=None,
+            top_candidates=[]
+        )
+
+    # Check for hardcoded mapping first (only for common names)
     search_name = db_species.name
     used_hardcoded_mapping = False
-    if db_species.name in hardcoded_mappings:
+    if db_species.name and db_species.name in hardcoded_mappings:
         search_name = hardcoded_mappings[db_species.name]
         used_hardcoded_mapping = True
 
@@ -497,26 +659,40 @@ def fuzzy_match_species(
     api_common_names = [s.common_name for s in api_species_list]
     api_scientific_names = [s.scientific_name for s in api_species_list]
 
-    # Get top matches on common name
-    common_matches = process.extract(
-        search_name,
-        api_common_names,
-        scorer=fuzz.ratio,
-        limit=top_n
-    )
-
-    # Try matching on scientific name (if DB name looks scientific)
-    words = search_name.split()
-    is_scientific = len(words) >= 2 and words[0][0].isupper()
-
-    scientific_matches = []
-    if is_scientific:
-        scientific_matches = process.extract(
+    # Get top matches on common name (if we have one)
+    common_matches = []
+    if search_name:
+        common_matches = process.extract(
             search_name,
+            api_common_names,
+            scorer=fuzz.ratio,
+            limit=top_n
+        )
+
+    # Try matching on scientific name
+    db_scientific_matches = []
+    common_as_scientific_matches = []
+
+    # Match on DB scientific name if available
+    if db_species.scientific_name:
+        db_scientific_matches = process.extract(
+            db_species.scientific_name,
             api_scientific_names,
             scorer=fuzz.ratio,
             limit=top_n
         )
+
+    # Also try matching common name against scientific names if it looks scientific
+    if search_name:
+        words = search_name.split()
+        is_scientific = len(words) >= 2 and words[0][0].isupper()
+        if is_scientific:
+            common_as_scientific_matches = process.extract(
+                search_name,
+                api_scientific_names,
+                scorer=fuzz.ratio,
+                limit=top_n
+            )
 
     # Collect all candidates
     all_candidates = []
@@ -528,7 +704,14 @@ def fuzzy_match_species(
             field="common_name"
         ))
 
-    for match in scientific_matches:
+    for match in db_scientific_matches:
+        all_candidates.append(MatchCandidate(
+            api_species=api_species_list[match[2]],
+            score=match[1],
+            field="db_scientific_name"
+        ))
+
+    for match in common_as_scientific_matches:
         all_candidates.append(MatchCandidate(
             api_species=api_species_list[match[2]],
             score=match[1],
@@ -616,6 +799,16 @@ def find_new_species(
 # PHASE 3: REPORTING & INTERACTIVE REVIEW
 # ============================================================================
 
+def get_db_species_display_name(db_species: DBSpecies) -> str:
+    """Get display name for a DB species (name or scientific name)."""
+    if db_species.name:
+        return db_species.name
+    elif db_species.scientific_name:
+        return f"[{db_species.scientific_name}]"
+    else:
+        return f"[ID: {db_species.id}]"
+
+
 def report_results(results: list[MatchResult], show_details: bool = True):
     """Print formatted report of matching results."""
     high_confidence = [r for r in results if r.match_type == "high_confidence"]
@@ -638,7 +831,9 @@ def report_results(results: list[MatchResult], show_details: bool = True):
             logger.info(f"HIGH CONFIDENCE MATCHES ({len(high_confidence)})")
             logger.info("-"*80)
             for r in high_confidence[:5]:
-                logger.info(f"✓ {r.db_species.name} → {r.api_species.common_name}")
+                db_name = get_db_species_display_name(r.db_species)
+                api_name = r.api_species.common_name or r.api_species.scientific_name
+                logger.info(f"✓ {db_name} → {api_name}")
                 logger.info(f"  Score: {r.match_score:.1f} | Field: {r.matched_field}")
             if len(high_confidence) > 5:
                 logger.info(f"  ... and {len(high_confidence) - 5} more")
@@ -649,7 +844,9 @@ def report_results(results: list[MatchResult], show_details: bool = True):
             logger.info(f"LOW CONFIDENCE MATCHES ({len(low_confidence)}) - WILL REQUIRE APPROVAL")
             logger.info("-"*80)
             for r in low_confidence:
-                logger.info(f"⚠ {r.db_species.name} → {r.api_species.common_name}")
+                db_name = get_db_species_display_name(r.db_species)
+                api_name = r.api_species.common_name or r.api_species.scientific_name
+                logger.info(f"⚠ {db_name} → {api_name}")
                 logger.info(f"  Score: {r.match_score:.1f} | Field: {r.matched_field}")
 
         # Show no matches (all) - these are problems!
@@ -658,12 +855,14 @@ def report_results(results: list[MatchResult], show_details: bool = True):
             logger.info(f"NO MATCHES FOUND ({len(no_match)}) - ACTION REQUIRED")
             logger.info("-"*80)
             for r in no_match:
-                logger.info(f"✗ {r.db_species.name} (ID: {r.db_species.id})")
+                db_name = get_db_species_display_name(r.db_species)
+                logger.info(f"✗ {db_name} (ID: {r.db_species.id})")
                 logger.info(f"  Best score: {r.match_score:.1f} (below threshold of {MATCH_THRESHOLD_LOW})")
                 if r.top_candidates:
                     logger.info(f"  Top candidates:")
                     for i, candidate in enumerate(r.top_candidates[:3], 1):
-                        logger.info(f"    {i}. {candidate.api_species.common_name} ({candidate.score:.1f})")
+                        cand_name = candidate.api_species.common_name or candidate.api_species.scientific_name
+                        logger.info(f"    {i}. {cand_name} ({candidate.score:.1f})")
 
     logger.info("\n" + "="*80)
 
@@ -694,19 +893,29 @@ def collect_hardcoded_mappings(
     new_mappings = {}
 
     for i, no_match in enumerate(no_matches, 1):
-        logger.info(f"\n[{i}/{len(no_matches)}] No match for: {no_match.db_species.name}")
+        db_name = get_db_species_display_name(no_match.db_species)
+        logger.info(f"\n[{i}/{len(no_matches)}] No match for: {db_name}")
         logger.info(f"     Best score: {no_match.match_score:.1f}")
+
+        # Skip species with no common name - they can only be matched by scientific name
+        if not no_match.db_species.name:
+            logger.info(f"     (No common name - matched by scientific name only)")
+            logger.info(f"     Scientific name: {no_match.db_species.scientific_name}")
+            logger.info(f"     Skipping - cannot add hardcoded mapping without common name")
+            continue
+
         logger.info(f"     Top candidates:")
 
         for j, candidate in enumerate(no_match.top_candidates[:5], 1):
-            logger.info(f"       [{j}] {candidate.api_species.common_name} "
+            cand_name = candidate.api_species.common_name or "[no common name]"
+            logger.info(f"       [{j}] {cand_name} "
                        f"({candidate.api_species.scientific_name}) - Score: {candidate.score:.1f}")
 
         while True:
             response = input(f"\n  Choice [1-{len(no_match.top_candidates[:5])}/custom/s]: ").strip()
 
             if response.lower() == 's':
-                logger.info(f"  Skipped: {no_match.db_species.name}")
+                logger.info(f"  Skipped: {db_name}")
                 break
             elif response.isdigit():
                 idx = int(response)
@@ -798,7 +1007,8 @@ def preview_migration(
     logger.info(f"\nHigh-confidence updates ({len(high_confidence)}):")
     logger.info("  These will be auto-approved:")
     for r in high_confidence[:10]:
-        logger.info(f"  • {r.db_species.name} (ID: {r.db_species.id})")
+        db_name = get_db_species_display_name(r.db_species)
+        logger.info(f"  • {db_name} (ID: {r.db_species.id})")
         logger.info(f"    → Scientific: {r.api_species.scientific_name}")
         logger.info(f"    → NBN GUID: {r.api_species.guid}")
     if len(high_confidence) > 10:
@@ -809,7 +1019,9 @@ def preview_migration(
         logger.info(f"\nLow-confidence updates ({len(low_confidence)}):")
         logger.info("  These will require your approval:")
         for r in low_confidence:
-            logger.info(f"  • {r.db_species.name} → {r.api_species.common_name} (score: {r.match_score:.1f})")
+            db_name = get_db_species_display_name(r.db_species)
+            api_name = r.api_species.common_name or r.api_species.scientific_name
+            logger.info(f"  • {db_name} → {api_name} (score: {r.match_score:.1f})")
 
     # New species
     if new_species:
@@ -851,8 +1063,10 @@ def review_low_confidence_matches(
 
     # Show all low-confidence matches
     for i, match in enumerate(low_confidence, 1):
-        logger.info(f"{i}. {match.db_species.name} (ID: {match.db_species.id})")
-        logger.info(f"   → Matched to: {match.api_species.common_name}")
+        db_name = get_db_species_display_name(match.db_species)
+        api_name = match.api_species.common_name or match.api_species.scientific_name
+        logger.info(f"{i}. {db_name} (ID: {match.db_species.id})")
+        logger.info(f"   → Matched to: {api_name}")
         logger.info(f"   → Scientific: {match.api_species.scientific_name}")
         logger.info(f"   → Score: {match.match_score:.1f}")
         logger.info(f"   → Field: {match.matched_field}")
@@ -860,7 +1074,8 @@ def review_low_confidence_matches(
         if match.top_candidates and len(match.top_candidates) > 1:
             logger.info(f"   → Alternatives:")
             for j, alt in enumerate(match.top_candidates[1:3], 2):
-                logger.info(f"      {j}. {alt.api_species.common_name} "
+                alt_name = alt.api_species.common_name or alt.api_species.scientific_name
+                logger.info(f"      {j}. {alt_name} "
                            f"({alt.api_species.scientific_name}) - {alt.score:.1f}")
         logger.info("")
 
@@ -884,7 +1099,9 @@ def review_low_confidence_matches(
         elif response == 'list':
             # Show condensed list
             for i, match in enumerate(low_confidence, 1):
-                logger.info(f"{i}. {match.db_species.name} → {match.api_species.common_name} ({match.match_score:.1f})")
+                db_name = get_db_species_display_name(match.db_species)
+                api_name = match.api_species.common_name or match.api_species.scientific_name
+                logger.info(f"{i}. {db_name} → {api_name} ({match.match_score:.1f})")
         else:
             logger.info("Invalid response. Please enter 'y', 'n', or 'list'")
 
@@ -959,8 +1176,7 @@ def review_new_species(
 def export_migration_csv(
     results: list[MatchResult],
     new_species: list[APISpecies],
-    output_file: str,
-    species_type: str
+    output_file: str
 ):
     """Export migration changes to CSV for review."""
     output_path = Path(output_file)
@@ -978,6 +1194,7 @@ def export_migration_csv(
             'New Scientific Name',
             'Old NBN GUID',
             'New NBN GUID',
+            'Occurrences',
             'Match Score',
             'Match Type',
             'Conservation Status'
@@ -995,13 +1212,13 @@ def export_migration_csv(
                 result.api_species.scientific_name,
                 '-',  # Old GUID (we don't have this from DB query)
                 result.api_species.guid,
+                result.api_species.occurrence_count,
                 f"{result.match_score:.1f}",
                 result.match_type,
                 result.db_species.conservation_status or ''
             ])
 
         # New species
-        config = SPECIES_CONFIG[species_type]
         for species in new_species:
             writer.writerow([
                 'INSERT',
@@ -1012,6 +1229,7 @@ def export_migration_csv(
                 species.scientific_name,
                 '-',
                 species.guid,
+                species.occurrence_count,
                 '-',
                 'new_species',
                 ''
@@ -1364,7 +1582,7 @@ def main(species_type: str, dry_run: bool = True, export_file: Optional[str] = N
             if response in ['y', 'yes']:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 csv_file = f"{species_type}_migration_preview_{timestamp}.csv"
-                csv_path = export_migration_csv(results, new_species, csv_file, species_type)
+                csv_path = export_migration_csv(results, new_species, csv_file)
                 logger.info(f"Review the CSV at: {csv_path.absolute()}")
 
                 # Wait for user to review
@@ -1418,7 +1636,8 @@ if __name__ == "__main__":
             "birds", "butterflies", "spiders", "mammals", "bats",
             "reptiles", "amphibians", "moths",
             "beetles", "flies", "bees-wasps-ants", "bugs",
-            "dragonflies-damselflies", "grasshoppers-crickets", "insects"
+            "dragonflies-damselflies", "grasshoppers-crickets", "insects",
+            "mites", "fungi", "woodlice"
         ],
         help="Type of species to process"
     )

@@ -21,5 +21,8 @@ rapidfuzz>=3.0.0
 # Excel file reading
 openpyxl>=3.0.0
 
+# Word document reading
+python-docx>=0.8.11
+
 # Development tools (optional)
 # httpx>=0.26.0  # For testing API endpoints

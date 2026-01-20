@@ -2,7 +2,7 @@ import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, Ta
 import type { SelectChangeEvent } from '@mui/material';
 import { CalendarToday, Person, Visibility, Category, FilterList } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ButterflyIcon, BirdIcon, MushroomIcon, SpiderIcon, BatIcon, MammalIcon, ReptileIcon, AmphibianIcon, MothIcon, BugIcon, LeafIcon, BeeIcon, BeetleIcon, FlyIcon, GrasshopperIcon, DragonflyIcon, EarwigIcon } from '../components/icons/WildlifeIcons';
+import { getSpeciesIcon, formatSpeciesCount } from '../config';
 import { SurveyTypeChip } from '../components/SurveyTypeColors';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
@@ -238,51 +238,6 @@ export function SurveysPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  /**
-   * Get display name for species type with count and proper pluralization
-   */
-  const getSpeciesDisplayName = (type: string, count: number): string => {
-    const singular = type === 'butterfly' ? 'Butterfly'
-                   : type === 'bird' ? 'Bird'
-                   : type === 'moth' ? 'Moth'
-                   : type === 'beetle' ? 'Beetle'
-                   : type === 'fly' ? 'Fly'
-                   : type === 'bee-wasp-ant' ? 'Bee, Wasp or Ant'
-                   : type === 'bug' ? 'Bug'
-                   : type === 'dragonfly-damselfly' ? 'Dragonfly or Damselfly'
-                   : type === 'grasshopper-cricket' ? 'Grasshopper or Cricket'
-                   : type === 'insect' ? 'Insect'
-                   : type === 'gall' ? 'Gall'
-                   : type === 'spider' ? 'Spider'
-                   : type === 'bat' ? 'Bat'
-                   : type === 'mammal' ? 'Mammal'
-                   : type === 'reptile' ? 'Reptile'
-                   : type === 'amphibian' ? 'Amphibian'
-                   : type === 'fungi' ? 'Fungus'
-                   : type;
-
-    const plural = type === 'butterfly' ? 'Butterflies'
-                 : type === 'bird' ? 'Birds'
-                 : type === 'moth' ? 'Moths'
-                 : type === 'beetle' ? 'Beetles'
-                 : type === 'fly' ? 'Flies'
-                 : type === 'bee-wasp-ant' ? 'Bees, Wasps & Ants'
-                 : type === 'bug' ? 'Bugs'
-                 : type === 'dragonfly-damselfly' ? 'Dragonflies & Damselflies'
-                 : type === 'grasshopper-cricket' ? 'Grasshoppers & Crickets'
-                 : type === 'insect' ? 'Insects'
-                 : type === 'gall' ? 'Galls'
-                 : type === 'spider' ? 'Spiders'
-                 : type === 'bat' ? 'Bats'
-                 : type === 'mammal' ? 'Mammals'
-                 : type === 'reptile' ? 'Reptiles'
-                 : type === 'amphibian' ? 'Amphibians'
-                 : type === 'fungi' ? 'Fungi'
-                 : type + 's';
-
-    return `${count} ${count === 1 ? singular : plural}`;
-  };
-
   // ============================================================================
   // Render
   // ============================================================================
@@ -477,44 +432,8 @@ export function SurveysPage() {
                   <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, display: { xs: 'none', sm: 'table-cell' } }}>
                     <Stack direction="row" flexWrap="wrap" gap={1}>
                       {survey.species_breakdown.map((sighting, idx) => {
-                        // Select icon based on species type
-                        const Icon = sighting.type === 'butterfly'
-                          ? ButterflyIcon
-                          : sighting.type === 'bird'
-                          ? BirdIcon
-                          : sighting.type === 'moth'
-                          ? MothIcon
-                          : sighting.type === 'beetle'
-                          ? BeetleIcon
-                          : sighting.type === 'fly'
-                          ? FlyIcon
-                          : sighting.type === 'bee-wasp-ant'
-                          ? BeeIcon
-                          : sighting.type === 'bug'
-                          ? BugIcon
-                          : sighting.type === 'dragonfly-damselfly'
-                          ? DragonflyIcon
-                          : sighting.type === 'grasshopper-cricket'
-                          ? GrasshopperIcon
-                          : sighting.type === 'insect'
-                          ? EarwigIcon
-                          : sighting.type === 'gall'
-                          ? LeafIcon
-                          : sighting.type === 'spider'
-                          ? SpiderIcon
-                          : sighting.type === 'bat'
-                          ? BatIcon
-                          : sighting.type === 'mammal'
-                          ? MammalIcon
-                          : sighting.type === 'reptile'
-                          ? ReptileIcon
-                          : sighting.type === 'amphibian'
-                          ? AmphibianIcon
-                          : sighting.type === 'fungi'
-                          ? MushroomIcon
-                          : EarwigIcon; // Default fallback
-
-                        const speciesLabel = getSpeciesDisplayName(sighting.type, sighting.count);
+                        const Icon = getSpeciesIcon(sighting.type);
+                        const speciesLabel = formatSpeciesCount(sighting.type, sighting.count);
 
                         return (
                           <Tooltip key={idx} title={speciesLabel} arrow>
