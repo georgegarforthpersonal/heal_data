@@ -62,14 +62,16 @@ function MapClickHandler({ onClick, disabled }: { onClick: (latlng: LatLng) => v
   return null;
 }
 
-// Component to fit map bounds to markers (only on initial mount)
+// Component to fit map bounds to markers (only on initial mount with pre-existing locations)
 function FitBoundsToMarkers({ locations }: { locations: DraftIndividualLocation[] }) {
   const map = useMap();
+  // Capture whether there were locations when the component first mounted
+  const hadInitialLocationsRef = useRef(locations.length > 0);
   const hasFittedRef = useRef(false);
 
   useEffect(() => {
-    // Only fit bounds once on initial mount if there are pre-existing locations
-    if (!hasFittedRef.current && locations.length > 0) {
+    // Only fit bounds if there were pre-existing locations when the modal opened
+    if (!hasFittedRef.current && hadInitialLocationsRef.current && locations.length > 0) {
       const bounds = locations.map((loc) => [loc.latitude, loc.longitude] as [number, number]);
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
       hasFittedRef.current = true;
