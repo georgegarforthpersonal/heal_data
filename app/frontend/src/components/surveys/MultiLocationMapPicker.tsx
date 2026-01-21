@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, CircleMarker, useMapEvents, useMap, Popup } from 'react-leaflet';
 import { LatLng } from 'leaflet';
 import {
@@ -62,16 +62,19 @@ function MapClickHandler({ onClick, disabled }: { onClick: (latlng: LatLng) => v
   return null;
 }
 
-// Component to fit map bounds to markers
+// Component to fit map bounds to markers (only on initial mount)
 function FitBoundsToMarkers({ locations }: { locations: DraftIndividualLocation[] }) {
   const map = useMap();
+  const hasFittedRef = useRef(false);
 
   useEffect(() => {
-    if (locations.length > 0) {
+    // Only fit bounds once on initial mount if there are pre-existing locations
+    if (!hasFittedRef.current && locations.length > 0) {
       const bounds = locations.map((loc) => [loc.latitude, loc.longitude] as [number, number]);
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      hasFittedRef.current = true;
     }
-  }, [locations.length]);
+  }, [locations, map]);
 
   return null;
 }
