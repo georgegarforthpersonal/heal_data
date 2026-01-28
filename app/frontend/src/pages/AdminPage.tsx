@@ -70,11 +70,13 @@ export function AdminPage() {
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
   const [surveyorsLoading, setSurveyorsLoading] = useState(true);
   const [surveyorsError, setSurveyorsError] = useState<string | null>(null);
-  const [addSurveyorDialogOpen, setAddSurveyorDialogOpen] = useState(false);
+  const [surveyorDialogOpen, setSurveyorDialogOpen] = useState(false);
+  const [surveyorDialogMode, setSurveyorDialogMode] = useState<'add' | 'edit'>('add');
+  const [editingSurveyor, setEditingSurveyor] = useState<Surveyor | null>(null);
   const [newFirstName, setNewFirstName] = useState('');
   const [newLastName, setNewLastName] = useState('');
-  const [addSurveyorError, setAddSurveyorError] = useState<string | null>(null);
-  const [addingSurveyor, setAddingSurveyor] = useState(false);
+  const [surveyorFormError, setSurveyorFormError] = useState<string | null>(null);
+  const [savingSurveyor, setSavingSurveyor] = useState(false);
   const [deactivateSurveyorDialogOpen, setDeactivateSurveyorDialogOpen] = useState(false);
   const [surveyorToDeactivate, setSurveyorToDeactivate] = useState<Surveyor | null>(null);
   const [deactivatingSurveyor, setDeactivatingSurveyor] = useState(false);
@@ -151,26 +153,47 @@ export function AdminPage() {
   };
 
   // Surveyor handlers
-  const handleAddSurveyor = async () => {
+  const handleOpenAddSurveyor = () => {
+    setSurveyorDialogMode('add');
+    setEditingSurveyor(null);
+    setNewFirstName('');
+    setNewLastName('');
+    setSurveyorFormError(null);
+    setSurveyorDialogOpen(true);
+  };
+
+  const handleOpenEditSurveyor = (surveyor: Surveyor) => {
+    setSurveyorDialogMode('edit');
+    setEditingSurveyor(surveyor);
+    setNewFirstName(surveyor.first_name);
+    setNewLastName(surveyor.last_name || '');
+    setSurveyorFormError(null);
+    setSurveyorDialogOpen(true);
+  };
+
+  const handleSaveSurveyor = async () => {
     if (!newFirstName.trim()) {
-      setAddSurveyorError('First name is required');
+      setSurveyorFormError('First name is required');
       return;
     }
     try {
-      setAddingSurveyor(true);
-      setAddSurveyorError(null);
-      await surveyorsAPI.create({
+      setSavingSurveyor(true);
+      setSurveyorFormError(null);
+      const data = {
         first_name: newFirstName.trim(),
         last_name: newLastName.trim() || null
-      });
-      setNewFirstName('');
-      setNewLastName('');
-      setAddSurveyorDialogOpen(false);
+      };
+      if (surveyorDialogMode === 'add') {
+        await surveyorsAPI.create(data);
+      } else if (editingSurveyor) {
+        await surveyorsAPI.update(editingSurveyor.id, data);
+      }
+      setSurveyorDialogOpen(false);
       await loadSurveyors();
     } catch (err) {
-      setAddSurveyorError(err instanceof Error ? err.message : 'Failed to add surveyor');
+      setSurveyorFormError(err instanceof Error ? err.message : 'Failed to save surveyor');
     } finally {
-      setAddingSurveyor(false);
+      setSavingSurveyor(false);
     }
   };
 
@@ -324,7 +347,7 @@ export function AdminPage() {
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => setAddSurveyorDialogOpen(true)}
+            onClick={handleOpenAddSurveyor}
             sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
           >
             Add Surveyor
@@ -376,6 +399,14 @@ export function AdminPage() {
                       />
                     </TableCell>
                     <TableCell align="right">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenEditSurveyor(surveyor)}
+                        sx={{ color: 'primary.main', mr: 1 }}
+                        title="Edit"
+                      >
+                        <Edit />
+                      </IconButton>
                       {surveyor.is_active ? (
                         <IconButton
                           size="small"
@@ -535,13 +566,13 @@ export function AdminPage() {
         </TableContainer>
       </TabPanel>
 
-      {/* Add Surveyor Dialog */}
-      <Dialog open={addSurveyorDialogOpen} onClose={() => !addingSurveyor && setAddSurveyorDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add New Surveyor</DialogTitle>
+      {/* Add/Edit Surveyor Dialog */}
+      <Dialog open={surveyorDialogOpen} onClose={() => !savingSurveyor && setSurveyorDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{surveyorDialogMode === 'add' ? 'Add New Surveyor' : 'Edit Surveyor'}</DialogTitle>
         <DialogContent>
-          {addSurveyorError && (
+          {surveyorFormError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {addSurveyorError}
+              {surveyorFormError}
             </Alert>
           )}
           <TextField
@@ -551,7 +582,7 @@ export function AdminPage() {
             fullWidth
             value={newFirstName}
             onChange={(e) => setNewFirstName(e.target.value)}
-            disabled={addingSurveyor}
+            disabled={savingSurveyor}
           />
           <TextField
             margin="normal"
@@ -559,20 +590,20 @@ export function AdminPage() {
             fullWidth
             value={newLastName}
             onChange={(e) => setNewLastName(e.target.value)}
-            disabled={addingSurveyor}
+            disabled={savingSurveyor}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddSurveyorDialogOpen(false)} disabled={addingSurveyor}>
+          <Button onClick={() => setSurveyorDialogOpen(false)} disabled={savingSurveyor}>
             Cancel
           </Button>
           <Button
-            onClick={handleAddSurveyor}
+            onClick={handleSaveSurveyor}
             variant="contained"
-            disabled={addingSurveyor}
+            disabled={savingSurveyor}
             sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
           >
-            {addingSurveyor ? 'Adding...' : 'Add'}
+            {savingSurveyor ? 'Saving...' : surveyorDialogMode === 'add' ? 'Add' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
