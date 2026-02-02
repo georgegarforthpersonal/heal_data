@@ -34,8 +34,19 @@ interface MapModeSightingsProps {
 }
 
 function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
+  const map = useMap();
+
   useMapEvents({
     click(e) {
+      // Check if a popup is currently open and visible (closeOnClick is
+      // disabled on our popups so Leaflet won't close them on map click).
+      // We must check isOpen() because _popup can hold a stale reference
+      // after React unmounts a Popup component.
+      const currentPopup = (map as any)._popup;
+      if (currentPopup && currentPopup.isOpen()) {
+        map.closePopup();
+        return;
+      }
       onClick(e.latlng);
     },
   });
@@ -96,7 +107,7 @@ export function MapModeSightings({
 }: MapModeSightingsProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
-  const [pendingMarker, setPendingMarker] = useState<{ lat: number; lng: number } | null>(null);
+  const [addPopupPosition, setAddPopupPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   const markers = useMemo(() => getMarkersFromSightings(sightings), [sightings]);
 
@@ -108,28 +119,28 @@ export function MapModeSightings({
   }, [sightings]);
 
   const handleMapClick = useCallback((latlng: LatLng) => {
-    setPendingMarker({ lat: latlng.lat, lng: latlng.lng });
+    setAddPopupPosition({ lat: latlng.lat, lng: latlng.lng });
   }, []);
 
-  const handlePendingAdd = useCallback(
+  const handleAddFromPopup = useCallback(
     (speciesId: number, count: number, breedingStatusCode?: string | null) => {
-      if (!pendingMarker) return;
+      if (!addPopupPosition) return;
       const updated = addSpeciesAtLocation(
         sightings,
-        pendingMarker.lat,
-        pendingMarker.lng,
+        addPopupPosition.lat,
+        addPopupPosition.lng,
         speciesId,
         count,
         breedingStatusCode
       );
       onSightingsChange(updated);
-      setPendingMarker(null);
+      setAddPopupPosition(null);
     },
-    [pendingMarker, sightings, onSightingsChange]
+    [addPopupPosition, sightings, onSightingsChange]
   );
 
-  const handlePendingClose = useCallback(() => {
-    setPendingMarker(null);
+  const handleAddPopupClose = useCallback(() => {
+    setAddPopupPosition(null);
   }, []);
 
   const handleMarkerUpdate = useCallback(
@@ -153,7 +164,7 @@ export function MapModeSightings({
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setPendingMarker({ lat: latitude, lng: longitude });
+          setAddPopupPosition({ lat: latitude, lng: longitude });
         },
         (error) => {
           console.error('Error getting location:', error);
@@ -265,37 +276,27 @@ export function MapModeSightings({
               );
             })}
 
-            {/* Pending marker (new click, no species yet) */}
-            {pendingMarker && (
-              <CircleMarker
-                center={[pendingMarker.lat, pendingMarker.lng]}
-                radius={10}
-                pathOptions={{
-                  fillColor: 'transparent',
-                  fillOpacity: 0,
-                  color: '#9E9E9E',
-                  weight: 2,
-                  dashArray: '5,5',
+            {/* Add popup (opens directly at click location, no marker needed) */}
+            {addPopupPosition && (
+              <Popup
+                position={[addPopupPosition.lat, addPopupPosition.lng]}
+                closeOnClick={false}
+                autoPan={true}
+                minWidth={260}
+                maxWidth={320}
+                className="map-mode-popup"
+                eventHandlers={{
+                  remove: handleAddPopupClose,
                 }}
               >
-                <Popup
-                  closeOnClick={false}
-                  autoPan={true}
-                  minWidth={260}
-                  maxWidth={320}
-                  className="map-mode-popup"
-                  eventHandlers={{
-                    remove: handlePendingClose,
-                  }}
-                >
-                  <MarkerPopupContent
-                    mode="add"
-                    species={species}
-                    breedingCodes={breedingCodes}
-                    onAdd={handlePendingAdd}
-                  />
-                </Popup>
-              </CircleMarker>
+                <MarkerPopupContent
+                  mode="add"
+                  species={species}
+                  breedingCodes={breedingCodes}
+                  onAdd={handleAddFromPopup}
+                  onDiscard={handleAddPopupClose}
+                />
+              </Popup>
             )}
           </MapContainer>
         </Box>
