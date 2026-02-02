@@ -10,7 +10,6 @@ import {
   Tooltip,
   Alert,
 } from '@mui/material';
-import MyLocationIcon from '@mui/icons-material/MyLocation';
 import LayersIcon from '@mui/icons-material/Layers';
 import 'leaflet/dist/leaflet.css';
 
@@ -156,23 +155,6 @@ export function MapModeSightings({
     [sightings, onSightingsChange]
   );
 
-  const handleUseCurrentLocation = useCallback(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setAddPopupPosition({ lat: latitude, lng: longitude });
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          alert('Unable to get your current location. Please check your browser permissions.');
-        }
-      );
-    } else {
-      alert('Geolocation is not supported by your browser.');
-    }
-  }, []);
-
   return (
     <Box>
       {/* Map */}
@@ -189,19 +171,6 @@ export function MapModeSightings({
               zIndex: 1000,
             }}
           >
-            <Tooltip title="Add current GPS location">
-              <IconButton
-                size="small"
-                onClick={handleUseCurrentLocation}
-                sx={{
-                  bgcolor: 'white',
-                  boxShadow: 2,
-                  '&:hover': { bgcolor: 'grey.100' },
-                }}
-              >
-                <MyLocationIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
             <Tooltip title={mapType === 'satellite' ? 'Switch to street map' : 'Switch to satellite'}>
               <IconButton
                 size="small"

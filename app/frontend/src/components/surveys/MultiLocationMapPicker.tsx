@@ -18,7 +18,6 @@ import {
   ListSubheader,
   TextField,
 } from '@mui/material';
-import MyLocationIcon from '@mui/icons-material/MyLocation';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
@@ -198,30 +197,10 @@ export default function MultiLocationMapPicker({
     [locations, onChange]
   );
 
-  // Use current location to add a new individual
-  const handleUseCurrentLocation = useCallback(() => {
-    if (isAtMax) return;
-
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          handleMapClick(new LatLng(latitude, longitude));
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          alert('Unable to get your current location. Please check your browser permissions.');
-        }
-      );
-    } else {
-      alert('Geolocation is not supported by your browser.');
-    }
-  }, [handleMapClick, isAtMax]);
-
   // Get helper text based on state
   const getHelperText = () => {
     if (locations.length === 0) {
-      return 'Click on the map to add a location, or use GPS.';
+      return 'Click on the map to add a location.';
     }
     if (isAtMax) {
       return `All ${maxCount} individual${maxCount === 1 ? '' : 's'} have been assigned to locations.`;
@@ -248,17 +227,6 @@ export default function MultiLocationMapPicker({
           Individuals ({getProgressText()})
         </Typography>
         <Stack direction="row" spacing={1}>
-          <Tooltip title={isAtMax ? 'Maximum reached' : 'Add current GPS location'}>
-            <span>
-              <IconButton
-                size="small"
-                onClick={handleUseCurrentLocation}
-                disabled={disabled || isAtMax}
-              >
-                <MyLocationIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
           <ToggleButtonGroup
             value={mapType}
             exclusive
@@ -528,7 +496,7 @@ export default function MultiLocationMapPicker({
             No individual locations added yet.
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Click on the map or use the GPS button to add locations.
+            Click on the map to add locations.
           </Typography>
         </Paper>
       )}
