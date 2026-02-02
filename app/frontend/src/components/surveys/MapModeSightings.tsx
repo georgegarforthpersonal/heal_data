@@ -34,8 +34,19 @@ interface MapModeSightingsProps {
 }
 
 function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
+  const map = useMap();
+
   useMapEvents({
     click(e) {
+      // Check if a popup is currently open and visible (closeOnClick is
+      // disabled on our popups so Leaflet won't close them on map click).
+      // We must check isOpen() because _popup can hold a stale reference
+      // after React unmounts a Popup component.
+      const currentPopup = (map as any)._popup;
+      if (currentPopup && currentPopup.isOpen()) {
+        map.closePopup();
+        return;
+      }
       onClick(e.latlng);
     },
   });
