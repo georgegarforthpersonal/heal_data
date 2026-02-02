@@ -178,41 +178,56 @@ export function MapModeSightings({
 
   return (
     <Box>
-      {/* Map controls */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-        <Typography variant="subtitle2" color="text.secondary">
-          Click on the map to add sightings
-        </Typography>
-        <Stack direction="row" spacing={1}>
-          <Tooltip title="Add current GPS location">
-            <IconButton size="small" onClick={handleUseCurrentLocation}>
-              <MyLocationIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <ToggleButtonGroup
-            value={mapType}
-            exclusive
-            onChange={(_, newValue) => newValue && setMapType(newValue)}
-            size="small"
-            sx={{ height: '32px' }}
-          >
-            <ToggleButton value="street" aria-label="street map">
-              <Tooltip title="Street Map">
-                <MapIcon fontSize="small" />
-              </Tooltip>
-            </ToggleButton>
-            <ToggleButton value="satellite" aria-label="satellite view">
-              <Tooltip title="Satellite View">
-                <SatelliteIcon fontSize="small" />
-              </Tooltip>
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Stack>
-      </Stack>
-
       {/* Map */}
-      <Paper elevation={2} sx={{ mb: 2, overflow: 'hidden' }}>
+      <Paper elevation={2} sx={{ mb: 2, overflow: 'hidden', position: 'relative' }}>
         <Box sx={{ height: { xs: '350px', sm: '400px', md: '500px' }, width: '100%' }}>
+          {/* Map controls overlaid on the map */}
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              zIndex: 1000,
+            }}
+          >
+            <Tooltip title="Add current GPS location">
+              <IconButton
+                size="small"
+                onClick={handleUseCurrentLocation}
+                sx={{
+                  bgcolor: 'white',
+                  boxShadow: 2,
+                  '&:hover': { bgcolor: 'grey.100' },
+                }}
+              >
+                <MyLocationIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <ToggleButtonGroup
+              value={mapType}
+              exclusive
+              onChange={(_, newValue) => newValue && setMapType(newValue)}
+              size="small"
+              sx={{
+                height: 32,
+                bgcolor: 'white',
+                boxShadow: 2,
+              }}
+            >
+              <ToggleButton value="street" aria-label="street map">
+                <Tooltip title="Street Map">
+                  <MapIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
+              <ToggleButton value="satellite" aria-label="satellite view">
+                <Tooltip title="Satellite View">
+                  <SatelliteIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
           <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
             {mapType === 'satellite' ? (
               <TileLayer
