@@ -253,6 +253,7 @@ function AddPopupForm({
           <Button
             variant="outlined"
             size="small"
+            color="error"
             onClick={onDiscard}
             sx={{ textTransform: 'none', fontWeight: 600, flex: 1 }}
           >
