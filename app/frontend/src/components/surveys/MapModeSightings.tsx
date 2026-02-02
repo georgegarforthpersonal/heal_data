@@ -13,8 +13,8 @@ import {
   Alert,
 } from '@mui/material';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import MapIcon from '@mui/icons-material/Map';
-import SatelliteIcon from '@mui/icons-material/Satellite';
+import LayersIcon from '@mui/icons-material/Layers';
+import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
 import 'leaflet/dist/leaflet.css';
 
 import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
@@ -218,12 +218,12 @@ export function MapModeSightings({
             >
               <ToggleButton value="street" aria-label="street map">
                 <Tooltip title="Street Map">
-                  <MapIcon fontSize="small" />
+                  <LayersIcon fontSize="small" />
                 </Tooltip>
               </ToggleButton>
               <ToggleButton value="satellite" aria-label="satellite view">
                 <Tooltip title="Satellite View">
-                  <SatelliteIcon fontSize="small" />
+                  <SatelliteAltIcon fontSize="small" />
                 </Tooltip>
               </ToggleButton>
             </ToggleButtonGroup>
