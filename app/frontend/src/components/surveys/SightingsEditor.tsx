@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip, Tooltip } from '@mui/material';
-import { Delete, Edit, Add, LocationOnOutlined, PinDrop, StickyNote2Outlined } from '@mui/icons-material';
+import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Delete, Edit, Add, LocationOnOutlined, PinDrop, StickyNote2Outlined, ViewList, Map as MapIcon } from '@mui/icons-material';
 import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
 import { AddSightingModal } from './AddSightingModal';
 import type { SightingData } from './AddSightingModal';
 import { LocationModal } from './LocationModal';
+import { MapModeSightings } from './MapModeSightings';
 import { getSpeciesIcon } from '../../config';
 import { useResponsive } from '../../hooks/useResponsive';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
@@ -56,6 +57,7 @@ export function SightingsEditor({
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTempId, setEditingTempId] = useState<string | null>(null);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -213,15 +215,67 @@ export function SightingsEditor({
   const editingSighting = editingTempId ? sightings.find((s) => s.tempId === editingTempId) : null;
   const locationEditingSighting = locationEditingTempId ? sightings.find((s) => s.tempId === locationEditingTempId) : null;
 
+  const viewModeToggle = allowGeolocation ? (
+    <ToggleButtonGroup
+      value={viewMode}
+      exclusive
+      onChange={(_, newValue) => newValue && setViewMode(newValue)}
+      size="small"
+      sx={{ height: 32 }}
+    >
+      <ToggleButton value="list" aria-label="list mode">
+        <Tooltip title="List Mode">
+          <ViewList fontSize="small" />
+        </Tooltip>
+      </ToggleButton>
+      <ToggleButton value="map" aria-label="map mode">
+        <Tooltip title="Map Mode">
+          <MapIcon fontSize="small" />
+        </Tooltip>
+      </ToggleButton>
+    </ToggleButtonGroup>
+  ) : null;
+
+  // Map mode UI (shared between mobile and desktop)
+  if (viewMode === 'map' && allowGeolocation) {
+    return (
+      <>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Sightings ({validSightings.length})
+          </Typography>
+          {viewModeToggle}
+        </Stack>
+
+        {validationError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {validationError}
+          </Alert>
+        )}
+
+        <MapModeSightings
+          sightings={sightings}
+          species={species}
+          breedingCodes={breedingCodes}
+          onSightingsChange={onSightingsChange}
+          locationsWithBoundaries={locationsWithBoundaries}
+        />
+      </>
+    );
+  }
+
   // Mobile UI: Cards + Modal
   if (isMobile) {
     return (
       <>
         <Box sx={{ mb: 2 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Sightings ({validSightings.length})
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Sightings ({validSightings.length})
+              </Typography>
+              {viewModeToggle}
+            </Stack>
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -412,9 +466,12 @@ export function SightingsEditor({
   // Desktop UI: Inline Table Editing
   return (
     <>
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-        Sightings ({validSightings.length})
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Sightings ({validSightings.length})
+        </Typography>
+        {viewModeToggle}
+      </Stack>
 
       {validationError && (
         <Alert severity="error" sx={{ mb: 2 }}>
