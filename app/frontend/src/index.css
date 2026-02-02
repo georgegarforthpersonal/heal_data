@@ -25,6 +25,10 @@ body,
   padding: 0;
 }
 
+.map-mode-popup .leaflet-popup-close-button {
+  display: none;
+}
+
 /* Field boundary labels on maps */
 .field-boundary-label {
   background: rgba(255, 255, 255, 0.9) !important;

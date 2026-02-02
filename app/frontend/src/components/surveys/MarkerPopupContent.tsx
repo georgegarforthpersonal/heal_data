@@ -15,7 +15,6 @@ import {
   Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 
 import type { Species, BreedingStatusCode, BreedingCategory } from '../../services/api';
 import type { MapMarker } from './mapModeUtils';
@@ -28,6 +27,7 @@ interface MarkerPopupContentAddProps {
   species: Species[];
   breedingCodes: BreedingStatusCode[];
   onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null) => void;
+  onDiscard: () => void;
   marker?: undefined;
   onUpdate?: undefined;
   onDelete?: undefined;
@@ -91,6 +91,7 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
         sortedSpecies={sortedSpecies}
         breedingCodes={breedingCodes}
         onAdd={props.onAdd}
+        onDiscard={props.onDiscard}
         formatCategoryName={formatCategoryName}
       />
     );
@@ -113,12 +114,14 @@ function AddPopupForm({
   sortedSpecies,
   breedingCodes,
   onAdd,
+  onDiscard,
   formatCategoryName,
 }: {
   species: Species[];
   sortedSpecies: Species[];
   breedingCodes: BreedingStatusCode[];
   onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null) => void;
+  onDiscard: () => void;
   formatCategoryName: (category: string) => string;
 }) {
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
@@ -237,16 +240,25 @@ function AddPopupForm({
           />
         )}
 
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={handleAdd}
-          disabled={!selectedSpecies}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
-        >
-          Add
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleAdd}
+            disabled={!selectedSpecies}
+            sx={{ textTransform: 'none', fontWeight: 600, flex: 1 }}
+          >
+            Add
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={onDiscard}
+            sx={{ textTransform: 'none', fontWeight: 600, flex: 1 }}
+          >
+            Discard
+          </Button>
+        </Stack>
       </Stack>
     </Box>
   );

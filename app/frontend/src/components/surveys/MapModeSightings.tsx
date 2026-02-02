@@ -283,6 +283,7 @@ export function MapModeSightings({
                   species={species}
                   breedingCodes={breedingCodes}
                   onAdd={handleAddFromPopup}
+                  onDiscard={handleAddPopupClose}
                 />
               </Popup>
             )}
