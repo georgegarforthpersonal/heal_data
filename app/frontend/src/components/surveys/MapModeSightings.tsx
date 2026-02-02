@@ -8,13 +8,10 @@ import {
   Paper,
   IconButton,
   Tooltip,
-  ToggleButtonGroup,
-  ToggleButton,
   Alert,
 } from '@mui/material';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import LayersIcon from '@mui/icons-material/Layers';
-import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
 import 'leaflet/dist/leaflet.css';
 
 import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
@@ -205,28 +202,19 @@ export function MapModeSightings({
                 <MyLocationIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <ToggleButtonGroup
-              value={mapType}
-              exclusive
-              onChange={(_, newValue) => newValue && setMapType(newValue)}
-              size="small"
-              sx={{
-                height: 32,
-                bgcolor: 'white',
-                boxShadow: 2,
-              }}
-            >
-              <ToggleButton value="street" aria-label="street map">
-                <Tooltip title="Street Map">
-                  <LayersIcon fontSize="small" />
-                </Tooltip>
-              </ToggleButton>
-              <ToggleButton value="satellite" aria-label="satellite view">
-                <Tooltip title="Satellite View">
-                  <SatelliteAltIcon fontSize="small" />
-                </Tooltip>
-              </ToggleButton>
-            </ToggleButtonGroup>
+            <Tooltip title={mapType === 'satellite' ? 'Switch to street map' : 'Switch to satellite'}>
+              <IconButton
+                size="small"
+                onClick={() => setMapType(mapType === 'satellite' ? 'street' : 'satellite')}
+                sx={{
+                  bgcolor: 'white',
+                  boxShadow: 2,
+                  '&:hover': { bgcolor: 'grey.100' },
+                }}
+              >
+                <LayersIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Stack>
           <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
             {mapType === 'satellite' ? (
