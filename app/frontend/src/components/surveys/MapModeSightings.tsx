@@ -95,23 +95,22 @@ function getMarkerColorForSpecies(speciesId: number, speciesList: Species[]): st
   return SPECIES_TYPE_COLORS[sp.type] || '#8B8AC7';
 }
 
-function createSpeciesCodeIcon(speciesCode: string | null, color: string): DivIcon {
+function createSpeciesCodeIcon(speciesCode: string | null): DivIcon {
   const displayText = speciesCode || '•';
-  const fontSize = speciesCode ? '11px' : '16px';
+  const fontSize = speciesCode ? '12px' : '16px';
 
   return new DivIcon({
     className: 'species-code-marker',
     html: `<div style="
-      color: ${color};
+      color: #000;
       font-weight: bold;
       font-size: ${fontSize};
-      font-family: monospace;
+      font-family: sans-serif;
       text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff, -1px 0 0 #fff, 1px 0 0 #fff;
       white-space: nowrap;
       cursor: pointer;
     ">${displayText}</div>`,
-    iconSize: [0, 0],
-    iconAnchor: speciesCode ? [speciesCode.length * 3.5, 6] : [5, 10],
+    iconAnchor: speciesCode ? [speciesCode.length * 3.5, 7] : [5, 10],
   });
 }
 
@@ -231,9 +230,8 @@ export function MapModeSightings({
             {/* Existing markers */}
             {markers.map((marker) => {
               const sp = species.find((s) => s.id === marker.species_id);
-              const markerColor = getMarkerColorForSpecies(marker.species_id, species);
               const speciesCode = sp?.species_code || null;
-              const icon = createSpeciesCodeIcon(speciesCode, markerColor);
+              const icon = createSpeciesCodeIcon(speciesCode);
 
               return (
                 <Marker
