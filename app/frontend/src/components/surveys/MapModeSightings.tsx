@@ -68,30 +68,6 @@ function FitBoundsToMarkers({ markers }: { markers: MapMarker[] }) {
   return null;
 }
 
-// Simple color palette by species type
-const SPECIES_TYPE_COLORS: Record<string, string> = {
-  butterfly: '#FF9800',
-  bird: '#2196F3',
-  moth: '#9C27B0',
-  beetle: '#795548',
-  spider: '#607D8B',
-  fungus: '#4CAF50',
-  bat: '#37474F',
-  mammal: '#8D6E63',
-  reptile: '#689F38',
-  amphibian: '#00897B',
-  fly: '#78909C',
-  'bee-wasp-ant': '#FFC107',
-  bug: '#EF5350',
-  'dragonfly-damselfly': '#03A9F4',
-  'grasshopper-cricket': '#8BC34A',
-  insect: '#9E9E9E',
-  gall: '#66BB6A',
-  woodlouse: '#A1887F',
-  mite: '#BDBDBD',
-};
-
-
 function createSpeciesCodeIcon(speciesCode: string | null): DivIcon {
   const displayText = speciesCode || '•';
   const fontSize = speciesCode ? '10px' : '14px';
