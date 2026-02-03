@@ -3,7 +3,6 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 're
 import { LatLng, DivIcon } from 'leaflet';
 import {
   Box,
-  Typography,
   Stack,
   Paper,
   IconButton,
@@ -92,11 +91,6 @@ const SPECIES_TYPE_COLORS: Record<string, string> = {
   mite: '#BDBDBD',
 };
 
-function getMarkerColorForSpecies(speciesId: number, speciesList: Species[]): string {
-  const sp = speciesList.find((s) => s.id === speciesId);
-  if (!sp) return '#9E9E9E';
-  return SPECIES_TYPE_COLORS[sp.type] || '#8B8AC7';
-}
 
 function createSpeciesCodeIcon(speciesCode: string | null): DivIcon {
   const displayText = speciesCode || '•';
@@ -163,7 +157,7 @@ export function MapModeSightings({
         count,
         breedingStatusCode
       );
-      onSightingsChange(updated);
+      onSightingsChange?.(updated);
       setAddPopupPosition(null);
     },
     [addPopupPosition, sightings, onSightingsChange]
@@ -176,7 +170,7 @@ export function MapModeSightings({
   const handleMarkerUpdate = useCallback(
     (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => {
       const updated = updateMarker(sightings, sightingTempId, individualTempId, updates);
-      onSightingsChange(updated);
+      onSightingsChange?.(updated);
     },
     [sightings, onSightingsChange]
   );
@@ -184,7 +178,7 @@ export function MapModeSightings({
   const handleMarkerDelete = useCallback(
     (sightingTempId: string, individualTempId: string) => {
       const updated = removeMarker(sightings, sightingTempId, individualTempId);
-      onSightingsChange(updated);
+      onSightingsChange?.(updated);
     },
     [sightings, onSightingsChange]
   );
