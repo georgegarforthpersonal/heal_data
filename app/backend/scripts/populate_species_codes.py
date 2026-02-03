@@ -47,12 +47,18 @@ def parse_pdf_species_codes(pdf_path: Path) -> dict[str, str]:
     Parse the BTO species codes PDF and return a dict of {common_name: 2-letter code}.
 
     Only includes entries that have a 2-letter code (skips subspecies without codes).
+    The PDF has two columns per page, so we need to find ALL matches per line.
     """
     species_codes = {}
 
-    # Regex to match: Common Name, Scientific Name, 2-letter code, optional 5-letter code
-    # The 2-letter code is 1-2 uppercase letters, optionally with a period (e.g., "T.", "MS")
-    # We need to extract lines that have a 2-letter code
+    # Regex to match: Common Name, Scientific Name, 2-letter code, 5-letter code
+    # The PDF has two columns per page. The 5-letter code acts as a delimiter between entries.
+    # Note: PDF uses U+2019 RIGHT SINGLE QUOTATION MARK for apostrophes
+    # Use negative lookbehind to prevent false matches after possessives like "Bewick's Swan"
+    RIGHT_QUOTE = '\u2019'  # ' character from PDF
+    pattern = re.compile(
+        rf"(?<!{RIGHT_QUOTE}s )([A-Z][a-zA-Z{RIGHT_QUOTE}\-\s\(\)]+?)\s+([A-Z][a-z]+\s+[a-z]+(?:\s+[a-z]+)?)\s+([A-Z][A-Z.])\s+([A-Z]{{4,5}}\.?)"
+    )
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
@@ -64,25 +70,14 @@ def parse_pdf_species_codes(pdf_path: Path) -> dict[str, str]:
                 # Skip header lines
                 if 'Abbreviated code list' in line or 'Standard naming' in line:
                     continue
+                if 'regularly found in Britain' in line or 'BTO' in line:
+                    continue
 
-                # Pattern: CommonName ScientificName(s) CODE [LONGCODE]
-                # The 2-letter code is 1-2 uppercase letters, possibly with a dot
-                # Examples: "Mute Swan Cygnus olor MS MUTSW"
-                #           "Teal Anas crecca T. TEAL."
-                #           "Bean Goose (Taiga) Anser fabalis fabalis XF"
-
-                # Look for pattern: word(s) followed by italic scientific name, then 2-char code
-                # The 2-letter code pattern: 1-2 uppercase letters, optionally ending with .
-                match = re.search(
-                    r'^(.+?)\s+([A-Z][a-z]+\s+[a-z]+(?:\s+[a-z]+)?)\s+([A-Z][A-Z.])\s',
-                    line
-                )
-                if match:
+                # Find ALL matches in the line (handles two-column layout)
+                for match in pattern.finditer(line):
                     common_name = match.group(1).strip()
                     code = match.group(3).strip()
 
-                    # Skip if common name looks like a subspecies designation (contains parentheses only)
-                    # But keep entries like "Bean Goose" even if "Bean Goose (Taiga)" exists
                     if common_name and code:
                         species_codes[common_name] = code
 
