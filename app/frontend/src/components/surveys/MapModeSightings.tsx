@@ -97,20 +97,30 @@ function getMarkerColorForSpecies(speciesId: number, speciesList: Species[]): st
 
 function createSpeciesCodeIcon(speciesCode: string | null): DivIcon {
   const displayText = speciesCode || '•';
-  const fontSize = speciesCode ? '12px' : '16px';
+  const fontSize = speciesCode ? '10px' : '14px';
+  const size = speciesCode ? Math.max(20, speciesCode.length * 8 + 8) : 20;
 
   return new DivIcon({
     className: 'species-code-marker',
     html: `<div style="
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: ${size}px;
+      height: 20px;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.3);
       color: #000;
       font-weight: bold;
       font-size: ${fontSize};
       font-family: sans-serif;
-      text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff, -1px 0 0 #fff, 1px 0 0 #fff;
       white-space: nowrap;
       cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     ">${displayText}</div>`,
-    iconAnchor: speciesCode ? [speciesCode.length * 3.5, 7] : [5, 10],
+    iconSize: [size, 20],
+    iconAnchor: [size / 2, 10],
   });
 }
 
