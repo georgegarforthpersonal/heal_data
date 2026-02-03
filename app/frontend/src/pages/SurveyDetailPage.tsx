@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip } from '@mui/material';
+import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
+import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSpeciesIcon } from '../config';
 import { PageHeader } from '../components/layout/PageHeader';
 
@@ -30,6 +31,7 @@ export function SurveyDetailPage() {
   // Check if we should start in edit mode (from URL param)
   const startInEditMode = searchParams.get('edit') === 'true';
   const [isEditMode, setIsEditMode] = useState(startInEditMode);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   // ============================================================================
   // State Management
@@ -677,12 +679,53 @@ export function SurveyDetailPage() {
             />
           ) : (
             <>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Sightings ({sightings.length})
-              </Typography>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Sightings ({sightings.length})
+                </Typography>
+                {allowGeolocation && (
+                  <ToggleButtonGroup
+                    value={viewMode}
+                    exclusive
+                    onChange={(_, newValue) => newValue && setViewMode(newValue)}
+                    size="small"
+                    sx={{ height: 32 }}
+                  >
+                    <ToggleButton value="list" aria-label="list mode">
+                      <Tooltip title="List Mode">
+                        <ViewList fontSize="small" />
+                      </Tooltip>
+                    </ToggleButton>
+                    <ToggleButton value="map" aria-label="map mode">
+                      <Tooltip title="Map Mode">
+                        <MapIcon fontSize="small" />
+                      </Tooltip>
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                )}
+              </Stack>
 
-              {/* Sightings Table */}
-              {(() => {
+              {/* Map Mode View */}
+              {viewMode === 'map' && allowGeolocation ? (
+                <MapModeSightings
+                  sightings={sightings.map((s: any) => ({
+                    tempId: `view-${s.id}`,
+                    species_id: s.species_id,
+                    count: s.count,
+                    id: s.id,
+                    individuals: s.individuals?.map((ind: any) => ({
+                      ...ind,
+                      tempId: `view-ind-${ind.id}`,
+                    })),
+                  }))}
+                  species={species}
+                  breedingCodes={breedingCodes}
+                  locationsWithBoundaries={locationsWithBoundaries}
+                  readOnly
+                />
+              ) : (
+              /* Sightings Table */
+              (() => {
                 // Build grid columns dynamically to match edit mode
                 const getGridColumns = () => {
                   const cols: string[] = [];
@@ -894,7 +937,7 @@ export function SurveyDetailPage() {
                   No sightings recorded yet.
                 </Typography>
               );
-              })()}
+              })())}
             </>
           )}
         </Paper>

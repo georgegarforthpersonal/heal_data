@@ -109,6 +109,7 @@ class SpeciesBase(SQLModel):
     type: str = Field(default="butterfly", max_length=50, description="Type of species (butterfly, bird, fungi)")
     scientific_name: Optional[str] = Field(None, max_length=255, description="Scientific/Latin name from NBN Atlas")
     nbn_atlas_guid: Optional[str] = Field(None, max_length=255, description="NBN Atlas GUID for reference")
+    species_code: Optional[str] = Field(None, max_length=10, description="Short code for map display (e.g., BTO 2-letter codes for birds)")
 
 
 class Species(SpeciesBase, table=True):
@@ -142,6 +143,7 @@ class SpeciesUpdate(SQLModel):
     type: Optional[str] = Field(None, max_length=50)
     scientific_name: Optional[str] = Field(None, max_length=255)
     nbn_atlas_guid: Optional[str] = Field(None, max_length=255)
+    species_code: Optional[str] = Field(None, max_length=10)
 
 
 class SpeciesRead(SpeciesBase):

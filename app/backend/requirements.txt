@@ -18,8 +18,9 @@ requests>=2.31.0  # For testing API endpoints
 # Fuzzy matching for species name matching
 rapidfuzz>=3.0.0
 
-# Excel file reading
+# file reading
 openpyxl>=3.0.0
+pdfplumber>=0.11.9
 
 # Word document reading
 python-docx>=0.8.11

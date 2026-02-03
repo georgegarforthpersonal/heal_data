@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { LatLng } from 'leaflet';
-import { Box, Button, Typography, TextField, Stack, Paper, IconButton, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import MyLocationIcon from '@mui/icons-material/MyLocation';
+import { Box, Typography, TextField, Stack, Paper, IconButton, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
@@ -45,7 +44,7 @@ export default function LocationMapPicker({
   longitude,
   onChange,
   label = 'Location',
-  helperText = 'Click on the map to set the location, or use your current location',
+  helperText = 'Click on the map to set the location',
 }: LocationMapPickerProps) {
   const [position, setPosition] = useState<LatLng | null>(
     latitude && longitude ? new LatLng(latitude, longitude) : null
@@ -66,26 +65,6 @@ export default function LocationMapPicker({
   const handleMapClick = (latlng: LatLng) => {
     setPosition(latlng);
     onChange(latlng.lat, latlng.lng);
-  };
-
-  const handleUseCurrentLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const newPos = new LatLng(latitude, longitude);
-          setPosition(newPos);
-          setMapCenter(newPos);
-          onChange(latitude, longitude);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          alert('Unable to get your current location. Please check your browser permissions.');
-        }
-      );
-    } else {
-      alert('Geolocation is not supported by your browser.');
-    }
   };
 
   const handleClearLocation = () => {
@@ -123,16 +102,6 @@ export default function LocationMapPicker({
 
       <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between' }}>
         <Stack direction="row" spacing={1}>
-          <Tooltip title="Use my current location">
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<MyLocationIcon />}
-              onClick={handleUseCurrentLocation}
-            >
-              Current Location
-            </Button>
-          </Tooltip>
           {position && (
             <Tooltip title="Clear location">
               <IconButton size="small" onClick={handleClearLocation}>

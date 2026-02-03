@@ -1,0 +1,158 @@
+import type { DraftSighting } from './SightingsEditor';
+import type { DraftIndividualLocation } from './MultiLocationMapPicker';
+
+/**
+ * Represents a single marker on the map: one species at one GPS location.
+ * Each marker corresponds to exactly one DraftIndividualLocation within a DraftSighting.
+ */
+export interface MapMarker {
+  sightingTempId: string;
+  individualTempId: string;
+  species_id: number;
+  latitude: number;
+  longitude: number;
+  count: number;
+  breeding_status_code?: string | null;
+}
+
+/**
+ * Flatten all DraftIndividualLocation entries from draftSightings into a flat MapMarker list.
+ * Only includes sightings that have a species_id and individuals with coordinates.
+ */
+export function getMarkersFromSightings(draftSightings: DraftSighting[]): MapMarker[] {
+  const markers: MapMarker[] = [];
+
+  for (const sighting of draftSightings) {
+    if (sighting.species_id == null || !sighting.individuals) continue;
+
+    for (const ind of sighting.individuals) {
+      markers.push({
+        sightingTempId: sighting.tempId,
+        individualTempId: ind.tempId,
+        species_id: sighting.species_id,
+        latitude: ind.latitude,
+        longitude: ind.longitude,
+        count: ind.count,
+        breeding_status_code: ind.breeding_status_code,
+      });
+    }
+  }
+
+  return markers;
+}
+
+/**
+ * Add a species at a GPS location. If a DraftSighting already exists for the species,
+ * append a new individual to it and increment the total count. Otherwise create a new sighting.
+ */
+export function addSpeciesAtLocation(
+  draftSightings: DraftSighting[],
+  lat: number,
+  lng: number,
+  speciesId: number,
+  count: number,
+  breedingStatusCode?: string | null
+): DraftSighting[] {
+  const newIndividual: DraftIndividualLocation = {
+    tempId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    latitude: lat,
+    longitude: lng,
+    count,
+    breeding_status_code: breedingStatusCode ?? null,
+  };
+
+  const existingIndex = draftSightings.findIndex(
+    (s) => s.species_id === speciesId
+  );
+
+  if (existingIndex >= 0) {
+    // Append individual to existing sighting, increment total count
+    return draftSightings.map((s, i) => {
+      if (i !== existingIndex) return s;
+      const individuals = [...(s.individuals || []), newIndividual];
+      return {
+        ...s,
+        count: individuals.reduce((sum, ind) => sum + ind.count, 0),
+        individuals,
+      };
+    });
+  }
+
+  // Create new sighting
+  const newSighting: DraftSighting = {
+    tempId: `temp-${Date.now()}`,
+    species_id: speciesId,
+    count,
+    individuals: [newIndividual],
+  };
+
+  // Filter out empty placeholder rows (species_id === null, no individuals)
+  // then add the new sighting
+  const filtered = draftSightings.filter(
+    (s) => s.species_id !== null || (s.individuals && s.individuals.length > 0)
+  );
+
+  return [...filtered, newSighting];
+}
+
+/**
+ * Update a marker's fields (count, breeding_status_code).
+ * Recalculates the parent sighting's total count.
+ */
+export function updateMarker(
+  draftSightings: DraftSighting[],
+  sightingTempId: string,
+  individualTempId: string,
+  updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>
+): DraftSighting[] {
+  return draftSightings.map((s) => {
+    if (s.tempId !== sightingTempId || !s.individuals) return s;
+
+    const individuals = s.individuals.map((ind) => {
+      if (ind.tempId !== individualTempId) return ind;
+      return { ...ind, ...updates };
+    });
+
+    return {
+      ...s,
+      count: individuals.reduce((sum, ind) => sum + ind.count, 0),
+      individuals,
+    };
+  });
+}
+
+/**
+ * Remove a marker (individual) from its parent sighting.
+ * Recalculates count. Removes the sighting entirely if no individuals remain.
+ */
+export function removeMarker(
+  draftSightings: DraftSighting[],
+  sightingTempId: string,
+  individualTempId: string
+): DraftSighting[] {
+  const result: DraftSighting[] = [];
+
+  for (const s of draftSightings) {
+    if (s.tempId !== sightingTempId) {
+      result.push(s);
+      continue;
+    }
+
+    const individuals = (s.individuals || []).filter(
+      (ind) => ind.tempId !== individualTempId
+    );
+
+    if (individuals.length === 0) {
+      // No individuals left — remove sighting entirely
+      continue;
+    }
+
+    result.push({
+      ...s,
+      count: individuals.reduce((sum, ind) => sum + ind.count, 0),
+      individuals,
+    });
+  }
+
+  return result;
+}
