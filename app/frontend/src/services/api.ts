@@ -113,6 +113,7 @@ export interface Species {
   scientific_name: string | null;
   conservation_status: string | null;
   type: string;
+  species_code: string | null;
 }
 
 export interface Location {

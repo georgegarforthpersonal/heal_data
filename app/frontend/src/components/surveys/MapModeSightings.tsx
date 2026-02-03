@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents, useMap } from 'react-leaflet';
-import { LatLng } from 'leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import { LatLng, DivIcon } from 'leaflet';
 import {
   Box,
   Typography,
@@ -93,6 +93,26 @@ function getMarkerColorForSpecies(speciesId: number, speciesList: Species[]): st
   const sp = speciesList.find((s) => s.id === speciesId);
   if (!sp) return '#9E9E9E';
   return SPECIES_TYPE_COLORS[sp.type] || '#8B8AC7';
+}
+
+function createSpeciesCodeIcon(speciesCode: string | null, color: string): DivIcon {
+  const displayText = speciesCode || '•';
+  const fontSize = speciesCode ? '11px' : '16px';
+
+  return new DivIcon({
+    className: 'species-code-marker',
+    html: `<div style="
+      color: ${color};
+      font-weight: bold;
+      font-size: ${fontSize};
+      font-family: monospace;
+      text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff, -1px 0 0 #fff, 1px 0 0 #fff;
+      white-space: nowrap;
+      cursor: pointer;
+    ">${displayText}</div>`,
+    iconSize: [0, 0],
+    iconAnchor: speciesCode ? [speciesCode.length * 3.5, 6] : [5, 10],
+  });
 }
 
 export function MapModeSightings({
@@ -211,20 +231,15 @@ export function MapModeSightings({
             {/* Existing markers */}
             {markers.map((marker) => {
               const sp = species.find((s) => s.id === marker.species_id);
-              const speciesName = sp?.name || sp?.scientific_name || 'Unknown';
               const markerColor = getMarkerColorForSpecies(marker.species_id, species);
+              const speciesCode = sp?.species_code || null;
+              const icon = createSpeciesCodeIcon(speciesCode, markerColor);
 
               return (
-                <CircleMarker
+                <Marker
                   key={marker.individualTempId}
-                  center={[marker.latitude, marker.longitude]}
-                  radius={10}
-                  pathOptions={{
-                    fillColor: markerColor,
-                    fillOpacity: 0.9,
-                    color: '#fff',
-                    weight: 2,
-                  }}
+                  position={[marker.latitude, marker.longitude]}
+                  icon={icon}
                 >
                   <Popup
                     closeOnClick={false}
@@ -255,7 +270,7 @@ export function MapModeSightings({
                       />
                     )}
                   </Popup>
-                </CircleMarker>
+                </Marker>
               );
             })}
 
