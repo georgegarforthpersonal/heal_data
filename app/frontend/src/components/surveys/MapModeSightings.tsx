@@ -25,8 +25,9 @@ interface MapModeSightingsProps {
   sightings: DraftSighting[];
   species: Species[];
   breedingCodes?: BreedingStatusCode[];
-  onSightingsChange: (sightings: DraftSighting[]) => void;
+  onSightingsChange?: (sightings: DraftSighting[]) => void;
   locationsWithBoundaries?: LocationWithBoundary[];
+  readOnly?: boolean;
 }
 
 function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
@@ -100,6 +101,7 @@ export function MapModeSightings({
   breedingCodes = [],
   onSightingsChange,
   locationsWithBoundaries,
+  readOnly = false,
 }: MapModeSightingsProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
@@ -199,7 +201,7 @@ export function MapModeSightings({
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
             )}
-            <MapClickHandler onClick={handleMapClick} />
+            {!readOnly && <MapClickHandler onClick={handleMapClick} />}
             <FitBoundsToMarkers markers={markers} />
 
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
@@ -227,22 +229,31 @@ export function MapModeSightings({
                   <Popup
                     closeOnClick={false}
                     autoPan={true}
-                    minWidth={260}
+                    minWidth={readOnly ? 200 : 260}
                     maxWidth={320}
                     className="map-mode-popup"
                   >
-                    <MarkerPopupContent
-                      mode="edit"
-                      species={species}
-                      breedingCodes={breedingCodes}
-                      marker={marker}
-                      onUpdate={(updates) =>
-                        handleMarkerUpdate(marker.sightingTempId, marker.individualTempId, updates)
-                      }
-                      onDelete={() =>
-                        handleMarkerDelete(marker.sightingTempId, marker.individualTempId)
-                      }
-                    />
+                    {readOnly ? (
+                      <MarkerPopupContent
+                        mode="view"
+                        species={species}
+                        breedingCodes={breedingCodes}
+                        marker={marker}
+                      />
+                    ) : (
+                      <MarkerPopupContent
+                        mode="edit"
+                        species={species}
+                        breedingCodes={breedingCodes}
+                        marker={marker}
+                        onUpdate={(updates) =>
+                          handleMarkerUpdate(marker.sightingTempId, marker.individualTempId, updates)
+                        }
+                        onDelete={() =>
+                          handleMarkerDelete(marker.sightingTempId, marker.individualTempId)
+                        }
+                      />
+                    )}
                   </Popup>
                 </CircleMarker>
               );

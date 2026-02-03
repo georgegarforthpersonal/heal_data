@@ -43,7 +43,18 @@ interface MarkerPopupContentEditProps {
   onAdd?: undefined;
 }
 
-type MarkerPopupContentProps = MarkerPopupContentAddProps | MarkerPopupContentEditProps;
+interface MarkerPopupContentViewProps {
+  mode: 'view';
+  species: Species[];
+  breedingCodes: BreedingStatusCode[];
+  marker: MapMarker;
+  onAdd?: undefined;
+  onDiscard?: undefined;
+  onUpdate?: undefined;
+  onDelete?: undefined;
+}
+
+type MarkerPopupContentProps = MarkerPopupContentAddProps | MarkerPopupContentEditProps | MarkerPopupContentViewProps;
 
 // Group breeding codes by category
 function groupBreedingCodes(breedingCodes: BreedingStatusCode[]) {
@@ -93,6 +104,16 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
         onAdd={props.onAdd}
         onDiscard={props.onDiscard}
         formatCategoryName={formatCategoryName}
+      />
+    );
+  }
+
+  if (mode === 'view') {
+    return (
+      <ViewPopupContent
+        species={species}
+        breedingCodes={breedingCodes}
+        marker={props.marker}
       />
     );
   }
@@ -337,6 +358,83 @@ function EditPopupForm({
             breedingCodes={breedingCodes}
             groupedCodes={groupedCodes}
           />
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
+// View-only display for markers (read-only mode)
+function ViewPopupContent({
+  species,
+  breedingCodes,
+  marker,
+}: {
+  species: Species[];
+  breedingCodes: BreedingStatusCode[];
+  marker: MapMarker;
+}) {
+  const sp = species.find((s) => s.id === marker.species_id);
+  const speciesName = sp?.name || sp?.scientific_name || 'Unknown';
+  const scientificName = sp?.scientific_name;
+  const isBird = sp?.type === 'bird';
+  const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
+
+  // Get breeding status display
+  const breedingCode = marker.breeding_status_code
+    ? breedingCodes.find((c) => c.code === marker.breeding_status_code)
+    : null;
+
+  return (
+    <Box
+      onMouseDown={stopPropagation}
+      onClick={stopPropagation}
+      onDoubleClick={stopPropagation}
+      onWheel={stopPropagation}
+      sx={{ minWidth: 200, p: 0.5 }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+        <SpeciesIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <Box>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
+            {sp?.name || scientificName || 'Unknown'}
+          </Typography>
+          {sp?.name && scientificName && (
+            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              {scientificName}
+            </Typography>
+          )}
+        </Box>
+      </Stack>
+
+      <Stack spacing={0.75}>
+        <Typography variant="caption" color="text.secondary">
+          {marker.latitude.toFixed(6)}, {marker.longitude.toFixed(6)}
+        </Typography>
+
+        <Typography variant="body2">
+          Count: <strong>{marker.count}</strong>
+        </Typography>
+
+        {isBird && breedingCode && (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Typography variant="body2">Breeding:</Typography>
+            <Chip
+              label={breedingCode.code}
+              size="small"
+              sx={{
+                bgcolor: CATEGORY_COLORS[breedingCode.category],
+                color: 'white',
+                fontWeight: 600,
+                height: 18,
+                minWidth: 24,
+                '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
+              }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {breedingCode.description}
+            </Typography>
+          </Stack>
         )}
       </Stack>
     </Box>
