@@ -131,7 +131,7 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
 
 // Add form for pending markers
 function AddPopupForm({
-  species,
+  species: _species,
   sortedSpecies,
   breedingCodes,
   onAdd,
@@ -375,7 +375,6 @@ function ViewPopupContent({
   marker: MapMarker;
 }) {
   const sp = species.find((s) => s.id === marker.species_id);
-  const speciesName = sp?.name || sp?.scientific_name || 'Unknown';
   const scientificName = sp?.scientific_name;
   const isBird = sp?.type === 'bird';
   const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
