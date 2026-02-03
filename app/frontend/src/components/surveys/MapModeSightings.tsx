@@ -30,7 +30,7 @@ interface MapModeSightingsProps {
   readOnly?: boolean;
 }
 
-function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
+function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
   const map = useMap();
 
   useMapEvents({
@@ -44,7 +44,10 @@ function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
         map.closePopup();
         return;
       }
-      onClick(e.latlng);
+      // Only trigger onClick if provided (not in read-only mode)
+      if (onClick) {
+        onClick(e.latlng);
+      }
     },
   });
   return null;
@@ -230,7 +233,7 @@ export function MapModeSightings({
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
             )}
-            {!readOnly && <MapClickHandler onClick={handleMapClick} />}
+            <MapClickHandler onClick={readOnly ? undefined : handleMapClick} />
             <FitBoundsToMarkers markers={markers} />
 
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
