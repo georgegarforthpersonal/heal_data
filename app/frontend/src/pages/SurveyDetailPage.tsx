@@ -302,7 +302,7 @@ export function SurveyDetailPage() {
 
       // Only include location_id if NOT at sighting level
       if (!locationAtSightingLevel) {
-        surveyData.location_id = editLocationId;
+        surveyData.location_id = editLocationId ?? undefined;
       }
 
       await surveysAPI.update(Number(id), surveyData);
