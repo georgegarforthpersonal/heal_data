@@ -194,11 +194,6 @@ export function NewSurveyPage() {
       errors.date = 'Date is required';
     }
 
-    // Location is only required if NOT at sighting level
-    if (!selectedSurveyType?.location_at_sighting_level && !locationId) {
-      errors.location = 'Location is required';
-    }
-
     if (selectedSurveyors.length === 0) {
       errors.surveyors = 'At least one surveyor is required';
     }
@@ -261,7 +256,7 @@ export function NewSurveyPage() {
 
       // Only include location_id if NOT at sighting level
       if (!selectedSurveyType?.location_at_sighting_level) {
-        surveyData.location_id = locationId!;
+        surveyData.location_id = locationId;
       }
 
       const newSurvey = await surveysAPI.create(surveyData);
@@ -339,12 +334,10 @@ export function NewSurveyPage() {
 
   // Determine if save button should be disabled
   const hasValidSightings = draftSightings.filter((s) => s.species_id !== null && s.count > 0).length > 0;
-  const locationValid = locationAtSightingLevel || locationId !== null;
   const saveDisabled =
     saving ||
     !selectedSurveyType ||
     !date ||
-    !locationValid ||
     selectedSurveyors.length === 0 ||
     !hasValidSightings;
 

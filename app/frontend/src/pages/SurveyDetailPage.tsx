@@ -213,11 +213,6 @@ export function SurveyDetailPage() {
       errors.date = 'Date is required';
     }
 
-    // Location is only required if NOT at sighting level
-    if (!locationAtSightingLevel && !editLocationId) {
-      errors.location = 'Location is required';
-    }
-
     if (editSelectedSurveyors.length === 0) {
       errors.surveyors = 'At least one surveyor is required';
     }
@@ -307,7 +302,7 @@ export function SurveyDetailPage() {
 
       // Only include location_id if NOT at sighting level
       if (!locationAtSightingLevel) {
-        surveyData.location_id = editLocationId!;
+        surveyData.location_id = editLocationId;
       }
 
       await surveysAPI.update(Number(id), surveyData);
@@ -504,7 +499,6 @@ export function SurveyDetailPage() {
                   disabled={
                     saving ||
                     !editDate ||
-                    (!locationAtSightingLevel && !editLocationId) ||
                     editSelectedSurveyors.length === 0 ||
                     editDraftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
                   }
