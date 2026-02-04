@@ -256,7 +256,7 @@ export function NewSurveyPage() {
 
       // Only include location_id if NOT at sighting level
       if (!selectedSurveyType?.location_at_sighting_level) {
-        surveyData.location_id = locationId;
+        surveyData.location_id = locationId ?? undefined;
       }
 
       const newSurvey = await surveysAPI.create(surveyData);
