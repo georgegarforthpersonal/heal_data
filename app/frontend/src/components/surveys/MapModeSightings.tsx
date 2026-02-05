@@ -56,19 +56,15 @@ function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
   return null;
 }
 
-function FitBoundsToMarkers({ markers, surveyLocationId, locationsWithBoundaries, isFullscreen }: { markers: MapMarker[]; surveyLocationId?: number | null; locationsWithBoundaries?: LocationWithBoundary[]; isFullscreen?: boolean }) {
+function FitBoundsToMarkers({ markers, surveyLocationId, locationsWithBoundaries }: { markers: MapMarker[]; surveyLocationId?: number | null; locationsWithBoundaries?: LocationWithBoundary[] }) {
   const map = useMap();
   const hadInitialMarkersRef = useRef(markers.length > 0);
   const hasFittedRef = useRef(false);
-  const lastBoundsRef = useRef<{ bounds: [number, number][]; options: any } | null>(null);
-  const prevFullscreenRef = useRef(isFullscreen);
 
   useEffect(() => {
     if (!hasFittedRef.current && hadInitialMarkersRef.current && markers.length > 0) {
       const bounds = markers.map((m) => [m.latitude, m.longitude] as [number, number]);
-      const options = { padding: [50, 50], maxZoom: 15 };
-      map.fitBounds(bounds, options);
-      lastBoundsRef.current = { bounds, options };
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
       hasFittedRef.current = true;
     }
 
@@ -76,27 +72,11 @@ function FitBoundsToMarkers({ markers, surveyLocationId, locationsWithBoundaries
       const location = locationsWithBoundaries.find(l => l.id === surveyLocationId);
       if (location?.boundary_geometry && location.boundary_geometry.length > 0) {
         const bounds = location.boundary_geometry.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
-        const options = { padding: [20, 20], maxZoom: 17 };
-        map.fitBounds(bounds, options);
-        lastBoundsRef.current = { bounds, options };
+        map.fitBounds(bounds, { padding: [20, 20], maxZoom: 17 });
         hasFittedRef.current = true;
       }
     }
   }, [markers, map, surveyLocationId, locationsWithBoundaries]);
-
-  // Re-apply bounds after fullscreen toggle (wait for CSS transition + invalidateSize)
-  useEffect(() => {
-    if (prevFullscreenRef.current !== isFullscreen) {
-      prevFullscreenRef.current = isFullscreen;
-      if (lastBoundsRef.current) {
-        const saved = lastBoundsRef.current;
-        const timer = setTimeout(() => {
-          map.fitBounds(saved.bounds, saved.options);
-        }, 350);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [isFullscreen, map]);
 
   return null;
 }
@@ -256,7 +236,7 @@ export function MapModeSightings({
               />
             )}
             <MapClickHandler onClick={readOnly ? undefined : handleMapClick} />
-            <FitBoundsToMarkers markers={markers} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} isFullscreen={isFullscreen} />
+            <FitBoundsToMarkers markers={markers} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
