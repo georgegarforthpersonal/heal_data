@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import { theme } from './theme';
 import { Layout } from './components/layout/Layout';
+import { AuthProvider } from './context/AuthContext';
 import { SurveysPage } from './pages/SurveysPage';
 import { SurveyDetailPage } from './pages/SurveyDetailPage';
 import { NewSurveyPage } from './pages/NewSurveyPage';
@@ -21,27 +22,29 @@ function App() {
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
         <BrowserRouter>
-          <Layout>
-            <Routes>
-              {/* Dashboard page */}
-              <Route path="/dashboards" element={<DashboardsPage />} />
+          <AuthProvider>
+            <Layout>
+              <Routes>
+                {/* Dashboard page */}
+                <Route path="/dashboards" element={<DashboardsPage />} />
 
-              {/* Admin page */}
-              <Route path="/admin" element={<AdminPage />} />
+                {/* Admin page */}
+                <Route path="/admin" element={<AdminPage />} />
 
-              {/* Main surveys list page */}
-              <Route path="/surveys" element={<SurveysPage />} />
+                {/* Main surveys list page */}
+                <Route path="/surveys" element={<SurveysPage />} />
 
-              {/* New survey page */}
-              <Route path="/surveys/new" element={<NewSurveyPage />} />
+                {/* New survey page */}
+                <Route path="/surveys/new" element={<NewSurveyPage />} />
 
-              {/* Survey detail page */}
-              <Route path="/surveys/:id" element={<SurveyDetailPage />} />
+                {/* Survey detail page */}
+                <Route path="/surveys/:id" element={<SurveyDetailPage />} />
 
-              {/* Redirect root to surveys */}
-              <Route path="/" element={<Navigate to="/surveys" replace />} />
-            </Routes>
-          </Layout>
+                {/* Redirect root to surveys */}
+                <Route path="/" element={<Navigate to="/surveys" replace />} />
+              </Routes>
+            </Layout>
+          </AuthProvider>
         </BrowserRouter>
       </LocalizationProvider>
     </ThemeProvider>

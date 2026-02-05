@@ -34,6 +34,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
@@ -831,5 +832,28 @@ export const healthAPI = {
    */
   check: (): Promise<{ status: string; version: string }> => {
     return fetchAPI('/health');
+  },
+};
+
+// ============================================================================
+// API Methods - Auth
+// ============================================================================
+
+export const authAPI = {
+  login: (password: string): Promise<{ authenticated: boolean }> => {
+    return fetchAPI('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  },
+
+  logout: (): Promise<{ authenticated: boolean }> => {
+    return fetchAPI('/auth/logout', {
+      method: 'POST',
+    });
+  },
+
+  status: (): Promise<{ authenticated: boolean }> => {
+    return fetchAPI('/auth/status');
   },
 };
