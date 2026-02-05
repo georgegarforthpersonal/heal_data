@@ -18,7 +18,7 @@ from auth import (
     SESSION_MAX_AGE,
 )
 
-_is_production = os.getenv("ENV", "").lower() in ("production", "prod")
+_is_production = os.getenv("ENV", "").lower() in ("production", "prod", "staging")
 
 router = APIRouter()
 
