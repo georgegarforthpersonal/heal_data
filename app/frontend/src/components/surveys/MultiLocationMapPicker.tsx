@@ -66,17 +66,21 @@ function MapClickHandler({ onClick, disabled }: { onClick: (latlng: LatLng) => v
 }
 
 // Component to fit map bounds to markers (only on initial mount with pre-existing locations)
-function FitBoundsToMarkers({ locations, surveyLocationId, locationsWithBoundaries }: { locations: DraftIndividualLocation[]; surveyLocationId?: number | null; locationsWithBoundaries?: LocationWithBoundary[] }) {
+function FitBoundsToMarkers({ locations, surveyLocationId, locationsWithBoundaries, isFullscreen }: { locations: DraftIndividualLocation[]; surveyLocationId?: number | null; locationsWithBoundaries?: LocationWithBoundary[]; isFullscreen?: boolean }) {
   const map = useMap();
   // Capture whether there were locations when the component first mounted
   const hadInitialLocationsRef = useRef(locations.length > 0);
   const hasFittedRef = useRef(false);
+  const lastBoundsRef = useRef<{ bounds: [number, number][]; options: any } | null>(null);
+  const prevFullscreenRef = useRef(isFullscreen);
 
   useEffect(() => {
     // Only fit bounds if there were pre-existing locations when the modal opened
     if (!hasFittedRef.current && hadInitialLocationsRef.current && locations.length > 0) {
       const bounds = locations.map((loc) => [loc.latitude, loc.longitude] as [number, number]);
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      const options = { padding: [50, 50], maxZoom: 15 };
+      map.fitBounds(bounds, options);
+      lastBoundsRef.current = { bounds, options };
       hasFittedRef.current = true;
     }
 
@@ -84,11 +88,27 @@ function FitBoundsToMarkers({ locations, surveyLocationId, locationsWithBoundari
       const location = locationsWithBoundaries.find(l => l.id === surveyLocationId);
       if (location?.boundary_geometry && location.boundary_geometry.length > 0) {
         const bounds = location.boundary_geometry.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
-        map.fitBounds(bounds, { padding: [20, 20], maxZoom: 17 });
+        const options = { padding: [20, 20], maxZoom: 17 };
+        map.fitBounds(bounds, options);
+        lastBoundsRef.current = { bounds, options };
         hasFittedRef.current = true;
       }
     }
   }, [locations, map, surveyLocationId, locationsWithBoundaries]);
+
+  // Re-apply bounds after fullscreen toggle (wait for CSS transition + invalidateSize)
+  useEffect(() => {
+    if (prevFullscreenRef.current !== isFullscreen) {
+      prevFullscreenRef.current = isFullscreen;
+      if (lastBoundsRef.current) {
+        const saved = lastBoundsRef.current;
+        const timer = setTimeout(() => {
+          map.fitBounds(saved.bounds, saved.options);
+        }, 350);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isFullscreen, map]);
 
   return null;
 }
@@ -311,7 +331,7 @@ export default function MultiLocationMapPicker({
               />
             )}
             <MapClickHandler onClick={handleMapClick} disabled={disabled || isAtMax} />
-            <FitBoundsToMarkers locations={locations} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} />
+            <FitBoundsToMarkers locations={locations} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} isFullscreen={isFullscreen} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
             {/* Field boundaries layer (rendered before markers so markers appear on top) */}
