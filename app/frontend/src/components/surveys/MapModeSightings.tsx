@@ -30,6 +30,7 @@ interface MapModeSightingsProps {
   onSightingsChange?: (sightings: DraftSighting[]) => void;
   locationsWithBoundaries?: LocationWithBoundary[];
   readOnly?: boolean;
+  surveyLocationId?: number | null;
 }
 
 function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
@@ -55,7 +56,7 @@ function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
   return null;
 }
 
-function FitBoundsToMarkers({ markers }: { markers: MapMarker[] }) {
+function FitBoundsToMarkers({ markers, surveyLocationId, locationsWithBoundaries }: { markers: MapMarker[]; surveyLocationId?: number | null; locationsWithBoundaries?: LocationWithBoundary[] }) {
   const map = useMap();
   const hadInitialMarkersRef = useRef(markers.length > 0);
   const hasFittedRef = useRef(false);
@@ -66,7 +67,16 @@ function FitBoundsToMarkers({ markers }: { markers: MapMarker[] }) {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
       hasFittedRef.current = true;
     }
-  }, [markers, map]);
+
+    if (!hasFittedRef.current && !hadInitialMarkersRef.current && surveyLocationId && locationsWithBoundaries) {
+      const location = locationsWithBoundaries.find(l => l.id === surveyLocationId);
+      if (location?.boundary_geometry && location.boundary_geometry.length > 0) {
+        const bounds = location.boundary_geometry.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
+        map.fitBounds(bounds, { padding: [20, 20], maxZoom: 17 });
+        hasFittedRef.current = true;
+      }
+    }
+  }, [markers, map, surveyLocationId, locationsWithBoundaries]);
 
   return null;
 }
@@ -107,6 +117,7 @@ export function MapModeSightings({
   onSightingsChange,
   locationsWithBoundaries,
   readOnly = false,
+  surveyLocationId,
 }: MapModeSightingsProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
@@ -225,7 +236,7 @@ export function MapModeSightings({
               />
             )}
             <MapClickHandler onClick={readOnly ? undefined : handleMapClick} />
-            <FitBoundsToMarkers markers={markers} />
+            <FitBoundsToMarkers markers={markers} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
