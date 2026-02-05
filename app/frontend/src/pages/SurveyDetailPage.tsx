@@ -669,6 +669,7 @@ export function SurveyDetailPage() {
               locations={locations}
               allowGeolocation={allowGeolocation}
               allowSightingNotes={allowSightingNotes}
+              surveyLocationId={editLocationId}
             />
           ) : (
             <>
@@ -715,6 +716,7 @@ export function SurveyDetailPage() {
                   breedingCodes={breedingCodes}
                   locationsWithBoundaries={locationsWithBoundaries}
                   readOnly
+                  surveyLocationId={survey.location_id}
                 />
               ) : (
               /* Sightings Table */

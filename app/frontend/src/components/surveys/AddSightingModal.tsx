@@ -27,6 +27,7 @@ interface AddSightingModalProps {
   locations?: Location[]; // Available locations for sighting-level selection
   allowGeolocation?: boolean; // Whether GPS location picker is shown
   allowSightingNotes?: boolean; // Whether notes field is shown
+  surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
 }
 
 /**
@@ -50,6 +51,7 @@ export function AddSightingModal({
   locations = [],
   allowGeolocation = true,
   allowSightingNotes = true,
+  surveyLocationId,
 }: AddSightingModalProps) {
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<number | null>(initialData?.species_id || null);
   const [count, setCount] = useState<number>(initialData?.count || 1);
@@ -303,6 +305,7 @@ export function AddSightingModal({
                 showBreedingStatus={isBirdSpecies}
                 maxCount={count}
                 locationsWithBoundaries={locationsWithBoundaries}
+                surveyLocationId={surveyLocationId}
               />
             </Box>
           )}
