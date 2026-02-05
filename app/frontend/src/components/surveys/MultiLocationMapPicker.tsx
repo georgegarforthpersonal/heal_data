@@ -50,6 +50,7 @@ interface MultiLocationMapPickerProps {
   maxCount?: number; // Maximum number of individuals allowed (from sighting count)
   disabled?: boolean;
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
+  surveyLocationId?: number | null;
 }
 
 // Component to handle map clicks
@@ -65,7 +66,7 @@ function MapClickHandler({ onClick, disabled }: { onClick: (latlng: LatLng) => v
 }
 
 // Component to fit map bounds to markers (only on initial mount with pre-existing locations)
-function FitBoundsToMarkers({ locations }: { locations: DraftIndividualLocation[] }) {
+function FitBoundsToMarkers({ locations, surveyLocationId, locationsWithBoundaries }: { locations: DraftIndividualLocation[]; surveyLocationId?: number | null; locationsWithBoundaries?: LocationWithBoundary[] }) {
   const map = useMap();
   // Capture whether there were locations when the component first mounted
   const hadInitialLocationsRef = useRef(locations.length > 0);
@@ -78,7 +79,16 @@ function FitBoundsToMarkers({ locations }: { locations: DraftIndividualLocation[
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
       hasFittedRef.current = true;
     }
-  }, [locations, map]);
+
+    if (!hasFittedRef.current && !hadInitialLocationsRef.current && surveyLocationId && locationsWithBoundaries) {
+      const location = locationsWithBoundaries.find(l => l.id === surveyLocationId);
+      if (location?.boundary_geometry && location.boundary_geometry.length > 0) {
+        const bounds = location.boundary_geometry.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
+        map.fitBounds(bounds, { padding: [20, 20], maxZoom: 17 });
+        hasFittedRef.current = true;
+      }
+    }
+  }, [locations, map, surveyLocationId, locationsWithBoundaries]);
 
   return null;
 }
@@ -117,6 +127,7 @@ export default function MultiLocationMapPicker({
   maxCount,
   disabled = false,
   locationsWithBoundaries,
+  surveyLocationId,
 }: MultiLocationMapPickerProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
@@ -300,7 +311,7 @@ export default function MultiLocationMapPicker({
               />
             )}
             <MapClickHandler onClick={handleMapClick} disabled={disabled || isAtMax} />
-            <FitBoundsToMarkers locations={locations} />
+            <FitBoundsToMarkers locations={locations} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
             {/* Field boundaries layer (rendered before markers so markers appear on top) */}
