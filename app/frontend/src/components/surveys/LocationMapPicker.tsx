@@ -5,7 +5,10 @@ import { Box, Typography, TextField, Stack, Paper, IconButton, Tooltip, ToggleBu
 import CloseIcon from '@mui/icons-material/Close';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
+import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 
 // Fix for default marker icon in React Leaflet
 import L from 'leaflet';
@@ -53,6 +56,7 @@ export default function LocationMapPicker({
     latitude && longitude ? new LatLng(latitude, longitude) : new LatLng(51.159480, -2.385541) // Default to survey area
   );
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
+  const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   useEffect(() => {
     if (latitude && longitude) {
@@ -131,8 +135,38 @@ export default function LocationMapPicker({
         </ToggleButtonGroup>
       </Stack>
 
-      <Paper elevation={2} sx={{ mb: 2, overflow: 'hidden' }}>
-        <Box sx={{ height: { xs: '300px', sm: '400px' }, width: '100%' }}>
+      <Paper
+        elevation={2}
+        className="fullscreen-map-container"
+        sx={{ mb: 2, overflow: 'hidden', position: 'relative', ...fullscreenContainerSx }}
+      >
+        {/* Fullscreen toggle */}
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            zIndex: 1000,
+          }}
+        >
+          <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+            <IconButton
+              size="small"
+              onClick={toggleFullscreen}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: 2,
+                '&:hover': { bgcolor: 'grey.100' },
+              }}
+            >
+              {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </Stack>
+
+        <Box sx={{ height: { xs: '300px', sm: '400px' }, width: '100%', ...fullscreenMapSx }}>
           <MapContainer
             center={mapCenter}
             zoom={13}
@@ -153,6 +187,7 @@ export default function LocationMapPicker({
             )}
             <MapClickHandler onClick={handleMapClick} />
             {position && <Marker position={position} />}
+            <MapResizeHandler isFullscreen={isFullscreen} />
           </MapContainer>
         </Box>
       </Paper>

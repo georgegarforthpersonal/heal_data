@@ -29,6 +29,11 @@ body,
   display: none;
 }
 
+/* Fullscreen map transition */
+.fullscreen-map-container {
+  transition: all 0.25s ease-in-out;
+}
+
 /* Field boundary labels on maps */
 .field-boundary-label {
   background: rgba(255, 255, 255, 0.9) !important;

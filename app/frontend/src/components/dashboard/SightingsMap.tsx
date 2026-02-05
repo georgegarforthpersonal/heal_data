@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Typography, Slider, Stack, CircularProgress, Alert, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import { Box, Paper, Typography, Slider, Stack, CircularProgress, Alert, ToggleButtonGroup, ToggleButton, Tooltip, IconButton } from '@mui/material';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import { LatLngBounds, LatLng } from 'leaflet';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import dayjs from 'dayjs';
 import 'leaflet/dist/leaflet.css';
 import type { SpeciesSightingLocation, LocationWithBoundary } from '../../services/api';
 import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
+import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 
 interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
@@ -63,6 +66,9 @@ function getColorForDate(date: Date, minDate: Date, maxDate: Date): string {
 }
 
 export default function SightingsMap({ sightings, loading, error, locationsWithBoundaries }: SightingsMapProps) {
+  // Fullscreen state
+  const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
+
   // Map type state
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
 
@@ -273,13 +279,42 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
       {/* Map */}
       <Paper
         elevation={0}
+        className="fullscreen-map-container"
         sx={{
           overflow: 'hidden',
           border: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'divider',
+          position: 'relative',
+          ...fullscreenContainerSx,
         }}
       >
-        <Box sx={{ height: 500, width: '100%' }}>
+        {/* Fullscreen toggle */}
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            zIndex: 1000,
+          }}
+        >
+          <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+            <IconButton
+              size="small"
+              onClick={toggleFullscreen}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: 2,
+                '&:hover': { bgcolor: 'grey.100' },
+              }}
+            >
+              {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </Stack>
+
+        <Box sx={{ height: 500, width: '100%', ...fullscreenMapSx }}>
           <MapContainer
             center={defaultCenter}
             zoom={defaultZoom}
@@ -340,6 +375,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
             })}
 
             <FitBounds sightings={filteredSightings} />
+            <MapResizeHandler isFullscreen={isFullscreen} />
           </MapContainer>
         </Box>
       </Paper>

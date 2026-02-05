@@ -77,6 +77,7 @@ export const SPACING = {
  * Z-index values to ensure consistent layering
  */
 export const Z_INDEX = {
+  FULLSCREEN: 1400, // Fullscreen map overlay (above MUI Dialog)
   MODAL: 1300, // MUI Dialog default
   DRAWER: 1200, // MUI Drawer default
   APP_BAR: 1100, // MUI AppBar default

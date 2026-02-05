@@ -10,7 +10,10 @@ import {
   Alert,
 } from '@mui/material';
 import LayersIcon from '@mui/icons-material/Layers';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
+import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 
 import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
 import type { DraftSighting } from './SightingsEditor';
@@ -108,6 +111,7 @@ export function MapModeSightings({
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
   const [addPopupPosition, setAddPopupPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   const markers = useMemo(() => getMarkersFromSightings(sightings), [sightings]);
 
@@ -162,8 +166,12 @@ export function MapModeSightings({
   return (
     <Box>
       {/* Map */}
-      <Paper elevation={2} sx={{ mb: 2, overflow: 'hidden', position: 'relative' }}>
-        <Box sx={{ height: { xs: '350px', sm: '400px', md: '500px' }, width: '100%' }}>
+      <Paper
+        elevation={2}
+        className="fullscreen-map-container"
+        sx={{ mb: 2, overflow: 'hidden', position: 'relative', ...fullscreenContainerSx }}
+      >
+        <Box sx={{ height: { xs: '350px', sm: '400px', md: '500px' }, width: '100%', ...fullscreenMapSx }}>
           {/* Map controls overlaid on the map */}
           <Stack
             direction="row"
@@ -175,6 +183,19 @@ export function MapModeSightings({
               zIndex: 1000,
             }}
           >
+            <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+              <IconButton
+                size="small"
+                onClick={toggleFullscreen}
+                sx={{
+                  bgcolor: 'white',
+                  boxShadow: 2,
+                  '&:hover': { bgcolor: 'grey.100' },
+                }}
+              >
+                {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title={mapType === 'satellite' ? 'Switch to street map' : 'Switch to satellite'}>
               <IconButton
                 size="small"
@@ -205,6 +226,7 @@ export function MapModeSightings({
             )}
             <MapClickHandler onClick={readOnly ? undefined : handleMapClick} />
             <FitBoundsToMarkers markers={markers} />
+            <MapResizeHandler isFullscreen={isFullscreen} />
 
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
               <FieldBoundaryOverlay locations={locationsWithBoundaries} />
