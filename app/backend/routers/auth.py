@@ -7,9 +7,9 @@ Endpoints:
   GET  /api/auth/status  - Check if currently authenticated
 """
 
+import os
 from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel
-import os
 from auth import (
     verify_admin_password,
     create_session_token,

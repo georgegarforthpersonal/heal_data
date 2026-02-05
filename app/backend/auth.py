@@ -1,73 +1,49 @@
 """
 Authentication module for admin password protection.
 
-Provides a shared admin password mechanism using:
-- bcrypt for password hashing/verification
-- itsdangerous for signed session cookies
-
-No individual user accounts - just a single admin password
-that grants edit privileges when verified.
+Simple shared admin password with HMAC-signed session cookies.
+No external dependencies beyond FastAPI.
 """
 
+import hashlib
+import hmac
 import os
-import base64
-import bcrypt as _bcrypt
+import time
 from fastapi import Request, HTTPException, status
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 
 SESSION_COOKIE_NAME = "admin_session"
 SESSION_MAX_AGE = 60 * 60 * 24  # 24 hours
 
 
-def _get_secret_key() -> str:
-    key = os.getenv("SESSION_SECRET_KEY", "")
-    if not key:
-        raise RuntimeError("SESSION_SECRET_KEY environment variable is not set")
-    return key
-
-
-def _get_serializer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(_get_secret_key())
-
-
-def get_admin_password_hash() -> str:
-    raw = os.getenv("ADMIN_PASSWORD_HASH", "")
-    if not raw:
-        raise RuntimeError("ADMIN_PASSWORD_HASH environment variable is not set")
-    return base64.b64decode(raw).decode("utf-8")
-
-
 def verify_admin_password(password: str) -> bool:
-    try:
-        pw_hash = get_admin_password_hash()
-        return _bcrypt.checkpw(
-            password.encode("utf-8"),
-            pw_hash.encode("utf-8"),
-        )
-    except (RuntimeError, ValueError):
+    expected = os.getenv("ADMIN_PASSWORD", "")
+    if not expected:
         return False
+    return password == expected
 
 
 def create_session_token() -> str:
-    serializer = _get_serializer()
-    return serializer.dumps({"role": "admin"})
+    timestamp = str(int(time.time()))
+    secret = os.getenv("SESSION_SECRET_KEY", "")
+    signature = hmac.new(secret.encode(), timestamp.encode(), hashlib.sha256).hexdigest()
+    return f"{timestamp}.{signature}"
 
 
 def validate_session_token(token: str) -> bool:
     try:
-        serializer = _get_serializer()
-        serializer.loads(token, max_age=SESSION_MAX_AGE)
-        return True
-    except (BadSignature, SignatureExpired):
+        timestamp, signature = token.split(".", 1)
+        secret = os.getenv("SESSION_SECRET_KEY", "")
+        expected = hmac.new(secret.encode(), timestamp.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            return False
+        return (time.time() - int(timestamp)) < SESSION_MAX_AGE
+    except (ValueError, TypeError):
         return False
 
 
 async def require_admin(request: Request):
-    """
-    FastAPI dependency that checks for a valid admin session cookie.
-    Raises 401 if not authenticated.
-    """
+    """FastAPI dependency — raises 401 if not authenticated."""
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token or not validate_session_token(token):
         raise HTTPException(
