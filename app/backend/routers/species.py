@@ -9,10 +9,11 @@ Endpoints:
   DELETE /api/species/{id}         - Delete species
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List, Optional
 from database.connection import get_db_cursor
 from models import SpeciesRead, SpeciesCreate, SpeciesUpdate
+from auth import require_admin
 
 router = APIRouter()
 
@@ -128,7 +129,7 @@ async def get_species_by_id(species_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to fetch species: {str(e)}")
 
 
-@router.post("", response_model=SpeciesRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SpeciesRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_species(species: SpeciesCreate):
     """Create a new species"""
     try:
@@ -154,7 +155,7 @@ async def create_species(species: SpeciesCreate):
         raise HTTPException(status_code=500, detail=f"Failed to create species: {str(e)}")
 
 
-@router.put("/{species_id}", response_model=SpeciesRead)
+@router.put("/{species_id}", response_model=SpeciesRead, dependencies=[Depends(require_admin)])
 async def update_species(species_id: int, species: SpeciesUpdate):
     """Update an existing species"""
     try:
@@ -218,7 +219,7 @@ async def update_species(species_id: int, species: SpeciesUpdate):
         raise HTTPException(status_code=500, detail=f"Failed to update species: {str(e)}")
 
 
-@router.delete("/{species_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{species_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 async def delete_species(species_id: int):
     """Delete a species"""
     try:

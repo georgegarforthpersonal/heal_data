@@ -10,10 +10,11 @@ Endpoints:
   DELETE /api/locations/{id}            - Delete location
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from database.connection import get_db_cursor
 from models import LocationRead, LocationCreate, LocationUpdate, LocationWithBoundary
+from auth import require_admin
 
 router = APIRouter()
 
@@ -144,7 +145,7 @@ async def get_location(location_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to fetch location: {str(e)}")
 
 
-@router.post("", response_model=LocationRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=LocationRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_location(location: LocationCreate):
     """Create a new location"""
     try:
@@ -166,7 +167,7 @@ async def create_location(location: LocationCreate):
         raise HTTPException(status_code=500, detail=f"Failed to create location: {str(e)}")
 
 
-@router.put("/{location_id}", response_model=LocationRead)
+@router.put("/{location_id}", response_model=LocationRead, dependencies=[Depends(require_admin)])
 async def update_location(location_id: int, location: LocationUpdate):
     """Update an existing location"""
     try:
@@ -204,7 +205,7 @@ async def update_location(location_id: int, location: LocationUpdate):
         raise HTTPException(status_code=500, detail=f"Failed to update location: {str(e)}")
 
 
-@router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 async def delete_location(location_id: int):
     """Delete a location"""
     try:

@@ -21,6 +21,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, text
 from database.connection import get_db
+from auth import require_admin
 from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate, SurveyWithSightingsCount,
     Sighting, SightingRead, SightingCreate, SightingUpdate, SightingWithDetails,
@@ -224,7 +225,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
     """
     Create a new survey.
@@ -281,7 +282,7 @@ async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to create survey: {str(e)}")
 
 
-@router.put("/{survey_id}", response_model=SurveyRead)
+@router.put("/{survey_id}", response_model=SurveyRead, dependencies=[Depends(require_admin)])
 async def update_survey(survey_id: int, survey: SurveyUpdate, db: Session = Depends(get_db)):
     """
     Update an existing survey.
@@ -346,7 +347,7 @@ async def update_survey(survey_id: int, survey: SurveyUpdate, db: Session = Depe
     }
 
 
-@router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 async def delete_survey(survey_id: int, db: Session = Depends(get_db)):
     """
     Delete a survey (CASCADE deletes sightings and surveyor associations).
@@ -443,7 +444,7 @@ async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.post("/{survey_id}/sightings", response_model=SightingWithIndividuals, status_code=status.HTTP_201_CREATED)
+@router.post("/{survey_id}/sightings", response_model=SightingWithIndividuals, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session = Depends(get_db)):
     """
     Add a sighting to a survey with optional individual location points.
@@ -534,7 +535,7 @@ async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session 
     }
 
 
-@router.put("/{survey_id}/sightings/{sighting_id}", response_model=SightingWithDetails)
+@router.put("/{survey_id}/sightings/{sighting_id}", response_model=SightingWithDetails, dependencies=[Depends(require_admin)])
 async def update_sighting(survey_id: int, sighting_id: int, sighting: SightingUpdate, db: Session = Depends(get_db)):
     """
     Update a sighting.
@@ -583,7 +584,7 @@ async def update_sighting(survey_id: int, sighting_id: int, sighting: SightingUp
     }
 
 
-@router.delete("/{survey_id}/sightings/{sighting_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{survey_id}/sightings/{sighting_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 async def delete_sighting(survey_id: int, sighting_id: int, db: Session = Depends(get_db)):
     """
     Delete a sighting.
@@ -614,7 +615,7 @@ async def delete_sighting(survey_id: int, sighting_id: int, db: Session = Depend
 # Individual Location Operations (Nested under sightings)
 # ============================================================================
 
-@router.post("/{survey_id}/sightings/{sighting_id}/individuals", response_model=IndividualLocationRead, status_code=status.HTTP_201_CREATED)
+@router.post("/{survey_id}/sightings/{sighting_id}/individuals", response_model=IndividualLocationRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def add_individual_location(
     survey_id: int,
     sighting_id: int,
@@ -685,7 +686,7 @@ async def add_individual_location(
     }
 
 
-@router.put("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", response_model=IndividualLocationRead)
+@router.put("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", response_model=IndividualLocationRead, dependencies=[Depends(require_admin)])
 async def update_individual_location(
     survey_id: int,
     sighting_id: int,
@@ -776,7 +777,7 @@ async def update_individual_location(
     }
 
 
-@router.delete("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 async def delete_individual_location(
     survey_id: int,
     sighting_id: int,

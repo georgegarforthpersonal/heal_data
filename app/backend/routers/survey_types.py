@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from sqlalchemy.orm import Session
 from database.connection import get_db
+from auth import require_admin
 from models import (
     SurveyType, SurveyTypeRead, SurveyTypeCreate, SurveyTypeUpdate, SurveyTypeWithDetails,
     SurveyTypeLocationLink, SurveyTypeSpeciesTypeLink,
@@ -92,7 +93,7 @@ async def get_survey_type(survey_type_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.post("", response_model=SurveyTypeRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SurveyTypeRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_survey_type(survey_type: SurveyTypeCreate, db: Session = Depends(get_db)):
     """Create a new survey type with associated locations and species types"""
     # Check for duplicate name
@@ -144,7 +145,7 @@ async def create_survey_type(survey_type: SurveyTypeCreate, db: Session = Depend
     return db_survey_type
 
 
-@router.put("/{survey_type_id}", response_model=SurveyTypeRead)
+@router.put("/{survey_type_id}", response_model=SurveyTypeRead, dependencies=[Depends(require_admin)])
 async def update_survey_type(survey_type_id: int, survey_type: SurveyTypeUpdate, db: Session = Depends(get_db)):
     """Update an existing survey type"""
     db_survey_type = db.query(SurveyType).filter(SurveyType.id == survey_type_id).first()
@@ -203,7 +204,7 @@ async def update_survey_type(survey_type_id: int, survey_type: SurveyTypeUpdate,
     return db_survey_type
 
 
-@router.delete("/{survey_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{survey_type_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 async def delete_survey_type(survey_type_id: int, db: Session = Depends(get_db)):
     """
     Soft delete (deactivate) a survey type.
@@ -220,7 +221,7 @@ async def delete_survey_type(survey_type_id: int, db: Session = Depends(get_db))
     return None
 
 
-@router.post("/{survey_type_id}/reactivate", response_model=SurveyTypeRead)
+@router.post("/{survey_type_id}/reactivate", response_model=SurveyTypeRead, dependencies=[Depends(require_admin)])
 async def reactivate_survey_type(survey_type_id: int, db: Session = Depends(get_db)):
     """Reactivate a deactivated survey type"""
     db_survey_type = db.query(SurveyType).filter(SurveyType.id == survey_type_id).first()
