@@ -1,12 +1,15 @@
 """
-Extract mammals and reptiles from bird survey notes.
+Extract mammals and reptiles from bird survey notes and import as sightings.
 
 Reads the bird survey Excel file and extracts species sightings from the
 notes column for each survey date. Uses fuzzy matching to match species
-names against mammals and reptiles in the database.
+names against mammals and reptiles in the database. Can optionally import
+the matched sightings into existing Birders surveys.
 
 Usage:
-    ./staging-run extract_bird_survey_notes.py
+    ./staging-run extract_bird_survey_notes.py              # Dry-run (preview only)
+    ./staging-run extract_bird_survey_notes.py --no-dry-run # Apply to database
+    ./staging-run extract_bird_survey_notes.py -v           # Verbose output
 """
 
 import logging
@@ -24,6 +27,7 @@ from rapidfuzz import fuzz, process
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from database.connection import get_db_cursor
+from script_utils import get_arg_parser
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,6 +52,14 @@ DATA_START_COL = 2  # Column C
 
 # Fuzzy matching threshold (0-100)
 FUZZY_THRESHOLD = 70
+
+# Survey type to match against
+SURVEY_TYPE_NAME = "Birders"
+
+# Date corrections for known typos in the spreadsheet
+DATE_CORRECTIONS = {
+    date(2002, 3, 15): date(2025, 3, 15),
+}
 
 # Common name aliases (normalize to DB names)
 # Format: lowercase alias -> DB name (case-sensitive)
@@ -358,7 +370,7 @@ def read_excel_and_extract_notes(verbose: bool = False) -> tuple[list[NoteData],
 
     if not EXCEL_PATH.exists():
         logger.error(f"Excel file not found: {EXCEL_PATH}")
-        return []
+        return [], []
 
     wb = openpyxl.load_workbook(EXCEL_PATH)
     all_note_data = []
@@ -401,6 +413,12 @@ def read_excel_and_extract_notes(verbose: bool = False) -> tuple[list[NoteData],
             else:
                 # Skip non-date values (like "Monthly Totals" columns)
                 continue
+
+            # Apply date corrections for known spreadsheet typos
+            if survey_date in DATE_CORRECTIONS:
+                corrected = DATE_CORRECTIONS[survey_date]
+                logger.info(f"  Correcting date typo: {survey_date} -> {corrected}")
+                survey_date = corrected
 
             # Get the notes from NOTES_ROW
             notes_cell = ws.cell(row=NOTES_ROW + 1, column=col_idx + 1)
@@ -490,15 +508,130 @@ def log_results(note_data_list: list[NoteData], unmatched_list: list[tuple]) -> 
             logger.info(f"  - {name}")
 
 
-def main(verbose: bool = False):
-    """Main script execution."""
+# ============================================================================
+# DATABASE IMPORT FUNCTIONS
+# ============================================================================
+
+def find_birders_survey(cursor, survey_date: date) -> Optional[int]:
+    """
+    Find the Birders survey for a given date.
+
+    Returns the survey ID or None if not found.
+    """
+    cursor.execute("""
+        SELECT s.id
+        FROM survey s
+        JOIN survey_type st ON st.id = s.survey_type_id
+        WHERE st.name = %s AND s.date = %s
+    """, (SURVEY_TYPE_NAME, survey_date))
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
+def import_sightings(note_data_list: list[NoteData], dry_run: bool = True) -> bool:
+    """
+    Import matched species as sightings into their corresponding Birders surveys.
+
+    Args:
+        note_data_list: List of NoteData with matched species
+        dry_run: If True, preview only; if False, write to database
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if not note_data_list:
+        logger.info("No data to import.")
+        return True
+
+    logger.info("\n" + "="*80)
+    logger.info("IMPORT SIGHTINGS")
     logger.info("="*80)
-    logger.info("EXTRACT MAMMALS/REPTILES FROM BIRD SURVEY NOTES")
+
+    with get_db_cursor() as cursor:
+        # Preview: find surveys, check for existing sightings, and build import plan
+        import_plan = []  # List of (survey_id, date, new_matches, skipped_matches)
+        skipped_dates = []
+
+        for note_data in sorted(note_data_list, key=lambda x: x.date):
+            survey_id = find_birders_survey(cursor, note_data.date)
+            if survey_id is None:
+                skipped_dates.append(note_data.date)
+                logger.warning(f"  No {SURVEY_TYPE_NAME} survey found for {note_data.date} - skipping")
+                continue
+
+            # Check which species already have sightings in this survey
+            cursor.execute(
+                "SELECT species_id FROM sighting WHERE survey_id = %s",
+                (survey_id,)
+            )
+            existing_species_ids = {row[0] for row in cursor.fetchall()}
+
+            new_matches = []
+            skipped_matches = []
+            for match in note_data.species_list:
+                if match.db_id in existing_species_ids:
+                    skipped_matches.append(match)
+                else:
+                    new_matches.append(match)
+
+            import_plan.append((survey_id, note_data.date, new_matches, skipped_matches))
+
+        # Log the plan
+        total_new = sum(len(new) for _, _, new, _ in import_plan)
+        total_skipped = sum(len(skipped) for _, _, _, skipped in import_plan)
+        logger.info(f"\nSurveys matched: {len(import_plan)}")
+        logger.info(f"Sightings to create: {total_new}")
+        logger.info(f"Sightings already present (skipped): {total_skipped}")
+        if skipped_dates:
+            logger.info(f"Dates skipped (no survey): {len(skipped_dates)}")
+            for d in skipped_dates:
+                logger.info(f"  - {d}")
+
+        logger.info("\nImport plan:")
+        for survey_id, survey_date, new_matches, skipped_matches in import_plan:
+            if not new_matches and not skipped_matches:
+                continue
+            logger.info(f"  Survey {survey_id} ({survey_date}):")
+            for match in new_matches:
+                logger.info(f"    + {match.db_name} x{match.count} (species_id={match.db_id})")
+            for match in skipped_matches:
+                logger.info(f"    ~ {match.db_name} x{match.count} (species_id={match.db_id}) ALREADY EXISTS")
+
+        if dry_run:
+            logger.info("\n" + "="*80)
+            logger.info("DRY RUN - no changes made. Run with --no-dry-run to apply.")
+            logger.info("="*80)
+            return True
+
+        # Apply: create sightings
+        logger.info("\nApplying to database...")
+        sightings_created = 0
+
+        for survey_id, survey_date, new_matches, _ in import_plan:
+            for match in new_matches:
+                cursor.execute("""
+                    INSERT INTO sighting (survey_id, species_id, count)
+                    VALUES (%s, %s, %s)
+                """, (survey_id, match.db_id, match.count))
+                sightings_created += 1
+
+        logger.info(f"\nCreated {sightings_created} sightings across {len(import_plan)} surveys")
+        logger.info("="*80)
+
+    return True
+
+
+def main(dry_run: bool = True, verbose: bool = False):
+    """Main script execution."""
+    mode = "DRY RUN" if dry_run else "LIVE"
+    logger.info("="*80)
+    logger.info(f"EXTRACT MAMMALS/REPTILES FROM BIRD SURVEY NOTES - {mode}")
     logger.info("="*80)
 
     try:
         note_data_list, unmatched_list = read_excel_and_extract_notes(verbose=verbose)
         log_results(note_data_list, unmatched_list)
+        import_sightings(note_data_list, dry_run=dry_run)
         return 0
     except Exception as e:
         logger.error(f"Error: {e}", exc_info=True)
@@ -506,12 +639,11 @@ def main(verbose: bool = False):
 
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = get_arg_parser(description=__doc__)
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
     args = parser.parse_args()
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    sys.exit(main(verbose=args.verbose))
+    sys.exit(main(dry_run=args.dry_run, verbose=args.verbose))
