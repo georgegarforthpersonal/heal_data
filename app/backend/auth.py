@@ -1,17 +1,11 @@
 """
 Authentication module for admin password protection.
 
-Provides a shared admin password mechanism using:
-- bcrypt for password hashing/verification
-- itsdangerous for signed session cookies
-
-No individual user accounts - just a single admin password
-that grants edit privileges when verified.
+Simple shared admin password checked via plaintext comparison.
+Session tokens use itsdangerous signed cookies.
 """
 
 import os
-import base64
-import bcrypt as _bcrypt
 from fastapi import Request, HTTPException, status
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
@@ -31,22 +25,11 @@ def _get_serializer() -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(_get_secret_key())
 
 
-def get_admin_password_hash() -> str:
-    raw = os.getenv("ADMIN_PASSWORD_HASH", "")
-    if not raw:
-        raise RuntimeError("ADMIN_PASSWORD_HASH environment variable is not set")
-    return base64.b64decode(raw).decode("utf-8")
-
-
 def verify_admin_password(password: str) -> bool:
-    try:
-        pw_hash = get_admin_password_hash()
-        return _bcrypt.checkpw(
-            password.encode("utf-8"),
-            pw_hash.encode("utf-8"),
-        )
-    except (RuntimeError, ValueError):
+    expected = os.getenv("ADMIN_PASSWORD", "")
+    if not expected:
         return False
+    return password == expected
 
 
 def create_session_token() -> str:
