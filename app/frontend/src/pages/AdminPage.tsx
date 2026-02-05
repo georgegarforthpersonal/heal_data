@@ -25,8 +25,9 @@ import {
   Autocomplete,
   Stack,
 } from '@mui/material';
-import { Add, Delete, RestoreFromTrash, Edit } from '@mui/icons-material';
+import { Add, Delete, RestoreFromTrash, Edit, Lock } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   surveyorsAPI,
   surveyTypesAPI,
@@ -64,6 +65,7 @@ function TabPanel(props: TabPanelProps) {
  * - Survey Types: View, add, edit, deactivate/reactivate survey type configurations
  */
 export function AdminPage() {
+  const { isAuthenticated, isLoading: authLoading, requireAuth } = useAuth();
   const [tabValue, setTabValue] = useState(0);
 
   // Surveyors state
@@ -330,6 +332,36 @@ export function AdminPage() {
       setSurveyTypesError(err instanceof Error ? err.message : 'Failed to reactivate survey type');
     }
   };
+
+  // Show auth gate if not authenticated
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <Lock sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Admin Access Required
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+          You need to enter the admin password to access this page.
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => requireAuth(() => {})}
+          sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+        >
+          Enter Password
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>

@@ -10,9 +10,11 @@ import {
   Autocomplete,
   TextField,
 } from '@mui/material';
+import { Lock } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { Save, Cancel } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
 import {
   surveysAPI,
   surveyorsAPI,
@@ -46,6 +48,7 @@ import { PageHeader } from '../components/layout/PageHeader';
  */
 export function NewSurveyPage() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading, requireAuth } = useAuth();
 
   // ============================================================================
   // Form State - Survey Type
@@ -315,6 +318,36 @@ export function NewSurveyPage() {
   // ============================================================================
   // Loading State
   // ============================================================================
+
+  // Auth gate
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <Lock sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Admin Access Required
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+          You need to enter the admin password to create a new survey.
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => requireAuth(() => {})}
+          sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+        >
+          Enter Password
+        </Button>
+      </Box>
+    );
+  }
 
   if (loading) {
     return (
