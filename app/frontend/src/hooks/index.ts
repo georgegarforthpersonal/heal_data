@@ -5,3 +5,4 @@
  */
 
 export { useResponsive } from './useResponsive';
+export { useMapFullscreen, MapResizeHandler } from './useMapFullscreen';
