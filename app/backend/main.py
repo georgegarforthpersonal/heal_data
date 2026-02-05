@@ -6,6 +6,7 @@ Following DEVELOPMENT.md conventions, this backend separates concerns while reus
 database logic from the Streamlit POC.
 """
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,16 +25,15 @@ app = FastAPI(
 # CORS Configuration - Allow React frontend to call API
 # ============================================================================
 
-# Development: Allow all origins for mobile testing
-# In production, this should be restricted to specific domains
-origins = ["*"]  # Allow all origins for development/staging
+cors_origin = os.getenv("CORS_ORIGIN", "")
+origins = [cors_origin] if cors_origin else ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ============================================================================
