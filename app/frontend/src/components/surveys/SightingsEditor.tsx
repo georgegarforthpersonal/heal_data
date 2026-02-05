@@ -35,6 +35,7 @@ interface SightingsEditorProps {
   locations?: Location[]; // Available locations for sighting-level selection
   allowGeolocation?: boolean; // Whether geolocation is allowed (controls geolocation button visibility)
   allowSightingNotes?: boolean; // Whether notes can be entered for individual sightings
+  surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
 }
 
 /**
@@ -54,6 +55,7 @@ export function SightingsEditor({
   locations = [],
   allowGeolocation = true,
   allowSightingNotes = true,
+  surveyLocationId,
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
@@ -259,6 +261,7 @@ export function SightingsEditor({
           breedingCodes={breedingCodes}
           onSightingsChange={onSightingsChange}
           locationsWithBoundaries={locationsWithBoundaries}
+          surveyLocationId={surveyLocationId}
         />
       </>
     );
@@ -458,6 +461,7 @@ export function SightingsEditor({
           locations={locations}
           allowGeolocation={allowGeolocation}
           allowSightingNotes={allowSightingNotes}
+          surveyLocationId={surveyLocationId}
         />
       </>
     );
@@ -820,6 +824,7 @@ export function SightingsEditor({
         breedingCodes={breedingCodes}
         count={locationEditingSighting?.count || 1}
         locationsWithBoundaries={locationsWithBoundaries}
+        surveyLocationId={surveyLocationId}
       />
 
     </>

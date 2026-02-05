@@ -14,6 +14,7 @@ interface LocationModalProps {
   breedingCodes?: BreedingStatusCode[];
   count?: number; // Maximum number of individuals (from sighting count)
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
+  surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
 }
 
 export function LocationModal({
@@ -26,6 +27,7 @@ export function LocationModal({
   breedingCodes = [],
   count = 1,
   locationsWithBoundaries,
+  surveyLocationId,
 }: LocationModalProps) {
   const [individuals, setIndividuals] = useState<DraftIndividualLocation[]>(
     initialIndividuals || []
@@ -101,6 +103,7 @@ export function LocationModal({
           showBreedingStatus={isBirdSpecies}
           maxCount={count}
           locationsWithBoundaries={locationsWithBoundaries}
+          surveyLocationId={surveyLocationId}
         />
       </DialogContent>
 
