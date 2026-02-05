@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
+import { useAuth } from '../context/AuthContext';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
@@ -27,6 +28,7 @@ export function SurveyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { requireAuth } = useAuth();
 
   // Check if we should start in edit mode (from URL param)
   const startInEditMode = searchParams.get('edit') === 'true';
@@ -474,9 +476,6 @@ export function SurveyDetailPage() {
         backButton={{ href: '/surveys' }}
         actions={
           <>
-            {/* TODO: Add RBAC permission checks - only show these buttons to admin users */}
-            {/* When implementing: const { hasPermission } = useAuth(); */}
-            {/* Then wrap buttons with: {hasPermission('edit_survey') && <Button.../>} */}
             {isEditMode ? (
               <Stack direction="row" spacing={1}>
                 <Button
@@ -525,7 +524,7 @@ export function SurveyDetailPage() {
                 <Button
                   variant="contained"
                   startIcon={<Edit />}
-                  onClick={handleEditClick}
+                  onClick={() => requireAuth(handleEditClick)}
                   sx={{
                     textTransform: 'none',
                     fontWeight: 600,
@@ -539,7 +538,7 @@ export function SurveyDetailPage() {
                   variant="outlined"
                   color="error"
                   startIcon={<Delete />}
-                  onClick={handleDeleteClick}
+                  onClick={() => requireAuth(handleDeleteClick)}
                   sx={{
                     textTransform: 'none',
                     fontWeight: 600,

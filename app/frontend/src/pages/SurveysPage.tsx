@@ -2,6 +2,7 @@ import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, Ta
 import type { SelectChangeEvent } from '@mui/material';
 import { CalendarToday, Person, Visibility, Category, FilterList } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { getSpeciesIcon, formatSpeciesCount } from '../config';
 import { SurveyTypeChip } from '../components/SurveyTypeColors';
 import { notionColors, tableSizing } from '../theme';
@@ -39,6 +40,7 @@ import type { Survey, Surveyor, PaginationMeta, SurveyType } from '../services/a
 export function SurveysPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { requireAuth } = useAuth();
 
   // ============================================================================
   // State Management
@@ -189,7 +191,7 @@ export function SurveysPage() {
   };
 
   const handleCreateClick = () => {
-    navigate('/surveys/new');
+    requireAuth(() => navigate('/surveys/new'));
   };
 
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {

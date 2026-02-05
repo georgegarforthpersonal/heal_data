@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database.connection import get_db
 from models import Surveyor, SurveyorRead, SurveyorCreate, SurveyorUpdate
+from auth import require_admin
 
 router = APIRouter()
 
@@ -88,7 +89,7 @@ async def get_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     return surveyor
 
 
-@router.post("", response_model=SurveyorRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SurveyorRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_surveyor(surveyor: SurveyorCreate, db: Session = Depends(get_db)):
     """Create a new surveyor"""
     # Check for duplicate name
@@ -101,7 +102,7 @@ async def create_surveyor(surveyor: SurveyorCreate, db: Session = Depends(get_db
     return db_surveyor
 
 
-@router.put("/{surveyor_id}", response_model=SurveyorRead)
+@router.put("/{surveyor_id}", response_model=SurveyorRead, dependencies=[Depends(require_admin)])
 async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Session = Depends(get_db)):
     """Update an existing surveyor"""
     db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
@@ -125,7 +126,7 @@ async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Sessio
     return db_surveyor
 
 
-@router.delete("/{surveyor_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{surveyor_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 async def delete_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     """Delete a surveyor (hard delete - use deactivate instead for soft delete)"""
     db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
@@ -137,7 +138,7 @@ async def delete_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@router.post("/{surveyor_id}/deactivate", response_model=SurveyorRead)
+@router.post("/{surveyor_id}/deactivate", response_model=SurveyorRead, dependencies=[Depends(require_admin)])
 async def deactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     """
     Deactivate a surveyor (soft delete).
@@ -158,7 +159,7 @@ async def deactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     return db_surveyor
 
 
-@router.post("/{surveyor_id}/reactivate", response_model=SurveyorRead)
+@router.post("/{surveyor_id}/reactivate", response_model=SurveyorRead, dependencies=[Depends(require_admin)])
 async def reactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
     """
     Reactivate a previously deactivated surveyor.

@@ -1,7 +1,8 @@
 import { AppBar, Toolbar, Box, IconButton, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Tooltip, useMediaQuery, useTheme } from '@mui/material';
-import { Assignment, BarChart, Settings, Menu as MenuIcon, Close } from '@mui/icons-material';
+import { Assignment, BarChart, Settings, Menu as MenuIcon, Close, Lock, LockOpen } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import healLogo from '../../assets/heal_logo.jpg';
 
 /**
@@ -20,6 +21,7 @@ export function TopNavBar() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // < 900px
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const { isAuthenticated, logout, requireAuth } = useAuth();
 
   const navItems = [
     {
@@ -142,7 +144,25 @@ export function TopNavBar() {
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Future: User menu, notifications, etc. */}
+          {/* Auth status / lock toggle */}
+          <Tooltip title={isAuthenticated ? 'Logout (lock editing)' : 'Login (unlock editing)'} arrow>
+            <IconButton
+              onClick={() => {
+                if (isAuthenticated) {
+                  logout();
+                } else {
+                  requireAuth(() => {});
+                }
+              }}
+              sx={{
+                width: 40,
+                height: 40,
+                color: isAuthenticated ? 'success.main' : 'text.disabled',
+              }}
+            >
+              {isAuthenticated ? <LockOpen sx={{ fontSize: 20 }} /> : <Lock sx={{ fontSize: 20 }} />}
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -221,6 +241,36 @@ export function TopNavBar() {
                 </ListItem>
               );
             })}
+
+            {/* Auth toggle */}
+            <ListItem disablePadding sx={{ mt: 2 }}>
+              <ListItemButton
+                onClick={() => {
+                  if (isAuthenticated) {
+                    logout();
+                  } else {
+                    requireAuth(() => {});
+                  }
+                  setMobileDrawerOpen(false);
+                }}
+                sx={{
+                  borderRadius: '8px',
+                  '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.08)' },
+                  pl: 2,
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40, color: isAuthenticated ? 'success.main' : 'text.secondary' }}>
+                  {isAuthenticated ? <LockOpen /> : <Lock />}
+                </ListItemIcon>
+                <ListItemText
+                  primary={isAuthenticated ? 'Lock Editing' : 'Unlock Editing'}
+                  primaryTypographyProps={{
+                    fontWeight: 400,
+                    color: 'text.secondary',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
           </List>
         </Box>
       </Drawer>
