@@ -10,6 +10,7 @@ that grants edit privileges when verified.
 """
 
 import os
+import base64
 import bcrypt as _bcrypt
 from fastapi import Request, HTTPException, status
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -31,10 +32,10 @@ def _get_serializer() -> URLSafeTimedSerializer:
 
 
 def get_admin_password_hash() -> str:
-    pw_hash = os.getenv("ADMIN_PASSWORD_HASH", "")
-    if not pw_hash:
+    raw = os.getenv("ADMIN_PASSWORD_HASH", "")
+    if not raw:
         raise RuntimeError("ADMIN_PASSWORD_HASH environment variable is not set")
-    return pw_hash
+    return base64.b64decode(raw).decode("utf-8")
 
 
 def verify_admin_password(password: str) -> bool:
