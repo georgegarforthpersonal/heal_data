@@ -22,9 +22,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
 
 import type { BreedingStatusCode, BreedingCategory, LocationWithBoundary } from '../../services/api';
+import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
@@ -117,6 +120,7 @@ export default function MultiLocationMapPicker({
 }: MultiLocationMapPickerProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
+  const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   // Calculate total count across all locations
   const totalCount = locations.reduce((sum, loc) => sum + loc.count, 0);
@@ -249,8 +253,38 @@ export default function MultiLocationMapPicker({
       </Stack>
 
       {/* Map */}
-      <Paper elevation={2} sx={{ mb: 2, overflow: 'hidden', position: 'relative' }}>
-        <Box sx={{ height: { xs: '250px', sm: '300px' }, width: '100%' }}>
+      <Paper
+        elevation={2}
+        className="fullscreen-map-container"
+        sx={{ mb: 2, overflow: 'hidden', position: 'relative', ...fullscreenContainerSx }}
+      >
+        {/* Fullscreen toggle */}
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            zIndex: 1000,
+          }}
+        >
+          <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+            <IconButton
+              size="small"
+              onClick={toggleFullscreen}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: 2,
+                '&:hover': { bgcolor: 'grey.100' },
+              }}
+            >
+              {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </Stack>
+
+        <Box sx={{ height: { xs: '250px', sm: '300px' }, width: '100%', ...fullscreenMapSx }}>
           <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
             {mapType === 'satellite' ? (
               <TileLayer
@@ -267,6 +301,7 @@ export default function MultiLocationMapPicker({
             )}
             <MapClickHandler onClick={handleMapClick} disabled={disabled || isAtMax} />
             <FitBoundsToMarkers locations={locations} />
+            <MapResizeHandler isFullscreen={isFullscreen} />
 
             {/* Field boundaries layer (rendered before markers so markers appear on top) */}
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
