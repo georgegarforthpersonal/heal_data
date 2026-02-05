@@ -515,6 +515,7 @@ export function NewSurveyPage() {
             locations={locations}
             allowGeolocation={allowGeolocation}
             allowSightingNotes={allowSightingNotes}
+            surveyLocationId={locationId}
           />
         </Paper>
       )}
