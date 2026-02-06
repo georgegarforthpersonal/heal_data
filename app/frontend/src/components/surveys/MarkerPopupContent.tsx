@@ -230,6 +230,7 @@ function AddPopupForm({
             />
           )}
           size="small"
+          disablePortal
           slotProps={{
             listbox: { sx: { maxHeight: '200px' } },
           }}
