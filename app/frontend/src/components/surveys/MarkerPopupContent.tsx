@@ -461,6 +461,7 @@ function BreedingStatusField({
         onChange={(e) => onChange(e.target.value || null)}
         label="Breeding Status"
         sx={{ fontSize: '0.8rem' }}
+        MenuProps={{ disablePortal: true }}
         renderValue={(val) => {
           if (!val) return <em style={{ color: '#666' }}>Not set</em>;
           const code = breedingCodes.find((c) => c.code === val);
