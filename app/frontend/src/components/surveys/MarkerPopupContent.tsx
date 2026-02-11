@@ -7,11 +7,6 @@ import {
   IconButton,
   Button,
   Stack,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  ListSubheader,
   Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -446,88 +441,76 @@ function BreedingStatusField({
   value,
   onChange,
   breedingCodes,
-  groupedCodes,
 }: {
   value: string | null;
   onChange: (code: string | null) => void;
   breedingCodes: BreedingStatusCode[];
   groupedCodes: Record<BreedingCategory, BreedingStatusCode[]>;
 }) {
+  const selectedCode = value ? breedingCodes.find((c) => c.code === value) || null : null;
+
   return (
-    <FormControl size="small" fullWidth>
-      <InputLabel>Breeding Status</InputLabel>
-      <Select
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value || null)}
-        label="Breeding Status"
-        sx={{ fontSize: '0.8rem' }}
-        MenuProps={{ disablePortal: true }}
-        renderValue={(val) => {
-          if (!val) return <em style={{ color: '#666' }}>Not set</em>;
-          const code = breedingCodes.find((c) => c.code === val);
-          if (!code) return val;
-          return (
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <Chip
-                label={code.code}
-                size="small"
-                sx={{
-                  bgcolor: CATEGORY_COLORS[code.category],
-                  color: 'white',
-                  fontWeight: 600,
-                  height: 18,
-                  minWidth: 24,
-                  '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
-                }}
-              />
-              <Typography variant="caption">{code.description}</Typography>
-            </Stack>
-          );
-        }}
-      >
-        <MenuItem value="">
-          <em>Not set</em>
-        </MenuItem>
-        {(Object.keys(groupedCodes) as BreedingCategory[]).map((category) => {
-          const codes = groupedCodes[category];
-          if (codes.length === 0) return null;
-          return [
-            <ListSubheader
-              key={`header-${category}`}
+    <Autocomplete
+      options={breedingCodes}
+      groupBy={(option) => CATEGORY_LABELS[option.category]}
+      getOptionLabel={(option) => `${option.code} - ${option.description}`}
+      value={selectedCode}
+      onChange={(_, newValue) => onChange(newValue?.code || null)}
+      isOptionEqualToValue={(option, val) => option.code === val.code}
+      renderGroup={(params) => (
+        <li key={params.key}>
+          <Box
+            sx={{
+              px: 1.5,
+              py: 0.5,
+              bgcolor: CATEGORY_COLORS[breedingCodes.find((c) => CATEGORY_LABELS[c.category] === params.group)?.category || 'non_breeding'],
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+            }}
+          >
+            {params.group}
+          </Box>
+          <ul style={{ padding: 0, margin: 0 }}>{params.children}</ul>
+        </li>
+      )}
+      renderOption={(props, option) => (
+        <li {...props}>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Chip
+              label={option.code}
+              size="small"
               sx={{
-                bgcolor: CATEGORY_COLORS[category],
+                bgcolor: CATEGORY_COLORS[option.category],
                 color: 'white',
                 fontWeight: 600,
-                lineHeight: '28px',
-                fontSize: '0.75rem',
+                height: 18,
+                minWidth: 24,
+                '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
               }}
-            >
-              {CATEGORY_LABELS[category]}
-            </ListSubheader>,
-            ...codes.map((code) => (
-              <MenuItem key={code.code} value={code.code} sx={{ py: 0.5 }}>
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <Chip
-                    label={code.code}
-                    size="small"
-                    sx={{
-                      bgcolor: CATEGORY_COLORS[category],
-                      color: 'white',
-                      fontWeight: 600,
-                      height: 18,
-                      minWidth: 24,
-                      '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
-                    }}
-                  />
-                  <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-                    {code.description}
-                  </Typography>
-                </Stack>
-              </MenuItem>
-            )),
-          ];
-        })}
-      </Select>
-    </FormControl>
+            />
+            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+              {option.description}
+            </Typography>
+          </Stack>
+        </li>
+      )}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Breeding Status"
+          placeholder="Not set"
+          size="small"
+          sx={{
+            '& .MuiInputBase-input': { fontSize: '0.8rem' },
+          }}
+        />
+      )}
+      size="small"
+      disablePortal
+      slotProps={{
+        listbox: { sx: { maxHeight: '200px' } },
+      }}
+    />
   );
 }
