@@ -374,7 +374,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               );
             })}
 
-            <FitBounds sightings={filteredSightings} />
+            <FitBounds sightings={sightings} />
             <MapResizeHandler isFullscreen={isFullscreen} />
           </MapContainer>
         </Box>
