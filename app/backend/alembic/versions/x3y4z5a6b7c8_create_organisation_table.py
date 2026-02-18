@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column('name', sa.String(255), nullable=False),
         sa.Column('slug', sa.String(100), nullable=False),
         sa.Column('domain', sa.String(255), nullable=False),
-        sa.Column('admin_password_hash', sa.String(255), nullable=False),
+        sa.Column('admin_password', sa.String(255), nullable=False),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('TRUE')),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.UniqueConstraint('slug', name='uq_organisation_slug'),

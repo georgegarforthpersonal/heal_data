@@ -1,19 +1,15 @@
 """
 Authentication module for admin password protection.
 
-Supports multi-organisation authentication with bcrypt-hashed passwords.
-Each organisation has its own admin password stored in the database.
+Supports multi-organisation authentication with per-org passwords.
 """
 
 import hashlib
 import hmac
 import os
 import time
-import bcrypt
-from fastapi import Request, HTTPException, status, Depends
-from sqlalchemy.orm import Session
+from fastapi import Request, HTTPException, status
 
-from database.connection import get_db
 from models import Organisation
 
 
@@ -21,37 +17,18 @@ SESSION_COOKIE_NAME = "admin_session"
 SESSION_MAX_AGE = 60 * 60 * 24  # 24 hours
 
 
-def hash_password(password: str) -> str:
-    """
-    Hash a password using bcrypt.
-
-    Args:
-        password: Plain text password
-
-    Returns:
-        Bcrypt hash string
-    """
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-
 def verify_org_password(password: str, org: Organisation) -> bool:
     """
-    Verify a password against an organisation's stored hash.
+    Verify a password against an organisation's stored password.
 
     Args:
-        password: Plain text password to verify
-        org: Organisation object with admin_password_hash
+        password: Password to verify
+        org: Organisation object with admin_password
 
     Returns:
         True if password matches, False otherwise
     """
-    try:
-        return bcrypt.checkpw(
-            password.encode('utf-8'),
-            org.admin_password_hash.encode('utf-8')
-        )
-    except Exception:
-        return False
+    return password == org.admin_password
 
 
 def create_session_token() -> str:
@@ -101,16 +78,3 @@ async def require_admin(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin authentication required",
         )
-
-
-# Legacy function for backwards compatibility during migration
-def verify_admin_password(password: str) -> bool:
-    """
-    Legacy: Verify password against environment variable.
-
-    Deprecated: Use verify_org_password instead.
-    """
-    expected = os.getenv("ADMIN_PASSWORD", "")
-    if not expected:
-        return False
-    return password == expected

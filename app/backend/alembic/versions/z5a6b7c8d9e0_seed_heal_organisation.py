@@ -13,7 +13,6 @@ import os
 
 from alembic import op
 import sqlalchemy as sa
-import bcrypt
 
 
 # revision identifiers, used by Alembic.
@@ -30,21 +29,15 @@ def upgrade() -> None:
     if not admin_password:
         raise ValueError(
             "ADMIN_PASSWORD environment variable must be set to run this migration. "
-            "This password will be hashed and stored for the Heal organisation."
+            "This password will be stored for the Heal organisation."
         )
 
-    # Hash the password with bcrypt
-    password_hash = bcrypt.hashpw(
-        admin_password.encode('utf-8'),
-        bcrypt.gensalt()
-    ).decode('utf-8')
-
-    # Insert Heal organisation
+    # Insert Heal organisation with plaintext password
     op.execute(
         sa.text("""
-            INSERT INTO organisation (name, slug, domain, admin_password_hash, is_active)
-            VALUES ('Heal', 'heal', 'healdata.up.railway.app', :password_hash, true)
-        """).bindparams(password_hash=password_hash)
+            INSERT INTO organisation (name, slug, domain, admin_password, is_active)
+            VALUES ('Heal', 'heal', 'healdata.up.railway.app', :admin_password, true)
+        """).bindparams(admin_password=admin_password)
     )
 
     # Backfill all existing data with organisation_id = 1 (Heal)
