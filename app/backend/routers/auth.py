@@ -8,15 +8,20 @@ Endpoints:
 """
 
 import os
-from fastapi import APIRouter, HTTPException, Response, Request
+from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from auth import (
-    verify_admin_password,
+    verify_org_password,
     create_session_token,
     validate_session_token,
     SESSION_COOKIE_NAME,
     SESSION_MAX_AGE,
 )
+from database.connection import get_db
+from dependencies import get_current_organisation
+from models import Organisation, OrganisationRead
 
 _is_production = os.getenv("ENV", "").lower() in ("production", "prod", "staging")
 
@@ -28,8 +33,17 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/login")
-async def login(body: LoginRequest, response: Response):
-    if not verify_admin_password(body.password):
+async def login(
+    body: LoginRequest,
+    response: Response,
+    org: Organisation = Depends(get_current_organisation)
+):
+    """
+    Login with organisation-specific admin password.
+
+    The organisation is determined from the request hostname.
+    """
+    if not verify_org_password(body.password, org):
         raise HTTPException(status_code=401, detail="Incorrect password")
 
     token = create_session_token()
@@ -46,12 +60,28 @@ async def login(body: LoginRequest, response: Response):
 
 @router.post("/logout")
 async def logout(response: Response):
+    """Clear session cookie."""
     response.delete_cookie(key=SESSION_COOKIE_NAME)
     return {"authenticated": False}
 
 
 @router.get("/status")
-async def auth_status(request: Request):
+async def auth_status(
+    request: Request,
+    org: Organisation = Depends(get_current_organisation)
+):
+    """
+    Check authentication status and return organisation info.
+
+    Returns organisation details for the frontend to use.
+    """
     token = request.cookies.get(SESSION_COOKIE_NAME)
     authenticated = bool(token and validate_session_token(token))
-    return {"authenticated": authenticated}
+    return {
+        "authenticated": authenticated,
+        "organisation": {
+            "id": org.id,
+            "name": org.name,
+            "slug": org.slug
+        }
+    }
