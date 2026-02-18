@@ -836,6 +836,21 @@ export const healthAPI = {
 };
 
 // ============================================================================
+// Organisation Types
+// ============================================================================
+
+export interface Organisation {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface AuthStatus {
+  authenticated: boolean;
+  organisation: Organisation;
+}
+
+// ============================================================================
 // API Methods - Auth
 // ============================================================================
 
@@ -853,7 +868,7 @@ export const authAPI = {
     });
   },
 
-  status: (): Promise<{ authenticated: boolean }> => {
+  status: (): Promise<AuthStatus> => {
     return fetchAPI('/auth/status');
   },
 };
