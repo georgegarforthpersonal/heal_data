@@ -11,7 +11,6 @@ from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database.connection import get_db
-from dependencies import get_current_organisation
 from models import (
     CumulativeSpeciesResponse,
     CumulativeSpeciesDataPoint,
@@ -19,8 +18,7 @@ from models import (
     SpeciesOccurrenceResponse,
     SpeciesOccurrenceDataPoint,
     SpeciesWithCount,
-    SightingWithDetails,
-    Organisation
+    SightingWithDetails
 )
 
 router = APIRouter()
@@ -76,11 +74,10 @@ async def get_cumulative_species(
     species_types: Optional[List[str]] = Query(None, description="Filter by species types (e.g., 'bird', 'butterfly')"),
     start_date: Optional[date] = Query(None, description="Filter surveys from this date (inclusive)"),
     end_date: Optional[date] = Query(None, description="Filter surveys until this date (inclusive)"),
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
-    Get cumulative unique species counts over time for the current organisation.
+    Get cumulative unique species counts over time.
 
     Returns the number of distinct species seen cumulatively up to each survey date,
     grouped by species type. This shows how species diversity grows over time.
@@ -95,6 +92,16 @@ async def get_cumulative_species(
         CumulativeSpeciesResponse with:
         - data: List of {date, type, cumulative_count} data points
         - date_range: {start, end} date range metadata
+
+    Example Response:
+        {
+          "data": [
+            {"date": "2024-01-15", "type": "bird", "cumulative_count": 12},
+            {"date": "2024-01-16", "type": "bird", "cumulative_count": 15},
+            {"date": "2024-01-15", "type": "butterfly", "cumulative_count": 5}
+          ],
+          "date_range": {"start": "2024-01-15", "end": "2024-12-01"}
+        }
     """
     try:
         # Build WHERE clause for species_types filter
@@ -108,6 +115,9 @@ async def get_cumulative_species(
         date_filter_sql = build_date_filter_sql(start_date, end_date)
 
         # SQL query to calculate cumulative unique species counts and new species per date
+        # Step 1: Find first sighting date for each species
+        # Step 2: For each survey date, count how many species had first sighting <= that date
+        # Step 3: Aggregate names of species newly seen on each date
         query = text(f"""
             WITH first_sightings AS (
                 SELECT
@@ -118,7 +128,7 @@ async def get_cumulative_species(
                 FROM survey
                 JOIN sighting ON survey.id = sighting.survey_id
                 JOIN species ON sighting.species_id = species.id
-                WHERE survey.organisation_id = :org_id
+                WHERE 1=1
                 {species_filter}
                 {date_filter_sql}
                 GROUP BY species.id, species.type, species.name, species.scientific_name
@@ -126,7 +136,7 @@ async def get_cumulative_species(
             survey_dates AS (
                 SELECT DISTINCT survey.date
                 FROM survey
-                WHERE survey.organisation_id = :org_id
+                WHERE 1=1
                 {date_filter_sql}
                 ORDER BY survey.date
             ),
@@ -167,7 +177,7 @@ async def get_cumulative_species(
         """)
 
         # Build parameters dict
-        params = {"org_id": org.id}
+        params = {}
         if species_types:
             for i, st in enumerate(species_types):
                 params[f'type_{i}'] = st
@@ -202,11 +212,10 @@ async def get_cumulative_species(
 
 @router.get("/species-types-with-entries", response_model=List[str])
 async def get_species_types_with_entries(
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
-    Get species types that have at least one sighting entry for the current organisation.
+    Get species types that have at least one sighting entry.
 
     Returns a list of species type strings (e.g., 'bird', 'butterfly') that have
     at least one sighting in the database. Useful for filtering dashboard icons
@@ -223,13 +232,11 @@ async def get_species_types_with_entries(
             SELECT DISTINCT species.type
             FROM species
             JOIN sighting ON species.id = sighting.species_id
-            JOIN survey ON sighting.survey_id = survey.id
             WHERE species.type IS NOT NULL
-              AND survey.organisation_id = :org_id
             ORDER BY species.type
         """)
 
-        result = db.execute(query, {"org_id": org.id})
+        result = db.execute(query)
         rows = result.fetchall()
 
         return [row.type for row in rows]
@@ -244,11 +251,10 @@ async def get_species_types_with_entries(
 @router.get("/species-by-count", response_model=List[SpeciesWithCount])
 async def get_species_by_count(
     species_type: str = Query(..., description="Species type to filter (e.g., 'bird', 'butterfly')"),
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
-    Get species ordered by total occurrence count (descending) for the current organisation.
+    Get species ordered by total occurrence count (descending).
 
     Returns species of a given type with their total count across all surveys,
     useful for auto-selecting the most common species.
@@ -270,15 +276,13 @@ async def get_species_by_count(
                 COALESCE(SUM(sighting.count), 0) as total_count
             FROM species
             LEFT JOIN sighting ON species.id = sighting.species_id
-            LEFT JOIN survey ON sighting.survey_id = survey.id
             WHERE species.type = :species_type
-              AND (survey.organisation_id = :org_id OR survey.id IS NULL)
             GROUP BY species.id, species.name, species.scientific_name, species.type
-            HAVING COALESCE(SUM(CASE WHEN survey.organisation_id = :org_id THEN sighting.count ELSE 0 END), 0) > 0
+            HAVING COALESCE(SUM(sighting.count), 0) > 0
             ORDER BY total_count DESC, species.name
         """)
 
-        result = db.execute(query, {"species_type": species_type, "org_id": org.id})
+        result = db.execute(query, {"species_type": species_type})
         rows = result.fetchall()
 
         return [
@@ -304,11 +308,10 @@ async def get_species_occurrences(
     species_id: int = Query(..., description="Species ID to get occurrences for"),
     start_date: Optional[date] = Query(None, description="Filter from this date (inclusive)"),
     end_date: Optional[date] = Query(None, description="Filter until this date (inclusive)"),
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
-    Get occurrence counts for a specific species by survey for the current organisation.
+    Get occurrence counts for a specific species by survey.
 
     Returns the total count of individuals seen per survey for the specified species.
     Each survey date becomes a data point in the chart.
@@ -334,14 +337,14 @@ async def get_species_occurrences(
                 COALESCE(SUM(CASE WHEN sighting.species_id = :species_id THEN sighting.count ELSE 0 END), 0) as occurrence_count
             FROM survey
             LEFT JOIN sighting ON survey.id = sighting.survey_id AND sighting.species_id = :species_id
-            WHERE survey.organisation_id = :org_id
+            WHERE 1=1
             {date_filter_sql}
             GROUP BY survey.id, survey.date
             ORDER BY survey.date, survey.id
         """)
 
         # Build parameters
-        params = {"species_id": species_id, "org_id": org.id}
+        params = {"species_id": species_id}
         add_date_params(params, start_date, end_date)
 
         result = db.execute(query, params)
@@ -385,11 +388,10 @@ async def get_species_sightings(
     species_id: int = Query(..., description="Species ID to get sightings for"),
     start_date: Optional[date] = Query(None, description="Filter from this date (inclusive)"),
     end_date: Optional[date] = Query(None, description="Filter until this date (inclusive)"),
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
-    Get all individual sighting locations for a specific species in the current organisation.
+    Get all individual sighting locations for a specific species.
 
     Returns individual location points with coordinates, dates, and survey information.
     Each row represents one individual location point from a sighting.
@@ -426,13 +428,12 @@ async def get_species_sightings(
             JOIN species ON sighting.species_id = species.id
             LEFT JOIN breeding_status_code bsc ON si.breeding_status_code = bsc.code
             WHERE sighting.species_id = :species_id
-              AND survey.organisation_id = :org_id
             {date_filter_sql}
             ORDER BY survey.date, sighting.id, si.id
         """)
 
         # Build parameters
-        params = {"species_id": species_id, "org_id": org.id}
+        params = {"species_id": species_id}
         add_date_params(params, start_date, end_date)
 
         result = db.execute(query, params)

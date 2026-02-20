@@ -12,40 +12,42 @@ Endpoints:
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from database.connection import get_db
-from models import Location, LocationRead, LocationCreate, LocationUpdate, LocationWithBoundary, Organisation
+from database.connection import get_db_cursor
+from models import LocationRead, LocationCreate, LocationUpdate, LocationWithBoundary
 from auth import require_admin
-from dependencies import get_current_organisation
 
 router = APIRouter()
 
 
 @router.get("", response_model=List[LocationRead])
-async def get_locations(
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_locations():
     """
-    Get all locations for the current organisation.
+    Get all locations.
 
     Returns:
         List of locations
     """
-    locations = db.query(Location).filter(
-        Location.organisation_id == org.id
-    ).order_by(Location.name).all()
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT id, name
+                FROM location
+                ORDER BY name
+            """)
 
-    return [{"id": loc.id, "name": loc.name} for loc in locations]
+            rows = cursor.fetchall()
+
+            return [{
+                "id": row[0],
+                "name": row[1],
+            } for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {str(e)}")
 
 
 @router.get("/by-survey-type/{survey_type_id}", response_model=List[LocationRead])
-async def get_locations_by_survey_type(
-    survey_type_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_locations_by_survey_type(survey_type_id: int):
     """
     Get locations available for a specific survey type.
 
@@ -55,23 +57,29 @@ async def get_locations_by_survey_type(
     Returns:
         List of locations configured for this survey type
     """
-    result = db.execute(text("""
-        SELECT l.id, l.name
-        FROM location l
-        INNER JOIN survey_type_location stl ON stl.location_id = l.id
-        WHERE stl.survey_type_id = :survey_type_id
-          AND l.organisation_id = :org_id
-        ORDER BY l.name
-    """).bindparams(survey_type_id=survey_type_id, org_id=org.id)).fetchall()
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT l.id, l.name
+                FROM location l
+                INNER JOIN survey_type_location stl ON stl.location_id = l.id
+                WHERE stl.survey_type_id = %s
+                ORDER BY l.name
+            """, (survey_type_id,))
 
-    return [{"id": row[0], "name": row[1]} for row in result]
+            rows = cursor.fetchall()
+
+            return [{
+                "id": row[0],
+                "name": row[1],
+            } for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch locations for survey type: {str(e)}")
 
 
 @router.get("/with-boundaries", response_model=List[LocationWithBoundary])
-async def get_locations_with_boundaries(
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_locations_with_boundaries():
     """
     Get all locations that have boundary geometry defined.
 
@@ -81,106 +89,132 @@ async def get_locations_with_boundaries(
     Returns:
         List of locations with boundary geometry and styling
     """
-    result = db.execute(text("""
-        SELECT
-            id,
-            name,
-            (ST_AsGeoJSON(boundary_geometry)::json->'coordinates'->0) as boundary_geometry,
-            boundary_fill_color,
-            boundary_stroke_color,
-            boundary_fill_opacity
-        FROM location
-        WHERE boundary_geometry IS NOT NULL
-          AND organisation_id = :org_id
-        ORDER BY name
-    """).bindparams(org_id=org.id)).fetchall()
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT
+                    id,
+                    name,
+                    (ST_AsGeoJSON(boundary_geometry)::json->'coordinates'->0) as boundary_geometry,
+                    boundary_fill_color,
+                    boundary_stroke_color,
+                    boundary_fill_opacity
+                FROM location
+                WHERE boundary_geometry IS NOT NULL
+                ORDER BY name
+            """)
 
-    return [{
-        "id": row[0],
-        "name": row[1],
-        "boundary_geometry": row[2] if row[2] else None,
-        "boundary_fill_color": row[3],
-        "boundary_stroke_color": row[4],
-        "boundary_fill_opacity": row[5]
-    } for row in result]
+            rows = cursor.fetchall()
+
+            return [{
+                "id": row[0],
+                "name": row[1],
+                "boundary_geometry": row[2] if row[2] else None,
+                "boundary_fill_color": row[3],
+                "boundary_stroke_color": row[4],
+                "boundary_fill_opacity": row[5]
+            } for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch locations with boundaries: {str(e)}")
 
 
 @router.get("/{location_id}", response_model=LocationRead)
-async def get_location(
-    location_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_location(location_id: int):
     """Get a specific location by ID"""
-    location = db.query(Location).filter(
-        Location.id == location_id,
-        Location.organisation_id == org.id
-    ).first()
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT id, name
+                FROM location
+                WHERE id = %s
+            """, (location_id,))
 
-    if not location:
-        raise HTTPException(status_code=404, detail=f"Location {location_id} not found")
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail=f"Location {location_id} not found")
 
-    return {"id": location.id, "name": location.name}
+            return {
+                "id": row[0],
+                "name": row[1],
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch location: {str(e)}")
 
 
 @router.post("", response_model=LocationRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
-async def create_location(
-    location: LocationCreate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def create_location(location: LocationCreate):
     """Create a new location"""
-    db_location = Location(
-        name=location.name,
-        organisation_id=org.id
-    )
-    db.add(db_location)
-    db.commit()
-    db.refresh(db_location)
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO location (name)
+                VALUES (%s)
+                RETURNING id, name
+            """, (location.name,))
 
-    return {"id": db_location.id, "name": db_location.name}
+            row = cursor.fetchone()
+
+            return {
+                "id": row[0],
+                "name": row[1],
+            }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create location: {str(e)}")
 
 
 @router.put("/{location_id}", response_model=LocationRead, dependencies=[Depends(require_admin)])
-async def update_location(
-    location_id: int,
-    location: LocationUpdate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def update_location(location_id: int, location: LocationUpdate):
     """Update an existing location"""
-    db_location = db.query(Location).filter(
-        Location.id == location_id,
-        Location.organisation_id == org.id
-    ).first()
+    try:
+        with get_db_cursor() as cursor:
+            # Check if location exists
+            cursor.execute("SELECT id FROM location WHERE id = %s", (location_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail=f"Location {location_id} not found")
 
-    if not db_location:
-        raise HTTPException(status_code=404, detail=f"Location {location_id} not found")
+            if location.name is not None:
+                cursor.execute("""
+                    UPDATE location
+                    SET name = %s
+                    WHERE id = %s
+                    RETURNING id, name
+                """, (location.name, location_id))
+                row = cursor.fetchone()
+            else:
+                # No fields to update, just fetch current state
+                cursor.execute("""
+                    SELECT id, name
+                    FROM location
+                    WHERE id = %s
+                """, (location_id,))
+                row = cursor.fetchone()
 
-    if location.name is not None:
-        db_location.name = location.name
+            return {
+                "id": row[0],
+                "name": row[1],
+            }
 
-    db.commit()
-    db.refresh(db_location)
-
-    return {"id": db_location.id, "name": db_location.name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update location: {str(e)}")
 
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
-async def delete_location(
-    location_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def delete_location(location_id: int):
     """Delete a location"""
-    db_location = db.query(Location).filter(
-        Location.id == location_id,
-        Location.organisation_id == org.id
-    ).first()
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("DELETE FROM location WHERE id = %s RETURNING id", (location_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail=f"Location {location_id} not found")
 
-    if not db_location:
-        raise HTTPException(status_code=404, detail=f"Location {location_id} not found")
-
-    db.delete(db_location)
-    db.commit()
-    return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete location: {str(e)}")

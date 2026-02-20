@@ -15,13 +15,11 @@ from typing import List
 from sqlalchemy.orm import Session
 from database.connection import get_db
 from auth import require_admin
-from dependencies import get_current_organisation
 from models import (
     SurveyType, SurveyTypeRead, SurveyTypeCreate, SurveyTypeUpdate, SurveyTypeWithDetails,
     SurveyTypeLocationLink, SurveyTypeSpeciesTypeLink,
     SpeciesType, SpeciesTypeRead,
-    Location, LocationRead,
-    Organisation
+    Location, LocationRead
 )
 
 router = APIRouter()
@@ -29,19 +27,15 @@ router = APIRouter()
 
 @router.get("/species-types", response_model=List[SpeciesTypeRead])
 async def get_species_types(db: Session = Depends(get_db)):
-    """Get all species types (reference data - global, not org-specific)"""
+    """Get all species types (reference data)"""
     species_types = db.query(SpeciesType).order_by(SpeciesType.display_name).all()
     return species_types
 
 
 @router.get("", response_model=List[SurveyTypeRead])
-async def get_survey_types(
-    include_inactive: bool = False,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_survey_types(include_inactive: bool = False, db: Session = Depends(get_db)):
     """
-    Get all survey types for the current organisation.
+    Get all survey types.
 
     Args:
         include_inactive: If True, include inactive survey types. Default: False
@@ -49,7 +43,7 @@ async def get_survey_types(
     Returns:
         List of survey types ordered by name
     """
-    query = db.query(SurveyType).filter(SurveyType.organisation_id == org.id)
+    query = db.query(SurveyType)
 
     if not include_inactive:
         query = query.filter(SurveyType.is_active == True)
@@ -59,32 +53,22 @@ async def get_survey_types(
 
 
 @router.get("/{survey_type_id}", response_model=SurveyTypeWithDetails)
-async def get_survey_type(
-    survey_type_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_survey_type(survey_type_id: int, db: Session = Depends(get_db)):
     """Get a specific survey type with full details including locations and species types"""
-    survey_type = db.query(SurveyType).filter(
-        SurveyType.id == survey_type_id,
-        SurveyType.organisation_id == org.id
-    ).first()
+    survey_type = db.query(SurveyType).filter(SurveyType.id == survey_type_id).first()
     if not survey_type:
         raise HTTPException(status_code=404, detail=f"Survey type {survey_type_id} not found")
 
-    # Get associated locations (filter by org as well for safety)
+    # Get associated locations
     locations = (
         db.query(Location)
         .join(SurveyTypeLocationLink, SurveyTypeLocationLink.location_id == Location.id)
-        .filter(
-            SurveyTypeLocationLink.survey_type_id == survey_type_id,
-            Location.organisation_id == org.id
-        )
+        .filter(SurveyTypeLocationLink.survey_type_id == survey_type_id)
         .order_by(Location.name)
         .all()
     )
 
-    # Get associated species types (global data, no org filter)
+    # Get associated species types
     species_types = (
         db.query(SpeciesType)
         .join(SurveyTypeSpeciesTypeLink, SurveyTypeSpeciesTypeLink.species_type_id == SpeciesType.id)
@@ -110,32 +94,22 @@ async def get_survey_type(
 
 
 @router.post("", response_model=SurveyTypeRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
-async def create_survey_type(
-    survey_type: SurveyTypeCreate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def create_survey_type(survey_type: SurveyTypeCreate, db: Session = Depends(get_db)):
     """Create a new survey type with associated locations and species types"""
-    # Check for duplicate name within this organisation
-    existing = db.query(SurveyType).filter(
-        SurveyType.name == survey_type.name,
-        SurveyType.organisation_id == org.id
-    ).first()
+    # Check for duplicate name
+    existing = db.query(SurveyType).filter(SurveyType.name == survey_type.name).first()
     if existing:
         raise HTTPException(status_code=400, detail=f"Survey type '{survey_type.name}' already exists")
 
-    # Validate location IDs (must belong to this org)
+    # Validate location IDs
     if survey_type.location_ids:
-        existing_locations = db.query(Location.id).filter(
-            Location.id.in_(survey_type.location_ids),
-            Location.organisation_id == org.id
-        ).all()
+        existing_locations = db.query(Location.id).filter(Location.id.in_(survey_type.location_ids)).all()
         existing_location_ids = {loc.id for loc in existing_locations}
         invalid_ids = set(survey_type.location_ids) - existing_location_ids
         if invalid_ids:
             raise HTTPException(status_code=400, detail=f"Invalid location IDs: {invalid_ids}")
 
-    # Validate species type IDs (global data)
+    # Validate species type IDs
     if survey_type.species_type_ids:
         existing_species_types = db.query(SpeciesType.id).filter(SpeciesType.id.in_(survey_type.species_type_ids)).all()
         existing_st_ids = {st.id for st in existing_species_types}
@@ -151,8 +125,7 @@ async def create_survey_type(
         allow_geolocation=survey_type.allow_geolocation,
         allow_sighting_notes=survey_type.allow_sighting_notes,
         icon=survey_type.icon,
-        color=survey_type.color,
-        organisation_id=org.id
+        color=survey_type.color
     )
     db.add(db_survey_type)
     db.flush()  # Get the ID
@@ -173,26 +146,15 @@ async def create_survey_type(
 
 
 @router.put("/{survey_type_id}", response_model=SurveyTypeRead, dependencies=[Depends(require_admin)])
-async def update_survey_type(
-    survey_type_id: int,
-    survey_type: SurveyTypeUpdate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def update_survey_type(survey_type_id: int, survey_type: SurveyTypeUpdate, db: Session = Depends(get_db)):
     """Update an existing survey type"""
-    db_survey_type = db.query(SurveyType).filter(
-        SurveyType.id == survey_type_id,
-        SurveyType.organisation_id == org.id
-    ).first()
+    db_survey_type = db.query(SurveyType).filter(SurveyType.id == survey_type_id).first()
     if not db_survey_type:
         raise HTTPException(status_code=404, detail=f"Survey type {survey_type_id} not found")
 
     # Check for duplicate name if name is being changed
     if survey_type.name and survey_type.name != db_survey_type.name:
-        existing = db.query(SurveyType).filter(
-            SurveyType.name == survey_type.name,
-            SurveyType.organisation_id == org.id
-        ).first()
+        existing = db.query(SurveyType).filter(SurveyType.name == survey_type.name).first()
         if existing:
             raise HTTPException(status_code=400, detail=f"Survey type '{survey_type.name}' already exists")
 
@@ -203,12 +165,9 @@ async def update_survey_type(
 
     # Update location links if provided
     if survey_type.location_ids is not None:
-        # Validate location IDs (must belong to this org)
+        # Validate location IDs
         if survey_type.location_ids:
-            existing_locations = db.query(Location.id).filter(
-                Location.id.in_(survey_type.location_ids),
-                Location.organisation_id == org.id
-            ).all()
+            existing_locations = db.query(Location.id).filter(Location.id.in_(survey_type.location_ids)).all()
             existing_location_ids = {loc.id for loc in existing_locations}
             invalid_ids = set(survey_type.location_ids) - existing_location_ids
             if invalid_ids:
@@ -246,21 +205,14 @@ async def update_survey_type(
 
 
 @router.delete("/{survey_type_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
-async def delete_survey_type(
-    survey_type_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def delete_survey_type(survey_type_id: int, db: Session = Depends(get_db)):
     """
     Soft delete (deactivate) a survey type.
 
     The survey type will no longer appear in active lists,
     but surveys using this type are preserved.
     """
-    db_survey_type = db.query(SurveyType).filter(
-        SurveyType.id == survey_type_id,
-        SurveyType.organisation_id == org.id
-    ).first()
+    db_survey_type = db.query(SurveyType).filter(SurveyType.id == survey_type_id).first()
     if not db_survey_type:
         raise HTTPException(status_code=404, detail=f"Survey type {survey_type_id} not found")
 
@@ -270,16 +222,9 @@ async def delete_survey_type(
 
 
 @router.post("/{survey_type_id}/reactivate", response_model=SurveyTypeRead, dependencies=[Depends(require_admin)])
-async def reactivate_survey_type(
-    survey_type_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def reactivate_survey_type(survey_type_id: int, db: Session = Depends(get_db)):
     """Reactivate a deactivated survey type"""
-    db_survey_type = db.query(SurveyType).filter(
-        SurveyType.id == survey_type_id,
-        SurveyType.organisation_id == org.id
-    ).first()
+    db_survey_type = db.query(SurveyType).filter(SurveyType.id == survey_type_id).first()
     if not db_survey_type:
         raise HTTPException(status_code=404, detail=f"Survey type {survey_type_id} not found")
 

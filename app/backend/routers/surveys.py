@@ -22,14 +22,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, select, text
 from database.connection import get_db
 from auth import require_admin
-from dependencies import get_current_organisation
 from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate, SurveyWithSightingsCount,
     Sighting, SightingRead, SightingCreate, SightingUpdate, SightingWithDetails,
     Species, Location, Surveyor, SurveySurveyor, SpeciesTypeCount,
     BreedingStatusCode, BreedingStatusCodeRead, SightingIndividual,
-    IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
-    Organisation
+    IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals
 )
 
 router = APIRouter()
@@ -72,7 +70,6 @@ async def get_surveys(
     start_date: Optional[date] = Query(None, description="Filter surveys from this date (inclusive)"),
     end_date: Optional[date] = Query(None, description="Filter surveys until this date (inclusive)"),
     survey_type_id: Optional[int] = Query(None, description="Filter by survey type ID"),
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
@@ -94,8 +91,8 @@ async def get_surveys(
         - total_pages: Total number of pages
     """
     try:
-        # Build base query with filters - always filter by organisation
-        query = db.query(Survey).filter(Survey.organisation_id == org.id)
+        # Build base query with filters
+        query = db.query(Survey)
 
         # Apply date range filters
         if start_date:
@@ -189,11 +186,7 @@ async def get_surveys(
 
 
 @router.get("/{survey_id}", response_model=SurveyRead)
-async def get_survey(
-    survey_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     """
     Get a specific survey by ID.
 
@@ -206,10 +199,7 @@ async def get_survey(
     Raises:
         404: Survey not found
     """
-    survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.organisation_id == org.id
-    ).first()
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
@@ -236,11 +226,7 @@ async def get_survey(
 
 
 @router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
-async def create_survey(
-    survey: SurveyCreate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def create_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
     """
     Create a new survey.
 
@@ -261,8 +247,7 @@ async def create_survey(
             conditions_met=survey.conditions_met,
             notes=survey.notes,
             location_id=survey.location_id,
-            survey_type_id=survey.survey_type_id,
-            organisation_id=org.id
+            survey_type_id=survey.survey_type_id
         )
         db.add(db_survey)
         db.flush()  # Get the ID without committing
@@ -298,12 +283,7 @@ async def create_survey(
 
 
 @router.put("/{survey_id}", response_model=SurveyRead, dependencies=[Depends(require_admin)])
-async def update_survey(
-    survey_id: int,
-    survey: SurveyUpdate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def update_survey(survey_id: int, survey: SurveyUpdate, db: Session = Depends(get_db)):
     """
     Update an existing survey.
 
@@ -317,10 +297,7 @@ async def update_survey(
     Raises:
         404: Survey not found
     """
-    db_survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.organisation_id == org.id
-    ).first()
+    db_survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not db_survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
@@ -371,11 +348,7 @@ async def update_survey(
 
 
 @router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
-async def delete_survey(
-    survey_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def delete_survey(survey_id: int, db: Session = Depends(get_db)):
     """
     Delete a survey (CASCADE deletes sightings and surveyor associations).
 
@@ -385,10 +358,7 @@ async def delete_survey(
     Raises:
         404: Survey not found
     """
-    db_survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.organisation_id == org.id
-    ).first()
+    db_survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not db_survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
@@ -402,11 +372,7 @@ async def delete_survey(
 # ============================================================================
 
 @router.get("/{survey_id}/sightings", response_model=List[SightingWithIndividuals])
-async def get_survey_sightings(
-    survey_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def get_survey_sightings(survey_id: int, db: Session = Depends(get_db)):
     """
     Get all sightings for a survey, including individual location points.
 
@@ -419,11 +385,8 @@ async def get_survey_sightings(
     Raises:
         404: Survey not found
     """
-    # Check if survey exists and belongs to this organisation
-    survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.organisation_id == org.id
-    ).first()
+    # Check if survey exists
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
@@ -482,12 +445,7 @@ async def get_survey_sightings(
 
 
 @router.post("/{survey_id}/sightings", response_model=SightingWithIndividuals, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
-async def create_sighting(
-    survey_id: int,
-    sighting: SightingCreate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def create_sighting(survey_id: int, sighting: SightingCreate, db: Session = Depends(get_db)):
     """
     Add a sighting to a survey with optional individual location points.
 
@@ -501,11 +459,8 @@ async def create_sighting(
     Raises:
         404: Survey or species not found
     """
-    # Check if survey exists and belongs to this organisation
-    survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.organisation_id == org.id
-    ).first()
+    # Check if survey exists
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
@@ -581,13 +536,7 @@ async def create_sighting(
 
 
 @router.put("/{survey_id}/sightings/{sighting_id}", response_model=SightingWithDetails, dependencies=[Depends(require_admin)])
-async def update_sighting(
-    survey_id: int,
-    sighting_id: int,
-    sighting: SightingUpdate,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def update_sighting(survey_id: int, sighting_id: int, sighting: SightingUpdate, db: Session = Depends(get_db)):
     """
     Update a sighting.
 
@@ -602,14 +551,10 @@ async def update_sighting(
     Raises:
         404: Survey or sighting not found
     """
-    # Check if sighting exists and belongs to this survey (which belongs to this org)
+    # Check if sighting exists and belongs to this survey
     db_sighting = db.query(Sighting)\
-        .join(Survey)\
-        .filter(
-            Sighting.id == sighting_id,
-            Sighting.survey_id == survey_id,
-            Survey.organisation_id == org.id
-        ).first()
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
 
     if not db_sighting:
         raise HTTPException(
@@ -640,12 +585,7 @@ async def update_sighting(
 
 
 @router.delete("/{survey_id}/sightings/{sighting_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
-async def delete_sighting(
-    survey_id: int,
-    sighting_id: int,
-    org: Organisation = Depends(get_current_organisation),
-    db: Session = Depends(get_db)
-):
+async def delete_sighting(survey_id: int, sighting_id: int, db: Session = Depends(get_db)):
     """
     Delete a sighting.
 
@@ -657,12 +597,8 @@ async def delete_sighting(
         404: Survey or sighting not found
     """
     db_sighting = db.query(Sighting)\
-        .join(Survey)\
-        .filter(
-            Sighting.id == sighting_id,
-            Sighting.survey_id == survey_id,
-            Survey.organisation_id == org.id
-        ).first()
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
 
     if not db_sighting:
         raise HTTPException(
@@ -684,7 +620,6 @@ async def add_individual_location(
     survey_id: int,
     sighting_id: int,
     individual: IndividualLocationCreate,
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
@@ -701,14 +636,10 @@ async def add_individual_location(
     Raises:
         404: Survey or sighting not found
     """
-    # Verify sighting belongs to survey (which belongs to this org)
+    # Verify sighting belongs to survey
     db_sighting = db.query(Sighting)\
-        .join(Survey)\
-        .filter(
-            Sighting.id == sighting_id,
-            Sighting.survey_id == survey_id,
-            Survey.organisation_id == org.id
-        ).first()
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
 
     if not db_sighting:
         raise HTTPException(
@@ -761,7 +692,6 @@ async def update_individual_location(
     sighting_id: int,
     individual_id: int,
     individual: IndividualLocationCreate,
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
@@ -779,14 +709,10 @@ async def update_individual_location(
     Raises:
         404: Survey, sighting, or individual not found
     """
-    # Verify sighting belongs to survey (which belongs to this org)
+    # Verify sighting belongs to survey
     db_sighting = db.query(Sighting)\
-        .join(Survey)\
-        .filter(
-            Sighting.id == sighting_id,
-            Sighting.survey_id == survey_id,
-            Survey.organisation_id == org.id
-        ).first()
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
 
     if not db_sighting:
         raise HTTPException(
@@ -856,7 +782,6 @@ async def delete_individual_location(
     survey_id: int,
     sighting_id: int,
     individual_id: int,
-    org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
     """
@@ -870,14 +795,10 @@ async def delete_individual_location(
     Raises:
         404: Survey, sighting, or individual not found
     """
-    # Verify sighting belongs to survey (which belongs to this org)
+    # Verify sighting belongs to survey
     db_sighting = db.query(Sighting)\
-        .join(Survey)\
-        .filter(
-            Sighting.id == sighting_id,
-            Sighting.survey_id == survey_id,
-            Survey.organisation_id == org.id
-        ).first()
+        .filter(Sighting.id == sighting_id, Sighting.survey_id == survey_id)\
+        .first()
 
     if not db_sighting:
         raise HTTPException(
