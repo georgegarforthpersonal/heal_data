@@ -26,7 +26,6 @@ class OrganisationBase(SQLModel):
     """Base organisation fields"""
     name: str = Field(max_length=255, description="Organisation name")
     slug: str = Field(max_length=100, description="URL-friendly identifier")
-    domain: str = Field(max_length=255, description="Domain for this organisation")
 
 
 class Organisation(OrganisationBase, table=True):
