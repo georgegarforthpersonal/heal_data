@@ -25,5 +25,8 @@ pdfplumber>=0.11.9
 # Word document reading
 python-docx>=0.8.11
 
+# Bird audio analysis
+birdnet
+
 # Development tools (optional)
 # httpx>=0.26.0  # For testing API endpoints
