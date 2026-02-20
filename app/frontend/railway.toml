@@ -1,0 +1,8 @@
+# Railway configuration for frontend services
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.railway"
+
+[deploy]
+startCommand = "nginx -g 'daemon off;'"
