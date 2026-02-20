@@ -1,8 +1,13 @@
 # Railway configuration for frontend services
+# Note: Config file path in Railway UI should be set to "app/frontend/railway.toml"
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.railway"
+dockerfilePath = "app/frontend/Dockerfile"
+dockerContext = "app/frontend"
+
+[build.args]
+VITE_API_URL = "${{VITE_API_URL}}"
 
 [deploy]
 startCommand = "nginx -g 'daemon off;'"
