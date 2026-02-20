@@ -16,7 +16,6 @@ Config file structure:
   "organisation": {
     "name": "Org Name",
     "slug": "org-slug",
-    "domain": "orgdata.up.railway.app",
     "admin_password": "password"
   },
   "locations": [
@@ -72,7 +71,7 @@ def setup_organisation(config_path: str, dry_run: bool = True):
     locations = config.get('locations', [])
 
     # Validate required fields
-    required_fields = ['name', 'slug', 'domain', 'admin_password']
+    required_fields = ['name', 'slug', 'admin_password']
     for field in required_fields:
         if field not in org_config:
             logger.error(f"Missing required field: organisation.{field}")
@@ -102,7 +101,6 @@ def setup_organisation(config_path: str, dry_run: bool = True):
         else:
             logger.info(f"Creating organisation: {org_config['name']}")
             logger.info(f"  slug: {org_config['slug']}")
-            logger.info(f"  domain: {org_config['domain']}")
 
             if dry_run:
                 org_id = 999  # Placeholder for dry run
@@ -110,14 +108,13 @@ def setup_organisation(config_path: str, dry_run: bool = True):
             else:
                 result = conn.execute(
                     text("""
-                        INSERT INTO organisation (name, slug, domain, admin_password, is_active)
-                        VALUES (:name, :slug, :domain, :admin_password, true)
+                        INSERT INTO organisation (name, slug, admin_password, is_active)
+                        VALUES (:name, :slug, :admin_password, true)
                         RETURNING id
                     """),
                     {
                         "name": org_config['name'],
                         "slug": org_config['slug'],
-                        "domain": org_config['domain'],
                         "admin_password": org_config['admin_password']
                     }
                 )
@@ -197,7 +194,7 @@ def setup_organisation(config_path: str, dry_run: bool = True):
         logger.info("Organisation setup complete!")
         logger.info("")
         logger.info("Next steps:")
-        logger.info(f"  1. Add domain '{org_config['domain']}' in Railway")
+        logger.info(f"  1. Deploy frontend service with subdomain {org_config['slug']}data.up.railway.app")
         logger.info(f"  2. Test locally: curl -H 'X-Org-Slug: {org_config['slug']}' http://localhost:8000/api/auth/status")
         logger.info(f"  3. Create survey types from the frontend")
 
