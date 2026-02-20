@@ -25,8 +25,14 @@ app = FastAPI(
 # CORS Configuration - Allow React frontend to call API
 # ============================================================================
 
-cors_origin = os.getenv("CORS_ORIGIN", "")
-origins = [cors_origin] if cors_origin else ["http://localhost:5173", "http://127.0.0.1:5173"]
+# Support multiple origins via comma-separated CORS_ORIGINS env var
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+if cors_origins_env:
+    origins = [origin.strip() for origin in cors_origins_env.split(",")]
+else:
+    # Fallback to legacy single-origin var or localhost defaults
+    cors_origin = os.getenv("CORS_ORIGIN", "")
+    origins = [cors_origin] if cors_origin else ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 app.add_middleware(
     CORSMiddleware,
