@@ -2,7 +2,6 @@
   "organisation": {
     "name": "Cannwood",
     "slug": "cannwood",
-    "domain": "cannwooddata.up.railway.app",
     "admin_password": "turtledove2026"
   },
   "locations": [
