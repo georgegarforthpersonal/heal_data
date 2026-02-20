@@ -23,7 +23,43 @@ const getApiBaseUrl = () => {
   return `http://${window.location.hostname}:8000/api`;
 };
 
+/**
+ * Extract organisation slug from the current hostname.
+ *
+ * Pattern: {org}data.up.railway.app → {org}
+ * Examples:
+ *   - healdata.up.railway.app → heal
+ *   - cannwooddata.up.railway.app → cannwood
+ *   - localhost → heal (default for development)
+ */
+const getOrgSlug = (): string => {
+  const hostname = window.location.hostname;
+
+  // Local development defaults to 'heal'
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Allow override via URL param for local testing: ?org=cannwood
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('org') || 'heal';
+  }
+
+  // Production: extract from subdomain pattern {org}data.up.railway.app
+  const match = hostname.match(/^([a-z]+)data\.up\.railway\.app$/);
+  if (match) {
+    return match[1];
+  }
+
+  // Fallback: try to extract from any subdomain pattern {org}data.{domain}
+  const fallbackMatch = hostname.match(/^([a-z]+)data\./);
+  if (fallbackMatch) {
+    return fallbackMatch[1];
+  }
+
+  // Default to 'heal' if no pattern matches
+  return 'heal';
+};
+
 const API_BASE_URL = getApiBaseUrl();
+const ORG_SLUG = getOrgSlug();
 
 /**
  * Generic fetch wrapper with error handling
@@ -37,6 +73,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        'X-Org-Slug': ORG_SLUG,
         ...options?.headers,
       },
     });

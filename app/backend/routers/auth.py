@@ -46,7 +46,7 @@ async def login(
     if not verify_org_password(body.password, org):
         raise HTTPException(status_code=401, detail="Incorrect password")
 
-    token = create_session_token()
+    token = create_session_token(org.slug)
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=token,
@@ -76,7 +76,8 @@ async def auth_status(
     Returns organisation details for the frontend to use.
     """
     token = request.cookies.get(SESSION_COOKIE_NAME)
-    authenticated = bool(token and validate_session_token(token))
+    is_valid, _ = validate_session_token(token) if token else (False, None)
+    authenticated = is_valid
     return {
         "authenticated": authenticated,
         "organisation": {
