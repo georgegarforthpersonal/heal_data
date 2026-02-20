@@ -16,8 +16,9 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database.connection import get_db
-from models import Surveyor, SurveyorRead, SurveyorCreate, SurveyorUpdate
+from models import Surveyor, SurveyorRead, SurveyorCreate, SurveyorUpdate, Organisation
 from auth import require_admin
+from dependencies import get_current_organisation
 
 router = APIRouter()
 
@@ -26,10 +27,11 @@ def _check_surveyor_duplicate(
     db: Session,
     first_name: str,
     last_name: Optional[str],
+    org_id: int,
     exclude_id: Optional[int] = None
 ) -> None:
     """
-    Check if a surveyor with the same name already exists.
+    Check if a surveyor with the same name already exists in this organisation.
     Raises HTTPException with 409 Conflict if duplicate found.
 
     Uses case-insensitive comparison and treats NULL/empty last_name as equivalent.
@@ -40,6 +42,7 @@ def _check_surveyor_duplicate(
         normalized_last = None
 
     query = db.query(Surveyor).filter(
+        Surveyor.organisation_id == org_id,
         func.lower(Surveyor.first_name) == first_name.lower(),
         func.lower(func.coalesce(Surveyor.last_name, '')) == (normalized_last or '').lower()
     )
@@ -57,9 +60,13 @@ def _check_surveyor_duplicate(
 
 
 @router.get("", response_model=List[SurveyorRead])
-async def get_surveyors(include_inactive: bool = False, db: Session = Depends(get_db)):
+async def get_surveyors(
+    include_inactive: bool = False,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db)
+):
     """
-    Get all surveyors.
+    Get all surveyors for the current organisation.
 
     Args:
         include_inactive: If True, include inactive surveyors. Default: False (only active)
@@ -67,7 +74,7 @@ async def get_surveyors(include_inactive: bool = False, db: Session = Depends(ge
     Returns:
         List of surveyors ordered by last name, first name
     """
-    query = db.query(Surveyor)
+    query = db.query(Surveyor).filter(Surveyor.organisation_id == org.id)
 
     if not include_inactive:
         query = query.filter(Surveyor.is_active == True)
@@ -81,21 +88,36 @@ async def get_surveyors(include_inactive: bool = False, db: Session = Depends(ge
 
 
 @router.get("/{surveyor_id}", response_model=SurveyorRead)
-async def get_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
+async def get_surveyor(
+    surveyor_id: int,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db)
+):
     """Get a specific surveyor by ID"""
-    surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    surveyor = db.query(Surveyor).filter(
+        Surveyor.id == surveyor_id,
+        Surveyor.organisation_id == org.id
+    ).first()
     if not surveyor:
         raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
     return surveyor
 
 
 @router.post("", response_model=SurveyorRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
-async def create_surveyor(surveyor: SurveyorCreate, db: Session = Depends(get_db)):
+async def create_surveyor(
+    surveyor: SurveyorCreate,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db)
+):
     """Create a new surveyor"""
-    # Check for duplicate name
-    _check_surveyor_duplicate(db, surveyor.first_name, surveyor.last_name)
+    # Check for duplicate name within this organisation
+    _check_surveyor_duplicate(db, surveyor.first_name, surveyor.last_name, org.id)
 
-    db_surveyor = Surveyor.model_validate(surveyor)
+    db_surveyor = Surveyor(
+        first_name=surveyor.first_name,
+        last_name=surveyor.last_name,
+        organisation_id=org.id
+    )
     db.add(db_surveyor)
     db.commit()
     db.refresh(db_surveyor)
@@ -103,9 +125,17 @@ async def create_surveyor(surveyor: SurveyorCreate, db: Session = Depends(get_db
 
 
 @router.put("/{surveyor_id}", response_model=SurveyorRead, dependencies=[Depends(require_admin)])
-async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Session = Depends(get_db)):
+async def update_surveyor(
+    surveyor_id: int,
+    surveyor: SurveyorUpdate,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db)
+):
     """Update an existing surveyor"""
-    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    db_surveyor = db.query(Surveyor).filter(
+        Surveyor.id == surveyor_id,
+        Surveyor.organisation_id == org.id
+    ).first()
     if not db_surveyor:
         raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
 
@@ -115,7 +145,7 @@ async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Sessio
     final_last_name = update_data.get('last_name', db_surveyor.last_name)
 
     # Check for duplicate (excluding current surveyor)
-    _check_surveyor_duplicate(db, final_first_name, final_last_name, exclude_id=surveyor_id)
+    _check_surveyor_duplicate(db, final_first_name, final_last_name, org.id, exclude_id=surveyor_id)
 
     # Update only the fields that were provided
     for field, value in update_data.items():
@@ -127,9 +157,16 @@ async def update_surveyor(surveyor_id: int, surveyor: SurveyorUpdate, db: Sessio
 
 
 @router.delete("/{surveyor_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
-async def delete_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
+async def delete_surveyor(
+    surveyor_id: int,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db)
+):
     """Delete a surveyor (hard delete - use deactivate instead for soft delete)"""
-    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    db_surveyor = db.query(Surveyor).filter(
+        Surveyor.id == surveyor_id,
+        Surveyor.organisation_id == org.id
+    ).first()
     if not db_surveyor:
         raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
 
@@ -139,14 +176,21 @@ async def delete_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{surveyor_id}/deactivate", response_model=SurveyorRead, dependencies=[Depends(require_admin)])
-async def deactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
+async def deactivate_surveyor(
+    surveyor_id: int,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db)
+):
     """
     Deactivate a surveyor (soft delete).
 
     The surveyor will no longer appear in active surveyor lists,
     but their historical survey data is preserved.
     """
-    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    db_surveyor = db.query(Surveyor).filter(
+        Surveyor.id == surveyor_id,
+        Surveyor.organisation_id == org.id
+    ).first()
     if not db_surveyor:
         raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
 
@@ -160,13 +204,20 @@ async def deactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{surveyor_id}/reactivate", response_model=SurveyorRead, dependencies=[Depends(require_admin)])
-async def reactivate_surveyor(surveyor_id: int, db: Session = Depends(get_db)):
+async def reactivate_surveyor(
+    surveyor_id: int,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db)
+):
     """
     Reactivate a previously deactivated surveyor.
 
     The surveyor will appear in active surveyor lists again.
     """
-    db_surveyor = db.query(Surveyor).filter(Surveyor.id == surveyor_id).first()
+    db_surveyor = db.query(Surveyor).filter(
+        Surveyor.id == surveyor_id,
+        Surveyor.organisation_id == org.id
+    ).first()
     if not db_surveyor:
         raise HTTPException(status_code=404, detail=f"Surveyor {surveyor_id} not found")
 

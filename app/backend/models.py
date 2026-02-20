@@ -19,6 +19,43 @@ import sqlalchemy as sa
 
 
 # ============================================================================
+# Organisation Models
+# ============================================================================
+
+class OrganisationBase(SQLModel):
+    """Base organisation fields"""
+    name: str = Field(max_length=255, description="Organisation name")
+    slug: str = Field(max_length=100, description="URL-friendly identifier")
+    domain: str = Field(max_length=255, description="Domain for this organisation")
+
+
+class Organisation(OrganisationBase, table=True):
+    """Organisation database model"""
+    __tablename__ = "organisation"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    admin_password: str = Field(max_length=255, description="Admin password for this organisation")
+    is_active: bool = Field(default=True, description="Whether organisation is active")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    surveys: List["Survey"] = Relationship(back_populates="organisation")
+    surveyors: List["Surveyor"] = Relationship(back_populates="organisation")
+    locations: List["Location"] = Relationship(back_populates="organisation")
+    survey_types: List["SurveyType"] = Relationship(back_populates="organisation")
+
+
+class OrganisationRead(OrganisationBase):
+    """Model for reading organisation (public info, no password hash)"""
+    id: int
+    is_active: bool
+
+
+# ============================================================================
 # Junction Tables
 # ============================================================================
 
@@ -69,6 +106,7 @@ class Surveyor(SurveyorBase, table=True):
     __tablename__ = "surveyor"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this surveyor belongs to")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -77,6 +115,7 @@ class Surveyor(SurveyorBase, table=True):
     is_active: bool = Field(default=True, description="Whether surveyor is active")
 
     # Relationships
+    organisation: Optional["Organisation"] = Relationship(back_populates="surveyors")
     surveys: List["Survey"] = Relationship(back_populates="surveyors", link_model=SurveySurveyor)
 
 
@@ -198,6 +237,7 @@ class Location(LocationBase, table=True):
     __tablename__ = "location"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this location belongs to")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -218,6 +258,7 @@ class Location(LocationBase, table=True):
     boundary_fill_opacity: Optional[float] = Field(default=0.2, ge=0, le=1)
 
     # Relationships
+    organisation: Optional["Organisation"] = Relationship(back_populates="locations")
     surveys: List["Survey"] = Relationship(back_populates="location")
     survey_types: List["SurveyType"] = Relationship(
         back_populates="locations",
@@ -271,6 +312,7 @@ class SurveyType(SurveyTypeBase, table=True):
     __tablename__ = "survey_type"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this survey type belongs to")
     is_active: bool = Field(default=True, description="Whether survey type is active")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
@@ -279,6 +321,7 @@ class SurveyType(SurveyTypeBase, table=True):
     )
 
     # Relationships
+    organisation: Optional["Organisation"] = Relationship(back_populates="survey_types")
     locations: List["Location"] = Relationship(
         back_populates="survey_types",
         link_model=SurveyTypeLocationLink
@@ -344,6 +387,7 @@ class Survey(SurveyBase, table=True):
     __tablename__ = "survey"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this survey belongs to")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -351,6 +395,7 @@ class Survey(SurveyBase, table=True):
     )
 
     # Relationships
+    organisation: Optional["Organisation"] = Relationship(back_populates="surveys")
     surveyors: List["Surveyor"] = Relationship(back_populates="surveys", link_model=SurveySurveyor)
     sightings: List["Sighting"] = Relationship(back_populates="survey", cascade_delete=True)
     location: Optional["Location"] = Relationship(back_populates="surveys")
