@@ -28,5 +28,8 @@ python-docx>=0.8.11
 # Bird audio analysis
 birdnet
 
+# Cloud storage (Cloudflare R2)
+boto3>=1.34.0
+
 # Development tools (optional)
 # httpx>=0.26.0  # For testing API endpoints
