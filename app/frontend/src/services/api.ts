@@ -909,3 +909,121 @@ export const authAPI = {
     return fetchAPI('/auth/status');
   },
 };
+
+// ============================================================================
+// Audio Recording Types
+// ============================================================================
+
+export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface AudioRecording {
+  id: number;
+  survey_id: number;
+  filename: string;
+  r2_key: string;
+  file_size_bytes: number | null;
+  duration_seconds: number | null;
+  recording_timestamp: string | null;
+  device_serial: string | null;
+  processing_status: ProcessingStatus;
+  processing_error: string | null;
+  uploaded_at: string;
+  detection_count: number;
+}
+
+export interface BirdDetection {
+  id: number;
+  species_name: string;
+  confidence: number;
+  start_time: string;
+  end_time: string;
+  detection_timestamp: string;
+  species_id: number | null;
+  species_common_name: string | null;
+}
+
+// ============================================================================
+// API Methods - Audio
+// ============================================================================
+
+export const audioAPI = {
+  /**
+   * Get all audio recordings for a survey
+   */
+  getRecordings: (surveyId: number): Promise<AudioRecording[]> => {
+    return fetchAPI(`/surveys/${surveyId}/audio`);
+  },
+
+  /**
+   * Upload audio files to a survey
+   * Returns the created recording records
+   */
+  uploadFiles: async (surveyId: number, files: File[]): Promise<AudioRecording[]> => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}/audio`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-Org-Slug': ORG_SLUG,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Upload failed: ${response.status}`;
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get a specific audio recording
+   */
+  getRecording: (surveyId: number, recordingId: number): Promise<AudioRecording> => {
+    return fetchAPI(`/surveys/${surveyId}/audio/${recordingId}`);
+  },
+
+  /**
+   * Manually trigger processing for a recording
+   */
+  processRecording: (surveyId: number, recordingId: number): Promise<{ status: string; message: string }> => {
+    return fetchAPI(`/surveys/${surveyId}/audio/${recordingId}/process`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Get bird detections for an audio recording
+   */
+  getDetections: (surveyId: number, recordingId: number, minConfidence?: number): Promise<BirdDetection[]> => {
+    const params = minConfidence ? `?min_confidence=${minConfidence}` : '';
+    return fetchAPI(`/surveys/${surveyId}/audio/${recordingId}/detections${params}`);
+  },
+
+  /**
+   * Get a presigned download URL for an audio file
+   */
+  getDownloadUrl: (recordingId: number): Promise<{ download_url: string; expires_in: number }> => {
+    return fetchAPI(`/audio/${recordingId}/download`);
+  },
+
+  /**
+   * Delete an audio recording
+   */
+  deleteRecording: (surveyId: number, recordingId: number): Promise<void> => {
+    return fetchAPI(`/surveys/${surveyId}/audio/${recordingId}`, {
+      method: 'DELETE',
+    });
+  },
+};
