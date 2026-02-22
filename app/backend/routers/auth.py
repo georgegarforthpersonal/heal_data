@@ -16,6 +16,7 @@ from auth import (
     verify_org_password,
     create_session_token,
     validate_session_token,
+    get_token_from_request,
     SESSION_COOKIE_NAME,
     SESSION_MAX_AGE,
 )
@@ -47,6 +48,7 @@ async def login(
         raise HTTPException(status_code=401, detail="Incorrect password")
 
     token = create_session_token(org.slug)
+    # Set cookie for same-origin requests (still useful for local dev)
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=token,
@@ -56,7 +58,8 @@ async def login(
         secure=_is_production,
         path="/",
     )
-    return {"authenticated": True}
+    # Return token in body for cross-origin requests (stored in localStorage)
+    return {"authenticated": True, "token": token}
 
 
 @router.post("/logout")
@@ -75,8 +78,9 @@ async def auth_status(
     Check authentication status and return organisation info.
 
     Returns organisation details for the frontend to use.
+    Checks Authorization header first, then cookie.
     """
-    token = request.cookies.get(SESSION_COOKIE_NAME)
+    token = get_token_from_request(request)
     is_valid, _ = validate_session_token(token) if token else (False, None)
     authenticated = is_valid
     return {
