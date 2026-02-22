@@ -39,7 +39,7 @@ def main():
 
     all_detections: list[Detection] = []
     for file in audio_files:
-        all_detections.extend(analyze_file(file, species_list))
+        all_detections.extend(analyze_file(file, species_list, show_progress=True))
 
     logger.info(f"Found {len(all_detections)} detections:")
     for d in all_detections:

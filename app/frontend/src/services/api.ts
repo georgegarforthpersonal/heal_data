@@ -932,6 +932,7 @@ export interface AudioRecording {
   processing_error: string | null;
   uploaded_at: string;
   detection_count: number;
+  unmatched_species: string[] | null;
 }
 
 export interface BirdDetection {

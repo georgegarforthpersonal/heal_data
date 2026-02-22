@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon, CloudUpload, AudioFile, CheckCircle, Error as ErrorIcon, Pending } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon, CloudUpload, AudioFile, CheckCircle, Error as ErrorIcon, Pending, Warning } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, audioAPI } from '../services/api';
@@ -1116,9 +1116,30 @@ export function SurveyDetailPage() {
                       )}
                     </Box>
 
-                    <Typography variant="body2" fontWeight={600} textAlign="right" sx={{ fontSize: '0.875rem' }}>
-                      {recording.detection_count}
-                    </Typography>
+                    <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
+                      {recording.unmatched_species && recording.unmatched_species.length > 0 && (
+                        <Tooltip
+                          title={
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                Unmatched species ({recording.unmatched_species.length}):
+                              </Typography>
+                              {recording.unmatched_species.map((species, idx) => (
+                                <Typography key={idx} variant="body2" sx={{ fontSize: '0.8rem' }}>
+                                  {species}
+                                </Typography>
+                              ))}
+                            </Box>
+                          }
+                          arrow
+                        >
+                          <Warning sx={{ fontSize: 18, color: 'warning.main' }} />
+                        </Tooltip>
+                      )}
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
+                        {recording.detection_count}
+                      </Typography>
+                    </Stack>
                   </Box>
                 ))}
               </Box>

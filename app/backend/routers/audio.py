@@ -40,6 +40,7 @@ from models import (
     BirdDetectionRead,
     Organisation,
     ProcessingStatus,
+    Species,
     Survey,
 )
 from services.r2_storage import (
@@ -85,6 +86,7 @@ def _build_recording_response(recording: AudioRecording, detection_count: int) -
         "processing_error": recording.processing_error,
         "uploaded_at": recording.uploaded_at,
         "detection_count": detection_count,
+        "unmatched_species": recording.unmatched_species,
     }
 
 
@@ -252,7 +254,7 @@ async def process_audio_recording(
 
 def process_recording_background(recording_id: int):
     """Background task to process audio with BirdNET."""
-    from services.bird_audio import analyze_file, get_location_species
+    from services.bird_audio import analyze_file, get_db_scientific_name, get_location_species
 
     SessionLocal = get_session_factory()
     db = SessionLocal()
@@ -283,17 +285,36 @@ def process_recording_background(recording_id: int):
             # Run BirdNET analysis
             detections = analyze_file(local_path, species_list)
 
-            # Store detections
+            # Store detections, tracking unmatched species
+            unmatched = []
+            matched_count = 0
             for det in detections:
-                bird_det = BirdDetection(
-                    audio_recording_id=recording_id,
-                    species_name=det.species,
-                    confidence=det.confidence,
-                    start_time=det.start,
-                    end_time=det.end,
-                    detection_timestamp=det.timestamp,
-                )
-                db.add(bird_det)
+                # Look up species in database
+                scientific_name = get_db_scientific_name(det.species)
+                species = db.query(Species).filter(
+                    Species.scientific_name == scientific_name,
+                    Species.type == "bird"
+                ).first()
+
+                if species:
+                    bird_det = BirdDetection(
+                        audio_recording_id=recording_id,
+                        species_name=det.species,
+                        species_id=species.id,
+                        confidence=det.confidence,
+                        start_time=det.start,
+                        end_time=det.end,
+                        detection_timestamp=det.timestamp,
+                    )
+                    db.add(bird_det)
+                    matched_count += 1
+                else:
+                    # Track unmatched species (avoid duplicates)
+                    if det.species not in unmatched:
+                        unmatched.append(det.species)
+
+            # Store unmatched species on the recording
+            recording.unmatched_species = unmatched if unmatched else None
 
             # Update recording status
             recording.processing_status = ProcessingStatus.completed
@@ -301,7 +322,8 @@ def process_recording_background(recording_id: int):
             db.commit()
 
             logger.info(
-                f"Processed recording {recording_id}: {len(detections)} detections"
+                f"Processed recording {recording_id}: {matched_count} matched detections, "
+                f"{len(unmatched)} unmatched species"
             )
 
     except Exception as e:

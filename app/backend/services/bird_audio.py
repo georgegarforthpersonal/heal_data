@@ -8,6 +8,23 @@ import birdnet
 LOCATION_FILTER_THRESHOLD = 0.03
 MIN_CONFIDENCE = 0.25
 
+# BirdNET uses outdated scientific names for some species.
+# Maps BirdNET scientific name -> DB scientific name.
+BIRDNET_NAME_ALIASES = {
+    "Corvus monedula": "Coloeus monedula",  # Jackdaw
+}
+
+
+def get_db_scientific_name(birdnet_species: str) -> str:
+    """
+    Extract scientific name from BirdNET species string and apply alias mapping.
+
+    BirdNET returns species as "Scientific Name_Common Name".
+    Returns the scientific name used in our database.
+    """
+    scientific_name = birdnet_species.split("_", 1)[0]
+    return BIRDNET_NAME_ALIASES.get(scientific_name, scientific_name)
+
 
 @dataclass
 class Detection:
@@ -44,7 +61,9 @@ def get_location_species(lat: float, lon: float) -> list[str]:
     return list(predictions.to_set())
 
 
-def analyze_file(file: Path, species_list: list[str] | None = None) -> list[Detection]:
+def analyze_file(
+    file: Path, species_list: list[str] | None = None, show_progress: bool = False
+) -> list[Detection]:
     recording_time = _extract_recording_timestamp(file)
     model = birdnet.load("acoustic", "2.4", "tf")
 
@@ -54,7 +73,7 @@ def analyze_file(file: Path, species_list: list[str] | None = None) -> list[Dete
         sigmoid_sensitivity=1.0,
         default_confidence_threshold=MIN_CONFIDENCE,
         custom_species_list=species_list,
-        show_stats="progress",
+        show_stats="progress" if show_progress else "minimal",
     )
 
     return [
