@@ -54,6 +54,7 @@ async def login(
         httponly=True,
         samesite="none" if _is_production else "lax",
         secure=_is_production,
+        path="/",
     )
     return {"authenticated": True}
 
@@ -61,7 +62,7 @@ async def login(
 @router.post("/logout")
 async def logout(response: Response):
     """Clear session cookie."""
-    response.delete_cookie(key=SESSION_COOKIE_NAME)
+    response.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
     return {"authenticated": False}
 
 
