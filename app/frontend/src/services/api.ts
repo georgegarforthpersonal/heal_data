@@ -61,19 +61,52 @@ const getOrgSlug = (): string => {
 const API_BASE_URL = getApiBaseUrl();
 const ORG_SLUG = getOrgSlug();
 
+// Token storage key
+const AUTH_TOKEN_KEY = 'admin_session_token';
+
+/**
+ * Get stored auth token from localStorage
+ */
+const getAuthToken = (): string | null => {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+};
+
+/**
+ * Store auth token in localStorage
+ */
+const setAuthToken = (token: string): void => {
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+};
+
+/**
+ * Remove auth token from localStorage
+ */
+const clearAuthToken = (): void => {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+};
+
 /**
  * Generic fetch wrapper with error handling
  */
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  // Build headers with auth token if available
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Org-Slug': ORG_SLUG,
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   try {
     const response = await fetch(url, {
       ...options,
       credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Org-Slug': ORG_SLUG,
+        ...headers,
         ...options?.headers,
       },
     });
@@ -895,14 +928,22 @@ export interface AuthStatus {
 // ============================================================================
 
 export const authAPI = {
-  login: (password: string): Promise<{ authenticated: boolean }> => {
-    return fetchAPI('/auth/login', {
+  login: async (password: string): Promise<{ authenticated: boolean }> => {
+    const response = await fetchAPI<{ authenticated: boolean; token?: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ password }),
     });
+    // Store the token for future requests
+    if (response.token) {
+      setAuthToken(response.token);
+    }
+    return { authenticated: response.authenticated };
   },
 
-  logout: (): Promise<{ authenticated: boolean }> => {
+  logout: async (): Promise<{ authenticated: boolean }> => {
+    // Clear local token
+    clearAuthToken();
+    // Also call backend to clear cookie (for same-origin setups)
     return fetchAPI('/auth/logout', {
       method: 'POST',
     });
@@ -966,12 +1007,19 @@ export const audioAPI = {
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
 
+    // Build headers with auth token if available
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'X-Org-Slug': ORG_SLUG,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}/audio`, {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'X-Org-Slug': ORG_SLUG,
-      },
+      headers,
       body: formData,
     });
 

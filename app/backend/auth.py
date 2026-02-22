@@ -85,6 +85,25 @@ def validate_session_token(token: str) -> Tuple[bool, Optional[str]]:
         return False, None
 
 
+def get_token_from_request(request: Request) -> Optional[str]:
+    """
+    Extract auth token from request, checking Authorization header first, then cookies.
+
+    Args:
+        request: FastAPI request object
+
+    Returns:
+        Token string if found, None otherwise
+    """
+    # Check Authorization header first (for cross-origin requests)
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return auth_header[7:]  # Strip "Bearer " prefix
+
+    # Fall back to cookie (for same-origin requests)
+    return request.cookies.get(SESSION_COOKIE_NAME)
+
+
 def get_session_org_slug(request: Request) -> Optional[str]:
     """
     Extract org_slug from a valid session token.
@@ -95,7 +114,7 @@ def get_session_org_slug(request: Request) -> Optional[str]:
     Returns:
         org_slug if session is valid, None otherwise
     """
-    token = request.cookies.get(SESSION_COOKIE_NAME)
+    token = get_token_from_request(request)
     if not token:
         return None
 
@@ -108,8 +127,9 @@ async def require_admin(request: Request):
     FastAPI dependency - raises 401 if not authenticated.
 
     Validates the session token exists and is properly signed.
+    Checks Authorization header first, then falls back to cookie.
     """
-    token = request.cookies.get(SESSION_COOKIE_NAME)
+    token = get_token_from_request(request)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
