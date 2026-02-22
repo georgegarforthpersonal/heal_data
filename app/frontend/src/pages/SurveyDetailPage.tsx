@@ -226,7 +226,7 @@ export function SurveyDetailPage() {
   const locationAtSightingLevel = surveyType?.location_at_sighting_level ?? false;
   const allowGeolocation = surveyType?.allow_geolocation ?? true;
   const allowSightingNotes = surveyType?.allow_sighting_notes ?? true;
-  const isAudioSurvey = surveyType?.name.toLowerCase() === 'audio';
+  const allowAudioUpload = surveyType?.allow_audio_upload ?? false;
 
   // ============================================================================
   // Validation
@@ -1002,7 +1002,7 @@ export function SurveyDetailPage() {
         </Paper>
 
         {/* Audio Recordings Section - Only for audio surveys */}
-        {isAudioSurvey && (
+        {allowAudioUpload && (
           <Paper
             sx={{
               p: { xs: 2, sm: 2.5, md: 3 },

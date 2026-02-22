@@ -364,6 +364,7 @@ export interface SurveyType {
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
   allow_sighting_notes: boolean;
+  allow_audio_upload: boolean;
   icon: string | null;
   color: string | null;
   is_active: boolean;
@@ -386,6 +387,7 @@ export interface SurveyTypeCreate {
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
   allow_sighting_notes: boolean;
+  allow_audio_upload: boolean;
   icon?: string;
   color?: string;
   location_ids: number[];
@@ -401,6 +403,7 @@ export interface SurveyTypeUpdate {
   location_at_sighting_level?: boolean;
   allow_geolocation?: boolean;
   allow_sighting_notes?: boolean;
+  allow_audio_upload?: boolean;
   icon?: string;
   color?: string;
   is_active?: boolean;

@@ -10,10 +10,9 @@ import {
   Autocomplete,
   TextField,
 } from '@mui/material';
-import { Lock } from '@mui/icons-material';
+import { Lock, Save, Cancel, CloudUpload, AudioFile, Delete } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { Save, Cancel } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import {
   surveysAPI,
@@ -21,6 +20,7 @@ import {
   locationsAPI,
   speciesAPI,
   surveyTypesAPI,
+  audioAPI,
 } from '../services/api';
 import type {
   Survey,
@@ -79,6 +79,12 @@ export function NewSurveyPage() {
       count: 1,
     },
   ]);
+
+  // ============================================================================
+  // Form State - Audio Files (for audio survey type)
+  // ============================================================================
+
+  const [pendingAudioFiles, setPendingAudioFiles] = useState<File[]>([]);
 
   // ============================================================================
   // Data State
@@ -235,6 +241,29 @@ export function NewSurveyPage() {
   };
 
   // ============================================================================
+  // Audio File Handlers
+  // ============================================================================
+
+  const handleAudioFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Filter to only WAV files
+    const validFiles = Array.from(files).filter(
+      (f) => f.name.endsWith('.wav') || f.name.endsWith('.WAV')
+    );
+
+    setPendingAudioFiles((prev) => [...prev, ...validFiles]);
+
+    // Reset input so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const handleRemoveAudioFile = (index: number) => {
+    setPendingAudioFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ============================================================================
   // Form Submission
   // ============================================================================
 
@@ -288,8 +317,18 @@ export function NewSurveyPage() {
         )
       );
 
-      // Success - navigate back to surveys list with created parameter
-      navigate(`/surveys?created=${newSurvey.id}`);
+      // Step 3: Upload audio files if any (for audio surveys)
+      if (pendingAudioFiles.length > 0) {
+        await audioAPI.uploadFiles(newSurvey.id, pendingAudioFiles);
+      }
+
+      // Success - navigate to survey detail page (shows audio processing status)
+      // or surveys list if not an audio survey
+      if (allowAudioUpload && pendingAudioFiles.length > 0) {
+        navigate(`/surveys/${newSurvey.id}`);
+      } else {
+        navigate(`/surveys?created=${newSurvey.id}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create survey');
       console.error('Error creating survey:', err);
@@ -309,6 +348,10 @@ export function NewSurveyPage() {
     setSelectedSurveyType(surveyType);
     // Clear location when survey type changes
     setLocationId(null);
+    // Clear pending audio files when switching to a survey type that doesn't allow audio
+    if (!surveyType?.allow_audio_upload) {
+      setPendingAudioFiles([]);
+    }
     // Clear validation error
     if (validationErrors.surveyType) {
       setValidationErrors({ ...validationErrors, surveyType: undefined });
@@ -364,6 +407,7 @@ export function NewSurveyPage() {
   const locationAtSightingLevel = selectedSurveyType?.location_at_sighting_level ?? false;
   const allowGeolocation = selectedSurveyType?.allow_geolocation ?? true;
   const allowSightingNotes = selectedSurveyType?.allow_sighting_notes ?? true;
+  const allowAudioUpload = selectedSurveyType?.allow_audio_upload ?? false;
 
   // Determine if save button should be disabled
   const hasValidSightings = draftSightings.filter((s) => s.species_id !== null && s.count > 0).length > 0;
@@ -491,6 +535,90 @@ export function NewSurveyPage() {
             validationErrors={validationErrors}
             hideLocation={locationAtSightingLevel}
           />
+        </Paper>
+      )}
+
+      {/* Audio Upload Section - Only for audio surveys */}
+      {allowAudioUpload && (
+        <Paper
+          sx={{
+            p: 3,
+            mb: 3,
+            boxShadow: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Audio Files ({pendingAudioFiles.length})
+            </Typography>
+            <Button
+              component="label"
+              variant="contained"
+              startIcon={<CloudUpload />}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
+            >
+              Add Files
+              <input
+                type="file"
+                hidden
+                multiple
+                accept=".wav,.WAV"
+                onChange={handleAudioFileSelect}
+              />
+            </Button>
+          </Stack>
+
+          {pendingAudioFiles.length > 0 ? (
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+              {pendingAudioFiles.map((file, index) => (
+                <Box
+                  key={`${file.name}-${index}`}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 1.5,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    '&:last-child': { borderBottom: 'none' },
+                    '&:hover': { bgcolor: 'grey.50' },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <AudioFile sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                      {file.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                    </Typography>
+                  </Stack>
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveAudioFile(index)}
+                    sx={{ minWidth: 'auto', p: 0.5 }}
+                  >
+                    <Delete fontSize="small" />
+                  </Button>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <AudioFile sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+              <Typography color="text.secondary">
+                Add WAV files to upload with this survey.
+              </Typography>
+            </Box>
+          )}
         </Paper>
       )}
 
