@@ -666,6 +666,11 @@ class AudioRecordingBase(SQLModel):
     filename: str = Field(max_length=255, description="Original filename")
     recording_timestamp: Optional[datetime] = Field(None, description="Timestamp extracted from filename")
     device_serial: Optional[str] = Field(None, max_length=50, description="Device serial number")
+    unmatched_species: Optional[List[str]] = Field(
+        default=None,
+        sa_column=sa.Column(sa.JSON, nullable=True),
+        description="Species detected by BirdNET but not found in database"
+    )
 
 
 class AudioRecording(AudioRecordingBase, table=True):
@@ -714,6 +719,7 @@ class AudioRecordingRead(AudioRecordingBase):
     processing_error: Optional[str]
     uploaded_at: datetime
     detection_count: int = 0
+    unmatched_species: Optional[List[str]] = None
 
 
 class BirdDetectionBase(SQLModel):
@@ -731,7 +737,7 @@ class BirdDetection(BirdDetectionBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     audio_recording_id: int = Field(foreign_key="audio_recording.id", ondelete="CASCADE", index=True)
-    species_id: Optional[int] = Field(None, foreign_key="species.id", ondelete="SET NULL")
+    species_id: int = Field(foreign_key="species.id", ondelete="CASCADE")
 
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
@@ -740,7 +746,7 @@ class BirdDetection(BirdDetectionBase, table=True):
 
     # Relationships
     audio_recording: "AudioRecording" = Relationship(back_populates="detections")
-    species: Optional["Species"] = Relationship()
+    species: "Species" = Relationship()
 
 
 class BirdDetectionRead(BirdDetectionBase):
