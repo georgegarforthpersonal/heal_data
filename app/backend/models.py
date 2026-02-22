@@ -302,6 +302,7 @@ class SurveyTypeBase(SQLModel):
     location_at_sighting_level: bool = Field(default=False, description="If true, location is set per sighting; if false, per survey")
     allow_geolocation: bool = Field(default=True, description="Whether coordinates can be entered for sightings")
     allow_sighting_notes: bool = Field(default=True, description="Whether notes can be entered for individual sightings")
+    allow_audio_upload: bool = Field(default=False, description="Whether audio files can be uploaded for this survey type")
     icon: Optional[str] = Field(None, max_length=50, description="Lucide icon identifier (deprecated)")
     color: Optional[str] = Field(None, max_length=20, description="Notion-style color key (e.g., 'blue', 'purple')")
 
@@ -345,6 +346,7 @@ class SurveyTypeUpdate(SQLModel):
     location_at_sighting_level: Optional[bool] = None
     allow_geolocation: Optional[bool] = None
     allow_sighting_notes: Optional[bool] = None
+    allow_audio_upload: Optional[bool] = None
     icon: Optional[str] = Field(None, max_length=50)
     color: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
@@ -399,6 +401,10 @@ class Survey(SurveyBase, table=True):
     sightings: List["Sighting"] = Relationship(back_populates="survey", cascade_delete=True)
     location: Optional["Location"] = Relationship(back_populates="surveys")
     survey_type: Optional["SurveyType"] = Relationship(back_populates="surveys")
+    audio_recordings: List["AudioRecording"] = Relationship(
+        back_populates="survey",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
 
 class SurveyCreate(SurveyBase):
@@ -641,3 +647,104 @@ class SpeciesWithCount(SQLModel):
     scientific_name: Optional[str] = Field(description="Scientific name")
     type: str = Field(description="Species type")
     total_count: int = Field(description="Total occurrence count across all surveys")
+
+
+# ============================================================================
+# Audio Recording Models (Bird Audio Analysis)
+# ============================================================================
+
+class ProcessingStatus(str, PyEnum):
+    """Processing status for audio recordings"""
+    pending = "pending"
+    processing = "processing"
+    completed = "completed"
+    failed = "failed"
+
+
+class AudioRecordingBase(SQLModel):
+    """Base audio recording fields"""
+    filename: str = Field(max_length=255, description="Original filename")
+    recording_timestamp: Optional[datetime] = Field(None, description="Timestamp extracted from filename")
+    device_serial: Optional[str] = Field(None, max_length=50, description="Device serial number")
+
+
+class AudioRecording(AudioRecordingBase, table=True):
+    """Audio recording database model"""
+    __tablename__ = "audio_recording"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_id: int = Field(foreign_key="survey.id", ondelete="CASCADE", index=True)
+    r2_key: str = Field(max_length=500, unique=True, description="R2 storage key")
+    file_size_bytes: Optional[int] = Field(None)
+    duration_seconds: Optional[float] = Field(None)
+
+    processing_status: ProcessingStatus = Field(
+        default=ProcessingStatus.pending,
+        sa_column=sa.Column(sa.String(20), nullable=False, server_default="pending")
+    )
+    processing_started_at: Optional[datetime] = Field(None)
+    processing_completed_at: Optional[datetime] = Field(None)
+    processing_error: Optional[str] = Field(None)
+
+    uploaded_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    survey: "Survey" = Relationship(back_populates="audio_recordings")
+    detections: List["BirdDetection"] = Relationship(
+        back_populates="audio_recording",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+
+
+class AudioRecordingRead(AudioRecordingBase):
+    """Model for reading audio recording"""
+    id: int
+    survey_id: int
+    r2_key: str
+    file_size_bytes: Optional[int]
+    duration_seconds: Optional[float]
+    processing_status: str
+    processing_error: Optional[str]
+    uploaded_at: datetime
+    detection_count: int = 0
+
+
+class BirdDetectionBase(SQLModel):
+    """Base bird detection fields"""
+    species_name: str = Field(max_length=255)
+    confidence: float = Field(ge=0, le=1)
+    start_time: time_type
+    end_time: time_type
+    detection_timestamp: datetime
+
+
+class BirdDetection(BirdDetectionBase, table=True):
+    """Bird detection database model"""
+    __tablename__ = "bird_detection"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    audio_recording_id: int = Field(foreign_key="audio_recording.id", ondelete="CASCADE", index=True)
+    species_id: Optional[int] = Field(None, foreign_key="species.id", ondelete="SET NULL")
+
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    audio_recording: "AudioRecording" = Relationship(back_populates="detections")
+    species: Optional["Species"] = Relationship()
+
+
+class BirdDetectionRead(BirdDetectionBase):
+    """Model for reading bird detection"""
+    id: int
+    species_id: Optional[int]
+    species_common_name: Optional[str] = None
