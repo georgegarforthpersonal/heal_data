@@ -463,13 +463,14 @@ async def get_detections_summary(
     # Using raw SQL for the aggregation
     from sqlalchemy import desc
 
-    # First, get unique species with their detection counts
+    # First, get unique species with their detection counts and max confidence
     species_counts = (
         db.query(
             BirdDetection.species_id,
             Species.name.label("species_name"),
             Species.scientific_name.label("species_scientific_name"),
             func.count(BirdDetection.id).label("detection_count"),
+            func.max(BirdDetection.confidence).label("max_confidence"),
         )
         .join(Species, BirdDetection.species_id == Species.id)
         .filter(BirdDetection.audio_recording_id.in_(recording_ids))
@@ -478,7 +479,7 @@ async def get_detections_summary(
             Species.name,
             Species.scientific_name,
         )
-        .order_by(desc("detection_count"))
+        .order_by(desc("max_confidence"))
         .all()
     )
 
