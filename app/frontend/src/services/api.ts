@@ -987,6 +987,25 @@ export interface BirdDetection {
   species_common_name: string | null;
 }
 
+export interface DetectionClip {
+  confidence: number;
+  audio_recording_id: number;
+  start_time: string;
+  end_time: string;
+}
+
+export interface SpeciesDetectionSummary {
+  species_id: number;
+  species_name: string | null;
+  species_scientific_name: string | null;
+  detection_count: number;
+  top_detections: DetectionClip[];
+}
+
+export interface SurveyDetectionsSummaryResponse {
+  species_summaries: SpeciesDetectionSummary[];
+}
+
 // ============================================================================
 // API Methods - Audio
 // ============================================================================
@@ -1077,5 +1096,12 @@ export const audioAPI = {
     return fetchAPI(`/surveys/${surveyId}/audio/${recordingId}`, {
       method: 'DELETE',
     });
+  },
+
+  /**
+   * Get aggregated detections summary for a survey, grouped by species
+   */
+  getDetectionsSummary: (surveyId: number): Promise<SurveyDetectionsSummaryResponse> => {
+    return fetchAPI(`/surveys/${surveyId}/detections/summary`);
   },
 };
