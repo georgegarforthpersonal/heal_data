@@ -754,3 +754,35 @@ class BirdDetectionRead(BirdDetectionBase):
     id: int
     species_id: Optional[int]
     species_common_name: Optional[str] = None
+
+
+# ============================================================================
+# Detections Summary Models (Aggregated by Species)
+# ============================================================================
+
+class DetectionClip(SQLModel):
+    """Single detection with audio playback info"""
+    confidence: float = Field(description="Detection confidence (0-1)")
+    audio_recording_id: int = Field(description="Audio recording ID for fetching download URL")
+    start_time: time_type = Field(description="Start time within the audio file")
+    end_time: time_type = Field(description="End time within the audio file")
+
+
+class SpeciesDetectionSummary(SQLModel):
+    """Summary of detections for a single species"""
+    species_id: int = Field(description="Species ID")
+    species_name: Optional[str] = Field(description="Species common name")
+    species_scientific_name: Optional[str] = Field(description="Species scientific name")
+    detection_count: int = Field(description="Total number of detections for this species")
+    top_detections: List[DetectionClip] = Field(
+        default_factory=list,
+        description="Top 3 detections sorted by confidence (highest first)"
+    )
+
+
+class SurveyDetectionsSummaryResponse(SQLModel):
+    """Response for survey detections summary endpoint"""
+    species_summaries: List[SpeciesDetectionSummary] = Field(
+        default_factory=list,
+        description="List of species with their detection summaries"
+    )

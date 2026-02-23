@@ -38,10 +38,13 @@ from models import (
     AudioRecordingRead,
     BirdDetection,
     BirdDetectionRead,
+    DetectionClip,
     Organisation,
     ProcessingStatus,
     Species,
+    SpeciesDetectionSummary,
     Survey,
+    SurveyDetectionsSummaryResponse,
 )
 from services.r2_storage import (
     delete_audio_file,
@@ -421,6 +424,99 @@ async def get_audio_detections(
         }
         for d in detections
     ]
+
+
+@router.get(
+    "/{survey_id}/detections/summary",
+    response_model=SurveyDetectionsSummaryResponse,
+)
+async def get_detections_summary(
+    survey_id: int,
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db),
+):
+    """
+    Get aggregated detection summary for a survey, grouped by species.
+    Returns top 3 detections per species sorted by confidence.
+    """
+    # Verify survey belongs to org
+    survey = (
+        db.query(Survey)
+        .filter(Survey.id == survey_id, Survey.organisation_id == org.id)
+        .first()
+    )
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+
+    # Get all audio recording IDs for this survey
+    recording_ids = (
+        db.query(AudioRecording.id)
+        .filter(AudioRecording.survey_id == survey_id)
+        .all()
+    )
+    recording_ids = [r[0] for r in recording_ids]
+
+    if not recording_ids:
+        return SurveyDetectionsSummaryResponse(species_summaries=[])
+
+    # Get all detections grouped by species with counts
+    # Using raw SQL for the aggregation
+    from sqlalchemy import desc
+
+    # First, get unique species with their detection counts
+    species_counts = (
+        db.query(
+            BirdDetection.species_id,
+            Species.name.label("species_name"),
+            Species.scientific_name.label("species_scientific_name"),
+            func.count(BirdDetection.id).label("detection_count"),
+        )
+        .join(Species, BirdDetection.species_id == Species.id)
+        .filter(BirdDetection.audio_recording_id.in_(recording_ids))
+        .group_by(
+            BirdDetection.species_id,
+            Species.name,
+            Species.scientific_name,
+        )
+        .order_by(desc("detection_count"))
+        .all()
+    )
+
+    summaries = []
+    for row in species_counts:
+        # Get top 3 detections for this species
+        top_detections = (
+            db.query(BirdDetection)
+            .filter(
+                BirdDetection.audio_recording_id.in_(recording_ids),
+                BirdDetection.species_id == row.species_id,
+            )
+            .order_by(desc(BirdDetection.confidence))
+            .limit(3)
+            .all()
+        )
+
+        clips = [
+            DetectionClip(
+                confidence=det.confidence,
+                audio_recording_id=det.audio_recording_id,
+                start_time=det.start_time,
+                end_time=det.end_time,
+            )
+            for det in top_detections
+        ]
+
+        summaries.append(
+            SpeciesDetectionSummary(
+                species_id=row.species_id,
+                species_name=row.species_name,
+                species_scientific_name=row.species_scientific_name,
+                detection_count=row.detection_count,
+                top_detections=clips,
+            )
+        )
+
+    return SurveyDetectionsSummaryResponse(species_summaries=summaries)
 
 
 @router.delete(
