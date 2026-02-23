@@ -80,29 +80,63 @@ export function AudioClipPlayer({
       // Fetch presigned URL
       const { download_url } = await audioAPI.getDownloadUrl(audioRecordingId);
 
+      // Use Media Fragments URI to specify time range
+      // This helps browsers handle seeking in large remote files
+      const urlWithFragment = `${download_url}#t=${startSeconds},${endSeconds}`;
+
       // Create audio element
-      const audio = new Audio(download_url);
+      const audio = new Audio(urlWithFragment);
       audioRef.current = audio;
 
-      // Set up event handlers
-      audio.oncanplaythrough = () => {
-        // Seek to start time and play
-        audio.currentTime = startSeconds;
-        audio.play();
-        setIsLoading(false);
-        setIsPlaying(true);
+      // For seeking in remote files, we need to wait for metadata and handle seeking manually
+      audio.preload = 'metadata';
 
-        // Set up interval to check if we've reached end time
-        checkIntervalRef.current = window.setInterval(() => {
-          if (audio.currentTime >= endSeconds) {
-            audio.pause();
-            setIsPlaying(false);
-            if (checkIntervalRef.current) {
-              clearInterval(checkIntervalRef.current);
-              checkIntervalRef.current = null;
+      const attemptSeekAndPlay = () => {
+        // Try to seek to start position
+        try {
+          audio.currentTime = startSeconds;
+        } catch {
+          // Some browsers may not support seeking before enough data is loaded
+          console.warn('Could not seek to start time, playing from current position');
+        }
+
+        audio.play().then(() => {
+          setIsLoading(false);
+          setIsPlaying(true);
+
+          // Set up interval to check if we've reached end time
+          checkIntervalRef.current = window.setInterval(() => {
+            if (audio.currentTime >= endSeconds || audio.ended) {
+              audio.pause();
+              setIsPlaying(false);
+              if (checkIntervalRef.current) {
+                clearInterval(checkIntervalRef.current);
+                checkIntervalRef.current = null;
+              }
             }
-          }
-        }, 100);
+          }, 100);
+        }).catch((playError) => {
+          console.error('Play error:', playError);
+          setError('Failed to play audio');
+          setIsLoading(false);
+        });
+      };
+
+      // Handle when we can seek
+      audio.onseeked = () => {
+        // Successfully seeked, now play
+      };
+
+      // When metadata is loaded, try to seek and play
+      audio.onloadedmetadata = () => {
+        attemptSeekAndPlay();
+      };
+
+      // Fallback: if canplay fires first
+      audio.oncanplay = () => {
+        if (isLoading) {
+          attemptSeekAndPlay();
+        }
       };
 
       audio.onended = () => {
@@ -113,7 +147,8 @@ export function AudioClipPlayer({
         }
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Audio error:', e);
         setError('Failed to load audio');
         setIsLoading(false);
         setIsPlaying(false);

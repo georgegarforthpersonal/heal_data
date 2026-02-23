@@ -21,6 +21,7 @@ import { AudioClipPlayer } from '../audio/AudioClipPlayer';
 interface DetectionsToSightingsPanelProps {
   surveyId: number;
   onSightingsCreated?: () => void;
+  refreshTrigger?: number; // Increment to trigger a refresh
 }
 
 /**
@@ -32,6 +33,7 @@ interface DetectionsToSightingsPanelProps {
 export function DetectionsToSightingsPanel({
   surveyId,
   onSightingsCreated,
+  refreshTrigger,
 }: DetectionsToSightingsPanelProps) {
   const [summaries, setSummaries] = useState<SpeciesDetectionSummary[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -58,7 +60,7 @@ export function DetectionsToSightingsPanel({
     };
 
     fetchSummary();
-  }, [surveyId]);
+  }, [surveyId, refreshTrigger]);
 
   // Handle checkbox toggle for a single species
   const handleToggle = (speciesId: number) => {
