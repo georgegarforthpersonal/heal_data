@@ -8,6 +8,7 @@ import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, aud
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType, AudioRecording } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
+import { DetectionsToSightingsPanel } from '../components/surveys/DetectionsToSightingsPanel';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSpeciesIcon } from '../config';
@@ -526,6 +527,16 @@ export function SurveyDetailPage() {
       setAudioRecordings(recordings);
     } catch (err) {
       console.error('Error refreshing audio recordings:', err);
+    }
+  };
+
+  const refreshSightings = async () => {
+    if (!survey) return;
+    try {
+      const sightingsData = await surveysAPI.getSightings(survey.id);
+      setSightings(sightingsData);
+    } catch (err) {
+      console.error('Error refreshing sightings:', err);
     }
   };
 
@@ -1163,6 +1174,27 @@ export function SurveyDetailPage() {
                 </Button>
               </Box>
             )}
+          </Paper>
+        )}
+
+        {/* Bird Detections Section - Only for audio surveys with completed recordings */}
+        {allowAudioUpload && audioRecordings.some(r => r.processing_status === 'completed' && r.detection_count > 0) && (
+          <Paper
+            sx={{
+              p: { xs: 2, sm: 2.5, md: 3 },
+              mt: { xs: 2, md: 3 },
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+              Bird Detections
+            </Typography>
+            <DetectionsToSightingsPanel
+              surveyId={survey.id}
+              onSightingsCreated={refreshSightings}
+            />
           </Paper>
         )}
 
