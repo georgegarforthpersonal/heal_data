@@ -152,6 +152,26 @@ export function SurveyDetailPage() {
     fetchAudioRecordings();
   }, [survey, surveyType]);
 
+  // Auto-refresh audio recordings while processing
+  useEffect(() => {
+    const hasProcessingRecordings = audioRecordings.some(
+      r => r.processing_status === 'pending' || r.processing_status === 'processing'
+    );
+
+    if (!hasProcessingRecordings || !survey) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const recordings = await audioAPI.getRecordings(survey.id);
+        setAudioRecordings(recordings);
+      } catch (err) {
+        console.error('Error auto-refreshing audio recordings:', err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [audioRecordings, survey]);
+
   // ============================================================================
   // Helper Functions
   // ============================================================================
@@ -1157,17 +1177,6 @@ export function SurveyDetailPage() {
               </Box>
             )}
 
-            {audioRecordings.some(r => r.processing_status === 'pending' || r.processing_status === 'processing') && (
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  size="small"
-                  onClick={refreshAudioRecordings}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Refresh Status
-                </Button>
-              </Box>
-            )}
           </Paper>
         )}
 
