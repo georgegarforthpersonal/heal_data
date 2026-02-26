@@ -207,15 +207,10 @@ export function NewSurveyPage() {
       errors.surveyors = 'At least one surveyor is required';
     }
 
-    // Check for at least one valid sighting
+    // If location at sighting level, check that each sighting has a location
     const validSightings = draftSightings.filter(
       (s) => s.species_id !== null && s.count > 0
     );
-    if (validSightings.length === 0) {
-      errors.sightings = 'At least one sighting is required';
-    }
-
-    // If location at sighting level, check that each sighting has a location
     if (selectedSurveyType?.location_at_sighting_level) {
       const sightingsWithoutLocation = validSightings.filter((s) => !s.location_id);
       if (sightingsWithoutLocation.length > 0) {
@@ -410,13 +405,11 @@ export function NewSurveyPage() {
   const allowAudioUpload = selectedSurveyType?.allow_audio_upload ?? false;
 
   // Determine if save button should be disabled
-  const hasValidSightings = draftSightings.filter((s) => s.species_id !== null && s.count > 0).length > 0;
   const saveDisabled =
     saving ||
     !selectedSurveyType ||
     !date ||
-    selectedSurveyors.length === 0 ||
-    !hasValidSightings;
+    selectedSurveyors.length === 0;
 
   // ============================================================================
   // Render
