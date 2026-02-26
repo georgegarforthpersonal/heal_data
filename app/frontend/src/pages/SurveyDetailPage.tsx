@@ -244,15 +244,10 @@ export function SurveyDetailPage() {
       errors.surveyors = 'At least one surveyor is required';
     }
 
-    // Check for at least one valid sighting
+    // If location at sighting level, check that each sighting has a location
     const validSightings = editDraftSightings.filter(
       (s) => s.species_id !== null && s.count > 0
     );
-    if (validSightings.length === 0) {
-      errors.sightings = 'At least one sighting is required';
-    }
-
-    // If location at sighting level, check that each sighting has a location
     if (locationAtSightingLevel) {
       const sightingsWithoutLocation = validSightings.filter((s) => !s.location_id);
       if (sightingsWithoutLocation.length > 0) {
@@ -573,8 +568,7 @@ export function SurveyDetailPage() {
                   disabled={
                     saving ||
                     !editDate ||
-                    editSelectedSurveyors.length === 0 ||
-                    editDraftSightings.filter((s) => s.species_id !== null && s.count > 0).length === 0
+                    editSelectedSurveyors.length === 0
                   }
                   sx={{
                     textTransform: 'none',
