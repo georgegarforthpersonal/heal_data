@@ -12,14 +12,17 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { AddCircle } from '@mui/icons-material';
+import { AddCircle, Delete } from '@mui/icons-material';
 import { audioAPI, surveysAPI } from '../../services/api';
-import type { SpeciesDetectionSummary } from '../../services/api';
+import type { SpeciesDetectionSummary, Sighting } from '../../services/api';
 import { AudioClipPlayer } from '../audio/AudioClipPlayer';
 
 interface DetectionsToSightingsPanelProps {
   surveyId: number;
+  sightings: Sighting[]; // Existing sightings to show which species have been converted
   onSightingsCreated?: () => void;
   refreshTrigger?: number; // Increment to trigger a refresh
 }
@@ -32,6 +35,7 @@ interface DetectionsToSightingsPanelProps {
  */
 export function DetectionsToSightingsPanel({
   surveyId,
+  sightings,
   onSightingsCreated,
   refreshTrigger,
 }: DetectionsToSightingsPanelProps) {
@@ -42,6 +46,20 @@ export function DetectionsToSightingsPanel({
   const [converting, setConverting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deletingSightingId, setDeletingSightingId] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ sightingId: number; speciesName: string } | null>(null);
+
+  // Create a map of species_id to sighting for quick lookup
+  const sightingsBySpeciesId = new Map<number, Sighting>();
+  sightings.forEach((s) => {
+    // If multiple sightings exist for the same species, keep the first one
+    if (!sightingsBySpeciesId.has(s.species_id)) {
+      sightingsBySpeciesId.set(s.species_id, s);
+    }
+  });
+
+  // Get species IDs that have not been converted yet (for select all logic)
+  const unconvertedSummaries = summaries.filter((s) => !sightingsBySpeciesId.has(s.species_id));
 
   // Fetch detections summary
   useEffect(() => {
@@ -75,14 +93,37 @@ export function DetectionsToSightingsPanel({
     });
   };
 
-  // Handle select all
+  // Handle select all (only for unconverted species)
   const handleSelectAll = () => {
-    if (selectedIds.size === summaries.length) {
+    if (selectedIds.size === unconvertedSummaries.length && unconvertedSummaries.length > 0) {
       // Deselect all
       setSelectedIds(new Set());
     } else {
-      // Select all
-      setSelectedIds(new Set(summaries.map((s) => s.species_id)));
+      // Select all unconverted
+      setSelectedIds(new Set(unconvertedSummaries.map((s) => s.species_id)));
+    }
+  };
+
+  // Handle delete sighting
+  const handleDeleteClick = (sightingId: number, speciesName: string) => {
+    setShowDeleteConfirm({ sightingId, speciesName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!showDeleteConfirm) return;
+
+    setDeletingSightingId(showDeleteConfirm.sightingId);
+    setShowDeleteConfirm(null);
+    setError(null);
+
+    try {
+      await surveysAPI.deleteSighting(surveyId, showDeleteConfirm.sightingId);
+      setSuccessMessage('Sighting removed');
+      onSightingsCreated?.(); // Refresh sightings list
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete sighting');
+    } finally {
+      setDeletingSightingId(null);
     }
   };
 
@@ -146,8 +187,8 @@ export function DetectionsToSightingsPanel({
     );
   }
 
-  const isAllSelected = selectedIds.size === summaries.length;
-  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < summaries.length;
+  const isAllSelected = unconvertedSummaries.length > 0 && selectedIds.size === unconvertedSummaries.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < unconvertedSummaries.length;
 
   return (
     <Box>
@@ -184,6 +225,7 @@ export function DetectionsToSightingsPanel({
             checked={isAllSelected}
             indeterminate={isSomeSelected}
             onChange={handleSelectAll}
+            disabled={unconvertedSummaries.length === 0}
             size="small"
           />
           <Typography variant="body2" fontWeight={600} color="text.secondary">
@@ -198,70 +240,101 @@ export function DetectionsToSightingsPanel({
         </Box>
 
         {/* Table Rows */}
-        {summaries.map((summary) => (
-          <Box
-            key={summary.species_id}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: '48px 2fr 80px 1.5fr',
-              gap: 2,
-              p: 1.5,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              alignItems: 'center',
-              '&:last-child': { borderBottom: 'none' },
-              '&:hover': { bgcolor: 'grey.50' },
-              cursor: 'pointer',
-            }}
-            onClick={() => handleToggle(summary.species_id)}
-          >
-            <Checkbox
-              checked={selectedIds.has(summary.species_id)}
-              onClick={(e) => e.stopPropagation()}
-              onChange={() => handleToggle(summary.species_id)}
-              size="small"
-            />
+        {summaries.map((summary) => {
+          const existingSighting = sightingsBySpeciesId.get(summary.species_id);
+          const isConverted = !!existingSighting;
+          const isDeleting = deletingSightingId === existingSighting?.id;
 
-            {/* Species Name */}
-            <Box>
-              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                {summary.species_name || <i>{summary.species_scientific_name}</i>}
-              </Typography>
-              {summary.species_name && summary.species_scientific_name && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                  {summary.species_scientific_name}
-                </Typography>
-              )}
-            </Box>
-
-            {/* Detection Count */}
-            <Typography
-              variant="body2"
-              fontWeight={600}
-              textAlign="center"
-              sx={{ fontSize: '0.875rem' }}
+          return (
+            <Box
+              key={summary.species_id}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '48px 2fr 80px 1.5fr',
+                gap: 2,
+                p: 1.5,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                alignItems: 'center',
+                '&:last-child': { borderBottom: 'none' },
+                bgcolor: isConverted ? 'success.light' : 'transparent',
+                '&:hover': { bgcolor: isConverted ? 'success.light' : 'grey.50' },
+                cursor: isConverted ? 'default' : 'pointer',
+                opacity: isDeleting ? 0.5 : 1,
+              }}
+              onClick={() => !isConverted && handleToggle(summary.species_id)}
             >
-              {summary.detection_count}
-            </Typography>
-
-            {/* Audio Clips */}
-            <Stack
-              direction="row"
-              spacing={1}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {summary.top_detections.map((clip, index) => (
-                <AudioClipPlayer
-                  key={index}
-                  audioRecordingId={clip.audio_recording_id}
-                  startTime={clip.start_time}
-                  endTime={clip.end_time}
-                  confidence={clip.confidence}
+              {/* Checkbox or Delete Button */}
+              {isConverted ? (
+                <Tooltip title="Remove sighting">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(
+                        existingSighting.id,
+                        summary.species_name || summary.species_scientific_name || 'Unknown'
+                      );
+                    }}
+                    disabled={isDeleting}
+                    sx={{
+                      color: 'text.secondary',
+                      '&:hover': { color: 'error.main', bgcolor: 'error.light' },
+                    }}
+                  >
+                    {isDeleting ? <CircularProgress size={20} /> : <Delete fontSize="small" />}
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Checkbox
+                  checked={selectedIds.has(summary.species_id)}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => handleToggle(summary.species_id)}
+                  size="small"
                 />
-              ))}
-            </Stack>
-          </Box>
-        ))}
+              )}
+
+              {/* Species Name */}
+              <Box>
+                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                  {summary.species_name || <i>{summary.species_scientific_name}</i>}
+                </Typography>
+                {summary.species_name && summary.species_scientific_name && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    {summary.species_scientific_name}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Detection Count */}
+              <Typography
+                variant="body2"
+                fontWeight={600}
+                textAlign="center"
+                sx={{ fontSize: '0.875rem' }}
+              >
+                {summary.detection_count}
+              </Typography>
+
+              {/* Audio Clips */}
+              <Stack
+                direction="row"
+                spacing={1}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {summary.top_detections.map((clip, index) => (
+                  <AudioClipPlayer
+                    key={index}
+                    audioRecordingId={clip.audio_recording_id}
+                    startTime={clip.start_time}
+                    endTime={clip.end_time}
+                    confidence={clip.confidence}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          );
+        })}
       </Box>
 
       {/* Convert Button */}
@@ -327,6 +400,43 @@ export function DetectionsToSightingsPanel({
             }}
           >
             Create Sightings
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={!!showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Remove Sighting</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Remove the sighting for <strong>{showDeleteConfirm?.speciesName}</strong>? This will
+            allow you to select this species again from the detections list.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setShowDeleteConfirm(null)}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none' },
+            }}
+          >
+            Remove
           </Button>
         </DialogActions>
       </Dialog>
