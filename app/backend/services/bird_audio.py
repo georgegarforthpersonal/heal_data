@@ -1,12 +1,42 @@
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from pathlib import Path
 
+# Set TensorFlow environment variables BEFORE importing birdnet to prevent
+# multiprocessing conflicts with spawn-based process creation (common on macOS)
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # Reduce TF logging
+os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
+os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
 import birdnet
 
 LOCATION_FILTER_THRESHOLD = 0.03
 MIN_CONFIDENCE = 0.25
+BIRDNET_BACKEND = "tflite"  # Use tflite instead of tf to avoid multiprocessing issues
+
+# Cache models at module level to avoid reloading on every request
+_geo_model = None
+_acoustic_model = None
+
+
+def _get_geo_model():
+    """Get cached geo model, loading it if necessary."""
+    global _geo_model
+    if _geo_model is None:
+        _geo_model = birdnet.load("geo", "2.4", BIRDNET_BACKEND)
+    return _geo_model
+
+
+def _get_acoustic_model():
+    """Get cached acoustic model, loading it if necessary."""
+    global _acoustic_model
+    if _acoustic_model is None:
+        _acoustic_model = birdnet.load("acoustic", "2.4", BIRDNET_BACKEND)
+    return _acoustic_model
+
 
 # BirdNET uses outdated scientific names for some species.
 # Maps BirdNET scientific name -> DB scientific name.
@@ -56,7 +86,7 @@ def _extract_recording_timestamp(file: Path) -> datetime:
 
 
 def get_location_species(lat: float, lon: float) -> list[str]:
-    geo_model = birdnet.load("geo", "2.4", "tf")
+    geo_model = _get_geo_model()
     predictions = geo_model.predict(lat, lon, min_confidence=LOCATION_FILTER_THRESHOLD)
     return list(predictions.to_set())
 
@@ -65,7 +95,7 @@ def analyze_file(
     file: Path, species_list: list[str] | None = None, show_progress: bool = False
 ) -> list[Detection]:
     recording_time = _extract_recording_timestamp(file)
-    model = birdnet.load("acoustic", "2.4", "tf")
+    model = _get_acoustic_model()
 
     predictions = model.predict(
         file,
