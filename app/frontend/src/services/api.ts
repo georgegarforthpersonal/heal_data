@@ -654,6 +654,113 @@ export const surveyorsAPI = {
 };
 
 // ============================================================================
+// Device Types (Audio Recorder Devices)
+// ============================================================================
+
+export interface Device {
+  id: number;
+  device_id: string;
+  name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  location_id: number | null;
+  location_name: string | null;
+  is_active: boolean;
+}
+
+export interface DeviceCreate {
+  device_id: string;
+  name?: string;
+  latitude?: number;
+  longitude?: number;
+  location_id?: number;
+}
+
+export interface DeviceUpdate {
+  device_id?: string;
+  name?: string;
+  latitude?: number;
+  longitude?: number;
+  location_id?: number;
+  is_active?: boolean;
+}
+
+// ============================================================================
+// API Methods - Devices
+// ============================================================================
+
+export const devicesAPI = {
+  /**
+   * Get all devices
+   */
+  getAll: (includeInactive: boolean = false): Promise<Device[]> => {
+    const query = includeInactive ? '?include_inactive=true' : '';
+    return fetchAPI(`/devices${query}`);
+  },
+
+  /**
+   * Get a specific device by ID
+   */
+  getById: (id: number): Promise<Device> => {
+    return fetchAPI(`/devices/${id}`);
+  },
+
+  /**
+   * Get a device by its serial number (device_id field)
+   */
+  getByDeviceId: (deviceId: string): Promise<Device> => {
+    return fetchAPI(`/devices/by-device-id/${encodeURIComponent(deviceId)}`);
+  },
+
+  /**
+   * Create a new device
+   */
+  create: (device: DeviceCreate): Promise<Device> => {
+    return fetchAPI('/devices', {
+      method: 'POST',
+      body: JSON.stringify(device),
+    });
+  },
+
+  /**
+   * Update an existing device
+   */
+  update: (id: number, device: DeviceUpdate): Promise<Device> => {
+    return fetchAPI(`/devices/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(device),
+    });
+  },
+
+  /**
+   * Delete a device (hard delete - use deactivate instead)
+   */
+  delete: (id: number): Promise<void> => {
+    return fetchAPI(`/devices/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Deactivate a device (soft delete)
+   */
+  deactivate: (id: number): Promise<Device> => {
+    return fetchAPI(`/devices/${id}/deactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Reactivate a device
+   */
+  reactivate: (id: number): Promise<Device> => {
+    return fetchAPI(`/devices/${id}/reactivate`, {
+      method: 'POST',
+    });
+  },
+};
+
+// ============================================================================
 // API Methods - Species
 // ============================================================================
 
@@ -992,6 +1099,13 @@ export interface DetectionClip {
   audio_recording_id: number;
   start_time: string;
   end_time: string;
+  // Device info for location attribution
+  device_id: string | null;
+  device_name: string | null;
+  device_latitude: number | null;
+  device_longitude: number | null;
+  location_id: number | null;
+  location_name: string | null;
 }
 
 export interface SpeciesDetectionSummary {

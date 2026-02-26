@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polygon, useMapEvents, useMap } from 'react-leaflet';
+import type { LocationWithBoundary } from '../../services/api';
 import { LatLng } from 'leaflet';
-import { Box, Typography, TextField, Stack, Paper, IconButton, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Typography, TextField, Stack, Paper, IconButton, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import MapIcon from '@mui/icons-material/Map';
-import SatelliteIcon from '@mui/icons-material/Satellite';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import LayersIcon from '@mui/icons-material/Layers';
 import 'leaflet/dist/leaflet.css';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 
@@ -30,6 +30,8 @@ interface LocationMapPickerProps {
   onChange: (lat: number | null, lng: number | null) => void;
   label?: string;
   helperText?: string;
+  /** Optional location boundary to display on the map */
+  locationBoundary?: LocationWithBoundary | null;
 }
 
 // Component to handle map clicks
@@ -42,12 +44,31 @@ function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
   return null;
 }
 
+// Component to fit map to boundary when it changes
+function BoundaryFitter({ boundary }: { boundary?: LocationWithBoundary | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (boundary?.boundary_geometry && boundary.boundary_geometry.length > 0) {
+      // Convert [lng, lat] to [lat, lng] for Leaflet bounds
+      const positions = boundary.boundary_geometry.map(
+        ([lng, lat]) => [lat, lng] as [number, number]
+      );
+      const bounds = L.latLngBounds(positions);
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+  }, [boundary, map]);
+
+  return null;
+}
+
 export default function LocationMapPicker({
   latitude,
   longitude,
   onChange,
   label = 'Location',
   helperText = 'Click on the map to set the location',
+  locationBoundary,
 }: LocationMapPickerProps) {
   const [position, setPosition] = useState<LatLng | null>(
     latitude && longitude ? new LatLng(latitude, longitude) : null
@@ -104,43 +125,22 @@ export default function LocationMapPicker({
         {label}
       </Typography>
 
-      <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-        <Stack direction="row" spacing={1}>
-          {position && (
-            <Tooltip title="Clear location">
-              <IconButton size="small" onClick={handleClearLocation}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
+      {position && (
+        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+          <Tooltip title="Clear location">
+            <IconButton size="small" onClick={handleClearLocation}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
-
-        <ToggleButtonGroup
-          value={mapType}
-          exclusive
-          onChange={(_, newValue) => newValue && setMapType(newValue)}
-          size="small"
-          sx={{ height: '32px' }}
-        >
-          <ToggleButton value="street" aria-label="street map">
-            <Tooltip title="Street Map">
-              <MapIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="satellite" aria-label="satellite view">
-            <Tooltip title="Satellite View">
-              <SatelliteIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Stack>
+      )}
 
       <Paper
         elevation={2}
         className="fullscreen-map-container"
         sx={{ mb: 2, overflow: 'hidden', position: 'relative', ...fullscreenContainerSx }}
       >
-        {/* Fullscreen toggle */}
+        {/* Map controls overlay */}
         <Stack
           direction="row"
           spacing={0.5}
@@ -162,6 +162,19 @@ export default function LocationMapPicker({
               }}
             >
               {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={mapType === 'satellite' ? 'Switch to Street Map' : 'Switch to Satellite'}>
+            <IconButton
+              size="small"
+              onClick={() => setMapType(mapType === 'satellite' ? 'street' : 'satellite')}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: 2,
+                '&:hover': { bgcolor: 'grey.100' },
+              }}
+            >
+              <LayersIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Stack>
@@ -188,6 +201,22 @@ export default function LocationMapPicker({
             <MapClickHandler onClick={handleMapClick} />
             {position && <Marker position={position} />}
             <MapResizeHandler isFullscreen={isFullscreen} />
+            <BoundaryFitter boundary={locationBoundary} />
+            {/* Render location boundary if provided */}
+            {locationBoundary?.boundary_geometry && locationBoundary.boundary_geometry.length > 0 && (
+              <Polygon
+                positions={locationBoundary.boundary_geometry.map(
+                  ([lng, lat]) => [lat, lng] as [number, number]
+                )}
+                pathOptions={{
+                  fillColor: locationBoundary.boundary_fill_color || '#3388ff',
+                  fillOpacity: locationBoundary.boundary_fill_opacity || 0.2,
+                  color: locationBoundary.boundary_stroke_color || '#3388ff',
+                  weight: 2,
+                }}
+                interactive={false}
+              />
+            )}
           </MapContainer>
         </Box>
       </Paper>

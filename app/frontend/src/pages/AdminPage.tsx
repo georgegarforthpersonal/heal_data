@@ -32,6 +32,7 @@ import {
   surveyorsAPI,
   surveyTypesAPI,
   locationsAPI,
+  devicesAPI,
   type Surveyor,
   type SurveyType,
   type SurveyTypeWithDetails,
@@ -39,7 +40,12 @@ import {
   type SurveyTypeUpdate,
   type SpeciesTypeRef,
   type Location,
+  type LocationWithBoundary,
+  type Device,
+  type DeviceCreate,
+  type DeviceUpdate,
 } from '../services/api';
+import LocationMapPicker from '../components/surveys/LocationMapPicker';
 import { SurveyTypeColorSelector, SurveyTypeChip } from '../components/SurveyTypeColors';
 
 interface TabPanelProps {
@@ -88,6 +94,7 @@ export function AdminPage() {
   const [surveyTypesLoading, setSurveyTypesLoading] = useState(true);
   const [surveyTypesError, setSurveyTypesError] = useState<string | null>(null);
   const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [allLocationsWithBoundaries, setAllLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
   const [allSpeciesTypes, setAllSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
   const [surveyTypeDialogOpen, setSurveyTypeDialogOpen] = useState(false);
   const [surveyTypeDialogMode, setSurveyTypeDialogMode] = useState<'add' | 'edit'>('add');
@@ -109,10 +116,31 @@ export function AdminPage() {
   const [formSelectedLocations, setFormSelectedLocations] = useState<Location[]>([]);
   const [formSelectedSpeciesTypes, setFormSelectedSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
 
+  // Devices state
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [devicesError, setDevicesError] = useState<string | null>(null);
+  const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
+  const [deviceDialogMode, setDeviceDialogMode] = useState<'add' | 'edit'>('add');
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [deviceFormError, setDeviceFormError] = useState<string | null>(null);
+  const [savingDevice, setSavingDevice] = useState(false);
+  const [deactivateDeviceDialogOpen, setDeactivateDeviceDialogOpen] = useState(false);
+  const [deviceToDeactivate, setDeviceToDeactivate] = useState<Device | null>(null);
+  const [deactivatingDevice, setDeactivatingDevice] = useState(false);
+
+  // Device form state
+  const [formDeviceId, setFormDeviceId] = useState('');
+  const [formDeviceName, setFormDeviceName] = useState('');
+  const [formDeviceLatitude, setFormDeviceLatitude] = useState<number | undefined>(undefined);
+  const [formDeviceLongitude, setFormDeviceLongitude] = useState<number | undefined>(undefined);
+  const [formDeviceLocationId, setFormDeviceLocationId] = useState<number | null>(null);
+
   // Load data
   useEffect(() => {
     loadSurveyors();
     loadSurveyTypes();
+    loadDevices();
     loadReferenceData();
   }, []);
 
@@ -144,14 +172,29 @@ export function AdminPage() {
 
   const loadReferenceData = async () => {
     try {
-      const [locations, speciesTypes] = await Promise.all([
+      const [locations, locationsWithBoundaries, speciesTypes] = await Promise.all([
         locationsAPI.getAll(),
+        locationsAPI.getAllWithBoundaries(),
         surveyTypesAPI.getSpeciesTypes(),
       ]);
       setAllLocations(locations);
+      setAllLocationsWithBoundaries(locationsWithBoundaries);
       setAllSpeciesTypes(speciesTypes);
     } catch (err) {
       console.error('Failed to load reference data:', err);
+    }
+  };
+
+  const loadDevices = async () => {
+    try {
+      setDevicesLoading(true);
+      setDevicesError(null);
+      const data = await devicesAPI.getAll(true);
+      setDevices(data);
+    } catch (err) {
+      setDevicesError(err instanceof Error ? err.message : 'Failed to load devices');
+    } finally {
+      setDevicesLoading(false);
     }
   };
 
@@ -337,6 +380,85 @@ export function AdminPage() {
     }
   };
 
+  // Device handlers
+  const handleOpenAddDevice = () => {
+    setDeviceDialogMode('add');
+    setEditingDevice(null);
+    setFormDeviceId('');
+    setFormDeviceName('');
+    setFormDeviceLatitude(undefined);
+    setFormDeviceLongitude(undefined);
+    setFormDeviceLocationId(null);
+    setDeviceFormError(null);
+    setDeviceDialogOpen(true);
+  };
+
+  const handleOpenEditDevice = (device: Device) => {
+    setDeviceDialogMode('edit');
+    setEditingDevice(device);
+    setFormDeviceId(device.device_id);
+    setFormDeviceName(device.name || '');
+    setFormDeviceLatitude(device.latitude ?? undefined);
+    setFormDeviceLongitude(device.longitude ?? undefined);
+    setFormDeviceLocationId(device.location_id);
+    setDeviceFormError(null);
+    setDeviceDialogOpen(true);
+  };
+
+  const handleSaveDevice = async () => {
+    if (!formDeviceId.trim()) {
+      setDeviceFormError('Device ID is required');
+      return;
+    }
+    try {
+      setSavingDevice(true);
+      setDeviceFormError(null);
+      const data: DeviceCreate | DeviceUpdate = {
+        device_id: formDeviceId.trim(),
+        name: formDeviceName.trim() || undefined,
+        latitude: formDeviceLatitude,
+        longitude: formDeviceLongitude,
+        location_id: formDeviceLocationId ?? undefined,
+      };
+      if (deviceDialogMode === 'add') {
+        await devicesAPI.create(data as DeviceCreate);
+      } else if (editingDevice) {
+        await devicesAPI.update(editingDevice.id, data as DeviceUpdate);
+      }
+      setDeviceDialogOpen(false);
+      await loadDevices();
+    } catch (err) {
+      setDeviceFormError(err instanceof Error ? err.message : 'Failed to save device');
+    } finally {
+      setSavingDevice(false);
+    }
+  };
+
+  const handleDeactivateDevice = async () => {
+    if (!deviceToDeactivate) return;
+    try {
+      setDeactivatingDevice(true);
+      await devicesAPI.deactivate(deviceToDeactivate.id);
+      setDeactivateDeviceDialogOpen(false);
+      setDeviceToDeactivate(null);
+      await loadDevices();
+    } catch (err) {
+      setDevicesError(err instanceof Error ? err.message : 'Failed to deactivate device');
+    } finally {
+      setDeactivatingDevice(false);
+    }
+  };
+
+  const handleReactivateDevice = async (device: Device) => {
+    try {
+      setDevicesError(null);
+      await devicesAPI.reactivate(device.id);
+      await loadDevices();
+    } catch (err) {
+      setDevicesError(err instanceof Error ? err.message : 'Failed to reactivate device');
+    }
+  };
+
   // Show auth gate if not authenticated
   if (authLoading) {
     return (
@@ -374,6 +496,7 @@ export function AdminPage() {
         <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
           <Tab label="Surveyors" />
           <Tab label="Survey Types" />
+          <Tab label="Devices" />
         </Tabs>
       </Box>
 
@@ -596,6 +719,125 @@ export function AdminPage() {
                         <IconButton
                           size="small"
                           onClick={() => handleReactivateSurveyType(surveyType)}
+                          sx={{ color: 'success.main' }}
+                          title="Reactivate"
+                        >
+                          <RestoreFromTrash />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </TabPanel>
+
+      {/* Devices Tab */}
+      <TabPanel value={tabValue} index={2}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenAddDevice}
+            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+          >
+            Add Device
+          </Button>
+        </Box>
+
+        {devicesError && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setDevicesError(null)}>
+            {devicesError}
+          </Alert>
+        )}
+
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Device ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Location</TableCell>
+                <TableCell>Coordinates</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {devicesLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              ) : devices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.secondary' }}>
+                    No devices found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                devices.map((device) => (
+                  <TableRow key={device.id} sx={{ '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
+                    <TableCell>
+                      <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                        {device.device_id}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body1">
+                        {device.name || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {device.location_name || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {device.latitude && device.longitude ? (
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {device.latitude.toFixed(5)}, {device.longitude.toFixed(5)}
+                        </Typography>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={device.is_active ? 'Active' : 'Inactive'}
+                        size="small"
+                        color={device.is_active ? 'success' : 'default'}
+                        sx={{ minWidth: 70 }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenEditDevice(device)}
+                        sx={{ color: 'primary.main', mr: 1 }}
+                        title="Edit"
+                      >
+                        <Edit />
+                      </IconButton>
+                      {device.is_active ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setDeviceToDeactivate(device);
+                            setDeactivateDeviceDialogOpen(true);
+                          }}
+                          sx={{ color: 'error.main' }}
+                          title="Deactivate"
+                        >
+                          <Delete />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          size="small"
+                          onClick={() => handleReactivateDevice(device)}
                           sx={{ color: 'success.main' }}
                           title="Reactivate"
                         >
@@ -853,6 +1095,121 @@ export function AdminPage() {
           </Button>
           <Button onClick={handleDeactivateSurveyType} variant="contained" color="error" disabled={deactivatingSurveyType}>
             {deactivatingSurveyType ? 'Deactivating...' : 'Deactivate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add/Edit Device Dialog */}
+      <Dialog
+        open={deviceDialogOpen}
+        onClose={() => !savingDevice && setDeviceDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>{deviceDialogMode === 'add' ? 'Add New Device' : 'Edit Device'}</DialogTitle>
+        <DialogContent>
+          {deviceFormError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {deviceFormError}
+            </Alert>
+          )}
+          <TextField
+            autoFocus
+            margin="normal"
+            label="Device ID"
+            fullWidth
+            required
+            value={formDeviceId}
+            onChange={(e) => setFormDeviceId(e.target.value)}
+            disabled={savingDevice}
+            helperText="Serial number from audio filenames (e.g., 2MM24020)"
+            sx={{ fontFamily: 'monospace' }}
+          />
+          <TextField
+            margin="normal"
+            label="Name (optional)"
+            fullWidth
+            value={formDeviceName}
+            onChange={(e) => setFormDeviceName(e.target.value)}
+            disabled={savingDevice}
+            helperText="Friendly name (e.g., North Field Recorder)"
+          />
+          <Autocomplete
+            options={allLocations}
+            getOptionLabel={(option) => option.name}
+            value={allLocations.find((l) => l.id === formDeviceLocationId) || null}
+            onChange={(_, newValue) => setFormDeviceLocationId(newValue?.id || null)}
+            disabled={savingDevice}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                margin="normal"
+                label="Associated Location (optional)"
+                helperText="Link this device to a location area"
+              />
+            )}
+            sx={{ mt: 1 }}
+          />
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Device Position
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              Click on the map to set the device's GPS position
+            </Typography>
+            <LocationMapPicker
+              latitude={formDeviceLatitude}
+              longitude={formDeviceLongitude}
+              onChange={(lat, lng) => {
+                setFormDeviceLatitude(lat ?? undefined);
+                setFormDeviceLongitude(lng ?? undefined);
+              }}
+              locationBoundary={
+                formDeviceLocationId
+                  ? allLocationsWithBoundaries.find((l) => l.id === formDeviceLocationId) ?? null
+                  : null
+              }
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeviceDialogOpen(false)} disabled={savingDevice}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveDevice}
+            variant="contained"
+            disabled={savingDevice}
+            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+          >
+            {savingDevice ? 'Saving...' : deviceDialogMode === 'add' ? 'Add' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Deactivate Device Dialog */}
+      <Dialog
+        open={deactivateDeviceDialogOpen}
+        onClose={() => !deactivatingDevice && setDeactivateDeviceDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Deactivate Device?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to deactivate device <strong>{deviceToDeactivate?.device_id}</strong>
+            {deviceToDeactivate?.name && ` (${deviceToDeactivate.name})`}?
+          </Typography>
+          <Typography sx={{ mt: 2, color: 'text.secondary' }}>
+            The device will no longer appear in active lists, but historical data will be preserved.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeactivateDeviceDialogOpen(false)} disabled={deactivatingDevice}>
+            Cancel
+          </Button>
+          <Button onClick={handleDeactivateDevice} variant="contained" color="error" disabled={deactivatingDevice}>
+            {deactivatingDevice ? 'Deactivating...' : 'Deactivate'}
           </Button>
         </DialogActions>
       </Dialog>

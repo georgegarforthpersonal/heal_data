@@ -10,7 +10,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio
+from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio, devices
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -55,6 +55,7 @@ app.include_router(locations.router, prefix="/api/locations", tags=["Locations"]
 app.include_router(surveyors.router, prefix="/api/surveyors", tags=["Surveyors"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(survey_types.router, prefix="/api/survey-types", tags=["Survey Types"])
+app.include_router(devices.router, prefix="/api/devices", tags=["Devices"])
 
 # ============================================================================
 # Health Check Endpoint

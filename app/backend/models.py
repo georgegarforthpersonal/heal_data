@@ -46,11 +46,87 @@ class Organisation(OrganisationBase, table=True):
     surveyors: List["Surveyor"] = Relationship(back_populates="organisation")
     locations: List["Location"] = Relationship(back_populates="organisation")
     survey_types: List["SurveyType"] = Relationship(back_populates="organisation")
+    devices: List["Device"] = Relationship(back_populates="organisation")
 
 
 class OrganisationRead(OrganisationBase):
     """Model for reading organisation (public info, no password hash)"""
     id: int
+    is_active: bool
+
+
+# ============================================================================
+# Device Models (Audio Recorder Devices)
+# ============================================================================
+
+class DeviceBase(SQLModel):
+    """Base device fields"""
+    device_id: str = Field(max_length=50, description="Device serial number from audio filenames")
+    name: Optional[str] = Field(None, max_length=255, description="Friendly name for the device")
+
+
+class Device(DeviceBase, table=True):
+    """Device database model for audio recording devices"""
+    __tablename__ = "device"
+    __table_args__ = (
+        sa.UniqueConstraint('organisation_id', 'device_id', name='uq_device_org_device_id'),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this device belongs to")
+    location_id: Optional[int] = Field(None, foreign_key="location.id", description="Associated location area")
+    is_active: bool = Field(default=True, description="Whether device is active")
+
+    # PostGIS Point geometry (stored as text, cast in queries)
+    point_geometry: Optional[str] = Field(
+        default=None,
+        sa_column=sa.Column(
+            "point_geometry",
+            sa.Text,  # PostGIS geometry stored as text, cast in queries
+            nullable=True
+        )
+    )
+
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    organisation: Optional["Organisation"] = Relationship(back_populates="devices")
+    location: Optional["Location"] = Relationship(back_populates="devices")
+
+
+class DeviceCreate(DeviceBase):
+    """Model for creating a new device"""
+    latitude: Optional[float] = Field(None, ge=-90, le=90, description="Latitude coordinate")
+    longitude: Optional[float] = Field(None, ge=-180, le=180, description="Longitude coordinate")
+    location_id: Optional[int] = Field(None, description="Associated location ID")
+
+
+class DeviceUpdate(SQLModel):
+    """Model for updating a device (all fields optional)"""
+    device_id: Optional[str] = Field(None, max_length=50)
+    name: Optional[str] = Field(None, max_length=255)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    location_id: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+class DeviceRead(DeviceBase):
+    """Model for reading a device"""
+    id: int
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    location_id: Optional[int] = None
+    location_name: Optional[str] = None
     is_active: bool
 
 
@@ -264,6 +340,7 @@ class Location(LocationBase, table=True):
         link_model=SurveyTypeLocationLink
     )
     sightings: List["Sighting"] = Relationship(back_populates="location")
+    devices: List["Device"] = Relationship(back_populates="location")
 
 
 class LocationCreate(LocationBase):
@@ -761,11 +838,18 @@ class BirdDetectionRead(BirdDetectionBase):
 # ============================================================================
 
 class DetectionClip(SQLModel):
-    """Single detection with audio playback info"""
+    """Single detection with audio playback info and device context"""
     confidence: float = Field(description="Detection confidence (0-1)")
     audio_recording_id: int = Field(description="Audio recording ID for fetching download URL")
     start_time: time_type = Field(description="Start time within the audio file")
     end_time: time_type = Field(description="End time within the audio file")
+    # Device info for location attribution
+    device_id: Optional[str] = Field(None, description="Device serial number")
+    device_name: Optional[str] = Field(None, description="Device friendly name")
+    device_latitude: Optional[float] = Field(None, description="Device GPS latitude")
+    device_longitude: Optional[float] = Field(None, description="Device GPS longitude")
+    location_id: Optional[int] = Field(None, description="Location ID from device")
+    location_name: Optional[str] = Field(None, description="Location name from device")
 
 
 class SpeciesDetectionSummary(SQLModel):

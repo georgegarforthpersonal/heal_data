@@ -18,9 +18,9 @@ import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
 import type { DraftSighting } from './SightingsEditor';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
-import { getMarkersFromSightings, addSpeciesAtLocation, updateMarker, removeMarker } from './mapModeUtils';
-import type { MapMarker } from './mapModeUtils';
-import { MarkerPopupContent } from './MarkerPopupContent';
+import { getMarkersFromSightings, groupMarkersByLocation, addSpeciesAtLocation, updateMarker, removeMarker } from './mapModeUtils';
+import type { MapMarker, GroupedMarker } from './mapModeUtils';
+import { MarkerPopupContent, GroupedMarkerPopupContent } from './MarkerPopupContent';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
 interface MapModeSightingsProps {
@@ -125,6 +125,7 @@ export function MapModeSightings({
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   const markers = useMemo(() => getMarkersFromSightings(sightings), [sightings]);
+  const groupedMarkers = useMemo(() => groupMarkersByLocation(markers), [markers]);
 
   // Count sightings without GPS for the info banner
   const sightingsWithoutGps = useMemo(() => {
@@ -243,16 +244,20 @@ export function MapModeSightings({
               <FieldBoundaryOverlay locations={locationsWithBoundaries} />
             )}
 
-            {/* Existing markers */}
-            {markers.map((marker) => {
-              const sp = species.find((s) => s.id === marker.species_id);
-              const speciesCode = sp?.species_code || null;
+            {/* Existing markers - grouped by location */}
+            {groupedMarkers.map((group) => {
+              // For icon, use first species code or show count if multiple species
+              const firstMarker = group.markers[0];
+              const firstSpecies = species.find((s) => s.id === firstMarker.species_id);
+              const speciesCode = group.markers.length === 1
+                ? (firstSpecies?.species_code || null)
+                : `${group.markers.length}`;  // Show count when multiple species
               const icon = createSpeciesCodeIcon(speciesCode);
 
               return (
                 <Marker
-                  key={marker.individualTempId}
-                  position={[marker.latitude, marker.longitude]}
+                  key={group.locationKey}
+                  position={[group.latitude, group.longitude]}
                   icon={icon}
                 >
                   <Popup
@@ -262,25 +267,38 @@ export function MapModeSightings({
                     maxWidth={320}
                     className="map-mode-popup"
                   >
-                    {readOnly ? (
-                      <MarkerPopupContent
-                        mode="view"
-                        species={species}
-                        breedingCodes={breedingCodes}
-                        marker={marker}
-                      />
+                    {group.markers.length === 1 ? (
+                      // Single marker - show normal popup
+                      readOnly ? (
+                        <MarkerPopupContent
+                          mode="view"
+                          species={species}
+                          breedingCodes={breedingCodes}
+                          marker={firstMarker}
+                        />
+                      ) : (
+                        <MarkerPopupContent
+                          mode="edit"
+                          species={species}
+                          breedingCodes={breedingCodes}
+                          marker={firstMarker}
+                          onUpdate={(updates) =>
+                            handleMarkerUpdate(firstMarker.sightingTempId, firstMarker.individualTempId, updates)
+                          }
+                          onDelete={() =>
+                            handleMarkerDelete(firstMarker.sightingTempId, firstMarker.individualTempId)
+                          }
+                        />
+                      )
                     ) : (
-                      <MarkerPopupContent
-                        mode="edit"
+                      // Multiple markers at same location - show grouped popup
+                      <GroupedMarkerPopupContent
+                        markers={group.markers}
                         species={species}
                         breedingCodes={breedingCodes}
-                        marker={marker}
-                        onUpdate={(updates) =>
-                          handleMarkerUpdate(marker.sightingTempId, marker.individualTempId, updates)
-                        }
-                        onDelete={() =>
-                          handleMarkerDelete(marker.sightingTempId, marker.individualTempId)
-                        }
+                        readOnly={readOnly}
+                        onUpdate={handleMarkerUpdate}
+                        onDelete={handleMarkerDelete}
                       />
                     )}
                   </Popup>
