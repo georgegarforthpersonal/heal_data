@@ -94,8 +94,8 @@ async def get_surveys(
         - total_pages: Total number of pages
     """
     try:
-        # Build base query with filters - always filter by organisation
-        query = db.query(Survey).filter(Survey.organisation_id == org.id)
+        # Build base query with filters - always filter by organisation and exclude drafts
+        query = db.query(Survey).filter(Survey.organisation_id == org.id, Survey.is_draft == False)
 
         # Apply date range filters
         if start_date:
@@ -231,13 +231,15 @@ async def get_survey(
         "notes": survey.notes,
         "location_id": survey.location_id,
         "surveyor_ids": surveyor_ids_list,
-        "survey_type_id": survey.survey_type_id
+        "survey_type_id": survey.survey_type_id,
+        "is_draft": survey.is_draft
     }
 
 
 @router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_survey(
     survey: SurveyCreate,
+    is_draft: bool = Query(False, description="Create as draft survey (for audio upload before form completion)"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
@@ -246,6 +248,7 @@ async def create_survey(
 
     Args:
         survey: Survey data
+        is_draft: If true, creates a draft survey that won't appear in listings
 
     Returns:
         Created survey with ID
@@ -262,7 +265,8 @@ async def create_survey(
             notes=survey.notes,
             location_id=survey.location_id,
             survey_type_id=survey.survey_type_id,
-            organisation_id=org.id
+            organisation_id=org.id,
+            is_draft=is_draft
         )
         db.add(db_survey)
         db.flush()  # Get the ID without committing
@@ -289,7 +293,8 @@ async def create_survey(
             "notes": db_survey.notes,
             "location_id": db_survey.location_id,
             "survey_type_id": db_survey.survey_type_id,
-            "surveyor_ids": survey.surveyor_ids
+            "surveyor_ids": survey.surveyor_ids,
+            "is_draft": db_survey.is_draft
         }
 
     except Exception as e:
@@ -366,7 +371,8 @@ async def update_survey(
         "notes": db_survey.notes,
         "location_id": db_survey.location_id,
         "survey_type_id": db_survey.survey_type_id,
-        "surveyor_ids": surveyor_ids_list
+        "surveyor_ids": surveyor_ids_list,
+        "is_draft": db_survey.is_draft
     }
 
 

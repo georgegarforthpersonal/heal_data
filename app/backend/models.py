@@ -424,6 +424,7 @@ class SurveyUpdate(SQLModel):
     notes: Optional[str] = None
     location_id: Optional[int] = Field(None, gt=0)
     surveyor_ids: Optional[List[int]] = None
+    is_draft: Optional[bool] = Field(None, description="Set to false to finalize a draft survey")
 
 
 class SurveyRead(SurveyBase):
