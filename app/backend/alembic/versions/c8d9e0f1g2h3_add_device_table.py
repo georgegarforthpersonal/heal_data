@@ -1,7 +1,7 @@
 """Add device table for audio recorder management
 
-Revision ID: a6b7c8d9e0f1
-Revises: z5a6b7c8d9e0
+Revision ID: c8d9e0f1g2h3
+Revises: b7c8d9e0f1g2
 Create Date: 2026-02-26
 
 This migration creates the device table for managing audio recording devices.
@@ -17,8 +17,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a6b7c8d9e0f1'
-down_revision: Union[str, None] = 'z5a6b7c8d9e0'
+revision: str = 'c8d9e0f1g2h3'
+down_revision: Union[str, None] = 'b7c8d9e0f1g2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
