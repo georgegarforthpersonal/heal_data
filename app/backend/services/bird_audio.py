@@ -15,7 +15,7 @@ import birdnet
 
 LOCATION_FILTER_THRESHOLD = 0.03
 MIN_CONFIDENCE = 0.25
-BIRDNET_BACKEND = "tflite"  # Use tflite instead of tf to avoid multiprocessing issues
+BIRDNET_BACKEND = "pb"  # Use protobuf backend instead of tf to avoid multiprocessing issues
 
 # Cache models at module level to avoid reloading on every request
 _geo_model = None
