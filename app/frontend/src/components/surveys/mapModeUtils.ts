@@ -16,6 +16,50 @@ export interface MapMarker {
 }
 
 /**
+ * Represents a group of markers at the same GPS location.
+ * Used when multiple species are recorded at identical coordinates (e.g., from same audio device).
+ */
+export interface GroupedMarker {
+  locationKey: string;
+  latitude: number;
+  longitude: number;
+  markers: MapMarker[];
+}
+
+/**
+ * Create a location key for grouping markers by exact coordinates.
+ * Uses 6 decimal places (~0.1m precision).
+ */
+function getLocationKey(lat: number, lng: number): string {
+  return `${lat.toFixed(6)}_${lng.toFixed(6)}`;
+}
+
+/**
+ * Group markers by their exact GPS location.
+ * Returns a list of GroupedMarker, each containing all markers at that location.
+ */
+export function groupMarkersByLocation(markers: MapMarker[]): GroupedMarker[] {
+  const groups = new Map<string, GroupedMarker>();
+
+  for (const marker of markers) {
+    const key = getLocationKey(marker.latitude, marker.longitude);
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        locationKey: key,
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+        markers: [],
+      });
+    }
+
+    groups.get(key)!.markers.push(marker);
+  }
+
+  return Array.from(groups.values());
+}
+
+/**
  * Flatten all DraftIndividualLocation entries from draftSightings into a flat MapMarker list.
  * Only includes sightings that have a species_id and individuals with coordinates.
  */

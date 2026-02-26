@@ -716,17 +716,9 @@ async def add_individual_location(
             detail=f"Sighting {sighting_id} not found for survey {survey_id}"
         )
 
-    # Validate that adding this individual won't exceed sighting count
-    existing_total = db.execute(
-        text("SELECT COALESCE(SUM(count), 0) FROM sighting_individual WHERE sighting_id = :sighting_id")
-        .bindparams(sighting_id=sighting_id)
-    ).scalar()
-
-    if existing_total + individual.count > db_sighting.count:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Adding {individual.count} individuals would exceed sighting count ({db_sighting.count}). Current total: {existing_total}"
-        )
+    # Auto-increment sighting count to accommodate the new individual
+    db_sighting.count += individual.count
+    db.add(db_sighting)
 
     # Insert individual location
     result = db.execute(
@@ -885,9 +877,9 @@ async def delete_individual_location(
             detail=f"Sighting {sighting_id} not found for survey {survey_id}"
         )
 
-    # Check individual exists and delete
+    # Get individual's count before deleting, then delete
     result = db.execute(
-        text("DELETE FROM sighting_individual WHERE id = :id AND sighting_id = :sighting_id RETURNING id")
+        text("DELETE FROM sighting_individual WHERE id = :id AND sighting_id = :sighting_id RETURNING id, count")
         .bindparams(id=individual_id, sighting_id=sighting_id)
     ).fetchone()
 
@@ -896,6 +888,11 @@ async def delete_individual_location(
             status_code=404,
             detail=f"Individual location {individual_id} not found for sighting {sighting_id}"
         )
+
+    # Auto-decrement sighting count
+    individual_count = result.count or 1
+    db_sighting.count = max(0, db_sighting.count - individual_count)
+    db.add(db_sighting)
 
     db.commit()
     return None

@@ -465,8 +465,14 @@ async def get_detections_summary(
     device_serials = set(r.device_serial for r in recordings if r.device_serial)
     device_map = {}
     if device_serials:
+        # Query devices with coordinates extracted from PostGIS point_geometry
         devices = (
-            db.query(Device, Location.name.label("location_name"))
+            db.query(
+                Device,
+                Location.name.label("location_name"),
+                func.ST_Y(Device.point_geometry).label("lat"),
+                func.ST_X(Device.point_geometry).label("lng"),
+            )
             .outerjoin(Location, Device.location_id == Location.id)
             .filter(
                 Device.device_id.in_(device_serials),
@@ -474,10 +480,12 @@ async def get_detections_summary(
             )
             .all()
         )
-        for device, loc_name in devices:
+        for device, loc_name, lat, lng in devices:
             device_map[device.device_id] = {
                 "device_id": device.device_id,
                 "device_name": device.name,
+                "device_latitude": lat,
+                "device_longitude": lng,
                 "location_id": device.location_id,
                 "location_name": loc_name,
             }
@@ -488,37 +496,52 @@ async def get_detections_summary(
         if rec.device_serial and rec.device_serial in device_map:
             recording_device_map[rec.id] = device_map[rec.device_serial]
 
-    # Get all detections grouped by species with counts
-    # Using raw SQL for the aggregation
+    # Get all detections grouped by (species, device) with counts
+    # This ensures each device's detections are counted separately
     from sqlalchemy import desc
 
-    # First, get unique species with their detection counts and max confidence
-    species_counts = (
+    # Build reverse mapping: recording_id -> device_serial
+    recording_to_device = {r.id: r.device_serial for r in recordings}
+
+    # Get unique (species, device) combinations with their detection counts
+    # We need to join through AudioRecording to get device_serial
+    species_device_counts = (
         db.query(
             BirdDetection.species_id,
             Species.name.label("species_name"),
             Species.scientific_name.label("species_scientific_name"),
+            AudioRecording.device_serial,
             func.count(BirdDetection.id).label("detection_count"),
             func.max(BirdDetection.confidence).label("max_confidence"),
         )
         .join(Species, BirdDetection.species_id == Species.id)
+        .join(AudioRecording, BirdDetection.audio_recording_id == AudioRecording.id)
         .filter(BirdDetection.audio_recording_id.in_(recording_ids))
         .group_by(
             BirdDetection.species_id,
             Species.name,
             Species.scientific_name,
+            AudioRecording.device_serial,
         )
         .order_by(desc("max_confidence"))
         .all()
     )
 
     summaries = []
-    for row in species_counts:
-        # Get top 3 detections for this species
+    for row in species_device_counts:
+        device_serial = row.device_serial
+        device_info = device_map.get(device_serial, {})
+
+        # Get recording IDs for this specific device
+        device_recording_ids = [
+            r.id for r in recordings if r.device_serial == device_serial
+        ]
+
+        # Get top 3 detections for this species FROM THIS DEVICE ONLY
         top_detections = (
             db.query(BirdDetection)
             .filter(
-                BirdDetection.audio_recording_id.in_(recording_ids),
+                BirdDetection.audio_recording_id.in_(device_recording_ids),
                 BirdDetection.species_id == row.species_id,
             )
             .order_by(desc(BirdDetection.confidence))
@@ -528,7 +551,6 @@ async def get_detections_summary(
 
         clips = []
         for det in top_detections:
-            device_info = recording_device_map.get(det.audio_recording_id, {})
             clips.append(
                 DetectionClip(
                     confidence=det.confidence,
@@ -537,6 +559,8 @@ async def get_detections_summary(
                     end_time=det.end_time,
                     device_id=device_info.get("device_id"),
                     device_name=device_info.get("device_name"),
+                    device_latitude=device_info.get("device_latitude"),
+                    device_longitude=device_info.get("device_longitude"),
                     location_id=device_info.get("location_id"),
                     location_name=device_info.get("location_name"),
                 )

@@ -1102,6 +1102,8 @@ export interface DetectionClip {
   // Device info for location attribution
   device_id: string | null;
   device_name: string | null;
+  device_latitude: number | null;
+  device_longitude: number | null;
   location_id: number | null;
   location_name: string | null;
 }

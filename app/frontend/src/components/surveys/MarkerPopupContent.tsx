@@ -436,6 +436,156 @@ function ViewPopupContent({
   );
 }
 
+// Grouped popup content for multiple species at same location
+interface GroupedMarkerPopupContentProps {
+  markers: MapMarker[];
+  species: Species[];
+  breedingCodes: BreedingStatusCode[];
+  readOnly?: boolean;
+  onUpdate?: (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => void;
+  onDelete?: (sightingTempId: string, individualTempId: string) => void;
+}
+
+export function GroupedMarkerPopupContent({
+  markers,
+  species,
+  breedingCodes,
+  readOnly = false,
+  onUpdate,
+  onDelete,
+}: GroupedMarkerPopupContentProps) {
+  // Sort markers by species name for consistent display
+  const sortedMarkers = [...markers].sort((a, b) => {
+    const spA = species.find((s) => s.id === a.species_id);
+    const spB = species.find((s) => s.id === b.species_id);
+    const nameA = spA?.name || spA?.scientific_name || '';
+    const nameB = spB?.name || spB?.scientific_name || '';
+    return nameA.localeCompare(nameB);
+  });
+
+  const firstMarker = sortedMarkers[0];
+  const totalCount = markers.reduce((sum, m) => sum + m.count, 0);
+
+  return (
+    <Box
+      onMouseDown={stopPropagation}
+      onClick={stopPropagation}
+      onDoubleClick={stopPropagation}
+      onWheel={stopPropagation}
+      sx={{ minWidth: 240, p: 0.5 }}
+    >
+      {/* Header with location and total */}
+      <Stack spacing={0.5} sx={{ mb: 1.5, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="subtitle2" fontWeight={600}>
+          {markers.length} species at this location
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {firstMarker.latitude.toFixed(6)}, {firstMarker.longitude.toFixed(6)}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Total count: {totalCount}
+        </Typography>
+      </Stack>
+
+      {/* Scrollable list of species */}
+      <Box sx={{ maxHeight: 250, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
+        <Stack spacing={1}>
+          {sortedMarkers.map((marker) => {
+            const sp = species.find((s) => s.id === marker.species_id);
+            const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
+            const breedingCode = marker.breeding_status_code
+              ? breedingCodes.find((c) => c.code === marker.breeding_status_code)
+              : null;
+
+            return (
+              <Box
+                key={marker.individualTempId}
+                sx={{
+                  p: 1,
+                  bgcolor: 'grey.50',
+                  borderRadius: 1,
+                  '&:hover': { bgcolor: 'grey.100' },
+                }}
+              >
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+                  <Stack direction="row" alignItems="center" spacing={0.75} sx={{ flex: 1, minWidth: 0 }}>
+                    <SpeciesIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{ fontSize: '0.8rem', lineHeight: 1.3 }}
+                        noWrap
+                      >
+                        {sp?.name || sp?.scientific_name || 'Unknown'}
+                      </Typography>
+                      {sp?.name && sp?.scientific_name && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontStyle: 'italic', fontSize: '0.7rem' }}
+                          noWrap
+                        >
+                          {sp.scientific_name}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Stack>
+
+                  <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <Chip
+                      label={marker.count}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        minWidth: 24,
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        fontWeight: 600,
+                        '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' },
+                      }}
+                    />
+                    {!readOnly && onDelete && (
+                      <IconButton
+                        size="small"
+                        onClick={() => onDelete(marker.sightingTempId, marker.individualTempId)}
+                        sx={{ color: 'error.main', p: 0.25 }}
+                      >
+                        <DeleteIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    )}
+                  </Stack>
+                </Stack>
+
+                {/* Breeding status if present */}
+                {breedingCode && (
+                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5, ml: 2.75 }}>
+                    <Chip
+                      label={breedingCode.code}
+                      size="small"
+                      sx={{
+                        bgcolor: CATEGORY_COLORS[breedingCode.category],
+                        color: 'white',
+                        fontWeight: 600,
+                        height: 16,
+                        minWidth: 20,
+                        '& .MuiChip-label': { px: 0.5, fontSize: '0.65rem' },
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                      {breedingCode.description}
+                    </Typography>
+                  </Stack>
+                )}
+              </Box>
+            );
+          })}
+        </Stack>
+      </Box>
+    </Box>
+  );
+}
+
 // Shared breeding status select field
 function BreedingStatusField({
   value,

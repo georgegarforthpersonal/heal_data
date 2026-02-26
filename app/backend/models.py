@@ -846,6 +846,8 @@ class DetectionClip(SQLModel):
     # Device info for location attribution
     device_id: Optional[str] = Field(None, description="Device serial number")
     device_name: Optional[str] = Field(None, description="Device friendly name")
+    device_latitude: Optional[float] = Field(None, description="Device GPS latitude")
+    device_longitude: Optional[float] = Field(None, description="Device GPS longitude")
     location_id: Optional[int] = Field(None, description="Location ID from device")
     location_name: Optional[str] = Field(None, description="Location name from device")
 
