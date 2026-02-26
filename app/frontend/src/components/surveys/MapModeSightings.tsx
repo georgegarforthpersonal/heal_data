@@ -19,7 +19,7 @@ import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../se
 import type { DraftSighting } from './SightingsEditor';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 import { getMarkersFromSightings, groupMarkersByLocation, addSpeciesAtLocation, updateMarker, removeMarker } from './mapModeUtils';
-import type { MapMarker, GroupedMarker } from './mapModeUtils';
+import type { MapMarker } from './mapModeUtils';
 import { MarkerPopupContent, GroupedMarkerPopupContent } from './MarkerPopupContent';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
