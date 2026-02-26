@@ -40,6 +40,7 @@ import {
   type SurveyTypeUpdate,
   type SpeciesTypeRef,
   type Location,
+  type LocationWithBoundary,
   type Device,
   type DeviceCreate,
   type DeviceUpdate,
@@ -93,6 +94,7 @@ export function AdminPage() {
   const [surveyTypesLoading, setSurveyTypesLoading] = useState(true);
   const [surveyTypesError, setSurveyTypesError] = useState<string | null>(null);
   const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [allLocationsWithBoundaries, setAllLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
   const [allSpeciesTypes, setAllSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
   const [surveyTypeDialogOpen, setSurveyTypeDialogOpen] = useState(false);
   const [surveyTypeDialogMode, setSurveyTypeDialogMode] = useState<'add' | 'edit'>('add');
@@ -170,11 +172,13 @@ export function AdminPage() {
 
   const loadReferenceData = async () => {
     try {
-      const [locations, speciesTypes] = await Promise.all([
+      const [locations, locationsWithBoundaries, speciesTypes] = await Promise.all([
         locationsAPI.getAll(),
+        locationsAPI.getAllWithBoundaries(),
         surveyTypesAPI.getSpeciesTypes(),
       ]);
       setAllLocations(locations);
+      setAllLocationsWithBoundaries(locationsWithBoundaries);
       setAllSpeciesTypes(speciesTypes);
     } catch (err) {
       console.error('Failed to load reference data:', err);
@@ -1157,9 +1161,14 @@ export function AdminPage() {
               latitude={formDeviceLatitude}
               longitude={formDeviceLongitude}
               onChange={(lat, lng) => {
-                setFormDeviceLatitude(lat);
-                setFormDeviceLongitude(lng);
+                setFormDeviceLatitude(lat ?? undefined);
+                setFormDeviceLongitude(lng ?? undefined);
               }}
+              locationBoundary={
+                formDeviceLocationId
+                  ? allLocationsWithBoundaries.find((l) => l.id === formDeviceLocationId) ?? null
+                  : null
+              }
             />
           </Box>
         </DialogContent>

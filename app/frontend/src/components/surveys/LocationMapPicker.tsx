@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polygon, useMapEvents, useMap } from 'react-leaflet';
+import type { LocationWithBoundary } from '../../services/api';
 import { LatLng } from 'leaflet';
 import { Box, Typography, TextField, Stack, Paper, IconButton, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -30,6 +31,8 @@ interface LocationMapPickerProps {
   onChange: (lat: number | null, lng: number | null) => void;
   label?: string;
   helperText?: string;
+  /** Optional location boundary to display on the map */
+  locationBoundary?: LocationWithBoundary | null;
 }
 
 // Component to handle map clicks
@@ -42,12 +45,31 @@ function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
   return null;
 }
 
+// Component to fit map to boundary when it changes
+function BoundaryFitter({ boundary }: { boundary?: LocationWithBoundary | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (boundary?.boundary_geometry && boundary.boundary_geometry.length > 0) {
+      // Convert [lng, lat] to [lat, lng] for Leaflet bounds
+      const positions = boundary.boundary_geometry.map(
+        ([lng, lat]) => [lat, lng] as [number, number]
+      );
+      const bounds = L.latLngBounds(positions);
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+  }, [boundary, map]);
+
+  return null;
+}
+
 export default function LocationMapPicker({
   latitude,
   longitude,
   onChange,
   label = 'Location',
   helperText = 'Click on the map to set the location',
+  locationBoundary,
 }: LocationMapPickerProps) {
   const [position, setPosition] = useState<LatLng | null>(
     latitude && longitude ? new LatLng(latitude, longitude) : null
@@ -188,6 +210,22 @@ export default function LocationMapPicker({
             <MapClickHandler onClick={handleMapClick} />
             {position && <Marker position={position} />}
             <MapResizeHandler isFullscreen={isFullscreen} />
+            <BoundaryFitter boundary={locationBoundary} />
+            {/* Render location boundary if provided */}
+            {locationBoundary?.boundary_geometry && locationBoundary.boundary_geometry.length > 0 && (
+              <Polygon
+                positions={locationBoundary.boundary_geometry.map(
+                  ([lng, lat]) => [lat, lng] as [number, number]
+                )}
+                pathOptions={{
+                  fillColor: locationBoundary.boundary_fill_color || '#3388ff',
+                  fillOpacity: locationBoundary.boundary_fill_opacity || 0.2,
+                  color: locationBoundary.boundary_stroke_color || '#3388ff',
+                  weight: 2,
+                }}
+                interactive={false}
+              />
+            )}
           </MapContainer>
         </Box>
       </Paper>
