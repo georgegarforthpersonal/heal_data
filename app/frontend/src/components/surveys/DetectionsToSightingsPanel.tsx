@@ -12,7 +12,7 @@ import {
   DialogActions,
   Button,
 } from '@mui/material';
-import { AddCircleOutline, CheckCircle } from '@mui/icons-material';
+import { AddCircleOutline, CheckCircle, LocationOn } from '@mui/icons-material';
 import { audioAPI, surveysAPI } from '../../services/api';
 import type { SpeciesDetectionSummary, Sighting } from '../../services/api';
 import { AudioClipPlayer } from '../audio/AudioClipPlayer';
@@ -92,9 +92,14 @@ export function DetectionsToSightingsPanel({
       setError(null);
 
       try {
+        // Use location from the top detection (highest confidence) if available
+        const topDetection = summary.top_detections[0];
+        const locationId = topDetection?.location_id ?? undefined;
+
         await surveysAPI.addSighting(surveyId, {
           species_id: summary.species_id,
           count: 1,
+          location_id: locationId,
         });
         setSuccessMessage(`Added ${summary.species_name || summary.species_scientific_name}`);
         onSightingsCreated?.();
@@ -248,6 +253,15 @@ export function DetectionsToSightingsPanel({
                   <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                     {summary.species_scientific_name}
                   </Typography>
+                )}
+                {/* Show location from top detection if available */}
+                {summary.top_detections[0]?.location_name && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                    <LocationOn sx={{ fontSize: 12, color: 'text.disabled' }} />
+                    <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.7rem' }}>
+                      {summary.top_detections[0].location_name}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
 

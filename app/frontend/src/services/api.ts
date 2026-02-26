@@ -1099,6 +1099,11 @@ export interface DetectionClip {
   audio_recording_id: number;
   start_time: string;
   end_time: string;
+  // Device info for location attribution
+  device_id: string | null;
+  device_name: string | null;
+  location_id: number | null;
+  location_name: string | null;
 }
 
 export interface SpeciesDetectionSummary {

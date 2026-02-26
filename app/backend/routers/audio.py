@@ -39,6 +39,8 @@ from models import (
     BirdDetection,
     BirdDetectionRead,
     DetectionClip,
+    Device,
+    Location,
     Organisation,
     ProcessingStatus,
     Species,
@@ -448,16 +450,43 @@ async def get_detections_summary(
     if not survey:
         raise HTTPException(status_code=404, detail="Survey not found")
 
-    # Get all audio recording IDs for this survey
-    recording_ids = (
-        db.query(AudioRecording.id)
+    # Get all audio recordings for this survey with device_serial
+    recordings = (
+        db.query(AudioRecording.id, AudioRecording.device_serial)
         .filter(AudioRecording.survey_id == survey_id)
         .all()
     )
-    recording_ids = [r[0] for r in recording_ids]
+    recording_ids = [r[0] for r in recordings]
 
     if not recording_ids:
         return SurveyDetectionsSummaryResponse(species_summaries=[])
+
+    # Build mapping from device_serial to device info
+    device_serials = set(r.device_serial for r in recordings if r.device_serial)
+    device_map = {}
+    if device_serials:
+        devices = (
+            db.query(Device, Location.name.label("location_name"))
+            .outerjoin(Location, Device.location_id == Location.id)
+            .filter(
+                Device.device_id.in_(device_serials),
+                Device.organisation_id == org.id,
+            )
+            .all()
+        )
+        for device, loc_name in devices:
+            device_map[device.device_id] = {
+                "device_id": device.device_id,
+                "device_name": device.name,
+                "location_id": device.location_id,
+                "location_name": loc_name,
+            }
+
+    # Build mapping from audio_recording_id to device info
+    recording_device_map = {}
+    for rec in recordings:
+        if rec.device_serial and rec.device_serial in device_map:
+            recording_device_map[rec.id] = device_map[rec.device_serial]
 
     # Get all detections grouped by species with counts
     # Using raw SQL for the aggregation
@@ -497,15 +526,21 @@ async def get_detections_summary(
             .all()
         )
 
-        clips = [
-            DetectionClip(
-                confidence=det.confidence,
-                audio_recording_id=det.audio_recording_id,
-                start_time=det.start_time,
-                end_time=det.end_time,
+        clips = []
+        for det in top_detections:
+            device_info = recording_device_map.get(det.audio_recording_id, {})
+            clips.append(
+                DetectionClip(
+                    confidence=det.confidence,
+                    audio_recording_id=det.audio_recording_id,
+                    start_time=det.start_time,
+                    end_time=det.end_time,
+                    device_id=device_info.get("device_id"),
+                    device_name=device_info.get("device_name"),
+                    location_id=device_info.get("location_id"),
+                    location_name=device_info.get("location_name"),
+                )
             )
-            for det in top_detections
-        ]
 
         summaries.append(
             SpeciesDetectionSummary(

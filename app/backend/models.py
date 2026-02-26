@@ -838,11 +838,16 @@ class BirdDetectionRead(BirdDetectionBase):
 # ============================================================================
 
 class DetectionClip(SQLModel):
-    """Single detection with audio playback info"""
+    """Single detection with audio playback info and device context"""
     confidence: float = Field(description="Detection confidence (0-1)")
     audio_recording_id: int = Field(description="Audio recording ID for fetching download URL")
     start_time: time_type = Field(description="Start time within the audio file")
     end_time: time_type = Field(description="End time within the audio file")
+    # Device info for location attribution
+    device_id: Optional[str] = Field(None, description="Device serial number")
+    device_name: Optional[str] = Field(None, description="Device friendly name")
+    location_id: Optional[int] = Field(None, description="Location ID from device")
+    location_name: Optional[str] = Field(None, description="Location name from device")
 
 
 class SpeciesDetectionSummary(SQLModel):
