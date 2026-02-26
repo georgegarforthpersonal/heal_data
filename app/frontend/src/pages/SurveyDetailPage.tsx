@@ -535,16 +535,6 @@ export function SurveyDetailPage() {
     }
   };
 
-  const refreshAudioRecordings = async () => {
-    if (!survey) return;
-    try {
-      const recordings = await audioAPI.getRecordings(survey.id);
-      setAudioRecordings(recordings);
-    } catch (err) {
-      console.error('Error refreshing audio recordings:', err);
-    }
-  };
-
   const refreshSightings = async () => {
     if (!survey) return;
     try {
