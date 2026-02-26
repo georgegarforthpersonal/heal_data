@@ -451,7 +451,7 @@ export function GroupedMarkerPopupContent({
   species,
   breedingCodes,
   readOnly = false,
-  onUpdate,
+  onUpdate: _onUpdate,
   onDelete,
 }: GroupedMarkerPopupContentProps) {
   // Sort markers by species name for consistent display
