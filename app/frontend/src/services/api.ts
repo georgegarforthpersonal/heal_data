@@ -228,6 +228,7 @@ export interface Survey {
   survey_type_name: string | null;
   survey_type_icon: string | null;
   survey_type_color: string | null;
+  is_draft?: boolean; // Draft surveys are auto-created for audio upload
 }
 
 /**
@@ -476,9 +477,12 @@ export const surveysAPI = {
 
   /**
    * Create a new survey
+   * @param survey Survey data
+   * @param isDraft If true, creates a draft survey for audio upload before form completion
    */
-  create: (survey: Partial<Survey>): Promise<Survey> => {
-    return fetchAPI('/surveys', {
+  create: (survey: Partial<Survey>, isDraft = false): Promise<Survey> => {
+    const url = isDraft ? '/surveys?is_draft=true' : '/surveys';
+    return fetchAPI(url, {
       method: 'POST',
       body: JSON.stringify(survey),
     });

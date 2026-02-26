@@ -86,6 +86,11 @@ export function NewSurveyPage() {
 
   const [pendingAudioFiles, setPendingAudioFiles] = useState<File[]>([]);
 
+  // Draft survey state - created when audio files are added to allow immediate processing
+  const [draftSurveyId, setDraftSurveyId] = useState<number | null>(null);
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+
   // ============================================================================
   // Data State
   // ============================================================================
@@ -239,7 +244,31 @@ export function NewSurveyPage() {
   // Audio File Handlers
   // ============================================================================
 
-  const handleAudioFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Create a draft survey if one doesn't exist yet.
+   * This allows audio files to be uploaded immediately for processing.
+   */
+  const ensureDraftSurvey = async (): Promise<number> => {
+    if (draftSurveyId) return draftSurveyId;
+
+    setIsCreatingDraft(true);
+    try {
+      // Create minimal draft survey with current form state
+      const draftData: Partial<Survey> & { survey_type_id?: number } = {
+        date: date?.format('YYYY-MM-DD') || new Date().toISOString().split('T')[0],
+        surveyor_ids: selectedSurveyors.map((s) => s.id),
+        survey_type_id: selectedSurveyType?.id,
+      };
+
+      const draft = await surveysAPI.create(draftData, true);
+      setDraftSurveyId(draft.id);
+      return draft.id;
+    } finally {
+      setIsCreatingDraft(false);
+    }
+  };
+
+  const handleAudioFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -248,13 +277,34 @@ export function NewSurveyPage() {
       (f) => f.name.endsWith('.wav') || f.name.endsWith('.WAV')
     );
 
-    setPendingAudioFiles((prev) => [...prev, ...validFiles]);
+    if (validFiles.length === 0) return;
 
     // Reset input so the same file can be selected again
     event.target.value = '';
+
+    // Add files to pending list immediately for UI feedback
+    setPendingAudioFiles((prev) => [...prev, ...validFiles]);
+
+    setIsUploadingAudio(true);
+    try {
+      // Ensure we have a draft survey, then upload files immediately
+      const surveyId = await ensureDraftSurvey();
+      await audioAPI.uploadFiles(surveyId, validFiles);
+    } catch (err) {
+      // Remove the files from pending if upload failed
+      setPendingAudioFiles((prev) =>
+        prev.filter((f) => !validFiles.some((vf) => vf.name === f.name && vf.size === f.size))
+      );
+      setError(err instanceof Error ? err.message : 'Failed to upload audio files');
+      console.error('Error uploading audio files:', err);
+    } finally {
+      setIsUploadingAudio(false);
+    }
   };
 
   const handleRemoveAudioFile = (index: number) => {
+    // Note: We don't delete from server here - orphaned files will be cleaned up
+    // when the draft survey is deleted (if user cancels) or kept (if user saves)
     setPendingAudioFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -273,8 +323,8 @@ export function NewSurveyPage() {
     setError(null);
 
     try {
-      // Step 1: Create survey
-      const surveyData: Partial<Survey> & { survey_type_id?: number } = {
+      // Prepare survey data
+      const surveyData: Partial<Survey> & { survey_type_id?: number; is_draft?: boolean } = {
         date: date!.format('YYYY-MM-DD'),
         surveyor_ids: selectedSurveyors.map((s) => s.id),
         notes: notes.trim() || null,
@@ -286,16 +336,25 @@ export function NewSurveyPage() {
         surveyData.location_id = locationId ?? undefined;
       }
 
-      const newSurvey = await surveysAPI.create(surveyData);
+      let finalSurvey: Survey;
 
-      // Step 2: Add sightings (with individual locations if provided)
+      if (draftSurveyId) {
+        // Draft exists - update it and finalize (audio already uploaded)
+        surveyData.is_draft = false;
+        finalSurvey = await surveysAPI.update(draftSurveyId, surveyData);
+      } else {
+        // No draft - create new survey
+        finalSurvey = await surveysAPI.create(surveyData);
+      }
+
+      // Add sightings (with individual locations if provided)
       const validSightings = draftSightings.filter(
         (s) => s.species_id !== null && s.count > 0
       );
 
       await Promise.all(
         validSightings.map((sighting) =>
-          surveysAPI.addSighting(newSurvey.id, {
+          surveysAPI.addSighting(finalSurvey.id, {
             species_id: sighting.species_id!,
             count: sighting.count,
             location_id: selectedSurveyType?.location_at_sighting_level ? sighting.location_id : undefined,
@@ -312,17 +371,12 @@ export function NewSurveyPage() {
         )
       );
 
-      // Step 3: Upload audio files if any (for audio surveys)
-      if (pendingAudioFiles.length > 0) {
-        await audioAPI.uploadFiles(newSurvey.id, pendingAudioFiles);
-      }
-
       // Success - navigate to survey detail page (shows audio processing status)
       // or surveys list if not an audio survey
       if (allowAudioUpload && pendingAudioFiles.length > 0) {
-        navigate(`/surveys/${newSurvey.id}`);
+        navigate(`/surveys/${finalSurvey.id}`);
       } else {
-        navigate(`/surveys?created=${newSurvey.id}`);
+        navigate(`/surveys?created=${finalSurvey.id}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create survey');
@@ -335,11 +389,30 @@ export function NewSurveyPage() {
   // Event Handlers
   // ============================================================================
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    // Clean up draft survey if one was created
+    if (draftSurveyId) {
+      try {
+        await surveysAPI.delete(draftSurveyId);
+      } catch (err) {
+        // Ignore errors - draft cleanup is best effort
+        console.error('Failed to delete draft survey:', err);
+      }
+    }
     navigate('/surveys');
   };
 
-  const handleSurveyTypeChange = (surveyType: SurveyType | null) => {
+  const handleSurveyTypeChange = async (surveyType: SurveyType | null) => {
+    // If switching away from audio survey type and we have a draft, delete it
+    if (draftSurveyId && !surveyType?.allow_audio_upload) {
+      try {
+        await surveysAPI.delete(draftSurveyId);
+      } catch (err) {
+        console.error('Failed to delete draft survey:', err);
+      }
+      setDraftSurveyId(null);
+    }
+
     setSelectedSurveyType(surveyType);
     // Clear location when survey type changes
     setLocationId(null);
@@ -407,6 +480,8 @@ export function NewSurveyPage() {
   // Determine if save button should be disabled
   const saveDisabled =
     saving ||
+    isUploadingAudio ||
+    isCreatingDraft ||
     !selectedSurveyType ||
     !date ||
     selectedSurveyors.length === 0;
@@ -543,13 +618,19 @@ export function NewSurveyPage() {
           }}
         >
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Audio Files ({pendingAudioFiles.length})
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Audio Files ({pendingAudioFiles.length})
+              </Typography>
+              {(isCreatingDraft || isUploadingAudio) && (
+                <CircularProgress size={16} />
+              )}
+            </Stack>
             <Button
               component="label"
               variant="contained"
               startIcon={<CloudUpload />}
+              disabled={isUploadingAudio || isCreatingDraft}
               sx={{
                 textTransform: 'none',
                 fontWeight: 600,
@@ -557,7 +638,7 @@ export function NewSurveyPage() {
                 '&:hover': { boxShadow: 'none' },
               }}
             >
-              Add Files
+              {isUploadingAudio ? 'Uploading...' : 'Add Files'}
               <input
                 type="file"
                 hidden
@@ -569,41 +650,46 @@ export function NewSurveyPage() {
           </Stack>
 
           {pendingAudioFiles.length > 0 ? (
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
-              {pendingAudioFiles.map((file, index) => (
-                <Box
-                  key={`${file.name}-${index}`}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 1.5,
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    '&:last-child': { borderBottom: 'none' },
-                    '&:hover': { bgcolor: 'grey.50' },
-                  }}
-                >
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <AudioFile sx={{ fontSize: 20, color: 'text.secondary' }} />
-                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                      {file.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                      ({(file.size / 1024 / 1024).toFixed(1)} MB)
-                    </Typography>
-                  </Stack>
-                  <Button
-                    size="small"
-                    color="error"
-                    onClick={() => handleRemoveAudioFile(index)}
-                    sx={{ minWidth: 'auto', p: 0.5 }}
+            <>
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                {pendingAudioFiles.map((file, index) => (
+                  <Box
+                    key={`${file.name}-${index}`}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1.5,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      '&:last-child': { borderBottom: 'none' },
+                      '&:hover': { bgcolor: 'grey.50' },
+                    }}
                   >
-                    <Delete fontSize="small" />
-                  </Button>
-                </Box>
-              ))}
-            </Box>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <AudioFile sx={{ fontSize: 20, color: 'text.secondary' }} />
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                        {file.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                      </Typography>
+                    </Stack>
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveAudioFile(index)}
+                      sx={{ minWidth: 'auto', p: 0.5 }}
+                    >
+                      <Delete fontSize="small" />
+                    </Button>
+                  </Box>
+                ))}
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, fontStyle: 'italic' }}>
+                Files are uploaded immediately and processing begins in the background.
+              </Typography>
+            </>
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <AudioFile sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />

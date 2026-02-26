@@ -1,7 +1,7 @@
 """Add is_draft field to survey table
 
-Revision ID: j8k9l0m1n2o3
-Revises: i7j8k9l0m1n2
+Revision ID: b7c8d9e0f1g3
+Revises: e0f1g2h3i4j5
 Create Date: 2024-01-01 00:00:00.000000
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'j8k9l0m1n2o3'
-down_revision = 'i7j8k9l0m1n2'
+revision = 'b7c8d9e0f1g3'
+down_revision = 'e0f1g2h3i4j5'
 branch_labels = None
 depends_on = None
 
