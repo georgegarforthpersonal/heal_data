@@ -1187,6 +1187,7 @@ export function SurveyDetailPage() {
             </Typography>
             <DetectionsToSightingsPanel
               surveyId={survey.id}
+              sightings={sightings}
               onSightingsCreated={refreshSightings}
               refreshTrigger={audioRecordings.filter(r => r.processing_status === 'completed').length}
             />
