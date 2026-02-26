@@ -389,6 +389,7 @@ class Survey(SurveyBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this survey belongs to")
+    is_draft: bool = Field(default=False, description="Draft surveys are auto-created for audio upload and not shown in listings")
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -428,6 +429,7 @@ class SurveyUpdate(SQLModel):
 class SurveyRead(SurveyBase):
     """Model for reading a survey (includes ID and surveyors)"""
     id: int
+    is_draft: bool = Field(default=False, description="Whether this is a draft survey")
     surveyor_ids: List[int] = Field(default_factory=list, description="List of surveyor IDs")
 
 
