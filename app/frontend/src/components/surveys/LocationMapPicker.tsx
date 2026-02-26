@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Polygon, useMapEvents, useMap } from 'react-leaflet';
 import type { LocationWithBoundary } from '../../services/api';
 import { LatLng } from 'leaflet';
-import { Box, Typography, TextField, Stack, Paper, IconButton, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Typography, TextField, Stack, Paper, IconButton, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import MapIcon from '@mui/icons-material/Map';
-import SatelliteIcon from '@mui/icons-material/Satellite';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import LayersIcon from '@mui/icons-material/Layers';
 import 'leaflet/dist/leaflet.css';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 
@@ -126,43 +125,22 @@ export default function LocationMapPicker({
         {label}
       </Typography>
 
-      <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-        <Stack direction="row" spacing={1}>
-          {position && (
-            <Tooltip title="Clear location">
-              <IconButton size="small" onClick={handleClearLocation}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
+      {position && (
+        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+          <Tooltip title="Clear location">
+            <IconButton size="small" onClick={handleClearLocation}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
-
-        <ToggleButtonGroup
-          value={mapType}
-          exclusive
-          onChange={(_, newValue) => newValue && setMapType(newValue)}
-          size="small"
-          sx={{ height: '32px' }}
-        >
-          <ToggleButton value="street" aria-label="street map">
-            <Tooltip title="Street Map">
-              <MapIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="satellite" aria-label="satellite view">
-            <Tooltip title="Satellite View">
-              <SatelliteIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Stack>
+      )}
 
       <Paper
         elevation={2}
         className="fullscreen-map-container"
         sx={{ mb: 2, overflow: 'hidden', position: 'relative', ...fullscreenContainerSx }}
       >
-        {/* Fullscreen toggle */}
+        {/* Map controls overlay */}
         <Stack
           direction="row"
           spacing={0.5}
@@ -184,6 +162,19 @@ export default function LocationMapPicker({
               }}
             >
               {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={mapType === 'satellite' ? 'Switch to Street Map' : 'Switch to Satellite'}>
+            <IconButton
+              size="small"
+              onClick={() => setMapType(mapType === 'satellite' ? 'street' : 'satellite')}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: 2,
+                '&:hover': { bgcolor: 'grey.100' },
+              }}
+            >
+              <LayersIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Stack>
