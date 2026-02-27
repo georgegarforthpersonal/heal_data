@@ -30,7 +30,8 @@ python-docx>=0.8.11
 birdnet
 
 # Camera trap image analysis
-yolov5>=7.0.8,<7.0.12  # Must be installed before speciesnet for compatibility
+# Pin yolov5 from git to ensure correct module structure for model loading
+yolov5 @ git+https://github.com/ultralytics/yolov5.git@v7.0.11
 speciesnet
 pillow>=10.0.0
 
