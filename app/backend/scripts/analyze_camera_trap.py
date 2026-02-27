@@ -1,17 +1,4 @@
-"""
-Analyze camera trap images for species using Google SpeciesNet.
-
-Uses MegaDetector for animal detection and SpeciesNet classifier for
-species identification, with UK geofencing to filter impossible species.
-
-Usage:
-    ./dev-run analyze_camera_trap.py --input-dir /path/to/images
-    ./dev-run analyze_camera_trap.py --input-dir /path/to/images --output-dir /path/to/output
-    ./dev-run analyze_camera_trap.py --input-dir /path/to/images --country GBR --confidence-threshold 0.8
-
-Requirements:
-    pip install speciesnet pillow
-"""
+"""Analyze camera trap images for species using Google SpeciesNet."""
 
 import argparse
 import csv
@@ -40,7 +27,6 @@ DEFAULT_IMAGE_DIR = Path(__file__).parent / "data" / "camera_trap_images"
 
 
 def write_json_results(results: list[ImageResult], output_path: Path) -> None:
-    """Write results to JSON file."""
     data = {
         "generated_at": datetime.now().isoformat(),
         "total_images": len(results),
@@ -51,33 +37,18 @@ def write_json_results(results: list[ImageResult], output_path: Path) -> None:
 
 
 def write_csv_results(results: list[ImageResult], output_path: Path) -> None:
-    """Write results to CSV file."""
     fieldnames = [
-        "filepath",
-        "timestamp",
-        "scientific_name",
-        "common_name",
-        "confidence",
-        "taxonomic_level",
-        "detection_count",
-        "bbox_x_min",
-        "bbox_y_min",
-        "bbox_width",
-        "bbox_height",
-        "flagged_for_review",
-        "review_reason",
-        "prediction_source",
+        "filepath", "timestamp", "scientific_name", "common_name", "confidence",
+        "taxonomic_level", "detection_count", "bbox_x_min", "bbox_y_min",
+        "bbox_width", "bbox_height", "flagged_for_review", "review_reason", "prediction_source",
     ]
 
     with output_path.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-
         for result in results:
-            # Get primary detection bbox if available
             bbox = result.detections[0].bbox if result.detections else None
-
-            row = {
+            writer.writerow({
                 "filepath": result.filepath,
                 "timestamp": result.timestamp.isoformat() if result.timestamp else "",
                 "scientific_name": result.classification.scientific_name if result.classification else "",
@@ -92,30 +63,22 @@ def write_csv_results(results: list[ImageResult], output_path: Path) -> None:
                 "flagged_for_review": result.flagged_for_review,
                 "review_reason": result.review_reason or "",
                 "prediction_source": result.prediction_source,
-            }
-            writer.writerow(row)
-
+            })
     logger.info(f"Wrote CSV results to {output_path}")
 
 
 def write_summary(results: list[ImageResult], output_path: Path) -> None:
-    """Write summary statistics to JSON file."""
     summary = get_summary_statistics(results)
     summary["generated_at"] = datetime.now().isoformat()
-
-    # Add sequence information
     sequences = aggregate_sequences(results)
     summary["sequence_count"] = len(sequences)
     summary["images_in_sequences"] = sum(len(s) for s in sequences.values())
-
     output_path.write_text(json.dumps(summary, indent=2))
     logger.info(f"Wrote summary to {output_path}")
 
 
 def print_summary(results: list[ImageResult]) -> None:
-    """Print summary to console."""
     summary = get_summary_statistics(results)
-
     logger.info("")
     logger.info("=" * 60)
     logger.info("ANALYSIS SUMMARY")
@@ -126,13 +89,11 @@ def print_summary(results: list[ImageResult]) -> None:
     logger.info(f"Images flagged for review: {summary['images_flagged_for_review']}")
     logger.info(f"Average confidence: {summary['average_confidence']:.1%}")
     logger.info("")
-
     if summary["species_counts"]:
         logger.info("Species detected:")
         for species, count in summary["species_counts"].items():
             logger.info(f"  {species}: {count}")
         logger.info("")
-
     dist = summary["confidence_distribution"]
     logger.info("Confidence distribution:")
     logger.info(f"  High (90-100%): {dist['high_90_100']}")
@@ -143,62 +104,20 @@ def print_summary(results: list[ImageResult]) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--input-dir",
-        type=Path,
-        default=DEFAULT_IMAGE_DIR,
-        help=f"Directory containing camera trap images (default: {DEFAULT_IMAGE_DIR})",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        help="Directory to write results (default: input-dir/results)",
-    )
-    parser.add_argument(
-        "--country",
-        type=str,
-        default=DEFAULT_COUNTRY,
-        help=f"ISO 3166-1 alpha-3 country code for geofencing (default: {DEFAULT_COUNTRY})",
-    )
-    parser.add_argument(
-        "--confidence-threshold",
-        type=float,
-        default=DEFAULT_CONFIDENCE_THRESHOLD,
-        help=f"Minimum confidence to auto-accept classification (default: {DEFAULT_CONFIDENCE_THRESHOLD})",
-    )
-    parser.add_argument(
-        "--review-threshold",
-        type=float,
-        default=DEFAULT_REVIEW_THRESHOLD,
-        help=f"Below this confidence, flag for manual review (default: {DEFAULT_REVIEW_THRESHOLD})",
-    )
-    parser.add_argument(
-        "--json-only",
-        action="store_true",
-        help="Only output JSON, skip CSV",
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Show detailed output for each image",
-    )
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-dir", type=Path, default=DEFAULT_IMAGE_DIR)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--country", type=str, default=DEFAULT_COUNTRY)
+    parser.add_argument("--confidence-threshold", type=float, default=DEFAULT_CONFIDENCE_THRESHOLD)
+    parser.add_argument("--review-threshold", type=float, default=DEFAULT_REVIEW_THRESHOLD)
+    parser.add_argument("--json-only", action="store_true")
+    parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
-    # Validate input directory
-    if not args.input_dir.exists():
-        logger.error(f"Input directory does not exist: {args.input_dir}")
+    if not args.input_dir.exists() or not args.input_dir.is_dir():
+        logger.error(f"Invalid input directory: {args.input_dir}")
         sys.exit(1)
 
-    if not args.input_dir.is_dir():
-        logger.error(f"Input path is not a directory: {args.input_dir}")
-        sys.exit(1)
-
-    # Setup output directory
     output_dir = args.output_dir or (args.input_dir / "results")
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -208,7 +127,6 @@ def main():
     logger.info(f"Review threshold: {args.review_threshold}")
     logger.info("")
 
-    # Run analysis
     try:
         results = analyze_directory(
             args.input_dir,
@@ -225,26 +143,19 @@ def main():
         logger.warning("No results to report")
         sys.exit(0)
 
-    # Verbose output
     if args.verbose:
         logger.info(f"Found {len(results)} results:")
         for r in results:
             logger.info(f"  {r}")
         logger.info("")
 
-    # Write outputs
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     write_json_results(results, output_dir / f"results_{timestamp}.json")
-
     if not args.json_only:
         write_csv_results(results, output_dir / f"results_{timestamp}.csv")
-
     write_summary(results, output_dir / f"summary_{timestamp}.json")
-
-    # Print summary
     print_summary(results)
 
-    # Report flagged images
     flagged = [r for r in results if r.flagged_for_review]
     if flagged:
         logger.info("")
