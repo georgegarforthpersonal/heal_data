@@ -74,6 +74,7 @@ def analyze_file(
         default_confidence_threshold=MIN_CONFIDENCE,
         custom_species_list=species_list,
         show_stats="progress" if show_progress else "minimal",
+        n_workers=1,  # Single worker to avoid multiprocessing spawn issues in background tasks
     )
 
     return [
