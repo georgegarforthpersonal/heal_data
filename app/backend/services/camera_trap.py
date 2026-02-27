@@ -7,6 +7,7 @@ with UK geofencing and confidence-based review flagging.
 
 import json
 import logging
+import os
 import subprocess
 import sys
 import tempfile
@@ -280,14 +281,16 @@ def run_speciesnet(
 
         logger.info(f"Running SpeciesNet on {len(image_paths)} images...")
         try:
-            # Run from tmpdir to avoid conflict with local models.py
-            # (yolov5 needs to import 'models.yolo' package)
+            # Clear PYTHONPATH to avoid conflict with local models.py
+            # (yolov5 needs to import 'models.yolo' package, but /app/models.py shadows it)
+            env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 check=True,
                 cwd=tmpdir,
+                env=env,
             )
             if result.stderr:
                 logger.debug(f"SpeciesNet stderr: {result.stderr}")
