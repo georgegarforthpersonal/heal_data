@@ -32,6 +32,7 @@ birdnet
 # Camera trap image analysis
 speciesnet
 pillow>=10.0.0
+opencv-python-headless>=4.8.0  # Headless version for Docker/server environments
 
 # Cloud storage (Cloudflare R2)
 boto3>=1.34.0
