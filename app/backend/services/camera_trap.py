@@ -280,11 +280,14 @@ def run_speciesnet(
 
         logger.info(f"Running SpeciesNet on {len(image_paths)} images...")
         try:
+            # Run from tmpdir to avoid conflict with local models.py
+            # (yolov5 needs to import 'models.yolo' package)
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 check=True,
+                cwd=tmpdir,
             )
             if result.stderr:
                 logger.debug(f"SpeciesNet stderr: {result.stderr}")
