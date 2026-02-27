@@ -144,12 +144,26 @@ def _find_images(directory: Path) -> list[Path]:
 
 
 def _parse_species_label(label: str) -> tuple[str, str, str]:
+    """Parse label format: uuid;class;order;family;genus;species;common_name"""
     if ";" not in label:
         return label, label, "none"
     parts = label.split(";")
-    if len(parts) >= 3:
-        return parts[1], parts[2], parts[0].lower()
-    return label, label, "unknown"
+    if len(parts) < 7:
+        return label, label, "unknown"
+
+    _, cls, order, family, genus, species, common_name = parts
+
+    if species:
+        return f"{genus} {species}", common_name, "species"
+    elif genus:
+        return genus, common_name, "genus"
+    elif family:
+        return family, common_name, "family"
+    elif order:
+        return order, common_name, "order"
+    elif cls:
+        return cls, common_name, "class"
+    return label, common_name, "unknown"
 
 
 def _should_flag_for_review(
