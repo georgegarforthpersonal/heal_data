@@ -10,7 +10,7 @@ import {
   Autocomplete,
   TextField,
 } from '@mui/material';
-import { Lock, Save, Cancel, CloudUpload, AudioFile, Delete } from '@mui/icons-material';
+import { Lock, Save, Cancel, CloudUpload, AudioFile, Delete, PhotoCamera } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,7 @@ import {
   speciesAPI,
   surveyTypesAPI,
   audioAPI,
+  imagesAPI,
 } from '../services/api';
 import type {
   Survey,
@@ -85,6 +86,12 @@ export function NewSurveyPage() {
   // ============================================================================
 
   const [pendingAudioFiles, setPendingAudioFiles] = useState<File[]>([]);
+
+  // ============================================================================
+  // Form State - Image Files (for camera trap survey type)
+  // ============================================================================
+
+  const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([]);
 
   // ============================================================================
   // Data State
@@ -259,6 +266,31 @@ export function NewSurveyPage() {
   };
 
   // ============================================================================
+  // Image File Handlers
+  // ============================================================================
+
+  const handleImageFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Filter to only image files
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp'];
+    const validFiles = Array.from(files).filter((f) => {
+      const ext = f.name.toLowerCase().substring(f.name.lastIndexOf('.'));
+      return validExtensions.includes(ext);
+    });
+
+    setPendingImageFiles((prev) => [...prev, ...validFiles]);
+
+    // Reset input so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const handleRemoveImageFile = (index: number) => {
+    setPendingImageFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ============================================================================
   // Form Submission
   // ============================================================================
 
@@ -317,9 +349,15 @@ export function NewSurveyPage() {
         await audioAPI.uploadFiles(newSurvey.id, pendingAudioFiles);
       }
 
-      // Success - navigate to survey detail page (shows audio processing status)
-      // or surveys list if not an audio survey
-      if (allowAudioUpload && pendingAudioFiles.length > 0) {
+      // Step 4: Upload image files if any (for camera trap surveys)
+      if (pendingImageFiles.length > 0) {
+        await imagesAPI.uploadFiles(newSurvey.id, pendingImageFiles);
+      }
+
+      // Success - navigate to survey detail page (shows processing status)
+      // or surveys list if no files to process
+      if ((allowAudioUpload && pendingAudioFiles.length > 0) ||
+          (allowImageUpload && pendingImageFiles.length > 0)) {
         navigate(`/surveys/${newSurvey.id}`);
       } else {
         navigate(`/surveys?created=${newSurvey.id}`);
@@ -346,6 +384,10 @@ export function NewSurveyPage() {
     // Clear pending audio files when switching to a survey type that doesn't allow audio
     if (!surveyType?.allow_audio_upload) {
       setPendingAudioFiles([]);
+    }
+    // Clear pending image files when switching to a survey type that doesn't allow images
+    if (!surveyType?.allow_image_upload) {
+      setPendingImageFiles([]);
     }
     // Clear validation error
     if (validationErrors.surveyType) {
@@ -403,6 +445,7 @@ export function NewSurveyPage() {
   const allowGeolocation = selectedSurveyType?.allow_geolocation ?? true;
   const allowSightingNotes = selectedSurveyType?.allow_sighting_notes ?? true;
   const allowAudioUpload = selectedSurveyType?.allow_audio_upload ?? false;
+  const allowImageUpload = selectedSurveyType?.allow_image_upload ?? false;
 
   // Determine if save button should be disabled
   const saveDisabled =
@@ -609,6 +652,90 @@ export function NewSurveyPage() {
               <AudioFile sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
               <Typography color="text.secondary">
                 Add WAV files to upload with this survey.
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      )}
+
+      {/* Image Upload Section - Only for camera trap surveys */}
+      {allowImageUpload && (
+        <Paper
+          sx={{
+            p: 3,
+            mb: 3,
+            boxShadow: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Camera Trap Images ({pendingImageFiles.length})
+            </Typography>
+            <Button
+              component="label"
+              variant="contained"
+              startIcon={<CloudUpload />}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
+            >
+              Add Images
+              <input
+                type="file"
+                hidden
+                multiple
+                accept=".jpg,.jpeg,.png,.tiff,.tif,.bmp"
+                onChange={handleImageFileSelect}
+              />
+            </Button>
+          </Stack>
+
+          {pendingImageFiles.length > 0 ? (
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+              {pendingImageFiles.map((file, index) => (
+                <Box
+                  key={`${file.name}-${index}`}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 1.5,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    '&:last-child': { borderBottom: 'none' },
+                    '&:hover': { bgcolor: 'grey.50' },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <PhotoCamera sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                      {file.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                    </Typography>
+                  </Stack>
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveImageFile(index)}
+                    sx={{ minWidth: 'auto', p: 0.5 }}
+                  >
+                    <Delete fontSize="small" />
+                  </Button>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <PhotoCamera sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+              <Typography color="text.secondary">
+                Add camera trap images to upload with this survey.
               </Typography>
             </Box>
           )}

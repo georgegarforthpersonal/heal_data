@@ -300,6 +300,7 @@ export interface IndividualLocation {
   count: number;
   breeding_status_code?: string | null;
   notes?: string | null;
+  camera_trap_image_id?: number | null;
 }
 
 /**
@@ -398,6 +399,7 @@ export interface SurveyType {
   allow_geolocation: boolean;
   allow_sighting_notes: boolean;
   allow_audio_upload: boolean;
+  allow_image_upload: boolean;
   icon: string | null;
   color: string | null;
   is_active: boolean;
@@ -421,6 +423,7 @@ export interface SurveyTypeCreate {
   allow_geolocation: boolean;
   allow_sighting_notes: boolean;
   allow_audio_upload: boolean;
+  allow_image_upload: boolean;
   icon?: string;
   color?: string;
   location_ids: number[];
@@ -437,6 +440,7 @@ export interface SurveyTypeUpdate {
   allow_geolocation?: boolean;
   allow_sighting_notes?: boolean;
   allow_audio_upload?: boolean;
+  allow_image_upload?: boolean;
   icon?: string;
   color?: string;
   is_active?: boolean;
@@ -654,13 +658,16 @@ export const surveyorsAPI = {
 };
 
 // ============================================================================
-// Device Types (Audio Recorder Devices)
+// Device Types (Audio Recorder & Camera Trap Devices)
 // ============================================================================
+
+export type DeviceType = 'audio_recorder' | 'camera_trap';
 
 export interface Device {
   id: number;
   device_id: string;
   name: string | null;
+  device_type: DeviceType;
   latitude: number | null;
   longitude: number | null;
   location_id: number | null;
@@ -671,6 +678,7 @@ export interface Device {
 export interface DeviceCreate {
   device_id: string;
   name?: string;
+  device_type?: DeviceType;
   latitude?: number;
   longitude?: number;
   location_id?: number;
@@ -679,6 +687,7 @@ export interface DeviceCreate {
 export interface DeviceUpdate {
   device_id?: string;
   name?: string;
+  device_type?: DeviceType;
   latitude?: number;
   longitude?: number;
   location_id?: number;
@@ -1217,5 +1226,169 @@ export const audioAPI = {
    */
   getDetectionsSummary: (surveyId: number): Promise<SurveyDetectionsSummaryResponse> => {
     return fetchAPI(`/surveys/${surveyId}/detections/summary`);
+  },
+};
+
+// ============================================================================
+// Camera Trap Image Types
+// ============================================================================
+
+export interface CameraTrapImage {
+  id: number;
+  survey_id: number;
+  filename: string;
+  r2_key: string;
+  file_size_bytes: number | null;
+  image_timestamp: string | null;
+  device_serial: string | null;
+  processing_status: ProcessingStatus;
+  processing_error: string | null;
+  flagged_for_review: boolean;
+  review_reason: string | null;
+  created_at: string;
+  detection_count: number;
+  unmatched_species: string[] | null;
+}
+
+export interface CameraTrapDetection {
+  id: number;
+  species_name: string;
+  scientific_name: string;
+  confidence: number;
+  taxonomic_level: string | null;
+  is_primary: boolean;
+  species_id: number | null;
+}
+
+export interface ImageDetectionOption {
+  species_id: number | null;
+  species_name: string | null;
+  scientific_name: string;
+  confidence: number;
+}
+
+export interface ImageWithDetections {
+  image_id: number;
+  filename: string;
+  device_id: string | null;
+  device_name: string | null;
+  device_latitude: number | null;
+  device_longitude: number | null;
+  location_id: number | null;
+  location_name: string | null;
+  detections: ImageDetectionOption[];
+}
+
+export interface SurveyImageDetectionsResponse {
+  images: ImageWithDetections[];
+}
+
+// ============================================================================
+// API Methods - Camera Trap Images
+// ============================================================================
+
+export const imagesAPI = {
+  /**
+   * Get all camera trap images for a survey
+   */
+  getImages: (surveyId: number): Promise<CameraTrapImage[]> => {
+    return fetchAPI(`/surveys/${surveyId}/images`);
+  },
+
+  /**
+   * Upload image files to a survey
+   * Returns the created image records
+   */
+  uploadFiles: async (surveyId: number, files: File[]): Promise<CameraTrapImage[]> => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    // Build headers with auth token if available
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'X-Org-Slug': ORG_SLUG,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}/images`, {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Upload failed: ${response.status}`;
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get a specific camera trap image
+   */
+  getImage: (surveyId: number, imageId: number): Promise<CameraTrapImage> => {
+    return fetchAPI(`/surveys/${surveyId}/images/${imageId}`);
+  },
+
+  /**
+   * Manually trigger processing for an image
+   */
+  processImage: (surveyId: number, imageId: number): Promise<{ status: string; message: string }> => {
+    return fetchAPI(`/surveys/${surveyId}/images/${imageId}/process`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Get species detections for a camera trap image
+   */
+  getDetections: (surveyId: number, imageId: number, minConfidence?: number, primaryOnly?: boolean): Promise<CameraTrapDetection[]> => {
+    const params = new URLSearchParams();
+    if (minConfidence) params.append('min_confidence', minConfidence.toString());
+    if (primaryOnly) params.append('primary_only', 'true');
+    const query = params.toString();
+    return fetchAPI(`/surveys/${surveyId}/images/${imageId}/detections${query ? `?${query}` : ''}`);
+  },
+
+  /**
+   * Get a presigned download URL for an image file
+   */
+  getDownloadUrl: (imageId: number): Promise<{ download_url: string; expires_in: number }> => {
+    return fetchAPI(`/images/${imageId}/download`);
+  },
+
+  /**
+   * Get a presigned preview URL for an image file
+   */
+  getPreviewUrl: (imageId: number): Promise<{ preview_url: string; expires_in: number }> => {
+    return fetchAPI(`/images/${imageId}/preview`);
+  },
+
+  /**
+   * Delete a camera trap image
+   */
+  deleteImage: (surveyId: number, imageId: number): Promise<void> => {
+    return fetchAPI(`/surveys/${surveyId}/images/${imageId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Get image detections for a survey - one row per image with top 3 species
+   */
+  getDetectionsSummary: (surveyId: number): Promise<SurveyImageDetectionsResponse> => {
+    return fetchAPI(`/surveys/${surveyId}/image-detections/summary`);
   },
 };

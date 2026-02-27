@@ -102,6 +102,7 @@ async def get_survey_type(
         allow_geolocation=survey_type.allow_geolocation,
         allow_sighting_notes=survey_type.allow_sighting_notes,
         allow_audio_upload=survey_type.allow_audio_upload,
+        allow_image_upload=survey_type.allow_image_upload,
         icon=survey_type.icon,
         color=survey_type.color,
         is_active=survey_type.is_active,
@@ -152,6 +153,7 @@ async def create_survey_type(
         allow_geolocation=survey_type.allow_geolocation,
         allow_sighting_notes=survey_type.allow_sighting_notes,
         allow_audio_upload=survey_type.allow_audio_upload,
+        allow_image_upload=survey_type.allow_image_upload,
         icon=survey_type.icon,
         color=survey_type.color,
         organisation_id=org.id
