@@ -1,12 +1,31 @@
-import { Box, Typography, Paper, Stack, IconButton, Tooltip, CircularProgress, Alert, Autocomplete, TextField } from '@mui/material';
+import { Box, Typography, Paper, Stack, IconButton, Tooltip, CircularProgress, Alert, Autocomplete, TextField, Tabs, Tab } from '@mui/material';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { dashboardAPI, locationsAPI } from '../services/api';
 import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResponse, SpeciesSightingLocation, LocationWithBoundary } from '../services/api';
 import SightingsMap from '../components/dashboard/SightingsMap';
+import TurtleDoveMap from '../components/dashboard/TurtleDoveMap';
 import { speciesTypes, getSpeciesIcon, getSpeciesDisplayName } from '../config';
 import { notionColors } from '../theme';
+
+// Turtle Dove species ID
+const TURTLE_DOVE_SPECIES_ID = 596;
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+  return (
+    <div role="tabpanel" hidden={value !== index} {...other}>
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </div>
+  );
+}
 
 /**
  * DashboardsPage displays cumulative species count charts
@@ -21,6 +40,9 @@ export function DashboardsPage() {
   // ============================================================================
   // State Management
   // ============================================================================
+
+  // Tab state
+  const [tabValue, setTabValue] = useState(0);
 
   const [selectedSpeciesTypes, setSelectedSpeciesTypes] = useState<string[]>(['bird']); // Default: bird selected
   const [chartData, setChartData] = useState<CumulativeSpeciesResponse | null>(null);
@@ -44,6 +66,11 @@ export function DashboardsPage() {
 
   // Available species types (only those with entries)
   const [availableSpeciesTypes, setAvailableSpeciesTypes] = useState<string[]>([]);
+
+  // Turtle Dove tab state
+  const [turtleDoveSightings, setTurtleDoveSightings] = useState<SpeciesSightingLocation[]>([]);
+  const [turtleDoveLoading, setTurtleDoveLoading] = useState(false);
+  const [turtleDoveError, setTurtleDoveError] = useState<string | null>(null);
 
   // ============================================================================
   // Chart Configuration
@@ -252,6 +279,26 @@ export function DashboardsPage() {
       });
   }, []);
 
+  // Fetch turtle dove sightings when Turtle Doves tab is selected
+  useEffect(() => {
+    if (tabValue !== 1) return;
+
+    const fetchTurtleDoveSightings = async () => {
+      try {
+        setTurtleDoveLoading(true);
+        setTurtleDoveError(null);
+        const response = await dashboardAPI.getSpeciesSightings(TURTLE_DOVE_SPECIES_ID);
+        setTurtleDoveSightings(response);
+      } catch (err) {
+        setTurtleDoveError(err instanceof Error ? err.message : 'Failed to load Turtle Dove sightings');
+      } finally {
+        setTurtleDoveLoading(false);
+      }
+    };
+
+    fetchTurtleDoveSightings();
+  }, [tabValue]);
+
   // ============================================================================
   // Event Handlers
   // ============================================================================
@@ -345,6 +392,16 @@ export function DashboardsPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 0 }}>
+        <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+          <Tab label="Overview" />
+          <Tab label="Turtle Doves" />
+        </Tabs>
+      </Box>
+
+      {/* Overview Tab */}
+      <TabPanel value={tabValue} index={0}>
       {/* Species Group Selector */}
       <Paper
         elevation={0}
@@ -669,6 +726,17 @@ export function DashboardsPage() {
           </Box>
         )}
       </Paper>
+      </TabPanel>
+
+      {/* Turtle Doves Tab */}
+      <TabPanel value={tabValue} index={1}>
+        <TurtleDoveMap
+          sightings={turtleDoveSightings}
+          loading={turtleDoveLoading}
+          error={turtleDoveError}
+          locationsWithBoundaries={locationsWithBoundaries}
+        />
+      </TabPanel>
     </Box>
   );
 }

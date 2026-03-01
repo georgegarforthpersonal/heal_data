@@ -373,6 +373,10 @@ export interface SpeciesSightingLocation {
   species_scientific_name: string | null;
   breeding_status_code: string | null;
   breeding_status_description: string | null;
+  survey_type_id: number | null;
+  survey_type_name: string | null;
+  survey_type_icon: string | null;
+  survey_type_color: string | null;
 }
 
 // ============================================================================
