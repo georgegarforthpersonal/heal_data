@@ -10,7 +10,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio, devices
+from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio, devices, images
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -50,6 +50,8 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(surveys.router, prefix="/api/surveys", tags=["Surveys"])
 app.include_router(audio.router, prefix="/api/surveys", tags=["Audio"])
 app.include_router(audio.download_router, prefix="/api/audio", tags=["Audio"])
+app.include_router(images.router, prefix="/api/surveys", tags=["Images"])
+app.include_router(images.download_router, prefix="/api/images", tags=["Images"])
 app.include_router(species.router, prefix="/api/species", tags=["Species"])
 app.include_router(locations.router, prefix="/api/locations", tags=["Locations"])
 app.include_router(surveyors.router, prefix="/api/surveyors", tags=["Surveyors"])
