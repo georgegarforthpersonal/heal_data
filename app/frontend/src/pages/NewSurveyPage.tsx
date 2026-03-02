@@ -36,6 +36,7 @@ import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
 import { PageHeader } from '../components/layout/PageHeader';
+import { brandColors } from '../theme';
 
 /**
  * NewSurveyPage - Full-page form for creating surveys with inline sightings
@@ -421,7 +422,7 @@ export function NewSurveyPage() {
         <Button
           variant="contained"
           onClick={() => requireAuth(() => {})}
-          sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+          sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
         >
           Enter Password
         </Button>

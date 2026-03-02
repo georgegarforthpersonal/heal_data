@@ -52,6 +52,7 @@ import {
 } from '../services/api';
 import LocationMapPicker from '../components/surveys/LocationMapPicker';
 import { SurveyTypeColorSelector, SurveyTypeChip } from '../components/SurveyTypeColors';
+import { brandColors } from '../theme';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -494,7 +495,7 @@ export function AdminPage() {
         <Button
           variant="contained"
           onClick={() => requireAuth(() => {})}
-          sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+          sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
         >
           Enter Password
         </Button>
@@ -520,7 +521,7 @@ export function AdminPage() {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenAddSurveyor}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             Add Surveyor
           </Button>
@@ -617,7 +618,7 @@ export function AdminPage() {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenAddSurveyType}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             Add Survey Type
           </Button>
@@ -763,7 +764,7 @@ export function AdminPage() {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenAddDevice}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             Add Device
           </Button>
@@ -919,7 +920,7 @@ export function AdminPage() {
             onClick={handleSaveSurveyor}
             variant="contained"
             disabled={savingSurveyor}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             {savingSurveyor ? 'Saving...' : surveyorDialogMode === 'add' ? 'Add' : 'Save'}
           </Button>
@@ -1114,7 +1115,7 @@ export function AdminPage() {
             onClick={handleSaveSurveyType}
             variant="contained"
             disabled={savingSurveyType}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             {savingSurveyType ? 'Saving...' : surveyTypeDialogMode === 'add' ? 'Add' : 'Save'}
           </Button>
@@ -1240,7 +1241,7 @@ export function AdminPage() {
             onClick={handleSaveDevice}
             variant="contained"
             disabled={savingDevice}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             {savingDevice ? 'Saving...' : deviceDialogMode === 'add' ? 'Add' : 'Save'}
           </Button>

@@ -7,7 +7,7 @@ import type { CumulativeSpeciesResponse, SpeciesWithCount, SpeciesOccurrenceResp
 import SightingsMap from '../components/dashboard/SightingsMap';
 import TurtleDoveMap from '../components/dashboard/TurtleDoveMap';
 import { speciesTypes, getSpeciesIcon, getSpeciesDisplayName } from '../config';
-import { notionColors } from '../theme';
+import { notionColors, brandColors } from '../theme';
 
 // Turtle Dove species ID
 const TURTLE_DOVE_SPECIES_ID = 596;
@@ -76,7 +76,6 @@ export function DashboardsPage() {
   // Chart Configuration
   // ============================================================================
 
-  const HEAL_PURPLE = '#8B8AC7';
   const CHART_MARGIN = { top: 10, right: 10, left: 0, bottom: 0 };
 
   // Format timestamp for x-axis (Year for Jan, Month name for Apr/Jul/Oct)
@@ -423,15 +422,15 @@ export function DashboardsPage() {
                 <IconButton
                   onClick={() => handleToggle(type)}
                   sx={{
-                    bgcolor: isSelected ? HEAL_PURPLE : notionColors.gray.background,
+                    bgcolor: isSelected ? brandColors.main : notionColors.gray.background,
                     color: isSelected ? '#fff' : 'text.secondary',
                     width: 40,
                     height: 40,
                     '&:hover': {
-                      bgcolor: isSelected ? '#7A79B6' : '#DDD',
+                      bgcolor: isSelected ? brandColors.hover : '#DDD',
                     },
                     transition: 'all 0.2s',
-                    border: isSelected ? '2px solid #7A79B6' : 'none',
+                    border: isSelected ? `2px solid ${brandColors.hover}` : 'none',
                   }}
                 >
                   <Icon sx={{ fontSize: '20px' }} />
@@ -487,8 +486,8 @@ export function DashboardsPage() {
                   key={type}
                   type="monotone"
                   dataKey={type}
-                  stroke={HEAL_PURPLE}
-                  fill={HEAL_PURPLE}
+                  stroke={brandColors.main}
+                  fill={brandColors.main}
                   fillOpacity={0.6}
                   strokeWidth={2}
                 />
@@ -665,7 +664,7 @@ export function DashboardsPage() {
                   );
                 }}
               />
-              <Bar dataKey="count" fill={HEAL_PURPLE} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="count" fill={brandColors.main} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}

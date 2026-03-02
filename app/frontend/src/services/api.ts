@@ -61,6 +61,9 @@ const getOrgSlug = (): string => {
 const API_BASE_URL = getApiBaseUrl();
 const ORG_SLUG = getOrgSlug();
 
+// Export org slug for use in theming and conditional UI
+export { ORG_SLUG, getOrgSlug };
+
 // Token storage key
 const AUTH_TOKEN_KEY = 'admin_session_token';
 

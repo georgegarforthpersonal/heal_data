@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { authAPI } from '../services/api';
+import { brandColors } from '../theme';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -135,7 +136,7 @@ function PasswordDialogInner({ onLogin, onClose }: { onLogin: (password: string)
           onClick={handleSubmit}
           variant="contained"
           disabled={submitting || !password.trim()}
-          sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+          sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
         >
           {submitting ? 'Verifying...' : 'Login'}
         </Button>
