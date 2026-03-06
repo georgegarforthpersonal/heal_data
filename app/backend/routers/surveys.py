@@ -134,10 +134,10 @@ async def get_surveys(
                 .filter(Sighting.survey_id == survey.id)\
                 .scalar()
 
-            # Get species breakdown (count by species type)
+            # Get species breakdown (count unique species by type)
             species_breakdown_query = db.query(
                 Species.type.label('type'),
-                func.count(Sighting.id).label('count')
+                func.count(func.distinct(Species.id)).label('count')
             ).join(Sighting, Species.id == Sighting.species_id)\
              .filter(Sighting.survey_id == survey.id)\
              .group_by(Species.type)\
