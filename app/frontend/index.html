@@ -2,12 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
+    <link rel="icon" id="favicon" type="image/jpeg" href="/favicon.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <title>Wildlife Survey Management</title>
+    <title>Data Platform</title>
+    <script>
+      // Detect organisation and set favicon/title accordingly
+      (function() {
+        var hostname = window.location.hostname;
+        var org = 'heal';
+
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          var params = new URLSearchParams(window.location.search);
+          org = params.get('org') || 'heal';
+        } else {
+          var match = hostname.match(/^([a-z]+)data\./);
+          if (match) org = match[1];
+        }
+
+        // Set title based on org
+        var orgNames = { heal: 'Heal', cannwood: 'Cannwood' };
+        var displayName = orgNames[org] || org.charAt(0).toUpperCase() + org.slice(1);
+        document.title = displayName + ' Data Platform';
+
+        // Set favicon for Cannwood
+        if (org === 'cannwood') {
+          document.getElementById('favicon').href = '/favicon-cannwood.svg';
+          document.getElementById('favicon').type = 'image/svg+xml';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

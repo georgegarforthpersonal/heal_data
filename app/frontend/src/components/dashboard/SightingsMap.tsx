@@ -11,6 +11,7 @@ import 'leaflet/dist/leaflet.css';
 import type { SpeciesSightingLocation, LocationWithBoundary } from '../../services/api';
 import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
+import { brandColors } from '../../theme';
 
 interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
@@ -43,7 +44,7 @@ function FitBounds({ sightings }: { sightings: SpeciesSightingLocation[] }) {
  */
 function getColorForDate(date: Date, minDate: Date, maxDate: Date): string {
   const range = maxDate.getTime() - minDate.getTime();
-  if (range === 0) return '#8B8AC7'; // HEAL purple if all same date
+  if (range === 0) return brandColors.main; // Brand color if all same date
 
   const position = (date.getTime() - minDate.getTime()) / range;
 
@@ -212,7 +213,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                 sx={{
                   '& .MuiSlider-thumb': {
                     bgcolor: '#fff',
-                    border: '2px solid #8B8AC7',
+                    border: `2px solid ${brandColors.main}`,
                   },
                   '& .MuiSlider-track': {
                     border: 'none',
@@ -343,7 +344,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               const sightingDate = new Date(sighting.survey_date);
               const color = dateRange
                 ? getColorForDate(sightingDate, dateRange.min, dateRange.max)
-                : '#8B8AC7';
+                : brandColors.main;
 
               return (
                 <CircleMarker

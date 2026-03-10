@@ -24,6 +24,10 @@ import {
   Switch,
   Autocomplete,
   Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { Add, Delete, RestoreFromTrash, Edit, Lock } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
@@ -44,9 +48,11 @@ import {
   type Device,
   type DeviceCreate,
   type DeviceUpdate,
+  type DeviceType,
 } from '../services/api';
 import LocationMapPicker from '../components/surveys/LocationMapPicker';
 import { SurveyTypeColorSelector, SurveyTypeChip } from '../components/SurveyTypeColors';
+import { brandColors } from '../theme';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -112,6 +118,7 @@ export function AdminPage() {
   const [formAllowGeolocation, setFormAllowGeolocation] = useState(true);
   const [formAllowSightingNotes, setFormAllowSightingNotes] = useState(true);
   const [formAllowAudioUpload, setFormAllowAudioUpload] = useState(false);
+  const [formAllowImageUpload, setFormAllowImageUpload] = useState(false);
   const [formColor, setFormColor] = useState<string | null>(null);
   const [formSelectedLocations, setFormSelectedLocations] = useState<Location[]>([]);
   const [formSelectedSpeciesTypes, setFormSelectedSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
@@ -132,6 +139,7 @@ export function AdminPage() {
   // Device form state
   const [formDeviceId, setFormDeviceId] = useState('');
   const [formDeviceName, setFormDeviceName] = useState('');
+  const [formDeviceType, setFormDeviceType] = useState<DeviceType>('audio_recorder');
   const [formDeviceLatitude, setFormDeviceLatitude] = useState<number | undefined>(undefined);
   const [formDeviceLongitude, setFormDeviceLongitude] = useState<number | undefined>(undefined);
   const [formDeviceLocationId, setFormDeviceLocationId] = useState<number | null>(null);
@@ -287,6 +295,7 @@ export function AdminPage() {
       setFormAllowGeolocation(details.allow_geolocation);
       setFormAllowSightingNotes(details.allow_sighting_notes);
       setFormAllowAudioUpload(details.allow_audio_upload);
+      setFormAllowImageUpload(details.allow_image_upload);
       setFormColor(details.color);
       setFormSelectedLocations(details.locations);
       setFormSelectedSpeciesTypes(details.species_types);
@@ -303,6 +312,7 @@ export function AdminPage() {
     setFormAllowGeolocation(true);
     setFormAllowSightingNotes(true);
     setFormAllowAudioUpload(false);
+    setFormAllowImageUpload(false);
     setFormColor(null);
     setFormSelectedLocations([]);
     setFormSelectedSpeciesTypes([]);
@@ -334,6 +344,7 @@ export function AdminPage() {
         allow_geolocation: formAllowGeolocation,
         allow_sighting_notes: formAllowSightingNotes,
         allow_audio_upload: formAllowAudioUpload,
+        allow_image_upload: formAllowImageUpload,
         color: formColor || undefined,
         location_ids: formSelectedLocations.map((l) => l.id),
         species_type_ids: formSelectedSpeciesTypes.map((st) => st.id),
@@ -386,6 +397,7 @@ export function AdminPage() {
     setEditingDevice(null);
     setFormDeviceId('');
     setFormDeviceName('');
+    setFormDeviceType('audio_recorder');
     setFormDeviceLatitude(undefined);
     setFormDeviceLongitude(undefined);
     setFormDeviceLocationId(null);
@@ -398,6 +410,7 @@ export function AdminPage() {
     setEditingDevice(device);
     setFormDeviceId(device.device_id);
     setFormDeviceName(device.name || '');
+    setFormDeviceType(device.device_type);
     setFormDeviceLatitude(device.latitude ?? undefined);
     setFormDeviceLongitude(device.longitude ?? undefined);
     setFormDeviceLocationId(device.location_id);
@@ -416,6 +429,7 @@ export function AdminPage() {
       const data: DeviceCreate | DeviceUpdate = {
         device_id: formDeviceId.trim(),
         name: formDeviceName.trim() || undefined,
+        device_type: formDeviceType,
         latitude: formDeviceLatitude,
         longitude: formDeviceLongitude,
         location_id: formDeviceLocationId ?? undefined,
@@ -481,7 +495,7 @@ export function AdminPage() {
         <Button
           variant="contained"
           onClick={() => requireAuth(() => {})}
-          sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+          sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
         >
           Enter Password
         </Button>
@@ -507,7 +521,7 @@ export function AdminPage() {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenAddSurveyor}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             Add Surveyor
           </Button>
@@ -604,7 +618,7 @@ export function AdminPage() {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenAddSurveyType}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             Add Survey Type
           </Button>
@@ -625,6 +639,7 @@ export function AdminPage() {
                 <TableCell>Geolocation</TableCell>
                 <TableCell>Sighting Notes</TableCell>
                 <TableCell>Audio</TableCell>
+                <TableCell>Images</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
@@ -632,13 +647,13 @@ export function AdminPage() {
             <TableBody>
               {surveyTypesLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : surveyTypes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8, color: 'text.secondary' }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 8, color: 'text.secondary' }}>
                     No survey types found
                   </TableCell>
                 </TableRow>
@@ -683,6 +698,14 @@ export function AdminPage() {
                         label={surveyType.allow_audio_upload ? 'Enabled' : 'Disabled'}
                         size="small"
                         color={surveyType.allow_audio_upload ? 'secondary' : 'default'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={surveyType.allow_image_upload ? 'Enabled' : 'Disabled'}
+                        size="small"
+                        color={surveyType.allow_image_upload ? 'primary' : 'default'}
                         variant="outlined"
                       />
                     </TableCell>
@@ -741,7 +764,7 @@ export function AdminPage() {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenAddDevice}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             Add Device
           </Button>
@@ -758,6 +781,7 @@ export function AdminPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Device ID</TableCell>
+                <TableCell>Type</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Location</TableCell>
                 <TableCell>Coordinates</TableCell>
@@ -768,13 +792,13 @@ export function AdminPage() {
             <TableBody>
               {devicesLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : devices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.secondary' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 8, color: 'text.secondary' }}>
                     No devices found
                   </TableCell>
                 </TableRow>
@@ -785,6 +809,14 @@ export function AdminPage() {
                       <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
                         {device.device_id}
                       </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={device.device_type === 'camera_trap' ? 'Camera Trap' : 'Audio Recorder'}
+                        size="small"
+                        color={device.device_type === 'camera_trap' ? 'primary' : 'secondary'}
+                        variant="outlined"
+                      />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body1">
@@ -888,7 +920,7 @@ export function AdminPage() {
             onClick={handleSaveSurveyor}
             variant="contained"
             disabled={savingSurveyor}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             {savingSurveyor ? 'Saving...' : surveyorDialogMode === 'add' ? 'Add' : 'Save'}
           </Button>
@@ -1033,6 +1065,23 @@ export function AdminPage() {
                 : 'Audio upload is disabled for this survey type'}
             </Typography>
           </Box>
+          <Box sx={{ mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formAllowImageUpload}
+                  onChange={(e) => setFormAllowImageUpload(e.target.checked)}
+                  disabled={savingSurveyType}
+                />
+              }
+              label="Allow image upload"
+            />
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4, mt: -1 }}>
+              {formAllowImageUpload
+                ? 'Users can upload camera trap images for analysis'
+                : 'Image upload is disabled for this survey type'}
+            </Typography>
+          </Box>
           <Autocomplete
             multiple
             options={allLocations}
@@ -1066,7 +1115,7 @@ export function AdminPage() {
             onClick={handleSaveSurveyType}
             variant="contained"
             disabled={savingSurveyType}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             {savingSurveyType ? 'Saving...' : surveyTypeDialogMode === 'add' ? 'Add' : 'Save'}
           </Button>
@@ -1122,9 +1171,21 @@ export function AdminPage() {
             value={formDeviceId}
             onChange={(e) => setFormDeviceId(e.target.value)}
             disabled={savingDevice}
-            helperText="Serial number from audio filenames (e.g., 2MM24020)"
+            helperText="Serial number from filenames (e.g., 2MM24020)"
             sx={{ fontFamily: 'monospace' }}
           />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Device Type</InputLabel>
+            <Select
+              value={formDeviceType}
+              label="Device Type"
+              onChange={(e) => setFormDeviceType(e.target.value as DeviceType)}
+              disabled={savingDevice}
+            >
+              <MenuItem value="audio_recorder">Audio Recorder</MenuItem>
+              <MenuItem value="camera_trap">Camera Trap</MenuItem>
+            </Select>
+          </FormControl>
           <TextField
             margin="normal"
             label="Name (optional)"
@@ -1180,7 +1241,7 @@ export function AdminPage() {
             onClick={handleSaveDevice}
             variant="contained"
             disabled={savingDevice}
-            sx={{ bgcolor: '#8B8AC7', '&:hover': { bgcolor: '#7A79B6' } }}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
           >
             {savingDevice ? 'Saving...' : deviceDialogMode === 'add' ? 'Add' : 'Save'}
           </Button>

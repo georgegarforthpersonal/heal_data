@@ -12,12 +12,12 @@ Endpoints:
   POST   /api/devices/{id}/reactivate        - Reactivate device
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database.connection import get_db
-from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, Organisation, Location
+from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, DeviceType, Organisation, Location
 from auth import require_admin
 from dependencies import get_current_organisation
 
@@ -56,6 +56,7 @@ def _device_to_read(row) -> DeviceRead:
         id=row.id,
         device_id=row.device_id,
         name=row.name,
+        device_type=row.device_type,
         latitude=row.latitude,
         longitude=row.longitude,
         location_id=row.location_id,
@@ -67,6 +68,7 @@ def _device_to_read(row) -> DeviceRead:
 @router.get("", response_model=List[DeviceRead])
 async def get_devices(
     include_inactive: bool = False,
+    device_type: Optional[str] = Query(None, description="Filter by device type (audio_recorder, camera_trap)"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ):
@@ -75,16 +77,31 @@ async def get_devices(
 
     Args:
         include_inactive: If True, include inactive devices. Default: False (only active)
+        device_type: Optional filter by device type
 
     Returns:
         List of devices with location info
     """
+    # Build WHERE clause conditions
+    where_conditions = ["d.organisation_id = :org_id"]
+    params = {"org_id": org.id}
+
+    if not include_inactive:
+        where_conditions.append("d.is_active = true")
+
+    if device_type:
+        where_conditions.append("d.device_type = :device_type")
+        params["device_type"] = device_type
+
+    where_clause = " AND ".join(where_conditions)
+
     # Use raw SQL to extract lat/lng from PostGIS point
-    query = text("""
+    query = text(f"""
         SELECT
             d.id,
             d.device_id,
             d.name,
+            d.device_type,
             d.location_id,
             d.is_active,
             ST_Y(d.point_geometry) as latitude,
@@ -92,12 +109,11 @@ async def get_devices(
             l.name as location_name
         FROM device d
         LEFT JOIN location l ON d.location_id = l.id
-        WHERE d.organisation_id = :org_id
-        """ + ("" if include_inactive else "AND d.is_active = true") + """
+        WHERE {where_clause}
         ORDER BY d.device_id
     """)
 
-    result = db.execute(query, {"org_id": org.id})
+    result = db.execute(query, params)
     rows = result.fetchall()
 
     return [_device_to_read(row) for row in rows]
@@ -112,7 +128,7 @@ async def get_device_by_device_id(
     """
     Look up a device by its serial number (device_id field).
 
-    This is used when processing audio files to find the device
+    This is used when processing audio/image files to find the device
     based on the serial number extracted from the filename.
     """
     query = text("""
@@ -120,6 +136,7 @@ async def get_device_by_device_id(
             d.id,
             d.device_id,
             d.name,
+            d.device_type,
             d.location_id,
             d.is_active,
             ST_Y(d.point_geometry) as latitude,
@@ -152,6 +169,7 @@ async def get_device(
             d.id,
             d.device_id,
             d.name,
+            d.device_type,
             d.location_id,
             d.is_active,
             ST_Y(d.point_geometry) as latitude,
@@ -195,6 +213,7 @@ async def create_device(
     db_device = Device(
         device_id=device.device_id,
         name=device.name,
+        device_type=device.device_type,
         location_id=device.location_id,
         organisation_id=org.id
     )

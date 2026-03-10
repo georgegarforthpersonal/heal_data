@@ -19,6 +19,16 @@ import sqlalchemy as sa
 
 
 # ============================================================================
+# Device Type Enum
+# ============================================================================
+
+class DeviceType(str, PyEnum):
+    """Type of recording device"""
+    audio_recorder = "audio_recorder"
+    camera_trap = "camera_trap"
+
+
+# ============================================================================
 # Organisation Models
 # ============================================================================
 
@@ -63,6 +73,7 @@ class DeviceBase(SQLModel):
     """Base device fields"""
     device_id: str = Field(max_length=50, description="Device serial number from audio filenames")
     name: Optional[str] = Field(None, max_length=255, description="Friendly name for the device")
+    device_type: DeviceType = Field(default=DeviceType.audio_recorder, description="Type of device")
 
 
 class Device(DeviceBase, table=True):
@@ -114,6 +125,7 @@ class DeviceUpdate(SQLModel):
     """Model for updating a device (all fields optional)"""
     device_id: Optional[str] = Field(None, max_length=50)
     name: Optional[str] = Field(None, max_length=255)
+    device_type: Optional[DeviceType] = None
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
     location_id: Optional[int] = None
@@ -380,6 +392,7 @@ class SurveyTypeBase(SQLModel):
     allow_geolocation: bool = Field(default=True, description="Whether coordinates can be entered for sightings")
     allow_sighting_notes: bool = Field(default=True, description="Whether notes can be entered for individual sightings")
     allow_audio_upload: bool = Field(default=False, description="Whether audio files can be uploaded for this survey type")
+    allow_image_upload: bool = Field(default=False, description="Whether camera trap images can be uploaded for this survey type")
     icon: Optional[str] = Field(None, max_length=50, description="Lucide icon identifier (deprecated)")
     color: Optional[str] = Field(None, max_length=20, description="Notion-style color key (e.g., 'blue', 'purple')")
 
@@ -424,6 +437,7 @@ class SurveyTypeUpdate(SQLModel):
     allow_geolocation: Optional[bool] = None
     allow_sighting_notes: Optional[bool] = None
     allow_audio_upload: Optional[bool] = None
+    allow_image_upload: Optional[bool] = None
     icon: Optional[str] = Field(None, max_length=50)
     color: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
@@ -480,6 +494,9 @@ class Survey(SurveyBase, table=True):
     survey_type: Optional["SurveyType"] = Relationship(back_populates="surveys")
     audio_recordings: List["AudioRecording"] = Relationship(
         back_populates="survey",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+    camera_trap_images: List["CameraTrapImage"] = Relationship(
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
 
@@ -637,6 +654,10 @@ class SightingIndividual(SQLModel, table=True):
         max_length=2
     )
     notes: Optional[str] = Field(default=None)
+    camera_trap_image_id: Optional[int] = Field(
+        default=None,
+        foreign_key="camera_trap_image.id"
+    )
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
@@ -646,6 +667,7 @@ class SightingIndividual(SQLModel, table=True):
     # Relationships
     sighting: "Sighting" = Relationship(back_populates="individuals")
     breeding_status: Optional["BreedingStatusCode"] = Relationship()
+    camera_trap_image: Optional["CameraTrapImage"] = Relationship()
 
 
 class IndividualLocationBase(SQLModel):
@@ -655,6 +677,7 @@ class IndividualLocationBase(SQLModel):
     count: int = Field(default=1, ge=1, description="Number of individuals at this location")
     breeding_status_code: Optional[str] = Field(None, max_length=2, description="BTO breeding status code")
     notes: Optional[str] = Field(None, description="Optional notes for this individual")
+    camera_trap_image_id: Optional[int] = Field(None)
 
 
 class IndividualLocationCreate(IndividualLocationBase):
@@ -869,4 +892,166 @@ class SurveyDetectionsSummaryResponse(SQLModel):
     species_summaries: List[SpeciesDetectionSummary] = Field(
         default_factory=list,
         description="List of species with their detection summaries"
+    )
+
+
+# ============================================================================
+# Camera Trap Image Models
+# ============================================================================
+
+class CameraTrapImageBase(SQLModel):
+    """Base camera trap image fields"""
+    filename: str = Field(max_length=255, description="Original filename")
+    image_timestamp: Optional[datetime] = Field(None, description="Timestamp from EXIF or filename")
+    device_serial: Optional[str] = Field(None, max_length=50, description="Device serial number from filename")
+    flagged_for_review: bool = Field(default=False, description="Whether image needs manual review")
+    review_reason: Optional[str] = Field(None, max_length=255, description="Reason for flagging")
+    unmatched_species: Optional[List[str]] = Field(
+        default=None,
+        sa_column=sa.Column(sa.JSON, nullable=True),
+        description="Species detected but not found in database"
+    )
+
+
+class CameraTrapImage(CameraTrapImageBase, table=True):
+    """Camera trap image database model"""
+    __tablename__ = "camera_trap_image"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    survey_id: int = Field(foreign_key="survey.id", ondelete="CASCADE", index=True)
+    r2_key: str = Field(max_length=500, unique=True, description="R2 storage key")
+    file_size_bytes: Optional[int] = Field(None)
+
+    processing_status: ProcessingStatus = Field(
+        default=ProcessingStatus.pending,
+        sa_column=sa.Column(sa.String(20), nullable=False, server_default="pending")
+    )
+    processing_started_at: Optional[datetime] = Field(None)
+    processing_completed_at: Optional[datetime] = Field(None)
+    processing_error: Optional[str] = Field(None)
+
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    survey: "Survey" = Relationship()
+    detections: List["CameraTrapDetection"] = Relationship(
+        back_populates="camera_trap_image",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+
+
+class CameraTrapImageRead(CameraTrapImageBase):
+    """Model for reading camera trap image"""
+    id: int
+    survey_id: int
+    r2_key: str
+    file_size_bytes: Optional[int]
+    processing_status: str
+    processing_error: Optional[str]
+    created_at: datetime
+    detection_count: int = 0
+
+
+class CameraTrapDetectionBase(SQLModel):
+    """Base camera trap detection fields"""
+    species_name: str = Field(max_length=255, description="Common name")
+    scientific_name: str = Field(max_length=255, description="Scientific name")
+    confidence: float = Field(ge=0, le=1)
+    taxonomic_level: Optional[str] = Field(None, max_length=50, description="Taxonomic level of classification")
+    is_primary: bool = Field(default=True, description="Whether this is the top prediction")
+
+
+class CameraTrapDetection(CameraTrapDetectionBase, table=True):
+    """Camera trap detection database model"""
+    __tablename__ = "camera_trap_detection"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    camera_trap_image_id: int = Field(foreign_key="camera_trap_image.id", ondelete="CASCADE", index=True)
+    species_id: Optional[int] = Field(None, foreign_key="species.id", ondelete="SET NULL", description="Link to Species table if matched")
+
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
+
+    # Relationships
+    camera_trap_image: "CameraTrapImage" = Relationship(back_populates="detections")
+    species: Optional["Species"] = Relationship()
+
+
+class CameraTrapDetectionRead(CameraTrapDetectionBase):
+    """Model for reading camera trap detection"""
+    id: int
+    species_id: Optional[int]
+
+
+# ============================================================================
+# Camera Trap Detection Summary Models
+# ============================================================================
+
+class ImageDetectionClip(SQLModel):
+    """Single image detection with preview info and device context"""
+    confidence: float = Field(description="Detection confidence (0-1)")
+    camera_trap_image_id: int = Field(description="Image ID for fetching preview URL")
+    # Device info for location attribution
+    device_id: Optional[str] = Field(None, description="Device serial number")
+    device_name: Optional[str] = Field(None, description="Device friendly name")
+    device_latitude: Optional[float] = Field(None, description="Device GPS latitude")
+    device_longitude: Optional[float] = Field(None, description="Device GPS longitude")
+    location_id: Optional[int] = Field(None, description="Location ID from device")
+    location_name: Optional[str] = Field(None, description="Location name from device")
+
+
+class ImageSpeciesDetectionSummary(SQLModel):
+    """Summary of image detections for a single species"""
+    species_id: Optional[int] = Field(description="Species ID if matched")
+    species_name: str = Field(description="Species common name")
+    species_scientific_name: str = Field(description="Species scientific name")
+    detection_count: int = Field(description="Total number of detections for this species")
+    top_detections: List[ImageDetectionClip] = Field(
+        default_factory=list,
+        description="Top 3 detections sorted by confidence (highest first)"
+    )
+
+
+class SurveyImageDetectionsSummaryResponse(SQLModel):
+    """Response for survey image detections summary endpoint (DEPRECATED - use SurveyImageDetectionsResponse)"""
+    species_summaries: List[ImageSpeciesDetectionSummary] = Field(
+        default_factory=list,
+        description="List of species with their detection summaries"
+    )
+
+
+class ImageDetectionOption(SQLModel):
+    """A single species detection option for an image"""
+    species_id: Optional[int] = Field(None, description="Species ID if matched in database")
+    species_name: Optional[str] = Field(None, description="Species common name")
+    scientific_name: str = Field(description="Species scientific name")
+    confidence: float = Field(description="Detection confidence (0-1)")
+
+
+class ImageWithDetections(SQLModel):
+    """An image with its top species detection options"""
+    image_id: int = Field(description="Camera trap image ID")
+    filename: str = Field(description="Original filename")
+    device_id: Optional[str] = Field(None, description="Device serial number")
+    device_name: Optional[str] = Field(None, description="Device friendly name")
+    device_latitude: Optional[float] = Field(None, description="Device GPS latitude")
+    device_longitude: Optional[float] = Field(None, description="Device GPS longitude")
+    location_id: Optional[int] = Field(None, description="Location ID from device")
+    location_name: Optional[str] = Field(None, description="Location name from device")
+    detections: List[ImageDetectionOption] = Field(
+        default_factory=list,
+        description="Top 3 species detections sorted by confidence"
+    )
+
+
+class SurveyImageDetectionsResponse(SQLModel):
+    """Response for survey image detections endpoint - one row per image"""
+    images: List[ImageWithDetections] = Field(
+        default_factory=list,
+        description="List of images with their detection options"
     )

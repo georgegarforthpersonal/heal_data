@@ -1,4 +1,29 @@
 import { createTheme } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
+import { getOrgSlug } from './services/api';
+
+// Organisation-specific color palettes
+const orgColors = {
+  heal: {
+    main: '#8B8AC7',      // HEAL purple (from logo)
+    light: '#B5B4E0',     // Lighter for hovers
+    dark: '#6968A3',      // Darker for active states
+    hover: '#7A79B6',     // Button hover state
+  },
+  cannwood: {
+    main: '#3D8B56',      // Medium forest green
+    light: '#5AA573',     // Lighter for hovers
+    dark: '#2E6B42',      // Darker for active states
+    hover: '#4A9B62',     // Button hover state
+  },
+} as const;
+
+// Get current org and export colors for use in hardcoded styles
+const currentOrg = getOrgSlug() as keyof typeof orgColors;
+export const brandColors = orgColors[currentOrg] || orgColors.heal;
+
+// Whether to show the logo (only for Heal)
+export const showLogo = currentOrg === 'heal';
 
 // Notion-style color palette for tags/chips
 // Each color has a background (light) and foreground (dark) shade
@@ -73,15 +98,14 @@ export const tableSizing = {
   },
 } as const;
 
-// HEAL Rewilding brand theme - inspired by logo colors
-// Logo uses a calming purple/lavender that represents nature and conservation
-export const theme = createTheme({
+// Brand theme - uses organisation-specific colors
+export const theme: Theme = createTheme({
   palette: {
     primary: {
-      main: '#8B8AC7',      // HEAL purple (from logo)
-      light: '#B5B4E0',     // Lighter for hovers
-      dark: '#6968A3',      // Darker for active states
-      contrastText: '#fff', // White text on purple
+      main: brandColors.main,
+      light: brandColors.light,
+      dark: brandColors.dark,
+      contrastText: '#fff',
     },
     secondary: {
       main: '#dc004e', // Keep red for accents/warnings

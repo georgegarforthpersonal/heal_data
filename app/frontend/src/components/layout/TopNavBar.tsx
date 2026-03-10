@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import healLogo from '../../assets/heal_logo.jpg';
+import { showLogo } from '../../theme';
 
 /**
  * TopNavBar - Main navigation bar with logo and navigation icons
@@ -81,33 +82,35 @@ export function TopNavBar() {
             </IconButton>
           )}
 
-          {/* Logo */}
-          <Box
-            onClick={handleLogoClick}
-            sx={{
-              width: { xs: 36, sm: 48 },
-              height: { xs: 36, sm: 48 },
-              borderRadius: '8px',
-              overflow: 'hidden',
-              cursor: 'pointer',
-              flexShrink: 0,
-              mr: { xs: 2, sm: 3 },
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'scale(1.05)',
-              }
-            }}
-          >
-            <img
-              src={healLogo}
-              alt="HEAL Rewilding"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
+          {/* Logo - only shown for Heal */}
+          {showLogo && (
+            <Box
+              onClick={handleLogoClick}
+              sx={{
+                width: { xs: 36, sm: 48 },
+                height: { xs: 36, sm: 48 },
+                borderRadius: '8px',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                flexShrink: 0,
+                mr: { xs: 2, sm: 3 },
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                }
               }}
-            />
-          </Box>
+            >
+              <img
+                src={healLogo}
+                alt="HEAL Rewilding"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            </Box>
+          )}
 
           {/* Desktop/Tablet: Navigation Icons */}
           {!isMobile && (
@@ -179,28 +182,30 @@ export function TopNavBar() {
         }}
       >
         <Box sx={{ p: 2 }}>
-          {/* Drawer Header with Logo and Close Button */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Box
-              onClick={handleLogoClick}
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: '8px',
-                overflow: 'hidden',
-                cursor: 'pointer',
-              }}
-            >
-              <img
-                src={healLogo}
-                alt="HEAL Rewilding"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
+          {/* Drawer Header with Logo (if applicable) and Close Button */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: showLogo ? 'space-between' : 'flex-end', mb: 3 }}>
+            {showLogo && (
+              <Box
+                onClick={handleLogoClick}
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
                 }}
-              />
-            </Box>
+              >
+                <img
+                  src={healLogo}
+                  alt="HEAL Rewilding"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              </Box>
+            )}
             <IconButton onClick={toggleDrawer} sx={{ color: 'text.secondary' }}>
               <Close />
             </IconButton>

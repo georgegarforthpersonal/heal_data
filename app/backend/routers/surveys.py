@@ -449,7 +449,7 @@ async def get_survey_sightings(
         # Fetch individual locations for this sighting
         individuals = db.execute(text("""
             SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-                   count, breeding_status_code, notes
+                   count, breeding_status_code, notes, camera_trap_image_id
             FROM sighting_individual
             WHERE sighting_id = :sighting_id
             ORDER BY id
@@ -472,7 +472,8 @@ async def get_survey_sightings(
                     "longitude": ind.longitude,
                     "count": ind.count,
                     "breeding_status_code": ind.breeding_status_code,
-                    "notes": ind.notes
+                    "notes": ind.notes,
+                    "camera_trap_image_id": ind.camera_trap_image_id
                 }
                 for ind in individuals
             ]
@@ -534,15 +535,16 @@ async def create_sighting(
     for ind in sighting.individuals:
         db.execute(
             text("""
-                INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes)
-                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes)
+                INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id)
+                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id)
             """).bindparams(
                 sighting_id=db_sighting.id,
                 lng=ind.longitude,
                 lat=ind.latitude,
                 count=ind.count,
                 code=ind.breeding_status_code,
-                notes=ind.notes
+                notes=ind.notes,
+                camera_trap_image_id=ind.camera_trap_image_id
             )
         )
     db.commit()
@@ -553,7 +555,7 @@ async def create_sighting(
     # Fetch created individuals
     individuals = db.execute(text("""
         SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-               count, breeding_status_code, notes
+               count, breeding_status_code, notes, camera_trap_image_id
         FROM sighting_individual
         WHERE sighting_id = :sighting_id
         ORDER BY id
@@ -723,16 +725,17 @@ async def add_individual_location(
     # Insert individual location
     result = db.execute(
         text("""
-            INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes)
-            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes)
-            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes
+            INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id)
+            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id)
+            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes, camera_trap_image_id
         """).bindparams(
             sighting_id=sighting_id,
             lng=individual.longitude,
             lat=individual.latitude,
             count=individual.count,
             code=individual.breeding_status_code,
-            notes=individual.notes
+            notes=individual.notes,
+            camera_trap_image_id=individual.camera_trap_image_id
         )
     ).fetchone()
     db.commit()
@@ -743,7 +746,8 @@ async def add_individual_location(
         "longitude": result.longitude,
         "count": result.count,
         "breeding_status_code": result.breeding_status_code,
-        "notes": result.notes
+        "notes": result.notes,
+        "camera_trap_image_id": result.camera_trap_image_id
     }
 
 
