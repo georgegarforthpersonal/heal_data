@@ -8,8 +8,10 @@ Config files should be placed in scripts/data/.
 Usage:
     ./dev-run setup_organisation.py scripts/data/cannwood_config.json              # Dry-run (preview only)
     ./dev-run setup_organisation.py scripts/data/cannwood_config.json --no-dry-run # Apply to database
+    ./dev-run setup_organisation.py scripts/data/cannwood_config.json --no-dry-run --update  # Update existing locations
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
+Use --update to update existing locations instead of skipping them.
 
 Config file structure:
 {
@@ -50,13 +52,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def setup_organisation(config_path: str, dry_run: bool = True):
+def setup_organisation(config_path: str, dry_run: bool = True, update: bool = False):
     """
     Create an organisation and its locations from a config file.
 
     Args:
         config_path: Path to the JSON config file
         dry_run: If True, preview changes without applying
+        update: If True, update existing locations instead of skipping them
     """
     # Load config
     config_file = Path(config_path)
@@ -130,22 +133,6 @@ def setup_organisation(config_path: str, dry_run: bool = True):
                 logger.warning(f"Skipping location without name: {loc}")
                 continue
 
-            # Check if location already exists for this org
-            if not dry_run or result:  # Can only check if org exists
-                existing = conn.execute(
-                    text("""
-                        SELECT id FROM location
-                        WHERE name = :name AND organisation_id = :org_id
-                    """),
-                    {"name": loc['name'], "org_id": org_id}
-                ).fetchone()
-
-                if existing:
-                    logger.info(f"  Location '{loc['name']}' already exists, skipping")
-                    continue
-
-            logger.info(f"  Creating location: {loc['name']}")
-
             # Build geometry SQL if boundary provided
             boundary_geometry = loc.get('boundary_geometry')
             if boundary_geometry:
@@ -155,34 +142,81 @@ def setup_organisation(config_path: str, dry_run: bool = True):
 
                 coords_str = ', '.join([f"{p[0]} {p[1]}" for p in boundary_geometry])
                 geometry_sql = f"ST_GeomFromText('POLYGON(({coords_str}))', 4326)"
-                logger.info(f"    With boundary ({len(boundary_geometry)} points)")
             else:
                 geometry_sql = "NULL"
-                logger.info("    No boundary geometry")
 
-            if dry_run:
-                logger.info("    [DRY RUN] Would create location")
-            else:
-                conn.execute(
-                    text(f"""
-                        INSERT INTO location (
-                            name, organisation_id, boundary_geometry,
-                            boundary_fill_color, boundary_stroke_color, boundary_fill_opacity
-                        )
-                        VALUES (
-                            :name, :org_id, {geometry_sql},
-                            :fill_color, :stroke_color, :fill_opacity
-                        )
+            # Check if location already exists for this org
+            existing = None
+            if not dry_run or result:  # Can only check if org exists
+                existing = conn.execute(
+                    text("""
+                        SELECT id FROM location
+                        WHERE name = :name AND organisation_id = :org_id
                     """),
-                    {
-                        "name": loc['name'],
-                        "org_id": org_id,
-                        "fill_color": loc.get('boundary_fill_color', '#3388ff'),
-                        "stroke_color": loc.get('boundary_stroke_color', '#3388ff'),
-                        "fill_opacity": loc.get('boundary_fill_opacity', 0.2)
-                    }
-                )
-                logger.info("    Created")
+                    {"name": loc['name'], "org_id": org_id}
+                ).fetchone()
+
+            if existing:
+                if not update:
+                    logger.info(f"  Location '{loc['name']}' already exists, skipping (use --update to update)")
+                    continue
+
+                logger.info(f"  Updating location: {loc['name']}")
+                if boundary_geometry:
+                    logger.info(f"    With boundary ({len(boundary_geometry)} points)")
+                else:
+                    logger.info("    No boundary geometry")
+
+                if dry_run:
+                    logger.info("    [DRY RUN] Would update location")
+                else:
+                    conn.execute(
+                        text(f"""
+                            UPDATE location
+                            SET boundary_geometry = {geometry_sql},
+                                boundary_fill_color = :fill_color,
+                                boundary_stroke_color = :stroke_color,
+                                boundary_fill_opacity = :fill_opacity
+                            WHERE id = :location_id
+                        """),
+                        {
+                            "location_id": existing[0],
+                            "fill_color": loc.get('boundary_fill_color', '#3388ff'),
+                            "stroke_color": loc.get('boundary_stroke_color', '#3388ff'),
+                            "fill_opacity": loc.get('boundary_fill_opacity', 0.2)
+                        }
+                    )
+                    logger.info("    Updated")
+            else:
+                logger.info(f"  Creating location: {loc['name']}")
+                if boundary_geometry:
+                    logger.info(f"    With boundary ({len(boundary_geometry)} points)")
+                else:
+                    logger.info("    No boundary geometry")
+
+                if dry_run:
+                    logger.info("    [DRY RUN] Would create location")
+                else:
+                    conn.execute(
+                        text(f"""
+                            INSERT INTO location (
+                                name, organisation_id, boundary_geometry,
+                                boundary_fill_color, boundary_stroke_color, boundary_fill_opacity
+                            )
+                            VALUES (
+                                :name, :org_id, {geometry_sql},
+                                :fill_color, :stroke_color, :fill_opacity
+                            )
+                        """),
+                        {
+                            "name": loc['name'],
+                            "org_id": org_id,
+                            "fill_color": loc.get('boundary_fill_color', '#3388ff'),
+                            "stroke_color": loc.get('boundary_stroke_color', '#3388ff'),
+                            "fill_opacity": loc.get('boundary_fill_opacity', 0.2)
+                        }
+                    )
+                    logger.info("    Created")
 
         if not dry_run:
             conn.commit()
@@ -207,6 +241,7 @@ def main():
 Examples:
     ./dev-run setup_organisation.py scripts/data/cannwood_config.json
     ./dev-run setup_organisation.py scripts/data/cannwood_config.json --no-dry-run
+    ./dev-run setup_organisation.py scripts/data/cannwood_config.json --no-dry-run --update
         """
     )
     parser.add_argument(
@@ -218,10 +253,15 @@ Examples:
         action='store_true',
         help='Actually apply changes to the database (default is dry-run)'
     )
+    parser.add_argument(
+        '--update',
+        action='store_true',
+        help='Update existing locations instead of skipping them'
+    )
 
     args = parser.parse_args()
 
-    setup_organisation(args.config_file, dry_run=not args.no_dry_run)
+    setup_organisation(args.config_file, dry_run=not args.no_dry_run, update=args.update)
 
 
 if __name__ == '__main__':
