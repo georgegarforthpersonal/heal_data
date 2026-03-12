@@ -26,11 +26,16 @@ const getApiBaseUrl = () => {
 /**
  * Extract organisation slug from the current hostname.
  *
- * Pattern: {org}data.up.railway.app → {org}
+ * Patterns supported:
+ *   - {org}.canopydata.app → {org} (new custom domains)
+ *   - {org}data.up.railway.app → {org} (legacy Railway domains)
+ *   - localhost → heal (default for development)
+ *
  * Examples:
+ *   - heal.canopydata.app → heal
+ *   - cannwood.canopydata.app → cannwood
  *   - healdata.up.railway.app → heal
  *   - cannwooddata.up.railway.app → cannwood
- *   - localhost → heal (default for development)
  */
 const getOrgSlug = (): string => {
   const hostname = window.location.hostname;
@@ -42,10 +47,16 @@ const getOrgSlug = (): string => {
     return urlParams.get('org') || 'heal';
   }
 
-  // Production: extract from subdomain pattern {org}data.up.railway.app
-  const match = hostname.match(/^([a-z]+)data\.up\.railway\.app$/);
-  if (match) {
-    return match[1];
+  // New custom domain pattern: {org}.canopydata.app
+  const canopyMatch = hostname.match(/^([a-z]+)\.canopydata\.app$/);
+  if (canopyMatch) {
+    return canopyMatch[1];
+  }
+
+  // Legacy Railway pattern: {org}data.up.railway.app
+  const railwayMatch = hostname.match(/^([a-z]+)data\.up\.railway\.app$/);
+  if (railwayMatch) {
+    return railwayMatch[1];
   }
 
   // Fallback: try to extract from any subdomain pattern {org}data.{domain}
