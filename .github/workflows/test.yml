@@ -1,0 +1,15 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        run: docker compose --profile test up --build --abort-on-container-exit --exit-code-from test
