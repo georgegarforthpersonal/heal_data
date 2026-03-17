@@ -11,7 +11,7 @@ Configuration via environment variables:
 
 import os
 from pathlib import Path
-from typing import Optional, BinaryIO
+from typing import Optional, BinaryIO, Any
 
 import boto3
 from botocore.config import Config
@@ -27,7 +27,7 @@ AUDIO_PREFIX = "audio"
 IMAGE_PREFIX = "images"
 
 
-def get_r2_client():
+def get_r2_client() -> Any:
     """Create and return an R2 client using boto3."""
     if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY]):
         raise ValueError(
@@ -103,11 +103,12 @@ def generate_presigned_url(r2_key: str, expires_in: int = 3600) -> str:
         Presigned URL string
     """
     client = get_r2_client()
-    return client.generate_presigned_url(
+    url: str = client.generate_presigned_url(
         "get_object",
         Params={"Bucket": R2_BUCKET_NAME, "Key": r2_key},
         ExpiresIn=expires_in,
     )
+    return url
 
 
 def delete_audio_file(r2_key: str) -> bool:
@@ -228,8 +229,9 @@ def generate_image_presigned_url(r2_key: str, expires_in: int = 3600) -> str:
         Presigned URL string
     """
     client = get_r2_client()
-    return client.generate_presigned_url(
+    url: str = client.generate_presigned_url(
         "get_object",
         Params={"Bucket": R2_BUCKET_NAME, "Key": r2_key},
         ExpiresIn=expires_in,
     )
+    return url

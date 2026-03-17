@@ -78,7 +78,7 @@ async def get_cumulative_species(
     end_date: Optional[date] = Query(None, description="Filter surveys until this date (inclusive)"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> CumulativeSpeciesResponse:
     """
     Get cumulative unique species counts over time for the current organisation.
 
@@ -167,7 +167,7 @@ async def get_cumulative_species(
         """)
 
         # Build parameters dict
-        params = {"org_id": org.id}
+        params: Dict[str, Any] = {"org_id": org.id}
         if species_types:
             for i, st in enumerate(species_types):
                 params[f'type_{i}'] = st
@@ -204,7 +204,7 @@ async def get_cumulative_species(
 async def get_species_types_with_entries(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[str]:
     """
     Get species types that have at least one sighting entry for the current organisation.
 
@@ -246,7 +246,7 @@ async def get_species_by_count(
     species_type: str = Query(..., description="Species type to filter (e.g., 'bird', 'butterfly')"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[SpeciesWithCount]:
     """
     Get species ordered by total occurrence count (descending) for the current organisation.
 
@@ -306,7 +306,7 @@ async def get_species_occurrences(
     end_date: Optional[date] = Query(None, description="Filter until this date (inclusive)"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> SpeciesOccurrenceResponse:
     """
     Get occurrence counts for a specific species by survey for the current organisation.
 
@@ -387,7 +387,7 @@ async def get_species_sightings(
     end_date: Optional[date] = Query(None, description="Filter until this date (inclusive)"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[Dict[str, Any]]:
     """
     Get all individual sighting locations for a specific species in the current organisation.
 

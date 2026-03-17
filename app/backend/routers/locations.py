@@ -11,7 +11,7 @@ Endpoints:
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List
+from typing import List, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database.connection import get_db
@@ -26,7 +26,7 @@ router = APIRouter()
 async def get_locations(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[dict[str, Any]]:
     """
     Get all locations for the current organisation.
 
@@ -45,7 +45,7 @@ async def get_locations_by_survey_type(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[dict[str, Any]]:
     """
     Get locations available for a specific survey type.
 
@@ -71,7 +71,7 @@ async def get_locations_by_survey_type(
 async def get_locations_with_boundaries(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[dict[str, Any]]:
     """
     Get all locations that have boundary geometry defined.
 
@@ -110,7 +110,7 @@ async def get_location(
     location_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """Get a specific location by ID"""
     location = db.query(Location).filter(
         Location.id == location_id,
@@ -128,7 +128,7 @@ async def create_location(
     location: LocationCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """Create a new location"""
     db_location = Location(
         name=location.name,
@@ -147,7 +147,7 @@ async def update_location(
     location: LocationUpdate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """Update an existing location"""
     db_location = db.query(Location).filter(
         Location.id == location_id,
@@ -171,7 +171,7 @@ async def delete_location(
     location_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> None:
     """Delete a location"""
     db_location = db.query(Location).filter(
         Location.id == location_id,

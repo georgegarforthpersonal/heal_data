@@ -14,9 +14,9 @@ import psycopg2
 from psycopg2 import pool
 import os
 from contextlib import contextmanager
-from typing import Optional, Generator
+from typing import Optional, Generator, Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlmodel import SQLModel
 
@@ -99,7 +99,7 @@ def get_connection_pool() -> Optional[pool.SimpleConnectionPool]:
     return _connection_pool
 
 
-def get_db_connection():
+def get_db_connection() -> Any:
     """
     Get a connection from the pool with health checking.
 
@@ -142,7 +142,7 @@ def get_db_connection():
         return None
 
 
-def return_db_connection(conn):
+def return_db_connection(conn: Any) -> None:
     """
     Return a connection to the pool.
 
@@ -158,7 +158,7 @@ def return_db_connection(conn):
 
 
 @contextmanager
-def get_db_cursor():
+def get_db_cursor() -> Generator[Any, None, None]:
     """
     Context manager for database operations with connection pooling.
 
@@ -223,7 +223,7 @@ def get_db_cursor():
         raise Exception("Failed to connect to database")
 
 
-def close_connection_pool():
+def close_connection_pool() -> None:
     """
     Close all connections in the pool.
     Should be called on application shutdown.
@@ -248,7 +248,7 @@ _engine = None
 _SessionLocal = None
 
 
-def get_engine():
+def get_engine() -> Engine:
     """
     Get or create the SQLAlchemy engine.
 
@@ -269,7 +269,7 @@ def get_engine():
     return _engine
 
 
-def get_session_factory():
+def get_session_factory() -> sessionmaker:  # type: ignore[type-arg, unused-ignore]
     """
     Get or create the SQLAlchemy session factory.
 
@@ -306,7 +306,7 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def close_engine():
+def close_engine() -> None:
     """
     Close the SQLAlchemy engine.
     Should be called on application shutdown.

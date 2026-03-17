@@ -11,6 +11,7 @@ import os
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from typing import Any
 
 from auth import (
     verify_org_password,
@@ -38,7 +39,7 @@ async def login(
     body: LoginRequest,
     response: Response,
     org: Organisation = Depends(get_current_organisation)
-):
+) -> dict[str, Any]:
     """
     Login with organisation-specific admin password.
 
@@ -63,7 +64,7 @@ async def login(
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(response: Response) -> dict[str, bool]:
     """Clear session cookie."""
     response.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
     return {"authenticated": False}
@@ -73,7 +74,7 @@ async def logout(response: Response):
 async def auth_status(
     request: Request,
     org: Organisation = Depends(get_current_organisation)
-):
+) -> dict[str, Any]:
     """
     Check authentication status and return organisation info.
 

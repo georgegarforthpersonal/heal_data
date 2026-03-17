@@ -18,7 +18,7 @@ import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from fastapi import (
     APIRouter,
@@ -119,7 +119,7 @@ async def list_images(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     """List all camera trap images for a survey."""
     # Verify survey belongs to org
     survey = (
@@ -133,7 +133,7 @@ async def list_images(
     images = (
         db.query(CameraTrapImage)
         .filter(CameraTrapImage.survey_id == survey_id)
-        .order_by(CameraTrapImage.image_timestamp.desc())
+        .order_by(CameraTrapImage.image_timestamp.desc())  # type: ignore[union-attr]
         .all()
     )
 
@@ -160,7 +160,7 @@ async def upload_images(
     files: List[UploadFile] = File(...),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     """
     Upload one or more camera trap images to a survey.
     Files are stored in R2 and processing is auto-triggered.
@@ -244,7 +244,7 @@ async def process_image(
     background_tasks: BackgroundTasks,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> dict[str, str]:
     """
     Manually trigger processing for a camera trap image.
     Processing runs in background; poll status via GET endpoint.
@@ -279,7 +279,7 @@ async def process_image(
     return {"status": "processing", "message": "Processing started"}
 
 
-def process_image_background(image_id: int):
+def process_image_background(image_id: int) -> None:
     """Background task to process image with species classification."""
     from services.camera_trap import analyze_image
 
@@ -392,7 +392,7 @@ async def get_image(
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> dict[str, Any]:
     """Get details of a specific camera trap image."""
     image = (
         db.query(CameraTrapImage)
@@ -427,7 +427,7 @@ async def get_image_detections(
     primary_only: bool = False,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     """Get species detections for a camera trap image."""
     # Verify access
     image = (
@@ -475,7 +475,7 @@ async def get_image_detections_summary(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> SurveyImageDetectionsResponse:
     """
     Get image detections for a survey - one row per image with top 3 species.
     Images are grouped by device for frontend device tabs.
@@ -496,7 +496,7 @@ async def get_image_detections_summary(
             CameraTrapImage.survey_id == survey_id,
             CameraTrapImage.processing_status == ProcessingStatus.completed,
         )
-        .order_by(CameraTrapImage.image_timestamp.desc())
+        .order_by(CameraTrapImage.image_timestamp.desc())  # type: ignore[union-attr]
         .all()
     )
 
@@ -510,13 +510,13 @@ async def get_image_detections_summary(
         devices = (
             db.query(
                 Device,
-                Location.name.label("location_name"),
+                Location.name.label("location_name"),  # type: ignore[attr-defined]
                 func.ST_Y(Device.point_geometry).label("lat"),
                 func.ST_X(Device.point_geometry).label("lng"),
             )
             .outerjoin(Location, Device.location_id == Location.id)
             .filter(
-                Device.device_id.in_(device_serials),
+                Device.device_id.in_(device_serials),  # type: ignore[attr-defined]
                 Device.organisation_id == org.id,
             )
             .all()
@@ -582,7 +582,7 @@ async def delete_image(
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> None:
     """Delete a camera trap image and its detections."""
     image = (
         db.query(CameraTrapImage)
@@ -615,7 +615,7 @@ async def get_download_url(
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> dict[str, Any]:
     """Get a presigned URL to download a camera trap image."""
     image = (
         db.query(CameraTrapImage)
@@ -635,7 +635,7 @@ async def get_preview_url(
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> dict[str, Any]:
     """Get a presigned URL to preview a camera trap image (same as download for now)."""
     image = (
         db.query(CameraTrapImage)
