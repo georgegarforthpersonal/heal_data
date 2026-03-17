@@ -16,7 +16,7 @@ Refactored to use SQLModel ORM instead of raw SQL.
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, text
@@ -40,7 +40,7 @@ router = APIRouter()
 # ============================================================================
 
 @router.get("/breeding-codes", response_model=List[BreedingStatusCodeRead])
-async def get_breeding_codes(db: Session = Depends(get_db)):
+async def get_breeding_codes(db: Session = Depends(get_db)) -> List[dict[str, Any]]:
     """
     Get all BTO breeding status codes grouped by category.
 
@@ -74,7 +74,7 @@ async def get_surveys(
     survey_type_id: Optional[int] = Query(None, description="Filter by survey type ID"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Get surveys with pagination and optional filtering.
 
@@ -115,10 +115,12 @@ async def get_surveys(
         offset = (page - 1) * limit
 
         # Get paginated surveys
-        surveys_query = query.order_by(Survey.date.desc())\
-            .offset(offset)\
-            .limit(limit)\
+        surveys_query = (
+            query.order_by(Survey.date.desc())  # type: ignore[attr-defined]
+            .offset(offset)
+            .limit(limit)
             .all()
+        )
 
         result = []
         for survey in surveys_query:
@@ -136,7 +138,7 @@ async def get_surveys(
 
             # Get species breakdown (count unique species by type)
             species_breakdown_query = db.query(
-                Species.type.label('type'),
+                Species.type.label('type'),  # type: ignore[attr-defined]
                 func.count(func.distinct(Species.id)).label('count')
             ).join(Sighting, Species.id == Sighting.species_id)\
              .filter(Sighting.survey_id == survey.id)\
@@ -193,7 +195,7 @@ async def get_survey(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Get a specific survey by ID.
 
@@ -240,7 +242,7 @@ async def create_survey(
     survey: SurveyCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Create a new survey.
 
@@ -303,7 +305,7 @@ async def update_survey(
     survey: SurveyUpdate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Update an existing survey.
 
@@ -375,7 +377,7 @@ async def delete_survey(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> None:
     """
     Delete a survey (CASCADE deletes sightings and surveyor associations).
 
@@ -406,7 +408,7 @@ async def get_survey_sightings(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[dict[str, Any]]:
     """
     Get all sightings for a survey, including individual location points.
 
@@ -435,9 +437,9 @@ async def get_survey_sightings(
         Sighting.location_id,
         Sighting.count,
         Sighting.notes,
-        Species.name.label('species_name'),
-        Species.scientific_name.label('species_scientific_name'),
-        Location.name.label('location_name')
+        Species.name.label('species_name'),  # type: ignore[union-attr]
+        Species.scientific_name.label('species_scientific_name'),  # type: ignore[union-attr]
+        Location.name.label('location_name')  # type: ignore[attr-defined]
     ).join(Species, Sighting.species_id == Species.id)\
      .outerjoin(Location, Sighting.location_id == Location.id)\
      .filter(Sighting.survey_id == survey_id)\
@@ -488,7 +490,7 @@ async def create_sighting(
     sighting: SightingCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Add a sighting to a survey with optional individual location points.
 
@@ -589,7 +591,7 @@ async def update_sighting(
     sighting: SightingUpdate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Update a sighting.
 
@@ -647,7 +649,7 @@ async def delete_sighting(
     sighting_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> None:
     """
     Delete a sighting.
 
@@ -688,7 +690,7 @@ async def add_individual_location(
     individual: IndividualLocationCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Add an individual location to an existing sighting.
 
@@ -759,7 +761,7 @@ async def update_individual_location(
     individual: IndividualLocationCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> dict[str, Any]:
     """
     Update an individual location.
 
@@ -854,7 +856,7 @@ async def delete_individual_location(
     individual_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> None:
     """
     Remove an individual location from a sighting.
 

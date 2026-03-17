@@ -64,12 +64,12 @@ app.include_router(devices.router, prefix="/api/devices", tags=["Devices"])
 # ============================================================================
 
 @app.get("/api/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     """Check if API is running"""
     return {"status": "healthy", "version": "2.0.0"}
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """Root endpoint - redirect to docs"""
     return {
         "message": "Wildlife Survey API",

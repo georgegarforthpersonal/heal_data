@@ -13,7 +13,7 @@ Endpoints:
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import List, Optional
+from typing import List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database.connection import get_db
@@ -50,7 +50,7 @@ def _check_device_duplicate(
         )
 
 
-def _device_to_read(row) -> DeviceRead:
+def _device_to_read(row: Any) -> DeviceRead:
     """Convert a database row to DeviceRead model"""
     return DeviceRead(
         id=row.id,
@@ -71,7 +71,7 @@ async def get_devices(
     device_type: Optional[str] = Query(None, description="Filter by device type (audio_recorder, camera_trap)"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> List[DeviceRead]:
     """
     Get all devices for the current organisation.
 
@@ -84,7 +84,7 @@ async def get_devices(
     """
     # Build WHERE clause conditions
     where_conditions = ["d.organisation_id = :org_id"]
-    params = {"org_id": org.id}
+    params: dict[str, Any] = {"org_id": org.id}
 
     if not include_inactive:
         where_conditions.append("d.is_active = true")
@@ -124,7 +124,7 @@ async def get_device_by_device_id(
     device_id: str,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> DeviceRead:
     """
     Look up a device by its serial number (device_id field).
 
@@ -162,7 +162,7 @@ async def get_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> DeviceRead:
     """Get a specific device by ID"""
     query = text("""
         SELECT
@@ -195,9 +195,10 @@ async def create_device(
     device: DeviceCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> DeviceRead:
     """Create a new device"""
     # Check for duplicate device_id within this organisation
+    assert org.id is not None  # guaranteed by get_current_organisation
     _check_device_duplicate(db, device.device_id, org.id)
 
     # Validate location_id belongs to this organisation
@@ -234,7 +235,7 @@ async def create_device(
         db.commit()
 
     # Fetch and return the created device with all fields
-    return await get_device(db_device.id, org, db)
+    return await get_device(db_device.id, org, db)  # type: ignore[no-any-return]
 
 
 @router.put("/{id}", response_model=DeviceRead, dependencies=[Depends(require_admin)])
@@ -243,7 +244,7 @@ async def update_device(
     device: DeviceUpdate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> DeviceRead:
     """Update an existing device"""
     db_device = db.query(Device).filter(
         Device.id == id,
@@ -256,6 +257,7 @@ async def update_device(
 
     # Check for duplicate device_id if being changed
     if 'device_id' in update_data:
+        assert org.id is not None  # guaranteed by get_current_organisation
         _check_device_duplicate(db, update_data['device_id'], org.id, exclude_id=id)
 
     # Validate location_id if being changed
@@ -290,7 +292,7 @@ async def update_device(
         db.commit()
 
     # Fetch and return the updated device
-    return await get_device(id, org, db)
+    return await get_device(id, org, db)  # type: ignore[no-any-return]
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
@@ -298,7 +300,7 @@ async def delete_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> None:
     """Delete a device (hard delete - use deactivate instead for soft delete)"""
     db_device = db.query(Device).filter(
         Device.id == id,
@@ -317,7 +319,7 @@ async def deactivate_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> DeviceRead:
     """
     Deactivate a device (soft delete).
 
@@ -337,7 +339,7 @@ async def deactivate_device(
     db_device.is_active = False
     db.commit()
 
-    return await get_device(id, org, db)
+    return await get_device(id, org, db)  # type: ignore[no-any-return]
 
 
 @router.post("/{id}/reactivate", response_model=DeviceRead, dependencies=[Depends(require_admin)])
@@ -345,7 +347,7 @@ async def reactivate_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
-):
+) -> DeviceRead:
     """
     Reactivate a previously deactivated device.
 
@@ -364,4 +366,4 @@ async def reactivate_device(
     db_device.is_active = True
     db.commit()
 
-    return await get_device(id, org, db)
+    return await get_device(id, org, db)  # type: ignore[no-any-return]

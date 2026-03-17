@@ -6,7 +6,7 @@ Base URL: https://species-ws.nbnatlas.org/
 """
 
 import requests
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Self
 
 
 class NBNAtlasClient:
@@ -57,7 +57,7 @@ class NBNAtlasClient:
                 }
             }
         """
-        params = {
+        params: Dict[str, Any] = {
             "q": query,
             "pageSize": page_size,
             "start": start
@@ -80,7 +80,8 @@ class NBNAtlasClient:
         response = self.session.get(url, params=params, timeout=self.timeout)
         response.raise_for_status()
 
-        return response.json()
+        result: Dict[str, Any] = response.json()
+        return result
 
     def search_all(
         self,
@@ -134,14 +135,14 @@ class NBNAtlasClient:
 
         return all_results
 
-    def close(self):
+    def close(self) -> None:
         """Close the session."""
         self.session.close()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         self.close()

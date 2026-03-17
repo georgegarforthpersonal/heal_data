@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from PIL import Image
 from PIL.ExifTags import TAGS
@@ -68,11 +69,11 @@ class SpeciesClassifier:
 
     MODEL_NAME = "hf-hub:timm/eva02_large_patch14_clip_336.merged2b_ft_inat21"
 
-    def __init__(self):
-        self.model = None
-        self.transform = None
-        self.label_names = None
-        self.label_descriptions = None
+    def __init__(self) -> None:
+        self.model: Any = None
+        self.transform: Any = None
+        self.label_names: list[str] | None = None
+        self.label_descriptions: dict[str, str] | None = None
         self._loaded = False
 
     def load(self) -> bool:
@@ -117,10 +118,12 @@ class SpeciesClassifier:
             top_probs, top_indices = probs[0].topk(top_k)
 
             predictions = []
+            label_names = self.label_names or []
+            label_descriptions = self.label_descriptions or {}
             for prob, idx in zip(top_probs, top_indices):
                 idx_val = idx.item()
-                scientific_name = self.label_names[idx_val] if idx_val < len(self.label_names) else f"class_{idx_val}"
-                description = self.label_descriptions.get(scientific_name, "")
+                scientific_name = label_names[idx_val] if idx_val < len(label_names) else f"class_{idx_val}"
+                description = label_descriptions.get(scientific_name, "")
                 common_name = description.split(",")[0].strip() if description else scientific_name
 
                 predictions.append({
@@ -157,22 +160,23 @@ def _get_image_timestamp(image_path: Path) -> datetime | None:
     except Exception:
         pass
 
-    patterns = [
+    patterns: list[tuple[str, Any]] = [
         (r"(\d{8})_(\d{6})", lambda g: datetime.strptime(f"{g[0]}_{g[1]}", "%Y%m%d_%H%M%S")),
-        (r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", lambda g: datetime(*map(int, g))),
+        (r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", lambda g: datetime(int(g[0]), int(g[1]), int(g[2]), int(g[3]), int(g[4]), int(g[5]))),
     ]
     for pattern, parser in patterns:
         match = re.search(pattern, image_path.stem)
         if match:
             try:
-                return parser(match.groups())
+                result: datetime | None = parser(match.groups())
+                return result
             except ValueError:
                 continue
     return None
 
 
 def _find_images(directory: Path) -> list[Path]:
-    images = []
+    images: list[Path] = []
     for ext in IMAGE_EXTENSIONS:
         images.extend(directory.glob(f"*{ext}"))
         images.extend(directory.glob(f"*{ext.upper()}"))

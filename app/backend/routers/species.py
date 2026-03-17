@@ -10,7 +10,7 @@ Endpoints:
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List, Optional
+from typing import List, Optional, Any
 from database.connection import get_db_cursor
 from models import SpeciesRead, SpeciesCreate, SpeciesUpdate
 from auth import require_admin
@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[SpeciesRead])
-async def get_species(survey_type: Optional[str] = None):
+async def get_species(survey_type: Optional[str] = None) -> List[dict[str, Any]]:
     """
     Get all species, optionally filtered by type.
 
@@ -61,7 +61,7 @@ async def get_species(survey_type: Optional[str] = None):
 
 
 @router.get("/by-survey-type/{survey_type_id}", response_model=List[SpeciesRead])
-async def get_species_by_survey_type(survey_type_id: int):
+async def get_species_by_survey_type(survey_type_id: int) -> List[dict[str, Any]]:
     """
     Get species available for a specific survey type.
 
@@ -100,7 +100,7 @@ async def get_species_by_survey_type(survey_type_id: int):
 
 
 @router.get("/{species_id}", response_model=SpeciesRead)
-async def get_species_by_id(species_id: int):
+async def get_species_by_id(species_id: int) -> dict[str, Any]:
     """Get a specific species by ID"""
     try:
         with get_db_cursor() as cursor:
@@ -130,7 +130,7 @@ async def get_species_by_id(species_id: int):
 
 
 @router.post("", response_model=SpeciesRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
-async def create_species(species: SpeciesCreate):
+async def create_species(species: SpeciesCreate) -> dict[str, Any]:
     """Create a new species"""
     try:
         with get_db_cursor() as cursor:
@@ -156,7 +156,7 @@ async def create_species(species: SpeciesCreate):
 
 
 @router.put("/{species_id}", response_model=SpeciesRead, dependencies=[Depends(require_admin)])
-async def update_species(species_id: int, species: SpeciesUpdate):
+async def update_species(species_id: int, species: SpeciesUpdate) -> dict[str, Any]:
     """Update an existing species"""
     try:
         with get_db_cursor() as cursor:
@@ -166,8 +166,8 @@ async def update_species(species_id: int, species: SpeciesUpdate):
                 raise HTTPException(status_code=404, detail=f"Species {species_id} not found")
 
             # Build dynamic UPDATE query
-            update_fields = []
-            update_values = []
+            update_fields: list[str] = []
+            update_values: list[Any] = []
 
             if species.name is not None:
                 update_fields.append("name = %s")
@@ -220,7 +220,7 @@ async def update_species(species_id: int, species: SpeciesUpdate):
 
 
 @router.delete("/{species_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
-async def delete_species(species_id: int):
+async def delete_species(species_id: int) -> None:
     """Delete a species"""
     try:
         with get_db_cursor() as cursor:

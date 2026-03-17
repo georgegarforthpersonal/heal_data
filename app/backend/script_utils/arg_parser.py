@@ -2,11 +2,12 @@
 
 import argparse
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def get_arg_parser(description: str = None, **kwargs) -> argparse.ArgumentParser:
+def get_arg_parser(description: str | None = None, **kwargs: Any) -> argparse.ArgumentParser:
     """
     Create and return a standardized argument parser for backend scripts.
 

@@ -98,10 +98,11 @@ def get_token_from_request(request: Request) -> Optional[str]:
     # Check Authorization header first (for cross-origin requests)
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        return auth_header[7:]  # Strip "Bearer " prefix
+        return str(auth_header[7:])  # Strip "Bearer " prefix
 
     # Fall back to cookie (for same-origin requests)
-    return request.cookies.get(SESSION_COOKIE_NAME)
+    cookie = request.cookies.get(SESSION_COOKIE_NAME)
+    return str(cookie) if cookie else None
 
 
 def get_session_org_slug(request: Request) -> Optional[str]:
@@ -122,7 +123,7 @@ def get_session_org_slug(request: Request) -> Optional[str]:
     return org_slug if is_valid else None
 
 
-async def require_admin(request: Request):
+async def require_admin(request: Request) -> None:
     """
     FastAPI dependency - raises 401 if not authenticated.
 

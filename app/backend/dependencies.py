@@ -73,4 +73,4 @@ async def get_current_organisation(
             detail=f"Organisation not found: {org_slug}"
         )
 
-    return org
+    return org  # type: ignore[no-any-return]

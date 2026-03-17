@@ -38,7 +38,7 @@ class OrganisationBase(SQLModel):
     slug: str = Field(max_length=100, description="URL-friendly identifier")
 
 
-class Organisation(OrganisationBase, table=True):
+class Organisation(OrganisationBase, table=True):  # type: ignore[call-arg]
     """Organisation database model"""
     __tablename__ = "organisation"
 
@@ -76,7 +76,7 @@ class DeviceBase(SQLModel):
     device_type: DeviceType = Field(default=DeviceType.audio_recorder, description="Type of device")
 
 
-class Device(DeviceBase, table=True):
+class Device(DeviceBase, table=True):  # type: ignore[call-arg]
     """Device database model for audio recording devices"""
     __tablename__ = "device"
     __table_args__ = (
@@ -146,7 +146,7 @@ class DeviceRead(DeviceBase):
 # Junction Tables
 # ============================================================================
 
-class SurveySurveyor(SQLModel, table=True):
+class SurveySurveyor(SQLModel, table=True):  # type: ignore[call-arg]
     """Junction table linking surveys to surveyors (many-to-many)"""
     __tablename__ = "survey_surveyor"
 
@@ -160,7 +160,7 @@ class SurveySurveyor(SQLModel, table=True):
     )
 
 
-class SurveyTypeLocationLink(SQLModel, table=True):
+class SurveyTypeLocationLink(SQLModel, table=True):  # type: ignore[call-arg]
     """Junction table linking survey types to locations"""
     __tablename__ = "survey_type_location"
 
@@ -169,7 +169,7 @@ class SurveyTypeLocationLink(SQLModel, table=True):
     location_id: int = Field(foreign_key="location.id", ondelete="CASCADE")
 
 
-class SurveyTypeSpeciesTypeLink(SQLModel, table=True):
+class SurveyTypeSpeciesTypeLink(SQLModel, table=True):  # type: ignore[call-arg]
     """Junction table linking survey types to species types"""
     __tablename__ = "survey_type_species_type"
 
@@ -188,7 +188,7 @@ class SurveyorBase(SQLModel):
     last_name: Optional[str] = Field(default=None, max_length=255, description="Surveyor's last name (optional)")
 
 
-class Surveyor(SurveyorBase, table=True):
+class Surveyor(SurveyorBase, table=True):  # type: ignore[call-arg]
     """Surveyor database model"""
     __tablename__ = "surveyor"
 
@@ -238,7 +238,7 @@ class SpeciesBase(SQLModel):
     species_code: Optional[str] = Field(None, max_length=10, description="Short code for map display (e.g., BTO 2-letter codes for birds)")
 
 
-class Species(SpeciesBase, table=True):
+class Species(SpeciesBase, table=True):  # type: ignore[call-arg]
     """Species database model"""
     __tablename__ = "species"
     __table_args__ = (
@@ -287,7 +287,7 @@ class SpeciesTypeBase(SQLModel):
     display_name: str = Field(max_length=100, description="Display name (e.g., 'Bird')")
 
 
-class SpeciesType(SpeciesTypeBase, table=True):
+class SpeciesType(SpeciesTypeBase, table=True):  # type: ignore[call-arg]
     """Species type reference table"""
     __tablename__ = "species_type"
 
@@ -319,7 +319,7 @@ class LocationBase(SQLModel):
     name: str = Field(max_length=255, description="Location name")
 
 
-class Location(LocationBase, table=True):
+class Location(LocationBase, table=True):  # type: ignore[call-arg]
     """Location database model"""
     __tablename__ = "location"
 
@@ -397,7 +397,7 @@ class SurveyTypeBase(SQLModel):
     color: Optional[str] = Field(None, max_length=20, description="Notion-style color key (e.g., 'blue', 'purple')")
 
 
-class SurveyType(SurveyTypeBase, table=True):
+class SurveyType(SurveyTypeBase, table=True):  # type: ignore[call-arg]
     """Survey type configuration table"""
     __tablename__ = "survey_type"
 
@@ -474,7 +474,7 @@ class SurveyBase(SQLModel):
     survey_type_id: Optional[int] = Field(None, foreign_key="survey_type.id", description="Survey type ID")
 
 
-class Survey(SurveyBase, table=True):
+class Survey(SurveyBase, table=True):  # type: ignore[call-arg]
     """Survey database model"""
     __tablename__ = "survey"
 
@@ -547,7 +547,7 @@ class SightingBase(SQLModel):
     count: int = Field(gt=0, description="Number of individuals sighted")
 
 
-class Sighting(SightingBase, table=True):
+class Sighting(SightingBase, table=True):  # type: ignore[call-arg]
     """Sighting database model"""
     __tablename__ = "sighting"
 
@@ -606,7 +606,7 @@ class BreedingCategory(str, PyEnum):
     confirmed_breeder = "confirmed_breeder"
 
 
-class BreedingStatusCode(SQLModel, table=True):
+class BreedingStatusCode(SQLModel, table=True):  # type: ignore[call-arg]
     """BTO breeding status codes reference table"""
     __tablename__ = "breeding_status_code"
 
@@ -633,7 +633,7 @@ class BreedingStatusCodeRead(SQLModel):
 # Sighting Individual Models (Per-Point Locations)
 # ============================================================================
 
-class SightingIndividual(SQLModel, table=True):
+class SightingIndividual(SQLModel, table=True):  # type: ignore[call-arg]
     """Individual location point within a sighting with optional breeding status"""
     __tablename__ = "sighting_individual"
 
@@ -773,7 +773,7 @@ class AudioRecordingBase(SQLModel):
     )
 
 
-class AudioRecording(AudioRecordingBase, table=True):
+class AudioRecording(AudioRecordingBase, table=True):  # type: ignore[call-arg]
     """Audio recording database model"""
     __tablename__ = "audio_recording"
 
@@ -831,7 +831,7 @@ class BirdDetectionBase(SQLModel):
     detection_timestamp: datetime
 
 
-class BirdDetection(BirdDetectionBase, table=True):
+class BirdDetection(BirdDetectionBase, table=True):  # type: ignore[call-arg]
     """Bird detection database model"""
     __tablename__ = "bird_detection"
 
@@ -913,7 +913,7 @@ class CameraTrapImageBase(SQLModel):
     )
 
 
-class CameraTrapImage(CameraTrapImageBase, table=True):
+class CameraTrapImage(CameraTrapImageBase, table=True):  # type: ignore[call-arg]
     """Camera trap image database model"""
     __tablename__ = "camera_trap_image"
 
@@ -964,7 +964,7 @@ class CameraTrapDetectionBase(SQLModel):
     is_primary: bool = Field(default=True, description="Whether this is the top prediction")
 
 
-class CameraTrapDetection(CameraTrapDetectionBase, table=True):
+class CameraTrapDetection(CameraTrapDetectionBase, table=True):  # type: ignore[call-arg]
     """Camera trap detection database model"""
     __tablename__ = "camera_trap_detection"
 

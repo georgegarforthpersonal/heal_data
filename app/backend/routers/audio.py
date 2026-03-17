@@ -16,7 +16,7 @@ import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from fastapi import (
     APIRouter,
@@ -100,7 +100,7 @@ async def list_audio_recordings(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     """List all audio recordings for a survey."""
     # Verify survey belongs to org
     survey = (
@@ -114,7 +114,7 @@ async def list_audio_recordings(
     recordings = (
         db.query(AudioRecording)
         .filter(AudioRecording.survey_id == survey_id)
-        .order_by(AudioRecording.recording_timestamp.desc())
+        .order_by(AudioRecording.recording_timestamp.desc())  # type: ignore[union-attr]
         .all()
     )
 
@@ -141,7 +141,7 @@ async def upload_audio_files(
     files: List[UploadFile] = File(...),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     """
     Upload one or more audio files to a survey.
     Files are stored in R2 and processing is auto-triggered.
@@ -222,7 +222,7 @@ async def process_audio_recording(
     background_tasks: BackgroundTasks,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> dict[str, str]:
     """
     Manually trigger BirdNET processing for an audio recording.
     Processing runs in background; poll status via GET endpoint.
@@ -257,7 +257,7 @@ async def process_audio_recording(
     return {"status": "processing", "message": "Processing started"}
 
 
-def process_recording_background(recording_id: int):
+def process_recording_background(recording_id: int) -> None:
     """Background task to process audio with BirdNET."""
     from services.bird_audio import analyze_file, get_db_scientific_name, get_location_species
 
@@ -355,7 +355,7 @@ async def get_audio_recording(
     recording_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> dict[str, Any]:
     """Get details of a specific audio recording."""
     recording = (
         db.query(AudioRecording)
@@ -389,7 +389,7 @@ async def get_audio_detections(
     min_confidence: float = 0.0,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     """Get bird detections for an audio recording."""
     # Verify access
     recording = (
@@ -436,7 +436,7 @@ async def get_detections_summary(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> SurveyDetectionsSummaryResponse:
     """
     Get aggregated detection summary for a survey, grouped by species.
     Returns top 3 detections per species sorted by confidence.
@@ -469,13 +469,13 @@ async def get_detections_summary(
         devices = (
             db.query(
                 Device,
-                Location.name.label("location_name"),
+                Location.name.label("location_name"),  # type: ignore[attr-defined]
                 func.ST_Y(Device.point_geometry).label("lat"),
                 func.ST_X(Device.point_geometry).label("lng"),
             )
             .outerjoin(Location, Device.location_id == Location.id)
             .filter(
-                Device.device_id.in_(device_serials),
+                Device.device_id.in_(device_serials),  # type: ignore[attr-defined]
                 Device.organisation_id == org.id,
             )
             .all()
@@ -508,15 +508,15 @@ async def get_detections_summary(
     species_device_counts = (
         db.query(
             BirdDetection.species_id,
-            Species.name.label("species_name"),
-            Species.scientific_name.label("species_scientific_name"),
+            Species.name.label("species_name"),  # type: ignore[union-attr]
+            Species.scientific_name.label("species_scientific_name"),  # type: ignore[union-attr]
             AudioRecording.device_serial,
             func.count(BirdDetection.id).label("detection_count"),
             func.max(BirdDetection.confidence).label("max_confidence"),
         )
         .join(Species, BirdDetection.species_id == Species.id)
         .join(AudioRecording, BirdDetection.audio_recording_id == AudioRecording.id)
-        .filter(BirdDetection.audio_recording_id.in_(recording_ids))
+        .filter(BirdDetection.audio_recording_id.in_(recording_ids))  # type: ignore[attr-defined]
         .group_by(
             BirdDetection.species_id,
             Species.name,
@@ -541,7 +541,7 @@ async def get_detections_summary(
         top_detections = (
             db.query(BirdDetection)
             .filter(
-                BirdDetection.audio_recording_id.in_(device_recording_ids),
+                BirdDetection.audio_recording_id.in_(device_recording_ids),  # type: ignore[attr-defined]
                 BirdDetection.species_id == row.species_id,
             )
             .order_by(desc(BirdDetection.confidence))
@@ -589,7 +589,7 @@ async def delete_audio_recording(
     recording_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> None:
     """Delete an audio recording and its detections."""
     recording = (
         db.query(AudioRecording)
@@ -622,7 +622,7 @@ async def get_download_url(
     recording_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
-):
+) -> dict[str, Any]:
     """Get a presigned URL to download an audio file."""
     recording = (
         db.query(AudioRecording)
