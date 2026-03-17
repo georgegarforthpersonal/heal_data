@@ -12,6 +12,7 @@ Usage:
     ./staging-run import_jenny.py --year 2024 --no-dry-run  # Apply 2024 to database
 
 Defaults to dry-run mode. Use --no-dry-run to write to database.
+# test
 """
 
 import csv
