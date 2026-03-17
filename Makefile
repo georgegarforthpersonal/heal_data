@@ -1,4 +1,4 @@
-.PHONY: help dev staging prod down logs test typecheck check build migrate migrate-staging migrate-prod shell
+.PHONY: help dev dev-build staging staging-build prod prod-build down logs test typecheck check build migrate migrate-staging migrate-prod shell
 
 # Default environment
 ENV ?= dev
@@ -8,8 +8,11 @@ help:
 	@echo ""
 	@echo "Environments:"
 	@echo "  dev              Start development environment (local DB)"
+	@echo "  dev-build        Start dev with rebuild"
 	@echo "  staging          Start staging environment (Neon staging DB)"
+	@echo "  staging-build    Start staging with rebuild"
 	@echo "  prod             Start production environment (Neon prod DB)"
+	@echo "  prod-build       Start prod with rebuild"
 	@echo "  down             Stop all services"
 	@echo "  logs             Tail logs from all services"
 	@echo ""
@@ -36,11 +39,20 @@ help:
 dev:
 	docker compose --profile dev up
 
+dev-build:
+	docker compose --profile dev up --build
+
 staging:
 	docker compose --profile staging up
 
+staging-build:
+	docker compose --profile staging up --build
+
 prod:
 	docker compose --profile prod up
+
+prod-build:
+	docker compose --profile prod up --build
 
 down:
 	docker compose down
