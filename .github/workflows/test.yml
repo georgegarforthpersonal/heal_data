@@ -22,7 +22,8 @@ jobs:
         run: pip install mypy types-requests
 
       - name: Run mypy
-        run: mypy app/backend --config-file app/backend/mypy.ini
+        working-directory: app/backend
+        run: mypy . --config-file mypy.ini
 
   backend-tests:
     runs-on: ubuntu-latest
