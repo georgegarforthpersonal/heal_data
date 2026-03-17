@@ -55,7 +55,7 @@ prod-build:
 	docker compose --profile prod up --build
 
 down:
-	docker compose down
+	docker compose --profile dev --profile staging --profile prod --profile test down
 
 logs:
 	docker compose logs -f
