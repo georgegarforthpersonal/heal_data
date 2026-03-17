@@ -113,10 +113,10 @@ services:
       - ./app/backend:/app
     command: /bin/bash
 
-  # Test database - isolated PostgreSQL for running tests
+  # Test database - isolated PostgreSQL with PostGIS for running tests
   test-db:
     profiles: ["test"]
-    image: postgres:15
+    image: postgis/postgis:15-3.4
     container_name: heal_butterflies_test_db
     environment:
       POSTGRES_DB: test_db
