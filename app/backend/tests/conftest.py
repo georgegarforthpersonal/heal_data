@@ -23,7 +23,11 @@ from main import app
 from database.connection import get_db
 from dependencies import get_current_organisation
 from auth import create_session_token
-from models import Organisation, Surveyor
+from models import (
+    Organisation, Surveyor, Location, Species, SpeciesType,
+    SurveyType, Survey, SurveySurveyor, SurveyTypeLocationLink,
+    SurveyTypeSpeciesTypeLink, Device, DeviceType
+)
 
 
 # ============================================================================
@@ -159,13 +163,7 @@ def client(db_session: Session, test_org: Organisation) -> Generator[TestClient,
 
 @pytest.fixture
 def create_surveyor(db_session: Session, test_org: Organisation):
-    """
-    Factory fixture to create surveyors.
-
-    Usage:
-        def test_something(create_surveyor):
-            surveyor = create_surveyor(first_name="John", last_name="Doe")
-    """
+    """Factory fixture to create surveyors."""
     def _create_surveyor(
         first_name: str = "Test",
         last_name: str = "Surveyor",
@@ -183,3 +181,136 @@ def create_surveyor(db_session: Session, test_org: Organisation):
         return surveyor
 
     return _create_surveyor
+
+
+@pytest.fixture
+def create_location(db_session: Session, test_org: Organisation):
+    """Factory fixture to create locations."""
+    def _create_location(name: str = "Test Location") -> Location:
+        location = Location(
+            name=name,
+            organisation_id=test_org.id,
+        )
+        db_session.add(location)
+        db_session.commit()
+        db_session.refresh(location)
+        return location
+
+    return _create_location
+
+
+@pytest.fixture
+def create_species(db_session: Session):
+    """Factory fixture to create species (global, not org-specific)."""
+    def _create_species(
+        name: str = "Test Species",
+        scientific_name: str = "Testus specius",
+        species_type: str = "butterfly",
+    ) -> Species:
+        species = Species(
+            name=name,
+            scientific_name=scientific_name,
+            type=species_type,
+        )
+        db_session.add(species)
+        db_session.commit()
+        db_session.refresh(species)
+        return species
+
+    return _create_species
+
+
+@pytest.fixture
+def create_species_type(db_session: Session):
+    """Factory fixture to create species types (global reference data)."""
+    def _create_species_type(
+        name: str = "butterfly",
+        display_name: str = "Butterfly",
+    ) -> SpeciesType:
+        species_type = SpeciesType(
+            name=name,
+            display_name=display_name,
+        )
+        db_session.add(species_type)
+        db_session.commit()
+        db_session.refresh(species_type)
+        return species_type
+
+    return _create_species_type
+
+
+@pytest.fixture
+def create_survey_type(db_session: Session, test_org: Organisation):
+    """Factory fixture to create survey types."""
+    def _create_survey_type(
+        name: str = "Test Survey Type",
+        is_active: bool = True,
+    ) -> SurveyType:
+        survey_type = SurveyType(
+            name=name,
+            organisation_id=test_org.id,
+            is_active=is_active,
+        )
+        db_session.add(survey_type)
+        db_session.commit()
+        db_session.refresh(survey_type)
+        return survey_type
+
+    return _create_survey_type
+
+
+@pytest.fixture
+def create_survey(db_session: Session, test_org: Organisation):
+    """Factory fixture to create surveys."""
+    from datetime import date
+
+    def _create_survey(
+        survey_date: date = None,
+        location_id: int = None,
+        survey_type_id: int = None,
+        surveyor_ids: list = None,
+    ) -> Survey:
+        survey = Survey(
+            date=survey_date or date.today(),
+            organisation_id=test_org.id,
+            location_id=location_id,
+            survey_type_id=survey_type_id,
+        )
+        db_session.add(survey)
+        db_session.commit()
+        db_session.refresh(survey)
+
+        # Add surveyor associations if provided
+        if surveyor_ids:
+            for surveyor_id in surveyor_ids:
+                link = SurveySurveyor(survey_id=survey.id, surveyor_id=surveyor_id)
+                db_session.add(link)
+            db_session.commit()
+
+        return survey
+
+    return _create_survey
+
+
+@pytest.fixture
+def create_device(db_session: Session, test_org: Organisation):
+    """Factory fixture to create devices."""
+    def _create_device(
+        device_id: str = "TEST001",
+        name: str = "Test Device",
+        device_type: DeviceType = DeviceType.audio_recorder,
+        is_active: bool = True,
+    ) -> Device:
+        device = Device(
+            device_id=device_id,
+            name=name,
+            device_type=device_type,
+            organisation_id=test_org.id,
+            is_active=is_active,
+        )
+        db_session.add(device)
+        db_session.commit()
+        db_session.refresh(device)
+        return device
+
+    return _create_device
