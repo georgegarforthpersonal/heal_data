@@ -1,4 +1,4 @@
-.PHONY: help dev dev-build staging staging-build prod prod-build down logs test typecheck check build migrate migrate-staging migrate-prod shell
+.PHONY: help dev dev-build staging staging-build prod prod-build down logs test test-build typecheck check build migrate migrate-staging migrate-prod shell
 
 # Default environment
 ENV ?= dev
@@ -29,6 +29,7 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  test             Run pytest"
+	@echo "  test-build       Rebuild test container and run pytest"
 	@echo "  typecheck        Run mypy type checking"
 	@echo "  check            Run both typecheck and test"
 
@@ -95,6 +96,9 @@ migrate-prod:
 
 test:
 	docker compose --profile test run --rm test
+
+test-build:
+	docker compose --profile test build test && docker compose --profile test run --rm test
 
 typecheck:
 	@docker run --rm -v "$(PWD)/app/backend:/app" -w /app python:3.11-slim \
