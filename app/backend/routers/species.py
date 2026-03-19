@@ -54,7 +54,7 @@ async def get_species(
         func.coalesce(Species.name, Species.scientific_name)
     ).all()
 
-    return species  # type: ignore[return-value]
+    return species  # type: ignore[no-any-return]
 
 
 @router.get("/by-survey-type/{survey_type_id}", response_model=List[SpeciesRead])
@@ -85,7 +85,7 @@ async def get_species_by_survey_type(
         func.coalesce(Species.name, Species.scientific_name)
     ).all()
 
-    return species  # type: ignore[return-value]
+    return species  # type: ignore[no-any-return]
 
 
 @router.get("/{species_id}", response_model=SpeciesRead)
@@ -97,7 +97,7 @@ async def get_species_by_id(
     species = db.query(Species).filter(Species.id == species_id).first()
     if not species:
         raise HTTPException(status_code=404, detail=f"Species {species_id} not found")
-    return species  # type: ignore[return-value]
+    return species  # type: ignore[no-any-return]
 
 
 @router.post("", response_model=SpeciesRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
@@ -137,7 +137,7 @@ async def update_species(
 
     db.commit()
     db.refresh(db_species)
-    return db_species  # type: ignore[return-value]
+    return db_species  # type: ignore[no-any-return]
 
 
 @router.delete("/{species_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])

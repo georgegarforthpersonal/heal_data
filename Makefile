@@ -102,6 +102,6 @@ test-build:
 
 typecheck:
 	@docker run --rm -v "$(PWD)/app/backend:/app" -w /app python:3.11-slim \
-		sh -c "pip install -q mypy types-requests && mypy . --config-file mypy.ini"
+		sh -c "pip install -q mypy types-requests pydantic-settings && mypy . --config-file mypy.ini"
 
 check: typecheck test

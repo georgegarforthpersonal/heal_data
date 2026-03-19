@@ -122,15 +122,15 @@ async def get_surveys(
             .all()
         )
 
-        # Extract survey IDs for batch queries
-        survey_ids = [s.id for s in surveys_query]
+        # Extract survey IDs for batch queries (filter out None values)
+        survey_ids: list[int] = [s.id for s in surveys_query if s.id is not None]
 
         # Batch query 1: Get all surveyor IDs for these surveys
         surveyor_data = db.query(
             SurveySurveyor.survey_id,
             SurveySurveyor.surveyor_id
         ).filter(
-            SurveySurveyor.survey_id.in_(survey_ids)
+            SurveySurveyor.survey_id.in_(survey_ids)  # type: ignore[attr-defined]
         ).order_by(
             SurveySurveyor.survey_id,
             SurveySurveyor.surveyor_id
@@ -146,7 +146,7 @@ async def get_surveys(
             Sighting.survey_id,
             func.count(Sighting.id).label('count')
         ).filter(
-            Sighting.survey_id.in_(survey_ids)
+            Sighting.survey_id.in_(survey_ids)  # type: ignore[attr-defined]
         ).group_by(
             Sighting.survey_id
         ).all()
@@ -164,7 +164,7 @@ async def get_surveys(
         ).join(
             Species, Species.id == Sighting.species_id
         ).filter(
-            Sighting.survey_id.in_(survey_ids)
+            Sighting.survey_id.in_(survey_ids)  # type: ignore[attr-defined]
         ).group_by(
             Sighting.survey_id,
             Species.type
