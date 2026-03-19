@@ -9,7 +9,6 @@ Endpoints:
 
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from typing import Any
 
 from auth import (
@@ -21,9 +20,8 @@ from auth import (
     SESSION_MAX_AGE,
 )
 from config import settings
-from database.connection import get_db
 from dependencies import get_current_organisation
-from models import Organisation, OrganisationRead
+from models import Organisation
 
 router = APIRouter()
 

@@ -19,16 +19,16 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional, Any
 from datetime import date
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select, text
+from sqlalchemy import func, text
 from sqlmodel import col
 from database.connection import get_db
 from auth import require_admin
 from dependencies import get_current_organisation
 from models import (
-    Survey, SurveyRead, SurveyCreate, SurveyUpdate, SurveyWithSightingsCount,
-    Sighting, SightingRead, SightingCreate, SightingUpdate, SightingWithDetails,
-    Species, Location, Surveyor, SurveySurveyor, SpeciesTypeCount,
-    BreedingStatusCode, BreedingStatusCodeRead, SightingIndividual,
+    Survey, SurveyRead, SurveyCreate, SurveyUpdate,
+    Sighting, SightingCreate, SightingUpdate, SightingWithDetails,
+    Species, Location, SurveySurveyor,
+    BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
     Organisation
 )

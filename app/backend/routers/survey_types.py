@@ -11,7 +11,7 @@ Endpoints:
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List, Any
+from typing import List
 from sqlalchemy.orm import Session
 from database.connection import get_db
 from auth import require_admin

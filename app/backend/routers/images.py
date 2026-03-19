@@ -41,9 +41,7 @@ from models import (
     CameraTrapDetection,
     CameraTrapDetectionRead,
     Device,
-    ImageDetectionClip,
     ImageDetectionOption,
-    ImageSpeciesDetectionSummary,
     ImageWithDetections,
     Location,
     Organisation,
@@ -51,7 +49,6 @@ from models import (
     Species,
     Survey,
     SurveyImageDetectionsResponse,
-    SurveyImageDetectionsSummaryResponse,
 )
 from services.r2_storage import (
     delete_image_file,
