@@ -1,0 +1,118 @@
+#!/bin/bash
+# Unified script runner for all environments
+# Usage: ./run <env> <script_name.py> [--build] [script arguments...]
+#
+# Environments:
+#   dev     - Development (local database)
+#   staging - Staging (Neon staging database)
+#   prod    - Production (Neon production database, requires confirmation)
+#
+# Examples:
+#   ./run dev populate_species_codes.py
+#   ./run staging import_jenny.py --build
+#   ./run prod backup_db.py
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Validate environment
+VALID_ENVS=("dev" "staging" "prod")
+ENV="$1"
+
+if [ -z "$ENV" ]; then
+    echo "Error: No environment specified"
+    echo ""
+    echo "Usage: ./run <env> <script_name.py> [--build] [script arguments...]"
+    echo ""
+    echo "Environments:"
+    echo "  dev     - Development (local database)"
+    echo "  staging - Staging (Neon staging database)"
+    echo "  prod    - Production (requires confirmation)"
+    exit 1
+fi
+
+# Check if env is valid
+ENV_VALID=false
+for valid_env in "${VALID_ENVS[@]}"; do
+    if [ "$ENV" == "$valid_env" ]; then
+        ENV_VALID=true
+        break
+    fi
+done
+
+if [ "$ENV_VALID" == "false" ]; then
+    echo "Error: Invalid environment '$ENV'"
+    echo "Valid environments: ${VALID_ENVS[*]}"
+    exit 1
+fi
+
+shift  # Remove environment from args
+
+# Parse remaining arguments
+BUILD_FLAG=""
+SCRIPT_NAME=""
+SCRIPT_ARGS=()
+
+for arg in "$@"; do
+    if [ "$arg" == "--build" ]; then
+        BUILD_FLAG="--build"
+    elif [ -z "$SCRIPT_NAME" ]; then
+        SCRIPT_NAME="$arg"
+    else
+        SCRIPT_ARGS+=("$arg")
+    fi
+done
+
+if [ -z "$SCRIPT_NAME" ]; then
+    echo "Error: No script name provided"
+    echo ""
+    echo "Usage: ./run $ENV <script_name.py> [--build] [script arguments...]"
+    echo ""
+    echo "Available scripts:"
+    ls -1 app/backend/scripts/*.py 2>/dev/null | xargs -n 1 basename || echo "  No scripts found"
+    exit 1
+fi
+
+if [ ! -f "app/backend/scripts/$SCRIPT_NAME" ]; then
+    echo "Error: Script 'app/backend/scripts/$SCRIPT_NAME' not found"
+    echo ""
+    echo "Available scripts:"
+    ls -1 app/backend/scripts/*.py 2>/dev/null | xargs -n 1 basename || echo "  No scripts found"
+    exit 1
+fi
+
+# Set profile and service name based on environment
+PROFILE="$ENV"
+SERVICE="scripts-$ENV"
+
+# Production safety check
+if [ "$ENV" == "prod" ]; then
+    echo -e "${RED}🚨 PRODUCTION: Running $SCRIPT_NAME ${SCRIPT_ARGS[*]}${NC}"
+    echo -e "${YELLOW}⚠️  This will affect PRODUCTION data!${NC}"
+    echo ""
+    read -p "Are you sure you want to continue? (yes/no): " confirmation
+
+    if [ "$confirmation" != "yes" ]; then
+        echo "Aborted."
+        exit 0
+    fi
+elif [ "$ENV" == "staging" ]; then
+    echo -e "${YELLOW}⚠️  STAGING: Running $SCRIPT_NAME ${SCRIPT_ARGS[*]}${NC}"
+else
+    echo -e "${GREEN}🔧 DEV: Running $SCRIPT_NAME ${SCRIPT_ARGS[*]}${NC}"
+fi
+
+# Build if requested
+if [ "$BUILD_FLAG" == "--build" ]; then
+    echo -e "${CYAN}🔨 Building Docker image...${NC}"
+    docker compose --profile "$PROFILE" build "$SERVICE"
+fi
+
+# Run the script
+docker compose --profile "$PROFILE" run --rm "$SERVICE" bash -c "cd /app && PYTHONPATH=/app python scripts/$SCRIPT_NAME ${SCRIPT_ARGS[*]}"

@@ -12,9 +12,7 @@ Endpoints:
 """
 
 import logging
-import re
 import tempfile
-from datetime import datetime
 from pathlib import Path
 from typing import Any, List
 
@@ -54,6 +52,7 @@ from services.r2_storage import (
     generate_presigned_url,
     upload_audio_file,
 )
+from utils.filename_parser import extract_media_info
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +65,8 @@ CANNWOOD_LON = -2.2525
 
 def extract_recording_info(filename: str) -> dict:
     """Extract device serial and timestamp from filename."""
-    match = re.match(r"([A-Z0-9]+)_(\d{8})_(\d{6})\.wav", filename, re.IGNORECASE)
-    if match:
-        serial, date_str, time_str = match.groups()
-        timestamp = datetime.strptime(f"{date_str}_{time_str}", "%Y%m%d_%H%M%S")
-        return {"device_serial": serial, "recording_timestamp": timestamp}
-    return {"device_serial": None, "recording_timestamp": None}
+    info = extract_media_info(filename)
+    return {"device_serial": info.device_serial, "recording_timestamp": info.timestamp}
 
 
 def _build_recording_response(recording: AudioRecording, detection_count: int) -> dict:

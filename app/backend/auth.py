@@ -7,11 +7,11 @@ Session tokens embed the org_slug for security.
 
 import hashlib
 import hmac
-import os
 import time
 from typing import Optional, Tuple
 from fastapi import Request, HTTPException, status
 
+from config import settings
 from models import Organisation
 
 
@@ -47,7 +47,7 @@ def create_session_token(org_slug: str) -> str:
         Session token string
     """
     timestamp = str(int(time.time()))
-    secret = os.getenv("SESSION_SECRET_KEY", "")
+    secret = settings.session_secret_key
     # Sign both org_slug and timestamp
     payload = f"{org_slug}.{timestamp}"
     signature = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
@@ -70,7 +70,7 @@ def validate_session_token(token: str) -> Tuple[bool, Optional[str]]:
             return False, None
 
         org_slug, timestamp, signature = parts
-        secret = os.getenv("SESSION_SECRET_KEY", "")
+        secret = settings.session_secret_key
         payload = f"{org_slug}.{timestamp}"
         expected = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
 

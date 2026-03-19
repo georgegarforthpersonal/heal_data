@@ -181,6 +181,45 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   }
 }
 
+/**
+ * Generic file upload helper for audio/image uploads
+ * Handles FormData construction and authentication headers
+ */
+async function uploadMediaFiles<T>(endpoint: string, files: File[]): Promise<T> {
+  const formData = new FormData();
+  files.forEach(file => formData.append('files', file));
+
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    'X-Org-Slug': ORG_SLUG,
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Upload failed: ${response.status}`;
+    try {
+      const error = await response.json();
+      if (error.detail) {
+        errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -1163,40 +1202,8 @@ export const audioAPI = {
    * Upload audio files to a survey
    * Returns the created recording records
    */
-  uploadFiles: async (surveyId: number, files: File[]): Promise<AudioRecording[]> => {
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-
-    // Build headers with auth token if available
-    const token = getAuthToken();
-    const headers: Record<string, string> = {
-      'X-Org-Slug': ORG_SLUG,
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}/audio`, {
-      method: 'POST',
-      credentials: 'include',
-      headers,
-      body: formData,
-    });
-
-    if (!response.ok) {
-      let errorMessage = `Upload failed: ${response.status}`;
-      try {
-        const error = await response.json();
-        if (error.detail) {
-          errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
-        }
-      } catch {
-        // Ignore parse errors
-      }
-      throw new Error(errorMessage);
-    }
-
-    return response.json();
+  uploadFiles: (surveyId: number, files: File[]): Promise<AudioRecording[]> => {
+    return uploadMediaFiles(`/surveys/${surveyId}/audio`, files);
   },
 
   /**
@@ -1317,40 +1324,8 @@ export const imagesAPI = {
    * Upload image files to a survey
    * Returns the created image records
    */
-  uploadFiles: async (surveyId: number, files: File[]): Promise<CameraTrapImage[]> => {
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-
-    // Build headers with auth token if available
-    const token = getAuthToken();
-    const headers: Record<string, string> = {
-      'X-Org-Slug': ORG_SLUG,
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}/images`, {
-      method: 'POST',
-      credentials: 'include',
-      headers,
-      body: formData,
-    });
-
-    if (!response.ok) {
-      let errorMessage = `Upload failed: ${response.status}`;
-      try {
-        const error = await response.json();
-        if (error.detail) {
-          errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
-        }
-      } catch {
-        // Ignore parse errors
-      }
-      throw new Error(errorMessage);
-    }
-
-    return response.json();
+  uploadFiles: (surveyId: number, files: File[]): Promise<CameraTrapImage[]> => {
+    return uploadMediaFiles(`/surveys/${surveyId}/images`, files);
   },
 
   /**

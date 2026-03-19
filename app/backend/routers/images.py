@@ -14,9 +14,7 @@ Endpoints:
 """
 
 import logging
-import re
 import tempfile
-from datetime import datetime
 from pathlib import Path
 from typing import Any, List
 
@@ -59,6 +57,7 @@ from services.r2_storage import (
     generate_image_presigned_url,
     upload_image_file,
 )
+from utils.filename_parser import extract_media_info
 
 logger = logging.getLogger(__name__)
 
@@ -80,16 +79,8 @@ CONTENT_TYPE_MAP = {
 
 def extract_image_info(filename: str) -> dict:
     """Extract device serial and timestamp from filename."""
-    # Pattern: DEVICEID_YYYYMMDD_HHMMSS.ext
-    match = re.match(r"([A-Z0-9]+)_(\d{8})_(\d{6})\.[a-zA-Z]+", filename, re.IGNORECASE)
-    if match:
-        serial, date_str, time_str = match.groups()
-        try:
-            timestamp = datetime.strptime(f"{date_str}_{time_str}", "%Y%m%d_%H%M%S")
-            return {"device_serial": serial, "image_timestamp": timestamp}
-        except ValueError:
-            pass
-    return {"device_serial": None, "image_timestamp": None}
+    info = extract_media_info(filename)
+    return {"device_serial": info.device_serial, "image_timestamp": info.timestamp}
 
 
 def _build_image_response(image: CameraTrapImage, detection_count: int) -> dict:

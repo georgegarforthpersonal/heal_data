@@ -14,6 +14,7 @@ import type { DraftSighting } from '../components/surveys/SightingsEditor';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSpeciesIcon } from '../config';
 import { PageHeader } from '../components/layout/PageHeader';
+import { getSurveyorName, formatDate } from '../utils/formatters';
 
 /**
  * SurveyDetailPage displays detailed information about a single survey
@@ -221,15 +222,6 @@ export function SurveyDetailPage() {
   // ============================================================================
 
   /**
-   * Get surveyor name from ID
-   */
-  const getSurveyorName = (id: number): string => {
-    const surveyor = surveyors.find(s => s.id === id);
-    if (!surveyor) return 'Unknown';
-    return surveyor.last_name ? `${surveyor.first_name} ${surveyor.last_name}` : surveyor.first_name;
-  };
-
-  /**
    * Get location name from ID
    */
   const getLocationName = (id: number): string => {
@@ -247,14 +239,6 @@ export function SurveyDetailPage() {
       return `${speciesItem.name}${speciesItem.scientific_name ? ' ' + speciesItem.scientific_name : ''}`;
     }
     return speciesItem.scientific_name || 'Unknown';
-  };
-
-  /**
-   * Format date from YYYY-MM-DD to readable format
-   */
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   // ============================================================================
@@ -768,7 +752,7 @@ export function SurveyDetailPage() {
                     Surveyors
                   </Typography>
                 </Stack>
-                <Typography variant="body1">{survey.surveyor_ids.map(getSurveyorName).join(', ')}</Typography>
+                <Typography variant="body1">{survey.surveyor_ids.map(id => getSurveyorName(id, surveyors)).join(', ')}</Typography>
               </Box>
 
               {/* Location - only show if NOT at sighting level */}
