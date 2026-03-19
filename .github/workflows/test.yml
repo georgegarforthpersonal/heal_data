@@ -19,7 +19,7 @@ jobs:
           cache-dependency-path: app/backend/requirements.txt
 
       - name: Install dependencies
-        run: pip install mypy types-requests
+        run: pip install mypy types-requests pydantic-settings
 
       - name: Run mypy
         working-directory: app/backend
