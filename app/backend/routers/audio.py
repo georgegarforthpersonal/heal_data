@@ -28,6 +28,7 @@ from fastapi import (
 )
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from sqlmodel import col
 
 from auth import require_admin
 from database.connection import get_db, get_session_factory
@@ -465,13 +466,13 @@ async def get_detections_summary(
         devices = (
             db.query(
                 Device,
-                Location.name.label("location_name"),  # type: ignore[attr-defined]
+                col(Location.name).label("location_name"),
                 func.ST_Y(Device.point_geometry).label("lat"),
                 func.ST_X(Device.point_geometry).label("lng"),
             )
             .outerjoin(Location, Device.location_id == Location.id)
             .filter(
-                Device.device_id.in_(device_serials),  # type: ignore[attr-defined]
+                col(Device.device_id).in_(device_serials),
                 Device.organisation_id == org.id,
             )
             .all()
@@ -512,7 +513,7 @@ async def get_detections_summary(
         )
         .join(Species, BirdDetection.species_id == Species.id)
         .join(AudioRecording, BirdDetection.audio_recording_id == AudioRecording.id)
-        .filter(BirdDetection.audio_recording_id.in_(recording_ids))  # type: ignore[attr-defined]
+        .filter(col(BirdDetection.audio_recording_id).in_(recording_ids))
         .group_by(
             BirdDetection.species_id,
             Species.name,
@@ -537,7 +538,7 @@ async def get_detections_summary(
         top_detections = (
             db.query(BirdDetection)
             .filter(
-                BirdDetection.audio_recording_id.in_(device_recording_ids),  # type: ignore[attr-defined]
+                col(BirdDetection.audio_recording_id).in_(device_recording_ids),
                 BirdDetection.species_id == row.species_id,
             )
             .order_by(desc(BirdDetection.confidence))

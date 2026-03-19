@@ -20,6 +20,7 @@ from typing import List, Optional, Any
 from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, text
+from sqlmodel import col
 from database.connection import get_db
 from auth import require_admin
 from dependencies import get_current_organisation
@@ -116,7 +117,7 @@ async def get_surveys(
 
         # Get paginated surveys
         surveys_query = (
-            query.order_by(Survey.date.desc())  # type: ignore[attr-defined]
+            query.order_by(col(Survey.date).desc())
             .offset(offset)
             .limit(limit)
             .all()
@@ -130,7 +131,7 @@ async def get_surveys(
             SurveySurveyor.survey_id,
             SurveySurveyor.surveyor_id
         ).filter(
-            SurveySurveyor.survey_id.in_(survey_ids)  # type: ignore[attr-defined]
+            col(SurveySurveyor.survey_id).in_(survey_ids)
         ).order_by(
             SurveySurveyor.survey_id,
             SurveySurveyor.surveyor_id
@@ -146,7 +147,7 @@ async def get_surveys(
             Sighting.survey_id,
             func.count(Sighting.id).label('count')
         ).filter(
-            Sighting.survey_id.in_(survey_ids)  # type: ignore[attr-defined]
+            col(Sighting.survey_id).in_(survey_ids)
         ).group_by(
             Sighting.survey_id
         ).all()
@@ -159,12 +160,12 @@ async def get_surveys(
         # Batch query 3: Get species breakdown for all surveys
         species_breakdown_data = db.query(
             Sighting.survey_id,
-            Species.type.label('type'),  # type: ignore[attr-defined]
+            col(Species.type).label('type'),
             func.count(func.distinct(Species.id)).label('count')
         ).join(
             Species, Species.id == Sighting.species_id
         ).filter(
-            Sighting.survey_id.in_(survey_ids)  # type: ignore[attr-defined]
+            col(Sighting.survey_id).in_(survey_ids)
         ).group_by(
             Sighting.survey_id,
             Species.type
@@ -469,7 +470,7 @@ async def get_survey_sightings(
         Sighting.notes,
         Species.name.label('species_name'),  # type: ignore[union-attr]
         Species.scientific_name.label('species_scientific_name'),  # type: ignore[union-attr]
-        Location.name.label('location_name')  # type: ignore[attr-defined]
+        col(Location.name).label('location_name')
     ).join(Species, Sighting.species_id == Species.id)\
      .outerjoin(Location, Sighting.location_id == Location.id)\
      .filter(Sighting.survey_id == survey_id)\

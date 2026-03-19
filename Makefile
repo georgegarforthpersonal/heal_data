@@ -1,4 +1,4 @@
-.PHONY: help dev dev-build staging staging-build prod prod-build down logs test test-build typecheck check build migrate migrate-staging migrate-prod shell
+.PHONY: help dev dev-build staging staging-build prod prod-build down logs test-backend test-backend-build test-frontend test-frontend-build typecheck check build migrate migrate-staging migrate-prod shell
 
 # Default environment
 ENV ?= dev
@@ -28,10 +28,12 @@ help:
 	@echo "  migrate-prod     Run migrations (prod)"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test             Run pytest"
-	@echo "  test-build       Rebuild test container and run pytest"
-	@echo "  typecheck        Run mypy type checking"
-	@echo "  check            Run both typecheck and test"
+	@echo "  test-backend         Run backend pytest"
+	@echo "  test-backend-build   Rebuild container and run backend pytest"
+	@echo "  test-frontend        Run frontend vitest"
+	@echo "  test-frontend-build  Reinstall deps and run frontend vitest"
+	@echo "  typecheck            Run mypy type checking"
+	@echo "  check                Run all tests (backend + frontend + typecheck)"
 
 # =============================================================================
 # Environments
@@ -94,14 +96,20 @@ migrate-prod:
 # Testing
 # =============================================================================
 
-test:
+test-backend:
 	docker compose --profile test run --rm test
 
-test-build:
+test-backend-build:
 	docker compose --profile test build test && docker compose --profile test run --rm test
+
+test-frontend:
+	cd app/frontend && [ -d node_modules ] || npm install && npm run test:run
+
+test-frontend-build:
+	cd app/frontend && rm -rf node_modules && npm install && npm run test:run
 
 typecheck:
 	@docker run --rm -v "$(PWD)/app/backend:/app" -w /app python:3.11-slim \
 		sh -c "pip install -q mypy types-requests pydantic-settings && mypy . --config-file mypy.ini"
 
-check: typecheck test
+check: typecheck test-backend test-frontend
