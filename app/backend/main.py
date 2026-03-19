@@ -6,11 +6,17 @@ Following DEVELOPMENT.md conventions, this backend separates concerns while reus
 database logic from the Streamlit POC.
 """
 
-import os
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import logging
 
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from config import settings
+from exceptions import AppException
 from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio, devices, images
+
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -25,22 +31,28 @@ app = FastAPI(
 # CORS Configuration - Allow React frontend to call API
 # ============================================================================
 
-# Support multiple origins via comma-separated CORS_ORIGINS env var
-cors_origins_env = os.getenv("CORS_ORIGINS", "")
-if cors_origins_env:
-    origins = [origin.strip() for origin in cors_origins_env.split(",")]
-else:
-    # Fallback to legacy single-origin var or localhost defaults
-    cors_origin = os.getenv("CORS_ORIGIN", "")
-    origins = [cors_origin] if cors_origin else ["http://localhost:5173", "http://127.0.0.1:5173"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ============================================================================
+# Global Exception Handlers
+# ============================================================================
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+    """Handle custom application exceptions with consistent JSON responses."""
+    logger.error(f"{exc.__class__.__name__}: {exc.message}", extra=exc.context)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
 
 # ============================================================================
 # Include Routers - Organize endpoints by resource

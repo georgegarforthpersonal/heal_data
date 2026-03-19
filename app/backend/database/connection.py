@@ -30,22 +30,28 @@ _connection_pool: Optional[pool.SimpleConnectionPool] = None
 
 def get_database_url() -> str:
     """
-    Get database URL from environment variables.
+    Get database URL from centralized config.
 
     Returns:
         Database URL string for SQLAlchemy
     """
-    host = os.getenv('DB_HOST', 'localhost')
-    port = os.getenv('DB_PORT', '5432')
-    database = os.getenv('DB_NAME', 'heal_butterflies')
-    user = os.getenv('DB_USER', 'postgres')
-    password = os.getenv('DB_PASSWORD', 'password')
-    sslmode = os.getenv('DB_SSLMODE', '')
+    # Import here to avoid circular imports and allow scripts to work without full config
+    try:
+        from config import settings
+        return settings.database_url
+    except ImportError:
+        # Fallback for scripts that don't have config available
+        host = os.getenv('DB_HOST', 'localhost')
+        port = os.getenv('DB_PORT', '5432')
+        database = os.getenv('DB_NAME', 'heal_butterflies')
+        user = os.getenv('DB_USER', 'postgres')
+        password = os.getenv('DB_PASSWORD', 'password')
+        sslmode = os.getenv('DB_SSLMODE', '')
 
-    url = f"postgresql://{user}:{password}@{host}:{port}/{database}"
-    if sslmode:
-        url += f"?sslmode={sslmode}"
-    return url
+        url = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+        if sslmode:
+            url += f"?sslmode={sslmode}"
+        return url
 
 
 def get_connection_pool() -> Optional[pool.SimpleConnectionPool]:

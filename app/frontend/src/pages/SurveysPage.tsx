@@ -9,6 +9,7 @@ import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, surveyTypesAPI } from '../services/api';
 import type { Survey, Surveyor, PaginationMeta, SurveyType } from '../services/api';
+import { getSurveyorName, getInitials, formatDate } from '../utils/formatters';
 
 /**
  * SurveysPage displays a table of wildlife surveys with:
@@ -206,41 +207,6 @@ export function SurveysPage() {
   };
 
   // ============================================================================
-  // Helper Functions
-  // ============================================================================
-
-  /**
-   * Get surveyor name from ID
-   */
-  const getSurveyorName = (id: number): string => {
-    const surveyor = surveyors.find(s => s.id === id);
-    if (!surveyor) return 'Unknown';
-    return surveyor.last_name ? `${surveyor.first_name} ${surveyor.last_name}` : surveyor.first_name;
-  };
-
-  /**
-   * Extracts initials from a full name (e.g., "John Smith" → "JS")
-   */
-  const getInitials = (name: string): string => {
-    const parts = name.trim().split(' ').filter(p => p.length > 0);
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    if (parts.length === 1 && parts[0].length > 0) {
-      return parts[0][0].toUpperCase();
-    }
-    return '?';
-  };
-
-  /**
-   * Format date from YYYY-MM-DD to readable format
-   */
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  // ============================================================================
   // Render
   // ============================================================================
 
@@ -399,7 +365,7 @@ export function SurveysPage() {
           {/* Table Body - Survey Rows */}
           <TableBody>
             {surveys.map((survey) => {
-              const surveyorNames = survey.surveyor_ids.map(id => getSurveyorName(id));
+              const surveyorNames = survey.surveyor_ids.map(id => getSurveyorName(id, surveyors));
               const isHighlighted = survey.id === highlightedSurveyId;
 
               return (

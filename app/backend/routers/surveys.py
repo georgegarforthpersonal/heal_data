@@ -19,15 +19,16 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional, Any
 from datetime import date
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select, text
+from sqlalchemy import func, text
+from sqlmodel import col
 from database.connection import get_db
 from auth import require_admin
 from dependencies import get_current_organisation
 from models import (
-    Survey, SurveyRead, SurveyCreate, SurveyUpdate, SurveyWithSightingsCount,
-    Sighting, SightingRead, SightingCreate, SightingUpdate, SightingWithDetails,
-    Species, Location, Surveyor, SurveySurveyor, SpeciesTypeCount,
-    BreedingStatusCode, BreedingStatusCodeRead, SightingIndividual,
+    Survey, SurveyRead, SurveyCreate, SurveyUpdate,
+    Sighting, SightingCreate, SightingUpdate, SightingWithDetails,
+    Species, Location, SurveySurveyor,
+    BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
     Organisation
 )
@@ -116,40 +117,70 @@ async def get_surveys(
 
         # Get paginated surveys
         surveys_query = (
-            query.order_by(Survey.date.desc())  # type: ignore[attr-defined]
+            query.order_by(col(Survey.date).desc())
             .offset(offset)
             .limit(limit)
             .all()
         )
 
+        # Extract survey IDs for batch queries (filter out None values)
+        survey_ids: list[int] = [s.id for s in surveys_query if s.id is not None]
+
+        # Batch query 1: Get all surveyor IDs for these surveys
+        surveyor_data = db.query(
+            SurveySurveyor.survey_id,
+            SurveySurveyor.surveyor_id
+        ).filter(
+            col(SurveySurveyor.survey_id).in_(survey_ids)
+        ).order_by(
+            SurveySurveyor.survey_id,
+            SurveySurveyor.surveyor_id
+        ).all()
+
+        # Build surveyor_ids lookup: {survey_id: [surveyor_ids]}
+        surveyor_ids_map: dict[int, list[int]] = {sid: [] for sid in survey_ids}
+        for row in surveyor_data:
+            surveyor_ids_map[row.survey_id].append(row.surveyor_id)
+
+        # Batch query 2: Get sighting counts for all surveys
+        sightings_counts = db.query(
+            Sighting.survey_id,
+            func.count(Sighting.id).label('count')
+        ).filter(
+            col(Sighting.survey_id).in_(survey_ids)
+        ).group_by(
+            Sighting.survey_id
+        ).all()
+
+        # Build sightings count lookup: {survey_id: count}
+        sightings_count_map: dict[int, int] = {sid: 0 for sid in survey_ids}
+        for row in sightings_counts:
+            sightings_count_map[row.survey_id] = row.count
+
+        # Batch query 3: Get species breakdown for all surveys
+        species_breakdown_data = db.query(
+            Sighting.survey_id,
+            col(Species.type).label('type'),
+            func.count(func.distinct(Species.id)).label('count')
+        ).join(
+            Species, Species.id == Sighting.species_id
+        ).filter(
+            col(Sighting.survey_id).in_(survey_ids)
+        ).group_by(
+            Sighting.survey_id,
+            Species.type
+        ).all()
+
+        # Build species breakdown lookup: {survey_id: [{"type": ..., "count": ...}]}
+        species_breakdown_map: dict[int, list[dict[str, Any]]] = {sid: [] for sid in survey_ids}
+        for row in species_breakdown_data:
+            species_breakdown_map[row.survey_id].append({
+                "type": row.type,
+                "count": row.count
+            })
+
         result = []
         for survey in surveys_query:
-            # Get surveyor IDs for this survey
-            surveyor_ids = db.query(SurveySurveyor.surveyor_id)\
-                .filter(SurveySurveyor.survey_id == survey.id)\
-                .order_by(SurveySurveyor.surveyor_id)\
-                .all()
-            surveyor_ids_list = [sid[0] for sid in surveyor_ids]
-
-            # Get sightings count
-            sightings_count = db.query(func.count(Sighting.id))\
-                .filter(Sighting.survey_id == survey.id)\
-                .scalar()
-
-            # Get species breakdown (count unique species by type)
-            species_breakdown_query = db.query(
-                Species.type.label('type'),  # type: ignore[attr-defined]
-                func.count(func.distinct(Species.id)).label('count')
-            ).join(Sighting, Species.id == Sighting.species_id)\
-             .filter(Sighting.survey_id == survey.id)\
-             .group_by(Species.type)\
-             .all()
-
-            species_breakdown = [
-                {"type": row.type, "count": row.count}
-                for row in species_breakdown_query
-            ]
-
             # Get survey type name, icon, and color if available
             survey_type_name = None
             survey_type_icon = None
@@ -169,9 +200,9 @@ async def get_surveys(
                 "conditions_met": survey.conditions_met,
                 "notes": survey.notes,
                 "location_id": survey.location_id,
-                "surveyor_ids": surveyor_ids_list,
-                "sightings_count": sightings_count or 0,
-                "species_breakdown": species_breakdown,
+                "surveyor_ids": surveyor_ids_map.get(survey.id, []),
+                "sightings_count": sightings_count_map.get(survey.id, 0),
+                "species_breakdown": species_breakdown_map.get(survey.id, []),
                 "survey_type_id": survey.survey_type_id,
                 "survey_type_name": survey_type_name,
                 "survey_type_icon": survey_type_icon,
@@ -439,7 +470,7 @@ async def get_survey_sightings(
         Sighting.notes,
         Species.name.label('species_name'),  # type: ignore[union-attr]
         Species.scientific_name.label('species_scientific_name'),  # type: ignore[union-attr]
-        Location.name.label('location_name')  # type: ignore[attr-defined]
+        col(Location.name).label('location_name')
     ).join(Species, Sighting.species_id == Species.id)\
      .outerjoin(Location, Sighting.location_id == Location.id)\
      .filter(Sighting.survey_id == survey_id)\

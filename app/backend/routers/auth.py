@@ -7,10 +7,8 @@ Endpoints:
   GET  /api/auth/status  - Check if currently authenticated
 """
 
-import os
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from typing import Any
 
 from auth import (
@@ -21,11 +19,9 @@ from auth import (
     SESSION_COOKIE_NAME,
     SESSION_MAX_AGE,
 )
-from database.connection import get_db
+from config import settings
 from dependencies import get_current_organisation
-from models import Organisation, OrganisationRead
-
-_is_production = os.getenv("ENV", "").lower() in ("production", "prod", "staging")
+from models import Organisation
 
 router = APIRouter()
 
@@ -55,8 +51,8 @@ async def login(
         value=token,
         max_age=SESSION_MAX_AGE,
         httponly=True,
-        samesite="none" if _is_production else "lax",
-        secure=_is_production,
+        samesite="none" if settings.is_production else "lax",
+        secure=settings.is_production,
         path="/",
     )
     # Return token in body for cross-origin requests (stored in localStorage)

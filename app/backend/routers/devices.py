@@ -17,7 +17,7 @@ from typing import List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database.connection import get_db
-from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, DeviceType, Organisation, Location
+from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, Organisation, Location
 from auth import require_admin
 from dependencies import get_current_organisation
 

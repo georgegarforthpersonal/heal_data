@@ -19,7 +19,6 @@ from models import (
     SpeciesOccurrenceResponse,
     SpeciesOccurrenceDataPoint,
     SpeciesWithCount,
-    SightingWithDetails,
     Organisation
 )
 
