@@ -43,6 +43,39 @@ make logs             # Tail all logs
 make help             # Show all commands
 ```
 
+## Running Scripts
+
+```bash
+./run <env> <script.py> [--build] [args...]
+```
+
+Examples:
+```bash
+./run dev populate_species.py           # Run in dev
+./run staging import_data.py --build    # Rebuild container first
+./run prod backup_db.py                 # Requires confirmation
+```
+
+Available scripts are in `app/backend/scripts/`.
+
+## Database Migrations
+
+```bash
+# Apply migrations
+make migrate              # Dev
+make migrate-staging      # Staging
+make migrate-prod         # Production
+
+# Create new migration (in dev container)
+make shell
+alembic revision --autogenerate -m "description"
+exit
+
+# Other alembic commands (in container)
+alembic history           # View migration history
+alembic downgrade -1      # Rollback one migration
+```
+
 ## Environment Files
 
 ```
