@@ -24,6 +24,7 @@ from sqlmodel import col
 from database.connection import get_db
 from auth import require_admin
 from dependencies import get_current_organisation
+import logging
 from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate,
     Sighting, SightingCreate, SightingUpdate, SightingWithDetails,
@@ -32,6 +33,9 @@ from models import (
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
     Organisation
 )
+from services.r2_storage import delete_media_file
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -427,8 +431,25 @@ async def delete_survey(
     if not db_survey:
         raise HTTPException(status_code=404, detail=f"Survey {survey_id} not found")
 
+    # Collect R2 keys before cascade deletes the records
+    r2_keys_to_delete = []
+    for rec in db_survey.audio_recordings:
+        if rec.r2_key:
+            r2_keys_to_delete.append(rec.r2_key)
+    for img in db_survey.camera_trap_images:
+        if img.r2_key:
+            r2_keys_to_delete.append(img.r2_key)
+
     db.delete(db_survey)
     db.commit()
+
+    # Best-effort R2 cleanup after successful DB commit
+    for key in r2_keys_to_delete:
+        try:
+            delete_media_file(key)
+        except Exception:
+            logger.warning(f"Failed to delete R2 file: {key}")
+
     return None
 
 
