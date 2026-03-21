@@ -34,7 +34,7 @@ def main():
 
     with get_db_cursor() as cursor:
         cursor.execute(
-            "SELECT id, name, scientific_name FROM species WHERE type = 'bird' ORDER BY name"
+            "SELECT species.id, species.name, species.scientific_name FROM species JOIN species_type ON species.species_type_id = species_type.id WHERE species_type.name = 'bird' ORDER BY species.name"
         )
         db_birds = cursor.fetchall()
 

@@ -232,7 +232,7 @@ class SpeciesBase(SQLModel):
     """Base species fields"""
     name: Optional[str] = Field(None, max_length=255, description="Species common name")
     conservation_status: Optional[str] = Field(None, max_length=50, description="Conservation status")
-    type: str = Field(default="butterfly", max_length=50, description="Type of species (butterfly, bird, fungi)")
+    species_type_id: int = Field(foreign_key="species_type.id", description="FK to species_type reference table")
     scientific_name: Optional[str] = Field(None, max_length=255, description="Scientific/Latin name from NBN Atlas")
     nbn_atlas_guid: Optional[str] = Field(None, max_length=255, description="NBN Atlas GUID for reference")
     species_code: Optional[str] = Field(None, max_length=10, description="Short code for map display (e.g., BTO 2-letter codes for birds)")
@@ -244,6 +244,7 @@ class Species(SpeciesBase, table=True):  # type: ignore[call-arg]
     __table_args__ = (
         sa.Index('ix_species_scientific_name', 'scientific_name'),
         sa.Index('ix_species_nbn_atlas_guid', 'nbn_atlas_guid'),
+        sa.Index('ix_species_species_type_id', 'species_type_id'),
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -255,26 +256,39 @@ class Species(SpeciesBase, table=True):  # type: ignore[call-arg]
 
     # Relationships
     sightings: List["Sighting"] = Relationship(back_populates="species")
+    species_type: Optional["SpeciesType"] = Relationship()
 
 
-class SpeciesCreate(SpeciesBase):
+class SpeciesCreate(SQLModel):
     """Model for creating a new species"""
-    pass
+    name: Optional[str] = Field(None, max_length=255)
+    conservation_status: Optional[str] = Field(None, max_length=50)
+    species_type_id: int = Field(description="FK to species_type reference table")
+    scientific_name: Optional[str] = Field(None, max_length=255)
+    nbn_atlas_guid: Optional[str] = Field(None, max_length=255)
+    species_code: Optional[str] = Field(None, max_length=10)
 
 
 class SpeciesUpdate(SQLModel):
     """Model for updating a species (all fields optional)"""
     name: Optional[str] = Field(None, max_length=255)
     conservation_status: Optional[str] = Field(None, max_length=50)
-    type: Optional[str] = Field(None, max_length=50)
+    species_type_id: Optional[int] = Field(None, description="FK to species_type reference table")
     scientific_name: Optional[str] = Field(None, max_length=255)
     nbn_atlas_guid: Optional[str] = Field(None, max_length=255)
     species_code: Optional[str] = Field(None, max_length=10)
 
 
-class SpeciesRead(SpeciesBase):
-    """Model for reading a species (includes ID)"""
+class SpeciesRead(SQLModel):
+    """Model for reading a species (includes ID and derived type string)"""
     id: int
+    name: Optional[str] = None
+    conservation_status: Optional[str] = None
+    species_type_id: int
+    type: str = Field(description="Species type name, derived from species_type relationship")
+    scientific_name: Optional[str] = None
+    nbn_atlas_guid: Optional[str] = None
+    species_code: Optional[str] = None
 
 
 # ============================================================================

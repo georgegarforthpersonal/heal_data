@@ -44,7 +44,8 @@ def find_butterfly_surveys():
             FROM survey
             JOIN sighting s ON survey.id = s.survey_id
             JOIN species s2 ON s2.id = s.species_id
-            WHERE s2.type = 'butterfly'
+            JOIN species_type ON s2.species_type_id = species_type.id
+            WHERE species_type.name = 'butterfly'
             GROUP BY survey.id, survey.date
             ORDER BY survey.date DESC
         """)

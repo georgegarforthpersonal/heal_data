@@ -56,14 +56,16 @@ def find_duplicate_insects():
                 i.name as insect_name,
                 i.scientific_name,
                 s.id as duplicate_id,
-                s.type as duplicate_type,
+                st_s.name as duplicate_type,
                 s.name as duplicate_name
             FROM species i
+            JOIN species_type st_i ON i.species_type_id = st_i.id
             INNER JOIN species s ON i.scientific_name = s.scientific_name
-            WHERE i.type = 'insect'
-                AND s.type IN %s
+            JOIN species_type st_s ON s.species_type_id = st_s.id
+            WHERE st_i.name = 'insect'
+                AND st_s.name IN %s
                 AND i.id != s.id
-            ORDER BY i.scientific_name, s.type
+            ORDER BY i.scientific_name, st_s.name
         """, (tuple(SPECIFIC_INSECT_TYPES),))
 
         results = cursor.fetchall()

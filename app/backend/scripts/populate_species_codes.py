@@ -214,7 +214,7 @@ def populate_species_codes(dry_run: bool = True):
 
     with get_db_cursor() as cursor:
         # Get all bird species from database
-        cursor.execute("SELECT id, name, scientific_name FROM species WHERE type = 'bird'")
+        cursor.execute("SELECT species.id, species.name, species.scientific_name FROM species JOIN species_type ON species.species_type_id = species_type.id WHERE species_type.name = 'bird'")
         birds = cursor.fetchall()
 
         # Build lookup dict: name -> (id, scientific_name)

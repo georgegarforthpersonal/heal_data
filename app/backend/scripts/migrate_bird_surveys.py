@@ -233,9 +233,10 @@ def load_staging_surveyors(cursor) -> dict[tuple[str, str], int]:
 def load_staging_species(cursor) -> dict[str, int]:
     """Load all bird species from staging, keyed by name."""
     cursor.execute("""
-        SELECT id, name
+        SELECT species.id, species.name
         FROM species
-        WHERE type = 'bird'
+        JOIN species_type ON species.species_type_id = species_type.id
+        WHERE species_type.name = 'bird'
     """)
     return {row[1]: row[0] for row in cursor.fetchall()}
 

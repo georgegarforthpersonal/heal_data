@@ -238,10 +238,11 @@ def load_mammal_reptile_species(cursor) -> list[tuple]:
     Returns list of (id, name, scientific_name) tuples.
     """
     cursor.execute("""
-        SELECT id, name, scientific_name
+        SELECT species.id, species.name, species.scientific_name
         FROM species
-        WHERE type IN ('mammal', 'reptile')
-        ORDER BY name
+        JOIN species_type ON species.species_type_id = species_type.id
+        WHERE species_type.name IN ('mammal', 'reptile')
+        ORDER BY species.name
     """)
     return cursor.fetchall()
 

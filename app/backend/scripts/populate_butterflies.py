@@ -110,7 +110,7 @@ def setup_reference_data(cursor, dry_run: bool = True):
     species_to_add = []
     for species_name in species_list:
         cursor.execute(
-            "SELECT id FROM species WHERE name = %s AND type = 'butterfly'",
+            "SELECT species.id FROM species JOIN species_type ON species.species_type_id = species_type.id WHERE species.name = %s AND species_type.name = 'butterfly'",
             (species_name,)
         )
         if not cursor.fetchone():
@@ -141,10 +141,14 @@ def setup_reference_data(cursor, dry_run: bool = True):
             (number, name)
         )
 
+    # Look up species_type_id for butterfly
+    cursor.execute("SELECT id FROM species_type WHERE name = 'butterfly'")
+    butterfly_type_id = cursor.fetchone()[0]
+
     for species_name in species_to_add:
         cursor.execute(
-            "INSERT INTO species (name, type) VALUES (%s, %s)",
-            (species_name, 'butterfly')
+            "INSERT INTO species (name, species_type_id) VALUES (%s, %s)",
+            (species_name, butterfly_type_id)
         )
 
     logger.info(f"Added {len(surveyors_to_add)} surveyors, {len(locations_to_add)} locations, {len(species_to_add)} species")
@@ -444,7 +448,7 @@ def import_csv_data(cursor, csv_file_path: str, year: str = "", dry_run: bool = 
         else:
             surveyor_ids[first_name] = surveyor_id
 
-    cursor.execute("SELECT id, name FROM species WHERE type = 'butterfly'")
+    cursor.execute("SELECT species.id, species.name FROM species JOIN species_type ON species.species_type_id = species_type.id WHERE species_type.name = 'butterfly'")
     species_ids = {name: id for id, name in cursor.fetchall()}
 
     cursor.execute("SELECT id, number FROM location WHERE type = 'butterfly'")

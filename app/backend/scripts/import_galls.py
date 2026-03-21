@@ -214,7 +214,7 @@ def export_galls_csv(gall_causers: list[GallCauser], output_file: str) -> Path:
 def check_existing_galls() -> int:
     """Check how many galls are already in the database."""
     with get_db_cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM species WHERE type = 'gall'")
+        cursor.execute("SELECT COUNT(*) FROM species JOIN species_type ON species.species_type_id = species_type.id WHERE species_type.name = 'gall'")
         count = cursor.fetchone()[0]
     return count
 
@@ -260,15 +260,22 @@ def import_to_database(gall_causers: list[GallCauser], dry_run: bool = True) -> 
 
     try:
         with get_db_cursor() as cursor:
+            # Look up species_type_id for gall
+            cursor.execute("SELECT id FROM species_type WHERE name = 'gall'")
+            gall_type_row = cursor.fetchone()
+            if not gall_type_row:
+                raise ValueError("species_type 'gall' not found in species_type table")
+            gall_type_id = gall_type_row[0]
+
             inserted_count = 0
 
             for gall in gall_causers:
                 cursor.execute("""
-                    INSERT INTO species (name, type, scientific_name)
+                    INSERT INTO species (name, species_type_id, scientific_name)
                     VALUES (%s, %s, %s)
                 """, (
                     gall.common_name,
-                    'gall',
+                    gall_type_id,
                     gall.scientific_name
                 ))
                 inserted_count += 1
