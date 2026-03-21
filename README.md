@@ -1,6 +1,6 @@
-# Heal Butterflies
+# Canopy
 
-Wildlife survey tracking application. FastAPI backend, React frontend, PostgreSQL database.
+Wildlife survey data platform. FastAPI backend, React frontend, PostgreSQL database.
 
 ## Quick Start
 

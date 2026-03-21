@@ -18,7 +18,11 @@
           var params = new URLSearchParams(window.location.search);
           org = params.get('org') || 'heal';
         } else {
-          var match = hostname.match(/^([a-z]+)data\./);
+          // New custom domain: {org}.canopydata.app
+          var canopyMatch = hostname.match(/^([a-z]+)\.canopydata\.app$/);
+          // Legacy Railway: {org}data.up.railway.app or {org}data.{domain}
+          var legacyMatch = hostname.match(/^([a-z]+)data\./);
+          var match = canopyMatch || legacyMatch;
           if (match) org = match[1];
         }
 
