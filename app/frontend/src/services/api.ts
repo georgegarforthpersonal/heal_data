@@ -236,7 +236,8 @@ export interface Species {
   name: string | null;
   scientific_name: string | null;
   conservation_status: string | null;
-  type: string;
+  species_type_id: number;
+  type: string;  // Derived from species_type.name, for display purposes
   species_code: string | null;
 }
 

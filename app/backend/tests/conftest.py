@@ -199,17 +199,29 @@ def create_location(db_session: Session, test_org: Organisation):
 
 
 @pytest.fixture
-def create_species(db_session: Session):
+def create_species(db_session: Session, create_species_type):
     """Factory fixture to create species (global, not org-specific)."""
+    # Cache species_type_ids to avoid creating duplicates
+    _species_type_cache: dict[str, int] = {}
+
     def _create_species(
         name: str = "Test Species",
         scientific_name: str = "Testus specius",
         species_type: str = "butterfly",
     ) -> Species:
+        # Get or create the species_type record
+        if species_type not in _species_type_cache:
+            existing = db_session.query(SpeciesType).filter(SpeciesType.name == species_type).first()
+            if existing:
+                _species_type_cache[species_type] = existing.id  # type: ignore[assignment]
+            else:
+                st = create_species_type(name=species_type, display_name=species_type.title())
+                _species_type_cache[species_type] = st.id  # type: ignore[assignment]
+
         species = Species(
             name=name,
             scientific_name=scientific_name,
-            type=species_type,
+            species_type_id=_species_type_cache[species_type],
         )
         db_session.add(species)
         db_session.commit()

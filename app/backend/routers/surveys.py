@@ -27,7 +27,7 @@ from dependencies import get_current_organisation
 from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate,
     Sighting, SightingCreate, SightingUpdate, SightingWithDetails,
-    Species, Location, SurveySurveyor,
+    Species, SpeciesType, Location, SurveySurveyor,
     BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
     Organisation
@@ -160,15 +160,17 @@ async def get_surveys(
         # Batch query 3: Get species breakdown for all surveys
         species_breakdown_data = db.query(
             Sighting.survey_id,
-            col(Species.type).label('type'),
+            col(SpeciesType.name).label('type'),
             func.count(func.distinct(Species.id)).label('count')
         ).join(
             Species, Species.id == Sighting.species_id
+        ).join(
+            SpeciesType, SpeciesType.id == Species.species_type_id
         ).filter(
             col(Sighting.survey_id).in_(survey_ids)
         ).group_by(
             Sighting.survey_id,
-            Species.type
+            SpeciesType.name
         ).all()
 
         # Build species breakdown lookup: {survey_id: [{"type": ..., "count": ...}]}

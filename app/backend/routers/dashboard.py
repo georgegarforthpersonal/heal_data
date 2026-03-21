@@ -101,7 +101,7 @@ async def get_cumulative_species(
         if species_types:
             # SQL injection safe: using parameterized query
             placeholders = ', '.join([f":type_{i}" for i in range(len(species_types))])
-            species_filter = f"AND species.type IN ({placeholders})"
+            species_filter = f"AND species_type.name IN ({placeholders})"
 
         # Build date filters
         date_filter_sql = build_date_filter_sql(start_date, end_date)
@@ -111,16 +111,17 @@ async def get_cumulative_species(
             WITH first_sightings AS (
                 SELECT
                     species.id as species_id,
-                    species.type,
+                    species_type.name as type,
                     COALESCE(species.name, species.scientific_name) as species_name,
                     MIN(survey.date) as first_seen_date
                 FROM survey
                 JOIN sighting ON survey.id = sighting.survey_id
                 JOIN species ON sighting.species_id = species.id
+                JOIN species_type ON species.species_type_id = species_type.id
                 WHERE survey.organisation_id = :org_id
                 {species_filter}
                 {date_filter_sql}
-                GROUP BY species.id, species.type, species.name, species.scientific_name
+                GROUP BY species.id, species_type.name, species.name, species.scientific_name
             ),
             survey_dates AS (
                 SELECT DISTINCT survey.date
@@ -219,13 +220,13 @@ async def get_species_types_with_entries(
     """
     try:
         query = text("""
-            SELECT DISTINCT species.type
+            SELECT DISTINCT species_type.name as type
             FROM species
+            JOIN species_type ON species.species_type_id = species_type.id
             JOIN sighting ON species.id = sighting.species_id
             JOIN survey ON sighting.survey_id = survey.id
-            WHERE species.type IS NOT NULL
-              AND survey.organisation_id = :org_id
-            ORDER BY species.type
+            WHERE survey.organisation_id = :org_id
+            ORDER BY species_type.name
         """)
 
         result = db.execute(query, {"org_id": org.id})
@@ -265,14 +266,15 @@ async def get_species_by_count(
                 species.id,
                 species.name,
                 species.scientific_name,
-                species.type,
+                species_type.name as type,
                 COALESCE(SUM(sighting.count), 0) as total_count
             FROM species
+            JOIN species_type ON species.species_type_id = species_type.id
             LEFT JOIN sighting ON species.id = sighting.species_id
             LEFT JOIN survey ON sighting.survey_id = survey.id
-            WHERE species.type = :species_type
+            WHERE species_type.name = :species_type
               AND (survey.organisation_id = :org_id OR survey.id IS NULL)
-            GROUP BY species.id, species.name, species.scientific_name, species.type
+            GROUP BY species.id, species.name, species.scientific_name, species_type.name
             HAVING COALESCE(SUM(CASE WHEN survey.organisation_id = :org_id THEN sighting.count ELSE 0 END), 0) > 0
             ORDER BY total_count DESC, species.name
         """)

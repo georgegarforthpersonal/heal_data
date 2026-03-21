@@ -2,9 +2,6 @@
 Tests for Species Router
 
 Tests CRUD operations for the /api/species endpoints.
-
-Note: The species router uses raw SQL (psycopg2) instead of SQLAlchemy ORM.
-These tests verify the raw SQL code path works correctly.
 """
 
 from fastapi.testclient import TestClient
@@ -20,9 +17,12 @@ class TestGetSpecies:
         assert isinstance(response.json(), list)
 
     def test_get_species_filter_by_type(
-        self, client: TestClient, auth_headers: dict
+        self, client: TestClient, auth_headers: dict, create_species
     ):
         """Should filter species by type."""
+        # Ensure a butterfly species exists
+        create_species(name="Filter Test Butterfly", species_type="butterfly")
+
         response = client.get(
             "/api/species?survey_type=butterfly", headers=auth_headers
         )
@@ -31,6 +31,7 @@ class TestGetSpecies:
         # All returned species should be butterflies
         for species in response.json():
             assert species["type"] == "butterfly"
+            assert "species_type_id" in species
 
 
 class TestGetSpeciesById:
@@ -45,14 +46,17 @@ class TestGetSpeciesById:
 class TestCreateSpecies:
     """Tests for POST /api/species"""
 
-    def test_create_species(self, client: TestClient, auth_headers: dict):
+    def test_create_species(self, client: TestClient, auth_headers: dict, create_species_type):
         """Should create a new species."""
+        # Ensure species type exists
+        st = create_species_type(name="butterfly", display_name="Butterfly")
+
         response = client.post(
             "/api/species",
             json={
                 "name": "Test Butterfly",
                 "scientific_name": "Testus butterflicus",
-                "type": "butterfly",
+                "species_type_id": st.id,
             },
             headers=auth_headers,
         )
@@ -61,16 +65,26 @@ class TestCreateSpecies:
         data = response.json()
         assert data["name"] == "Test Butterfly"
         assert data["scientific_name"] == "Testus butterflicus"
+        assert data["species_type_id"] == st.id
         assert data["type"] == "butterfly"
 
         # Clean up - delete the created species
         client.delete(f"/api/species/{data['id']}", headers=auth_headers)
 
+    def test_create_species_invalid_type_id(self, client: TestClient, auth_headers: dict):
+        """Should return 400 for invalid species_type_id."""
+        response = client.post(
+            "/api/species",
+            json={"name": "Test", "species_type_id": 999999},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
     def test_create_species_unauthorized(self, client: TestClient):
         """Should return 401 without authentication."""
         response = client.post(
             "/api/species",
-            json={"name": "Test", "type": "butterfly"},
+            json={"name": "Test", "species_type_id": 1},
         )
         assert response.status_code == 401
 
@@ -78,14 +92,16 @@ class TestCreateSpecies:
 class TestUpdateSpecies:
     """Tests for PUT /api/species/{id}"""
 
-    def test_update_species(self, client: TestClient, auth_headers: dict):
+    def test_update_species(self, client: TestClient, auth_headers: dict, create_species_type):
         """Should update species fields."""
+        st = create_species_type(name="butterfly", display_name="Butterfly")
+
         # Create a species first
         create_response = client.post(
             "/api/species",
             json={
                 "name": "Original Name",
-                "type": "butterfly",
+                "species_type_id": st.id,
             },
             headers=auth_headers,
         )
@@ -117,14 +133,16 @@ class TestUpdateSpecies:
 class TestDeleteSpecies:
     """Tests for DELETE /api/species/{id}"""
 
-    def test_delete_species(self, client: TestClient, auth_headers: dict):
+    def test_delete_species(self, client: TestClient, auth_headers: dict, create_species_type):
         """Should delete species."""
+        st = create_species_type(name="butterfly", display_name="Butterfly")
+
         # Create a species first
         create_response = client.post(
             "/api/species",
             json={
                 "name": "To Delete",
-                "type": "butterfly",
+                "species_type_id": st.id,
             },
             headers=auth_headers,
         )

@@ -45,6 +45,7 @@ from models import (
     ProcessingStatus,
     Species,
     SpeciesDetectionSummary,
+    SpeciesType,
     Survey,
     SurveyDetectionsSummaryResponse,
 )
@@ -293,9 +294,11 @@ def process_recording_background(recording_id: int) -> None:
             for det in detections:
                 # Look up species in database
                 scientific_name = get_db_scientific_name(det.species)
-                species = db.query(Species).filter(
+                species = db.query(Species).join(
+                    Species.species_type
+                ).filter(
                     Species.scientific_name == scientific_name,
-                    Species.type == "bird"
+                    SpeciesType.name == "bird"
                 ).first()
 
                 if species:

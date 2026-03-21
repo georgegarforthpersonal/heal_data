@@ -578,11 +578,12 @@ def fetch_existing_species_scientific_names(exclude_types: list[str]) -> set[str
 
     with get_db_cursor() as cursor:
         cursor.execute("""
-            SELECT DISTINCT scientific_name
+            SELECT DISTINCT species.scientific_name
             FROM species
-            WHERE type IN %s
-                AND scientific_name IS NOT NULL
-                AND scientific_name != ''
+            JOIN species_type ON species.species_type_id = species_type.id
+            WHERE species_type.name IN %s
+                AND species.scientific_name IS NOT NULL
+                AND species.scientific_name != ''
         """, (tuple(exclude_types),))
         rows = cursor.fetchall()
 
@@ -598,10 +599,11 @@ def fetch_db_species(species_type: str) -> list[DBSpecies]:
 
     with get_db_cursor() as cursor:
         cursor.execute("""
-            SELECT id, name, scientific_name, conservation_status
+            SELECT species.id, species.name, species.scientific_name, species.conservation_status
             FROM species
-            WHERE type = %s
-            ORDER BY name
+            JOIN species_type ON species.species_type_id = species_type.id
+            WHERE species_type.name = %s
+            ORDER BY species.name
         """, (config['db_type'],))
         rows = cursor.fetchall()
 
@@ -1403,15 +1405,24 @@ def apply_migration(
             config = SPECIES_CONFIG[species_type]
             db_type = config['db_type']
 
+            # Look up species_type_id for this type
+            cursor.execute("""
+                SELECT id FROM species_type WHERE name = %s
+            """, (db_type,))
+            species_type_row = cursor.fetchone()
+            if not species_type_row:
+                raise ValueError(f"species_type '{db_type}' not found in species_type table")
+            species_type_id = species_type_row[0]
+
             for species in approved_new_species:
                 # Use common name if available, otherwise leave as NULL
                 common_name = species.common_name if species.common_name else None
                 cursor.execute("""
-                    INSERT INTO species (name, type, scientific_name, nbn_atlas_guid)
+                    INSERT INTO species (name, species_type_id, scientific_name, nbn_atlas_guid)
                     VALUES (%s, %s, %s, %s)
                 """, (
                     common_name,
-                    db_type,
+                    species_type_id,
                     species.scientific_name,
                     species.guid
                 ))
