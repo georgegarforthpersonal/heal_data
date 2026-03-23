@@ -43,7 +43,7 @@ def get_database_url() -> str:
         # Fallback for scripts that don't have config available
         host = os.getenv('DB_HOST', 'localhost')
         port = os.getenv('DB_PORT', '5432')
-        database = os.getenv('DB_NAME', 'heal_butterflies')
+        database = os.getenv('DB_NAME', 'canopy')
         user = os.getenv('DB_USER', 'postgres')
         password = os.getenv('DB_PASSWORD', 'password')
         sslmode = os.getenv('DB_SSLMODE', '')
@@ -61,7 +61,7 @@ def get_connection_pool() -> Optional[pool.SimpleConnectionPool]:
     Reads database configuration from environment variables:
     - DB_HOST: Database host (default: localhost)
     - DB_PORT: Database port (default: 5432)
-    - DB_NAME: Database name (default: heal_butterflies)
+    - DB_NAME: Database name (default: canopy)
     - DB_USER: Database user (default: postgres)
     - DB_PASSWORD: Database password (default: password)
     - DB_SSLMODE: SSL mode (optional, required for Neon)
@@ -77,7 +77,7 @@ def get_connection_pool() -> Optional[pool.SimpleConnectionPool]:
             connection_params = {
                 'host': os.getenv('DB_HOST', 'localhost'),
                 'port': int(os.getenv('DB_PORT', '5432')),
-                'database': os.getenv('DB_NAME', 'heal_butterflies'),
+                'database': os.getenv('DB_NAME', 'canopy'),
                 'user': os.getenv('DB_USER', 'postgres'),
                 'password': os.getenv('DB_PASSWORD', 'password')
             }

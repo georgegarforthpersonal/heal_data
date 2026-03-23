@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # =========================================================================
     db_host: str = Field(default="localhost", description="Database host")
     db_port: int = Field(default=5432, description="Database port")
-    db_name: str = Field(default="heal_butterflies", description="Database name")
+    db_name: str = Field(default="canopy", description="Database name")
     db_user: str = Field(default="postgres", description="Database user")
     db_password: str = Field(default="password", description="Database password")
     db_sslmode: str = Field(default="", description="SSL mode for database connection")

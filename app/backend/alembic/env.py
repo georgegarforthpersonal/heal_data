@@ -25,7 +25,7 @@ config = context.config
 def get_url():
     host = os.getenv('DB_HOST', 'localhost')
     port = os.getenv('DB_PORT', '5432')
-    database = os.getenv('DB_NAME', 'heal_butterflies')
+    database = os.getenv('DB_NAME', 'canopy')
     user = os.getenv('DB_USER', 'postgres')
     password = os.getenv('DB_PASSWORD', 'password')
     sslmode = os.getenv('DB_SSLMODE', '')
