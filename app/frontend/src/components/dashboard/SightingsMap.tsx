@@ -363,10 +363,13 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                       <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                         {dayjs(sighting.survey_date).format('MMM DD, YYYY')}
                       </Typography>
-                      {sighting.breeding_status_code && (
+                      {(sighting.sex || sighting.posture || sighting.singing) && (
                         <Typography variant="body2" color="text.secondary">
-                          <strong>{sighting.breeding_status_code}</strong>
-                          {sighting.breeding_status_description && ` - ${sighting.breeding_status_description}`}
+                          {[
+                            sighting.sex && (sighting.sex === 'male' ? 'Male' : 'Female'),
+                            sighting.posture && (sighting.posture === 'flying' ? 'Flying' : 'Perched'),
+                            sighting.singing && 'Singing',
+                          ].filter(Boolean).join(' · ')}
                         </Typography>
                       )}
                     </Box>

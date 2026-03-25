@@ -2,7 +2,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, 
 import { Close } from '@mui/icons-material';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 import { useState, useEffect } from 'react';
-import type { BreedingStatusCode, LocationWithBoundary } from '../../services/api';
+import type { LocationWithBoundary } from '../../services/api';
 
 interface LocationModalProps {
   open: boolean;
@@ -11,7 +11,6 @@ interface LocationModalProps {
   initialIndividuals?: DraftIndividualLocation[];
   speciesName?: string;
   speciesType?: string;
-  breedingCodes?: BreedingStatusCode[];
   count?: number; // Maximum number of individuals (from sighting count)
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
   surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
@@ -24,7 +23,6 @@ export function LocationModal({
   initialIndividuals,
   speciesName,
   speciesType,
-  breedingCodes = [],
   count = 1,
   locationsWithBoundaries,
   surveyLocationId,
@@ -99,8 +97,7 @@ export function LocationModal({
         <MultiLocationMapPicker
           locations={individuals}
           onChange={setIndividuals}
-          breedingCodes={breedingCodes}
-          showBreedingStatus={isBirdSpecies}
+          showBirdFields={isBirdSpecies}
           maxCount={count}
           locationsWithBoundaries={locationsWithBoundaries}
           surveyLocationId={surveyLocationId}

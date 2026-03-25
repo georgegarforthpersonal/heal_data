@@ -28,7 +28,6 @@ import type {
   Location,
   Surveyor,
   Species,
-  BreedingStatusCode,
   LocationWithBoundary,
   SurveyType,
 } from '../services/api';
@@ -101,7 +100,6 @@ export function NewSurveyPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
   const [species, setSpecies] = useState<Species[]>([]);
-  const [breedingCodes, setBreedingCodes] = useState<BreedingStatusCode[]>([]);
   const [locationsWithBoundaries, setLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -131,16 +129,14 @@ export function NewSurveyPage() {
         setError(null);
 
         // Fetch survey types and other base data in parallel
-        const [surveyTypesData, surveyorsData, breedingCodesData, boundariesData] = await Promise.all([
+        const [surveyTypesData, surveyorsData, boundariesData] = await Promise.all([
           surveyTypesAPI.getAll(),
           surveyorsAPI.getAll(),
-          surveysAPI.getBreedingCodes(),
           locationsAPI.getAllWithBoundaries(),
         ]);
 
         setSurveyTypes(surveyTypesData);
         setSurveyors(surveyorsData);
-        setBreedingCodes(breedingCodesData);
         setLocationsWithBoundaries(boundariesData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load form data');
@@ -333,12 +329,14 @@ export function NewSurveyPage() {
             count: sighting.count,
             location_id: selectedSurveyType?.location_at_sighting_level ? sighting.location_id : undefined,
             notes: sighting.notes,
-            // Include individual locations with count and breeding status codes
+            // Include individual locations with count and bird observation fields
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
               longitude: ind.longitude,
               count: ind.count,
-              breeding_status_code: ind.breeding_status_code,
+              sex: ind.sex,
+              posture: ind.posture,
+              singing: ind.singing,
               notes: ind.notes,
             })),
           })
@@ -756,7 +754,6 @@ export function NewSurveyPage() {
           <SightingsEditor
             sightings={draftSightings}
             species={species}
-            breedingCodes={breedingCodes}
             onSightingsChange={handleSightingsChange}
             validationError={validationErrors.sightings}
             locationsWithBoundaries={locationsWithBoundaries}
