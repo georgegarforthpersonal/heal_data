@@ -314,6 +314,7 @@ function AddPopupForm({
                   zIndex: 1000,
                   borderRadius: 2,
                   whiteSpace: 'nowrap',
+                  minWidth: '100%',
                   width: 'max-content',
                 }}
               >
@@ -471,6 +472,7 @@ function EditPopupForm({
                   zIndex: 1000,
                   borderRadius: 2,
                   whiteSpace: 'nowrap',
+                  minWidth: '100%',
                   width: 'max-content',
                 }}
               >
