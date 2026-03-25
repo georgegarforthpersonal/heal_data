@@ -444,18 +444,7 @@ export default function MultiLocationMapPicker({
                   )}
                 </Stack>
 
-                {/* Bird fields: inline for count=1, behind expander for count>1 */}
-                {showBirdFields && loc.count === 1 && (
-                  <BirdObservationFields
-                    sex={loc.birdFieldsList?.[0]?.sex ?? loc.sex}
-                    posture={loc.birdFieldsList?.[0]?.posture ?? loc.posture}
-                    singing={loc.birdFieldsList?.[0]?.singing ?? loc.singing}
-                    onChange={(fields) => handleBirdFieldsChange(loc.tempId, 0, fields)}
-                    disabled={disabled}
-                    compact
-                  />
-                )}
-                {showBirdFields && loc.count > 1 && (
+                {showBirdFields && loc.count > 0 && (
                   <>
                     <Box
                       onClick={() => {
@@ -477,16 +466,18 @@ export default function MultiLocationMapPicker({
                         }}
                       />
                       <Typography variant="caption" color="text.secondary">
-                        Bird details
+                        Behaviour
                       </Typography>
                     </Box>
                     {expandedBirdDetails.has(loc.tempId) && loc.birdFieldsList && (
                       <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
                         {loc.birdFieldsList.map((bf, bfIndex) => (
                           <Stack key={bfIndex} direction="row" alignItems="center" spacing={1}>
-                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                              {bfIndex + 1}
-                            </Typography>
+                            {loc.count > 1 && (
+                              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                                {bfIndex + 1}
+                              </Typography>
+                            )}
                             <BirdObservationFields
                               sex={bf.sex}
                               posture={bf.posture}

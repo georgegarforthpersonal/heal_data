@@ -255,7 +255,7 @@ export function MapModeSightings({
                 >
                   <Popup
                     closeOnClick={false}
-                    autoPan={true}
+                    autoPan={false}
                     minWidth={readOnly ? 200 : 260}
                     maxWidth={320}
                     className="map-mode-popup"

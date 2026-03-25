@@ -258,17 +258,7 @@ function AddPopupForm({
           }}
         />
 
-        {/* Bird fields: inline for count=1, behind expander for count>1 */}
-        {isBird && count === 1 && (
-          <BirdObservationFields
-            sex={birdFieldsList[0]?.sex}
-            posture={birdFieldsList[0]?.posture}
-            singing={birdFieldsList[0]?.singing}
-            onChange={(fields) => handleBirdFieldChange(0, fields)}
-            compact
-          />
-        )}
-        {isBird && count > 1 && (
+        {isBird && count > 0 && (
           <>
             <Box
               onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
@@ -283,16 +273,18 @@ function AddPopupForm({
                 }}
               />
               <Typography variant="caption" color="text.secondary">
-                Bird details
+                Behaviour
               </Typography>
             </Box>
             {birdDetailsExpanded && (
               <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
                 {birdFieldsList.slice(0, count).map((bf, index) => (
                   <Stack key={index} direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                      {index + 1}
-                    </Typography>
+                    {count > 1 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                        {index + 1}
+                      </Typography>
+                    )}
                     <BirdObservationFields
                       sex={bf.sex}
                       posture={bf.posture}
@@ -425,17 +417,7 @@ function EditPopupForm({
           }}
         />
 
-        {/* Bird fields: inline for count=1, behind expander for count>1 */}
-        {isBird && marker.count === 1 && (
-          <BirdObservationFields
-            sex={birdFieldsList[0]?.sex}
-            posture={birdFieldsList[0]?.posture}
-            singing={birdFieldsList[0]?.singing}
-            onChange={(fields) => handleBirdFieldChange(0, fields)}
-            compact
-          />
-        )}
-        {isBird && marker.count > 1 && (
+        {isBird && marker.count > 0 && (
           <>
             <Box
               onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
@@ -450,16 +432,18 @@ function EditPopupForm({
                 }}
               />
               <Typography variant="caption" color="text.secondary">
-                Bird details
+                Behaviour
               </Typography>
             </Box>
             {birdDetailsExpanded && (
               <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
                 {birdFieldsList.slice(0, marker.count).map((bf, index) => (
                   <Stack key={index} direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                      {index + 1}
-                    </Typography>
+                    {marker.count > 1 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                        {index + 1}
+                      </Typography>
+                    )}
                     <BirdObservationFields
                       sex={bf.sex}
                       posture={bf.posture}
