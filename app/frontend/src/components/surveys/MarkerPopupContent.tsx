@@ -282,7 +282,7 @@ function AddPopupForm({
 
         {/* Behaviour section — dropdown extends below popup */}
         {isBird && count > 0 && (
-          <Box sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative', width: '100%' }}>
             <Box
               onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
               sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
@@ -440,7 +440,7 @@ function EditPopupForm({
 
         {/* Behaviour section — dropdown extends below popup */}
         {isBird && marker.count > 0 && (
-          <Box sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative', width: '100%' }}>
             <Box
               onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
               sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
