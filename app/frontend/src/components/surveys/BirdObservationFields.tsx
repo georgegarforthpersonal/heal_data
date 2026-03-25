@@ -35,7 +35,7 @@ export function BirdObservationFields({
       direction="row"
       spacing={compact ? 0.5 : 1}
       alignItems="center"
-      flexWrap="wrap"
+      flexWrap="nowrap"
       sx={{ gap: compact ? 0.5 : 1 }}
     >
       {/* Sex toggle */}
