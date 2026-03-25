@@ -18,11 +18,13 @@ body,
 .map-mode-popup .leaflet-popup-content {
   margin: 8px;
   min-width: 240px;
+  overflow: visible;
 }
 
 .map-mode-popup .leaflet-popup-content-wrapper {
   border-radius: 8px;
   padding: 0;
+  overflow: visible;
 }
 
 .map-mode-popup .leaflet-popup-close-button {

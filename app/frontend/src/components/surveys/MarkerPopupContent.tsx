@@ -8,6 +8,7 @@ import {
   Button,
   Stack,
   Chip,
+  Paper,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -258,47 +259,6 @@ function AddPopupForm({
           }}
         />
 
-        {isBird && count > 0 && (
-          <>
-            <Box
-              onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
-              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
-            >
-              <ExpandMoreIcon
-                sx={{
-                  fontSize: 18,
-                  color: 'text.secondary',
-                  transform: birdDetailsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                Behaviour
-              </Typography>
-            </Box>
-            {birdDetailsExpanded && (
-              <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
-                {birdFieldsList.slice(0, count).map((bf, index) => (
-                  <Stack key={index} direction="row" alignItems="center" spacing={1}>
-                    {count > 1 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                        {index + 1}
-                      </Typography>
-                    )}
-                    <BirdObservationFields
-                      sex={bf.sex}
-                      posture={bf.posture}
-                      singing={bf.singing}
-                      onChange={(fields) => handleBirdFieldChange(index, fields)}
-                      compact
-                    />
-                  </Stack>
-                ))}
-              </Stack>
-            )}
-          </>
-        )}
-
         <Stack direction="row" spacing={1}>
           <Button
             variant="contained"
@@ -319,6 +279,64 @@ function AddPopupForm({
             Discard
           </Button>
         </Stack>
+
+        {/* Behaviour section — dropdown extends below popup */}
+        {isBird && count > 0 && (
+          <Box sx={{ position: 'relative' }}>
+            <Box
+              onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
+              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
+            >
+              <ExpandMoreIcon
+                sx={{
+                  fontSize: 18,
+                  color: 'text.secondary',
+                  transform: birdDetailsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Behaviour
+              </Typography>
+            </Box>
+            {birdDetailsExpanded && (
+              <Paper
+                elevation={3}
+                sx={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  mt: 0.5,
+                  p: 1,
+                  maxHeight: 160,
+                  overflowY: 'auto',
+                  zIndex: 1000,
+                  borderRadius: 1,
+                }}
+              >
+                <Stack spacing={1}>
+                  {birdFieldsList.slice(0, count).map((bf, index) => (
+                    <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                      {count > 1 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                          {index + 1}
+                        </Typography>
+                      )}
+                      <BirdObservationFields
+                        sex={bf.sex}
+                        posture={bf.posture}
+                        singing={bf.singing}
+                        onChange={(fields) => handleBirdFieldChange(index, fields)}
+                        compact
+                      />
+                    </Stack>
+                  ))}
+                </Stack>
+              </Paper>
+            )}
+          </Box>
+        )}
       </Stack>
     </Box>
   );
@@ -417,8 +435,9 @@ function EditPopupForm({
           }}
         />
 
+        {/* Behaviour section — dropdown extends below popup */}
         {isBird && marker.count > 0 && (
-          <>
+          <Box sx={{ position: 'relative' }}>
             <Box
               onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
               sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
@@ -436,26 +455,42 @@ function EditPopupForm({
               </Typography>
             </Box>
             {birdDetailsExpanded && (
-              <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
-                {birdFieldsList.slice(0, marker.count).map((bf, index) => (
-                  <Stack key={index} direction="row" alignItems="center" spacing={1}>
-                    {marker.count > 1 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                        {index + 1}
-                      </Typography>
-                    )}
-                    <BirdObservationFields
-                      sex={bf.sex}
-                      posture={bf.posture}
-                      singing={bf.singing}
-                      onChange={(fields) => handleBirdFieldChange(index, fields)}
-                      compact
-                    />
-                  </Stack>
-                ))}
-              </Stack>
+              <Paper
+                elevation={3}
+                sx={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  mt: 0.5,
+                  p: 1,
+                  maxHeight: 160,
+                  overflowY: 'auto',
+                  zIndex: 1000,
+                  borderRadius: 1,
+                }}
+              >
+                <Stack spacing={1}>
+                  {birdFieldsList.slice(0, marker.count).map((bf, index) => (
+                    <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                      {marker.count > 1 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                          {index + 1}
+                        </Typography>
+                      )}
+                      <BirdObservationFields
+                        sex={bf.sex}
+                        posture={bf.posture}
+                        singing={bf.singing}
+                        onChange={(fields) => handleBirdFieldChange(index, fields)}
+                        compact
+                      />
+                    </Stack>
+                  ))}
+                </Stack>
+              </Paper>
             )}
-          </>
+          </Box>
         )}
       </Stack>
     </Box>
