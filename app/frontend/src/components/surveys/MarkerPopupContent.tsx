@@ -306,13 +306,15 @@ function AddPopupForm({
                   position: 'absolute',
                   top: '100%',
                   left: 0,
-                  right: 0,
                   mt: 0.5,
                   p: 1,
                   maxHeight: 160,
                   overflowY: 'auto',
+                  overflowX: 'hidden',
                   zIndex: 1000,
                   borderRadius: 1,
+                  whiteSpace: 'nowrap',
+                  width: 'max-content',
                 }}
               >
                 <Stack spacing={1}>
@@ -461,13 +463,15 @@ function EditPopupForm({
                   position: 'absolute',
                   top: '100%',
                   left: 0,
-                  right: 0,
                   mt: 0.5,
                   p: 1,
                   maxHeight: 160,
                   overflowY: 'auto',
+                  overflowX: 'hidden',
                   zIndex: 1000,
                   borderRadius: 1,
+                  whiteSpace: 'nowrap',
+                  width: 'max-content',
                 }}
               >
                 <Stack spacing={1}>
