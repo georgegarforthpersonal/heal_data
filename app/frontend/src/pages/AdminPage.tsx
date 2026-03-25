@@ -29,7 +29,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import { Add, Delete, RestoreFromTrash, Edit, Lock } from '@mui/icons-material';
+import { Add, Delete, RestoreFromTrash, Edit, Lock, Download } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -37,6 +37,7 @@ import {
   surveyTypesAPI,
   locationsAPI,
   devicesAPI,
+  exportAPI,
   type Surveyor,
   type SurveyType,
   type SurveyTypeWithDetails,
@@ -144,6 +145,11 @@ export function AdminPage() {
   const [formDeviceLongitude, setFormDeviceLongitude] = useState<number | undefined>(undefined);
   const [formDeviceLocationId, setFormDeviceLocationId] = useState<number | null>(null);
 
+  // Export state
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState(false);
+
   // Load data
   useEffect(() => {
     loadSurveyors();
@@ -190,6 +196,20 @@ export function AdminPage() {
       setAllSpeciesTypes(speciesTypes);
     } catch (err) {
       console.error('Failed to load reference data:', err);
+    }
+  };
+
+  const handleExportSqlite = async () => {
+    setExporting(true);
+    setExportError(null);
+    setExportSuccess(false);
+    try {
+      await exportAPI.downloadSqlite();
+      setExportSuccess(true);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -511,6 +531,7 @@ export function AdminPage() {
           <Tab label="Surveyors" />
           <Tab label="Survey Types" />
           <Tab label="Devices" />
+          <Tab label="Data" />
         </Tabs>
       </Box>
 
@@ -883,6 +904,42 @@ export function AdminPage() {
             </TableBody>
           </Table>
         </TableContainer>
+      </TabPanel>
+
+      {/* Data Tab */}
+      <TabPanel value={tabValue} index={3}>
+        <Paper sx={{ p: 3, maxWidth: 600 }}>
+          <Typography variant="h6" gutterBottom>
+            Export Data
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Download a snapshot of all your organisation's data as a SQLite database file.
+            You can open it with{' '}
+            <a href="https://sqlitebrowser.org" target="_blank" rel="noopener noreferrer">
+              DB Browser for SQLite
+            </a>{' '}
+            (free).
+          </Typography>
+          {exportError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {exportError}
+            </Alert>
+          )}
+          {exportSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Export downloaded successfully.
+            </Alert>
+          )}
+          <Button
+            variant="contained"
+            startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <Download />}
+            onClick={handleExportSqlite}
+            disabled={exporting}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
+          >
+            {exporting ? 'Exporting...' : 'Download SQLite Database'}
+          </Button>
+        </Paper>
       </TabPanel>
 
       {/* Add/Edit Surveyor Dialog */}

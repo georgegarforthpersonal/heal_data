@@ -1101,6 +1101,60 @@ export interface AuthStatus {
 // API Methods - Auth
 // ============================================================================
 
+// ============================================================================
+// API Methods - Export
+// ============================================================================
+
+export const exportAPI = {
+  /**
+   * Download organisation data as a SQLite database file.
+   * Returns a Blob that can be saved as a .sqlite file.
+   */
+  downloadSqlite: async (): Promise<void> => {
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'X-Org-Slug': ORG_SLUG,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/export/sqlite`, {
+      credentials: 'include',
+      headers,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Export failed: ${response.status}`;
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Extract filename from Content-Disposition header
+    const disposition = response.headers.get('Content-Disposition');
+    const filenameMatch = disposition?.match(/filename="(.+)"/);
+    const filename = filenameMatch ? filenameMatch[1] : `export_${Date.now()}.sqlite`;
+
+    // Download the blob
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+};
+
 export const authAPI = {
   login: async (password: string): Promise<{ authenticated: boolean }> => {
     const response = await fetchAPI<{ authenticated: boolean; token?: string }>('/auth/login', {
