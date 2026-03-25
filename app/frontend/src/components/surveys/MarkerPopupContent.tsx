@@ -10,18 +10,23 @@ import {
   Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import MaleIcon from '@mui/icons-material/Male';
+import FemaleIcon from '@mui/icons-material/Female';
+import FlightIcon from '@mui/icons-material/Flight';
+import NatureIcon from '@mui/icons-material/Nature';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
 
-import type { Species, BreedingStatusCode, BreedingCategory } from '../../services/api';
+import type { Species, BirdSex, BirdPosture } from '../../services/api';
 import type { MapMarker } from './mapModeUtils';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 import { getSpeciesIcon } from '../../config';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
+import { BirdObservationFields } from './BirdObservationFields';
 
 interface MarkerPopupContentAddProps {
   mode: 'add';
   species: Species[];
-  breedingCodes: BreedingStatusCode[];
-  onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null) => void;
+  showBirdFields?: boolean;
+  onAdd: (speciesId: number, count: number, birdFields?: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => void;
   onDiscard: () => void;
   marker?: undefined;
   onUpdate?: undefined;
@@ -31,9 +36,9 @@ interface MarkerPopupContentAddProps {
 interface MarkerPopupContentEditProps {
   mode: 'edit';
   species: Species[];
-  breedingCodes: BreedingStatusCode[];
+  showBirdFields?: boolean;
   marker: MapMarker;
-  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => void;
+  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>) => void;
   onDelete: () => void;
   onAdd?: undefined;
 }
@@ -41,7 +46,7 @@ interface MarkerPopupContentEditProps {
 interface MarkerPopupContentViewProps {
   mode: 'view';
   species: Species[];
-  breedingCodes: BreedingStatusCode[];
+  showBirdFields?: boolean;
   marker: MapMarker;
   onAdd?: undefined;
   onDiscard?: undefined;
@@ -51,30 +56,12 @@ interface MarkerPopupContentViewProps {
 
 type MarkerPopupContentProps = MarkerPopupContentAddProps | MarkerPopupContentEditProps | MarkerPopupContentViewProps;
 
-// Group breeding codes by category
-function groupBreedingCodes(breedingCodes: BreedingStatusCode[]) {
-  const groups: Record<BreedingCategory, BreedingStatusCode[]> = {
-    'non_breeding': [],
-    'possible_breeder': [],
-    'probable_breeder': [],
-    'confirmed_breeder': [],
-  };
-
-  breedingCodes.forEach((code) => {
-    if (groups[code.category]) {
-      groups[code.category].push(code);
-    }
-  });
-
-  return groups;
-}
-
 function stopPropagation(e: React.SyntheticEvent) {
   e.stopPropagation();
 }
 
 export function MarkerPopupContent(props: MarkerPopupContentProps) {
-  const { mode, species, breedingCodes } = props;
+  const { mode, species } = props;
 
   // Sort species by type then name
   const sortedSpecies = useMemo(() => {
@@ -95,7 +82,6 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
       <AddPopupForm
         species={species}
         sortedSpecies={sortedSpecies}
-        breedingCodes={breedingCodes}
         onAdd={props.onAdd}
         onDiscard={props.onDiscard}
         formatCategoryName={formatCategoryName}
@@ -107,7 +93,6 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
     return (
       <ViewPopupContent
         species={species}
-        breedingCodes={breedingCodes}
         marker={props.marker}
       />
     );
@@ -116,7 +101,6 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
   return (
     <EditPopupForm
       species={species}
-      breedingCodes={breedingCodes}
       marker={props.marker}
       onUpdate={props.onUpdate}
       onDelete={props.onDelete}
@@ -128,32 +112,33 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
 function AddPopupForm({
   species: _species,
   sortedSpecies,
-  breedingCodes,
   onAdd,
   onDiscard,
   formatCategoryName,
 }: {
   species: Species[];
   sortedSpecies: Species[];
-  breedingCodes: BreedingStatusCode[];
-  onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null) => void;
+  onAdd: (speciesId: number, count: number, birdFields?: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => void;
   onDiscard: () => void;
   formatCategoryName: (category: string) => string;
 }) {
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [count, setCount] = useState(1);
-  const [breedingStatus, setBreedingStatus] = useState<string | null>(null);
+  const [sex, setSex] = useState<BirdSex | null>(null);
+  const [posture, setPosture] = useState<BirdPosture | null>(null);
+  const [singing, setSinging] = useState<boolean | null>(null);
 
   const isBird = selectedSpecies?.type === 'bird';
-  const groupedCodes = useMemo(() => groupBreedingCodes(breedingCodes), [breedingCodes]);
 
   const handleAdd = () => {
     if (!selectedSpecies) return;
-    onAdd(selectedSpecies.id, count, breedingStatus);
+    onAdd(selectedSpecies.id, count, isBird ? { sex, posture, singing } : undefined);
     // Reset form
     setSelectedSpecies(null);
     setCount(1);
-    setBreedingStatus(null);
+    setSex(null);
+    setPosture(null);
+    setSinging(null);
   };
 
   return (
@@ -196,7 +181,11 @@ function AddPopupForm({
           value={selectedSpecies}
           onChange={(_, newValue) => {
             setSelectedSpecies(newValue);
-            if (newValue?.type !== 'bird') setBreedingStatus(null);
+            if (newValue?.type !== 'bird') {
+              setSex(null);
+              setPosture(null);
+              setSinging(null);
+            }
           }}
           renderOption={(props, option) => (
             <li {...props}>
@@ -249,11 +238,16 @@ function AddPopupForm({
         />
 
         {isBird && (
-          <BreedingStatusField
-            value={breedingStatus}
-            onChange={setBreedingStatus}
-            breedingCodes={breedingCodes}
-            groupedCodes={groupedCodes}
+          <BirdObservationFields
+            sex={sex}
+            posture={posture}
+            singing={singing}
+            onChange={(fields) => {
+              if (fields.sex !== undefined) setSex(fields.sex);
+              if (fields.posture !== undefined) setPosture(fields.posture);
+              if (fields.singing !== undefined) setSinging(fields.singing);
+            }}
+            compact
           />
         )}
 
@@ -285,21 +279,18 @@ function AddPopupForm({
 // Edit form for existing markers
 function EditPopupForm({
   species,
-  breedingCodes,
   marker,
   onUpdate,
   onDelete,
 }: {
   species: Species[];
-  breedingCodes: BreedingStatusCode[];
   marker: MapMarker;
-  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => void;
+  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>) => void;
   onDelete: () => void;
 }) {
   const sp = species.find((s) => s.id === marker.species_id);
   const speciesName = sp?.name || sp?.scientific_name || 'Unknown';
   const isBird = sp?.type === 'bird';
-  const groupedCodes = useMemo(() => groupBreedingCodes(breedingCodes), [breedingCodes]);
   const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
 
   return (
@@ -348,11 +339,12 @@ function EditPopupForm({
         />
 
         {isBird && (
-          <BreedingStatusField
-            value={marker.breeding_status_code ?? null}
-            onChange={(code) => onUpdate({ breeding_status_code: code })}
-            breedingCodes={breedingCodes}
-            groupedCodes={groupedCodes}
+          <BirdObservationFields
+            sex={marker.sex}
+            posture={marker.posture}
+            singing={marker.singing}
+            onChange={(fields) => onUpdate(fields)}
+            compact
           />
         )}
       </Stack>
@@ -363,11 +355,9 @@ function EditPopupForm({
 // View-only display for markers (read-only mode)
 function ViewPopupContent({
   species,
-  breedingCodes,
   marker,
 }: {
   species: Species[];
-  breedingCodes: BreedingStatusCode[];
   marker: MapMarker;
 }) {
   const sp = species.find((s) => s.id === marker.species_id);
@@ -375,10 +365,7 @@ function ViewPopupContent({
   const isBird = sp?.type === 'bird';
   const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
 
-  // Get breeding status display
-  const breedingCode = marker.breeding_status_code
-    ? breedingCodes.find((c) => c.code === marker.breeding_status_code)
-    : null;
+  const hasBirdFields = isBird && (marker.sex || marker.posture || marker.singing);
 
   return (
     <Box
@@ -411,24 +398,32 @@ function ViewPopupContent({
           Count: <strong>{marker.count}</strong>
         </Typography>
 
-        {isBird && breedingCode && (
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Typography variant="body2">Breeding:</Typography>
-            <Chip
-              label={breedingCode.code}
-              size="small"
-              sx={{
-                bgcolor: CATEGORY_COLORS[breedingCode.category],
-                color: 'white',
-                fontWeight: 600,
-                height: 18,
-                minWidth: 24,
-                '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
-              }}
-            />
-            <Typography variant="caption" color="text.secondary">
-              {breedingCode.description}
-            </Typography>
+        {hasBirdFields && (
+          <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
+            {marker.sex && (
+              <Chip
+                icon={marker.sex === 'male' ? <MaleIcon sx={{ fontSize: 14 }} /> : <FemaleIcon sx={{ fontSize: 14 }} />}
+                label={marker.sex === 'male' ? 'Male' : 'Female'}
+                size="small"
+                sx={{ height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+              />
+            )}
+            {marker.posture && (
+              <Chip
+                icon={marker.posture === 'flying' ? <FlightIcon sx={{ fontSize: 14 }} /> : <NatureIcon sx={{ fontSize: 14 }} />}
+                label={marker.posture === 'flying' ? 'Flying' : 'Perched'}
+                size="small"
+                sx={{ height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+              />
+            )}
+            {marker.singing && (
+              <Chip
+                icon={<MusicNoteIcon sx={{ fontSize: 14 }} />}
+                label="Singing"
+                size="small"
+                sx={{ height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+              />
+            )}
           </Stack>
         )}
       </Stack>
@@ -440,18 +435,15 @@ function ViewPopupContent({
 interface GroupedMarkerPopupContentProps {
   markers: MapMarker[];
   species: Species[];
-  breedingCodes: BreedingStatusCode[];
   readOnly?: boolean;
-  onUpdate?: (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => void;
+  onUpdate?: (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>) => void;
   onDelete?: (sightingTempId: string, individualTempId: string) => void;
 }
 
 export function GroupedMarkerPopupContent({
   markers,
   species,
-  breedingCodes,
   readOnly = false,
-  onUpdate: _onUpdate,
   onDelete,
 }: GroupedMarkerPopupContentProps) {
   // Sort markers by species name for consistent display
@@ -493,9 +485,8 @@ export function GroupedMarkerPopupContent({
           {sortedMarkers.map((marker) => {
             const sp = species.find((s) => s.id === marker.species_id);
             const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
-            const breedingCode = marker.breeding_status_code
-              ? breedingCodes.find((c) => c.code === marker.breeding_status_code)
-              : null;
+            const isBird = sp?.type === 'bird';
+            const hasBirdFields = isBird && (marker.sex || marker.posture || marker.singing);
 
             return (
               <Box
@@ -557,24 +548,46 @@ export function GroupedMarkerPopupContent({
                   </Stack>
                 </Stack>
 
-                {/* Breeding status if present */}
-                {breedingCode && (
-                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5, ml: 2.75 }}>
-                    <Chip
-                      label={breedingCode.code}
-                      size="small"
-                      sx={{
-                        bgcolor: CATEGORY_COLORS[breedingCode.category],
-                        color: 'white',
-                        fontWeight: 600,
-                        height: 16,
-                        minWidth: 20,
-                        '& .MuiChip-label': { px: 0.5, fontSize: '0.65rem' },
-                      }}
-                    />
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                      {breedingCode.description}
-                    </Typography>
+                {/* Bird fields if present */}
+                {hasBirdFields && (
+                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5, ml: 2.75 }} flexWrap="wrap">
+                    {marker.sex && (
+                      <Chip
+                        label={marker.sex === 'male' ? 'M' : 'F'}
+                        size="small"
+                        sx={{
+                          height: 16,
+                          minWidth: 20,
+                          fontWeight: 600,
+                          '& .MuiChip-label': { px: 0.5, fontSize: '0.65rem' },
+                        }}
+                      />
+                    )}
+                    {marker.posture && (
+                      <Chip
+                        label={marker.posture === 'flying' ? 'Fly' : 'Pch'}
+                        size="small"
+                        sx={{
+                          height: 16,
+                          minWidth: 20,
+                          fontWeight: 600,
+                          '& .MuiChip-label': { px: 0.5, fontSize: '0.65rem' },
+                        }}
+                      />
+                    )}
+                    {marker.singing && (
+                      <Chip
+                        icon={<MusicNoteIcon sx={{ fontSize: 10 }} />}
+                        label="Sing"
+                        size="small"
+                        sx={{
+                          height: 16,
+                          fontWeight: 600,
+                          '& .MuiChip-label': { px: 0.25, fontSize: '0.65rem' },
+                          '& .MuiChip-icon': { ml: 0.25 },
+                        }}
+                      />
+                    )}
                   </Stack>
                 )}
               </Box>
@@ -583,84 +596,5 @@ export function GroupedMarkerPopupContent({
         </Stack>
       </Box>
     </Box>
-  );
-}
-
-// Shared breeding status select field
-function BreedingStatusField({
-  value,
-  onChange,
-  breedingCodes,
-}: {
-  value: string | null;
-  onChange: (code: string | null) => void;
-  breedingCodes: BreedingStatusCode[];
-  groupedCodes: Record<BreedingCategory, BreedingStatusCode[]>;
-}) {
-  const selectedCode = value ? breedingCodes.find((c) => c.code === value) || null : null;
-
-  return (
-    <Autocomplete
-      options={breedingCodes}
-      groupBy={(option) => CATEGORY_LABELS[option.category]}
-      getOptionLabel={(option) => `${option.code} - ${option.description}`}
-      value={selectedCode}
-      onChange={(_, newValue) => onChange(newValue?.code || null)}
-      isOptionEqualToValue={(option, val) => option.code === val.code}
-      renderGroup={(params) => (
-        <li key={params.key}>
-          <Box
-            sx={{
-              px: 1.5,
-              py: 0.5,
-              bgcolor: CATEGORY_COLORS[breedingCodes.find((c) => CATEGORY_LABELS[c.category] === params.group)?.category || 'non_breeding'],
-              color: 'white',
-              fontWeight: 600,
-              fontSize: '0.75rem',
-            }}
-          >
-            {params.group}
-          </Box>
-          <ul style={{ padding: 0, margin: 0 }}>{params.children}</ul>
-        </li>
-      )}
-      renderOption={(props, option) => (
-        <li {...props}>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Chip
-              label={option.code}
-              size="small"
-              sx={{
-                bgcolor: CATEGORY_COLORS[option.category],
-                color: 'white',
-                fontWeight: 600,
-                height: 18,
-                minWidth: 24,
-                '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
-              }}
-            />
-            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-              {option.description}
-            </Typography>
-          </Stack>
-        </li>
-      )}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label="Breeding Status"
-          placeholder="Not set"
-          size="small"
-          sx={{
-            '& .MuiInputBase-input': { fontSize: '0.8rem' },
-          }}
-        />
-      )}
-      size="small"
-      disablePortal
-      slotProps={{
-        listbox: { sx: { maxHeight: '200px' } },
-      }}
-    />
   );
 }

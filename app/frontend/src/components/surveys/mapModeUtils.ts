@@ -1,3 +1,4 @@
+import type { BirdSex, BirdPosture } from '../../services/api';
 import type { DraftSighting } from './SightingsEditor';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 
@@ -12,7 +13,9 @@ export interface MapMarker {
   latitude: number;
   longitude: number;
   count: number;
-  breeding_status_code?: string | null;
+  sex?: BirdSex | null;
+  posture?: BirdPosture | null;
+  singing?: boolean | null;
 }
 
 /**
@@ -77,7 +80,9 @@ export function getMarkersFromSightings(draftSightings: DraftSighting[]): MapMar
         latitude: ind.latitude,
         longitude: ind.longitude,
         count: ind.count,
-        breeding_status_code: ind.breeding_status_code,
+        sex: ind.sex,
+        posture: ind.posture,
+        singing: ind.singing,
       });
     }
   }
@@ -95,14 +100,16 @@ export function addSpeciesAtLocation(
   lng: number,
   speciesId: number,
   count: number,
-  breedingStatusCode?: string | null
+  birdFields?: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }
 ): DraftSighting[] {
   const newIndividual: DraftIndividualLocation = {
     tempId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     latitude: lat,
     longitude: lng,
     count,
-    breeding_status_code: breedingStatusCode ?? null,
+    sex: birdFields?.sex ?? null,
+    posture: birdFields?.posture ?? null,
+    singing: birdFields?.singing ?? null,
   };
 
   const existingIndex = draftSightings.findIndex(
@@ -140,14 +147,14 @@ export function addSpeciesAtLocation(
 }
 
 /**
- * Update a marker's fields (count, breeding_status_code).
+ * Update a marker's fields (count, bird observation fields).
  * Recalculates the parent sighting's total count.
  */
 export function updateMarker(
   draftSightings: DraftSighting[],
   sightingTempId: string,
   individualTempId: string,
-  updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>
+  updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>
 ): DraftSighting[] {
   return draftSightings.map((s) => {
     if (s.tempId !== sightingTempId || !s.individuals) return s;

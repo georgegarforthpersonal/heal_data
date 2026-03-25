@@ -10,12 +10,6 @@ import {
   Tooltip,
   ToggleButtonGroup,
   ToggleButton,
-  Chip,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  ListSubheader,
   TextField,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -26,9 +20,9 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
 
-import type { BreedingStatusCode, BreedingCategory, LocationWithBoundary } from '../../services/api';
+import type { BirdSex, BirdPosture, LocationWithBoundary } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
+import { BirdObservationFields } from './BirdObservationFields';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
 // Extended individual location with temp ID for tracking unsaved points
@@ -38,15 +32,16 @@ export interface DraftIndividualLocation {
   latitude: number;
   longitude: number;
   count: number;
-  breeding_status_code?: string | null;
+  sex?: BirdSex | null;
+  posture?: BirdPosture | null;
+  singing?: boolean | null;
   notes?: string | null;
 }
 
 interface MultiLocationMapPickerProps {
   locations: DraftIndividualLocation[];
   onChange: (locations: DraftIndividualLocation[]) => void;
-  breedingCodes: BreedingStatusCode[];
-  showBreedingStatus?: boolean;
+  showBirdFields?: boolean;
   maxCount?: number; // Maximum number of individuals allowed (from sighting count)
   disabled?: boolean;
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
@@ -93,37 +88,10 @@ function FitBoundsToMarkers({ locations, surveyLocationId, locationsWithBoundari
   return null;
 }
 
-// Get marker color based on breeding status code
-function getMarkerColor(code: string | null | undefined, breedingCodes: BreedingStatusCode[]): string {
-  if (!code) return '#9E9E9E';
-  const status = breedingCodes.find((bc) => bc.code === code);
-  if (!status) return '#9E9E9E';
-  return CATEGORY_COLORS[status.category as BreedingCategory] || '#9E9E9E';
-}
-
-// Group breeding codes by category
-function groupBreedingCodes(breedingCodes: BreedingStatusCode[]) {
-  const groups: Record<BreedingCategory, BreedingStatusCode[]> = {
-    'non_breeding': [],
-    'possible_breeder': [],
-    'probable_breeder': [],
-    'confirmed_breeder': [],
-  };
-
-  breedingCodes.forEach((code) => {
-    if (groups[code.category]) {
-      groups[code.category].push(code);
-    }
-  });
-
-  return groups;
-}
-
 export default function MultiLocationMapPicker({
   locations,
   onChange,
-  breedingCodes,
-  showBreedingStatus = true,
+  showBirdFields = false,
   maxCount,
   disabled = false,
   locationsWithBoundaries,
@@ -137,7 +105,6 @@ export default function MultiLocationMapPicker({
   const totalCount = locations.reduce((sum, loc) => sum + loc.count, 0);
   const remainingCount = maxCount !== undefined ? maxCount - totalCount : undefined;
   const isAtMax = remainingCount !== undefined && remainingCount <= 0;
-  const groupedCodes = groupBreedingCodes(breedingCodes);
 
   // Handle map click - add new individual location
   const handleMapClick = useCallback(
@@ -149,7 +116,9 @@ export default function MultiLocationMapPicker({
         latitude: latlng.lat,
         longitude: latlng.lng,
         count: 1,
-        breeding_status_code: null,
+        sex: null,
+        posture: null,
+        singing: null,
         notes: null,
       };
       onChange([...locations, newLocation]);
@@ -192,12 +161,12 @@ export default function MultiLocationMapPicker({
     [locations, onChange]
   );
 
-  // Update breeding status for a specific individual
-  const handleBreedingStatusChange = useCallback(
-    (tempId: string, code: string | null) => {
+  // Update bird observation fields for a specific individual
+  const handleBirdFieldsChange = useCallback(
+    (tempId: string, fields: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => {
       onChange(
         locations.map((loc) =>
-          loc.tempId === tempId ? { ...loc, breeding_status_code: code } : loc
+          loc.tempId === tempId ? { ...loc, ...fields } : loc
         )
       );
     },
@@ -325,7 +294,7 @@ export default function MultiLocationMapPicker({
                 center={[loc.latitude, loc.longitude]}
                 radius={10}
                 pathOptions={{
-                  fillColor: getMarkerColor(loc.breeding_status_code, breedingCodes),
+                  fillColor: '#1976d2',
                   fillOpacity: 0.9,
                   color: '#fff',
                   weight: 2,
@@ -377,7 +346,7 @@ export default function MultiLocationMapPicker({
               sx={{
                 p: 1.5,
                 borderLeft: 4,
-                borderLeftColor: getMarkerColor(loc.breeding_status_code, breedingCodes),
+                borderLeftColor: 'primary.main',
               }}
             >
               <Stack spacing={1.5}>
@@ -427,97 +396,16 @@ export default function MultiLocationMapPicker({
                   )}
                 </Stack>
 
-                {/* Breeding Status (birds only) */}
-                {showBreedingStatus && (
-                  <FormControl size="small" fullWidth>
-                    <InputLabel id={`breeding-${loc.tempId}`}>Breeding Status</InputLabel>
-                    <Select
-                      labelId={`breeding-${loc.tempId}`}
-                      value={loc.breeding_status_code || ''}
-                      onChange={(e) => handleBreedingStatusChange(loc.tempId, e.target.value || null)}
-                      label="Breeding Status"
-                      disabled={disabled}
-                      renderValue={(value) => {
-                        if (!value) return <em style={{ color: '#666' }}>Not set</em>;
-                        const code = breedingCodes.find((c) => c.code === value);
-                        if (!code) return value;
-                        return (
-                          <Stack direction="row" alignItems="center" spacing={1}>
-                            <Chip
-                              label={code.code}
-                              size="small"
-                              sx={{
-                                bgcolor: CATEGORY_COLORS[code.category],
-                                color: 'white',
-                                fontWeight: 600,
-                                height: 20,
-                                minWidth: 28,
-                                '& .MuiChip-label': { px: 0.75 },
-                              }}
-                            />
-                            <span>{code.description}</span>
-                          </Stack>
-                        );
-                      }}
-                    >
-                      <MenuItem value="">
-                        <em>Not set</em>
-                      </MenuItem>
-                      {(Object.keys(groupedCodes) as BreedingCategory[]).map((category) => {
-                        const codes = groupedCodes[category];
-                        if (codes.length === 0) return null;
-                        return [
-                          <ListSubheader
-                            key={`header-${category}`}
-                            sx={{
-                              bgcolor: CATEGORY_COLORS[category],
-                              color: 'white',
-                              fontWeight: 600,
-                              lineHeight: '32px',
-                            }}
-                          >
-                            {CATEGORY_LABELS[category]}
-                          </ListSubheader>,
-                          ...codes.map((code) => (
-                            <MenuItem key={code.code} value={code.code} sx={{ py: 1 }}>
-                              <Stack direction="column" spacing={0.5} sx={{ width: '100%' }}>
-                                <Stack direction="row" alignItems="center" spacing={1}>
-                                  <Chip
-                                    label={code.code}
-                                    size="small"
-                                    sx={{
-                                      bgcolor: CATEGORY_COLORS[category],
-                                      color: 'white',
-                                      fontWeight: 600,
-                                      height: 20,
-                                      minWidth: 28,
-                                      '& .MuiChip-label': { px: 0.75 },
-                                    }}
-                                  />
-                                  <span style={{ fontWeight: 500 }}>{code.description}</span>
-                                </Stack>
-                                {code.full_description && code.full_description !== code.description && (
-                                  <Box
-                                    sx={{
-                                      fontSize: '0.75rem',
-                                      color: 'text.secondary',
-                                      ml: 5,
-                                      lineHeight: 1.4,
-                                      whiteSpace: 'normal',
-                                      wordBreak: 'break-word',
-                                      maxWidth: 400,
-                                    }}
-                                  >
-                                    {code.full_description}
-                                  </Box>
-                                )}
-                              </Stack>
-                            </MenuItem>
-                          )),
-                        ];
-                      })}
-                    </Select>
-                  </FormControl>
+                {/* Bird observation fields (birds only) */}
+                {showBirdFields && (
+                  <BirdObservationFields
+                    sex={loc.sex}
+                    posture={loc.posture}
+                    singing={loc.singing}
+                    onChange={(fields) => handleBirdFieldsChange(loc.tempId, fields)}
+                    disabled={disabled}
+                    compact
+                  />
                 )}
               </Stack>
             </Paper>
@@ -545,34 +433,6 @@ export default function MultiLocationMapPicker({
             Click on the map to add locations.
           </Typography>
         </Paper>
-      )}
-
-      {/* Legend (birds only) */}
-      {showBreedingStatus && locations.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-          {(Object.keys(CATEGORY_LABELS) as BreedingCategory[]).map((category) => (
-            <Box
-              key={category}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                fontSize: '0.7rem',
-                color: 'text.secondary',
-              }}
-            >
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  bgcolor: CATEGORY_COLORS[category],
-                }}
-              />
-              {CATEGORY_LABELS[category]}
-            </Box>
-          ))}
-        </Box>
       )}
 
       {/* Helper text */}
