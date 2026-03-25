@@ -301,20 +301,21 @@ function AddPopupForm({
             </Box>
             {birdDetailsExpanded && (
               <Paper
-                elevation={3}
+                elevation={0}
                 sx={{
                   position: 'absolute',
                   top: '100%',
-                  left: 0,
-                  mt: 0.5,
+                  left: -9, // align with popup edge (8px margin + 1px border)
+                  mt: 0,
                   p: 1,
                   maxHeight: 160,
                   overflowY: 'auto',
                   overflowX: 'hidden',
                   zIndex: 1000,
-                  borderRadius: 1,
+                  borderRadius: '0 0 8px 8px',
                   whiteSpace: 'nowrap',
                   width: 'max-content',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.15)',
                 }}
               >
                 <Stack spacing={1}>
@@ -458,20 +459,21 @@ function EditPopupForm({
             </Box>
             {birdDetailsExpanded && (
               <Paper
-                elevation={3}
+                elevation={0}
                 sx={{
                   position: 'absolute',
                   top: '100%',
-                  left: 0,
-                  mt: 0.5,
+                  left: -9, // align with popup edge (8px margin + 1px border)
+                  mt: 0,
                   p: 1,
                   maxHeight: 160,
                   overflowY: 'auto',
                   overflowX: 'hidden',
                   zIndex: 1000,
-                  borderRadius: 1,
+                  borderRadius: '0 0 8px 8px',
                   whiteSpace: 'nowrap',
                   width: 'max-content',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.15)',
                 }}
               >
                 <Stack spacing={1}>
