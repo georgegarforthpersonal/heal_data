@@ -15,9 +15,9 @@ import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 
-import type { Species, BirdSex, BirdPosture, LocationWithBoundary } from '../../services/api';
+import type { Species, LocationWithBoundary } from '../../services/api';
 import type { DraftSighting } from './SightingsEditor';
-import type { DraftIndividualLocation } from './MultiLocationMapPicker';
+import type { DraftIndividualLocation, IndividualBirdFields } from './MultiLocationMapPicker';
 import { getMarkersFromSightings, groupMarkersByLocation, addSpeciesAtLocation, updateMarker, removeMarker } from './mapModeUtils';
 import type { MapMarker } from './mapModeUtils';
 import { MarkerPopupContent, GroupedMarkerPopupContent } from './MarkerPopupContent';
@@ -132,7 +132,7 @@ export function MapModeSightings({
   }, []);
 
   const handleAddFromPopup = useCallback(
-    (speciesId: number, count: number, birdFields?: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => {
+    (speciesId: number, count: number, birdFieldsList?: IndividualBirdFields[]) => {
       if (!addPopupPosition) return;
       const updated = addSpeciesAtLocation(
         sightings,
@@ -140,7 +140,7 @@ export function MapModeSightings({
         addPopupPosition.lng,
         speciesId,
         count,
-        birdFields
+        birdFieldsList
       );
       onSightingsChange?.(updated);
       setAddPopupPosition(null);
@@ -153,7 +153,7 @@ export function MapModeSightings({
   }, []);
 
   const handleMarkerUpdate = useCallback(
-    (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>) => {
+    (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing' | 'birdFieldsList'>>) => {
       const updated = updateMarker(sightings, sightingTempId, individualTempId, updates);
       onSightingsChange?.(updated);
     },

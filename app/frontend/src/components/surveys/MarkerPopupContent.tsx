@@ -18,7 +18,7 @@ import MusicNoteIcon from '@mui/icons-material/MusicNote';
 
 import type { Species, BirdSex, BirdPosture } from '../../services/api';
 import type { MapMarker } from './mapModeUtils';
-import type { DraftIndividualLocation } from './MultiLocationMapPicker';
+import type { DraftIndividualLocation, IndividualBirdFields } from './MultiLocationMapPicker';
 import { getSpeciesIcon } from '../../config';
 import { BirdObservationFields } from './BirdObservationFields';
 
@@ -26,7 +26,7 @@ interface MarkerPopupContentAddProps {
   mode: 'add';
   species: Species[];
   showBirdFields?: boolean;
-  onAdd: (speciesId: number, count: number, birdFields?: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => void;
+  onAdd: (speciesId: number, count: number, birdFieldsList?: IndividualBirdFields[]) => void;
   onDiscard: () => void;
   marker?: undefined;
   onUpdate?: undefined;
@@ -38,7 +38,7 @@ interface MarkerPopupContentEditProps {
   species: Species[];
   showBirdFields?: boolean;
   marker: MapMarker;
-  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>) => void;
+  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing' | 'birdFieldsList'>>) => void;
   onDelete: () => void;
   onAdd?: undefined;
 }
@@ -118,27 +118,48 @@ function AddPopupForm({
 }: {
   species: Species[];
   sortedSpecies: Species[];
-  onAdd: (speciesId: number, count: number, birdFields?: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => void;
+  onAdd: (speciesId: number, count: number, birdFieldsList?: IndividualBirdFields[]) => void;
   onDiscard: () => void;
   formatCategoryName: (category: string) => string;
 }) {
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [count, setCount] = useState(1);
-  const [sex, setSex] = useState<BirdSex | null>(null);
-  const [posture, setPosture] = useState<BirdPosture | null>(null);
-  const [singing, setSinging] = useState<boolean | null>(null);
+  const [birdFieldsList, setBirdFieldsList] = useState<IndividualBirdFields[]>([{ sex: null, posture: null, singing: null }]);
 
   const isBird = selectedSpecies?.type === 'bird';
 
+  // Sync birdFieldsList length with count
+  const handleCountChange = (newCount: number) => {
+    setCount(newCount);
+    if (newCount > birdFieldsList.length) {
+      setBirdFieldsList([
+        ...birdFieldsList,
+        ...Array.from({ length: newCount - birdFieldsList.length }, () => ({
+          sex: null as BirdSex | null,
+          posture: null as BirdPosture | null,
+          singing: null as boolean | null,
+        })),
+      ]);
+    } else if (newCount < birdFieldsList.length && newCount > 0) {
+      setBirdFieldsList(birdFieldsList.slice(0, newCount));
+    }
+  };
+
+  const handleBirdFieldChange = (index: number, fields: Partial<IndividualBirdFields>) => {
+    setBirdFieldsList((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], ...fields };
+      return updated;
+    });
+  };
+
   const handleAdd = () => {
     if (!selectedSpecies) return;
-    onAdd(selectedSpecies.id, count, isBird ? { sex, posture, singing } : undefined);
+    onAdd(selectedSpecies.id, count, isBird ? birdFieldsList.slice(0, count) : undefined);
     // Reset form
     setSelectedSpecies(null);
     setCount(1);
-    setSex(null);
-    setPosture(null);
-    setSinging(null);
+    setBirdFieldsList([{ sex: null, posture: null, singing: null }]);
   };
 
   return (
@@ -182,9 +203,7 @@ function AddPopupForm({
           onChange={(_, newValue) => {
             setSelectedSpecies(newValue);
             if (newValue?.type !== 'bird') {
-              setSex(null);
-              setPosture(null);
-              setSinging(null);
+              setBirdFieldsList([{ sex: null, posture: null, singing: null }]);
             }
           }}
           renderOption={(props, option) => (
@@ -226,9 +245,9 @@ function AddPopupForm({
           value={count || ''}
           onChange={(e) => {
             const val = e.target.value;
-            setCount(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
+            handleCountChange(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
           }}
-          onBlur={() => { if (count < 1) setCount(1); }}
+          onBlur={() => { if (count < 1) handleCountChange(1); }}
           size="small"
           inputProps={{ min: 1 }}
           sx={{
@@ -237,18 +256,25 @@ function AddPopupForm({
           }}
         />
 
-        {isBird && (
-          <BirdObservationFields
-            sex={sex}
-            posture={posture}
-            singing={singing}
-            onChange={(fields) => {
-              if (fields.sex !== undefined) setSex(fields.sex);
-              if (fields.posture !== undefined) setPosture(fields.posture);
-              if (fields.singing !== undefined) setSinging(fields.singing);
-            }}
-            compact
-          />
+        {isBird && count > 0 && (
+          <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
+            {birdFieldsList.slice(0, count).map((bf, index) => (
+              <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                {count > 1 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                    {index + 1}
+                  </Typography>
+                )}
+                <BirdObservationFields
+                  sex={bf.sex}
+                  posture={bf.posture}
+                  singing={bf.singing}
+                  onChange={(fields) => handleBirdFieldChange(index, fields)}
+                  compact
+                />
+              </Stack>
+            ))}
+          </Stack>
         )}
 
         <Stack direction="row" spacing={1}>
@@ -285,13 +311,43 @@ function EditPopupForm({
 }: {
   species: Species[];
   marker: MapMarker;
-  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>) => void;
+  onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing' | 'birdFieldsList'>>) => void;
   onDelete: () => void;
 }) {
   const sp = species.find((s) => s.id === marker.species_id);
   const speciesName = sp?.name || sp?.scientific_name || 'Unknown';
   const isBird = sp?.type === 'bird';
   const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
+
+  const birdFieldsList = marker.birdFieldsList || (isBird ? [{ sex: marker.sex, posture: marker.posture, singing: marker.singing }] : []);
+
+  const handleCountChange = (newCount: number) => {
+    if (isBird) {
+      let updatedList = [...birdFieldsList];
+      if (newCount > updatedList.length) {
+        updatedList = [
+          ...updatedList,
+          ...Array.from({ length: newCount - updatedList.length }, () => ({
+            sex: null as BirdSex | null,
+            posture: null as BirdPosture | null,
+            singing: null as boolean | null,
+          })),
+        ];
+      } else if (newCount < updatedList.length && newCount > 0) {
+        updatedList = updatedList.slice(0, newCount);
+      }
+      onUpdate({ count: newCount, birdFieldsList: updatedList });
+    } else {
+      onUpdate({ count: newCount });
+    }
+  };
+
+  const handleBirdFieldChange = (index: number, fields: Partial<IndividualBirdFields>) => {
+    const updatedList = [...birdFieldsList];
+    updatedList[index] = { ...updatedList[index], ...fields };
+    const first = updatedList[0];
+    onUpdate({ birdFieldsList: updatedList, sex: first?.sex, posture: first?.posture, singing: first?.singing });
+  };
 
   return (
     <Box
@@ -325,10 +381,10 @@ function EditPopupForm({
           onChange={(e) => {
             const val = e.target.value;
             const newCount = val === '' ? 0 : Math.max(0, parseInt(val) || 0);
-            onUpdate({ count: newCount });
+            handleCountChange(newCount);
           }}
           onBlur={() => {
-            if (marker.count < 1) onUpdate({ count: 1 });
+            if (marker.count < 1) handleCountChange(1);
           }}
           size="small"
           inputProps={{ min: 1 }}
@@ -338,14 +394,25 @@ function EditPopupForm({
           }}
         />
 
-        {isBird && (
-          <BirdObservationFields
-            sex={marker.sex}
-            posture={marker.posture}
-            singing={marker.singing}
-            onChange={(fields) => onUpdate(fields)}
-            compact
-          />
+        {isBird && marker.count > 0 && (
+          <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
+            {birdFieldsList.slice(0, marker.count).map((bf, index) => (
+              <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                {marker.count > 1 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                    {index + 1}
+                  </Typography>
+                )}
+                <BirdObservationFields
+                  sex={bf.sex}
+                  posture={bf.posture}
+                  singing={bf.singing}
+                  onChange={(fields) => handleBirdFieldChange(index, fields)}
+                  compact
+                />
+              </Stack>
+            ))}
+          </Stack>
         )}
       </Stack>
     </Box>
@@ -436,7 +503,7 @@ interface GroupedMarkerPopupContentProps {
   markers: MapMarker[];
   species: Species[];
   readOnly?: boolean;
-  onUpdate?: (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing'>>) => void;
+  onUpdate?: (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing' | 'birdFieldsList'>>) => void;
   onDelete?: (sightingTempId: string, individualTempId: string) => void;
 }
 

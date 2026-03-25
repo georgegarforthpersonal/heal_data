@@ -25,6 +25,13 @@ import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { BirdObservationFields } from './BirdObservationFields';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
+// Per-individual bird observation fields
+export interface IndividualBirdFields {
+  sex?: BirdSex | null;
+  posture?: BirdPosture | null;
+  singing?: boolean | null;
+}
+
 // Extended individual location with temp ID for tracking unsaved points
 export interface DraftIndividualLocation {
   tempId: string;
@@ -32,6 +39,8 @@ export interface DraftIndividualLocation {
   latitude: number;
   longitude: number;
   count: number;
+  // Per-individual bird fields (length should match count for bird species)
+  birdFieldsList?: IndividualBirdFields[];
   sex?: BirdSex | null;
   posture?: BirdPosture | null;
   singing?: boolean | null;
@@ -116,6 +125,7 @@ export default function MultiLocationMapPicker({
         latitude: latlng.lat,
         longitude: latlng.lng,
         count: 1,
+        birdFieldsList: showBirdFields ? [{ sex: null, posture: null, singing: null }] : undefined,
         sex: null,
         posture: null,
         singing: null,
@@ -123,7 +133,7 @@ export default function MultiLocationMapPicker({
       };
       onChange([...locations, newLocation]);
     },
-    [locations, onChange, isAtMax]
+    [locations, onChange, isAtMax, showBirdFields]
   );
 
   // Update count for a specific location
@@ -139,12 +149,39 @@ export default function MultiLocationMapPicker({
       }
 
       onChange(
-        locations.map((loc) =>
-          loc.tempId === tempId ? { ...loc, count: newCount } : loc
-        )
+        locations.map((loc) => {
+          if (loc.tempId !== tempId) return loc;
+          const updated = { ...loc, count: newCount };
+          // Sync birdFieldsList length with count
+          if (showBirdFields && updated.birdFieldsList) {
+            const currentList = updated.birdFieldsList;
+            if (newCount > currentList.length) {
+              // Add empty entries for new birds
+              updated.birdFieldsList = [
+                ...currentList,
+                ...Array.from({ length: newCount - currentList.length }, () => ({
+                  sex: null as BirdSex | null,
+                  posture: null as BirdPosture | null,
+                  singing: null as boolean | null,
+                })),
+              ];
+            } else if (newCount < currentList.length) {
+              // Trim from the end
+              updated.birdFieldsList = currentList.slice(0, newCount);
+            }
+          } else if (showBirdFields && newCount > 0) {
+            // Initialize birdFieldsList if missing
+            updated.birdFieldsList = Array.from({ length: newCount }, () => ({
+              sex: null as BirdSex | null,
+              posture: null as BirdPosture | null,
+              singing: null as boolean | null,
+            }));
+          }
+          return updated;
+        })
       );
     },
-    [locations, onChange, maxCount]
+    [locations, onChange, maxCount, showBirdFields]
   );
 
   // Validate count on blur (ensure at least 1)
@@ -161,13 +198,22 @@ export default function MultiLocationMapPicker({
     [locations, onChange]
   );
 
-  // Update bird observation fields for a specific individual
+  // Update bird observation fields for a specific individual at a specific index
   const handleBirdFieldsChange = useCallback(
-    (tempId: string, fields: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => {
+    (tempId: string, index: number, fields: { sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null }) => {
       onChange(
-        locations.map((loc) =>
-          loc.tempId === tempId ? { ...loc, ...fields } : loc
-        )
+        locations.map((loc) => {
+          if (loc.tempId !== tempId) return loc;
+          if (loc.birdFieldsList) {
+            const updatedList = [...loc.birdFieldsList];
+            updatedList[index] = { ...updatedList[index], ...fields };
+            // Also keep single fields in sync with first bird for backward compat
+            const first = updatedList[0];
+            return { ...loc, birdFieldsList: updatedList, sex: first?.sex, posture: first?.posture, singing: first?.singing };
+          }
+          // Fallback: single bird fields (count=1 without birdFieldsList)
+          return { ...loc, ...fields };
+        })
       );
     },
     [locations, onChange]
@@ -396,13 +442,35 @@ export default function MultiLocationMapPicker({
                   )}
                 </Stack>
 
-                {/* Bird observation fields (birds only) */}
-                {showBirdFields && (
+                {/* Bird observation fields (birds only) - per individual */}
+                {showBirdFields && loc.birdFieldsList && loc.birdFieldsList.length > 0 && (
+                  <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
+                    {loc.birdFieldsList.map((bf, bfIndex) => (
+                      <Stack key={bfIndex} direction="row" alignItems="center" spacing={1}>
+                        {loc.count > 1 && (
+                          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                            {bfIndex + 1}
+                          </Typography>
+                        )}
+                        <BirdObservationFields
+                          sex={bf.sex}
+                          posture={bf.posture}
+                          singing={bf.singing}
+                          onChange={(fields) => handleBirdFieldsChange(loc.tempId, bfIndex, fields)}
+                          disabled={disabled}
+                          compact
+                        />
+                      </Stack>
+                    ))}
+                  </Stack>
+                )}
+                {/* Fallback for single bird fields without birdFieldsList */}
+                {showBirdFields && !loc.birdFieldsList && (
                   <BirdObservationFields
                     sex={loc.sex}
                     posture={loc.posture}
                     singing={loc.singing}
-                    onChange={(fields) => handleBirdFieldsChange(loc.tempId, fields)}
+                    onChange={(fields) => handleBirdFieldsChange(loc.tempId, 0, fields)}
                     disabled={disabled}
                     compact
                   />

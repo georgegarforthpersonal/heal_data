@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon, CloudUpload, AudioFile, CheckCircle, Error as ErrorIcon, Pending, Warning, PhotoCamera } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from '../context/AuthContext';
+import { expandBirdFieldsToIndividuals } from '../components/surveys/mapModeUtils';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, audioAPI, imagesAPI } from '../services/api';
 import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, LocationWithBoundary, SurveyType, AudioRecording, CameraTrapImage } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
@@ -332,9 +333,17 @@ export function SurveyDetailPage() {
       // Include notes for this sighting
       notes: sighting.notes,
       // Include individuals if present (from SightingWithIndividuals)
+      // Initialize birdFieldsList from single bird fields, expanded to count entries
       individuals: sighting.individuals?.map((ind: any) => ({
         ...ind,
         tempId: `existing-ind-${ind.id}`,
+        birdFieldsList: ind.count > 0
+          ? Array.from({ length: ind.count }, () => ({
+              sex: ind.sex ?? null,
+              posture: ind.posture ?? null,
+              singing: ind.singing ?? null,
+            }))
+          : undefined,
       })),
     }));
 
@@ -430,52 +439,54 @@ export function SurveyDetailPage() {
           );
 
           // Update existing individuals (those with id that are still in the list)
+          // For individuals with birdFieldsList, we need to delete the old record and create new expanded records
           const existingIndividuals = currentIndividuals.filter((ind) => ind.id);
-          await Promise.all(
-            existingIndividuals.map((ind) =>
-              surveysAPI.updateIndividualLocation(Number(id), sighting.id!, ind.id!, {
+          for (const ind of existingIndividuals) {
+            if (ind.birdFieldsList && ind.birdFieldsList.length > 1) {
+              // Has per-individual bird fields — delete old record and recreate as expanded records
+              await surveysAPI.deleteIndividualLocation(Number(id), sighting.id!, ind.id!);
+              const expanded = expandBirdFieldsToIndividuals(ind);
+              await Promise.all(
+                expanded.map((rec) =>
+                  surveysAPI.addIndividualLocation(Number(id), sighting.id!, rec)
+                )
+              );
+            } else {
+              // Single or no bird fields — update as normal
+              const bf = ind.birdFieldsList?.[0];
+              await surveysAPI.updateIndividualLocation(Number(id), sighting.id!, ind.id!, {
                 latitude: ind.latitude,
                 longitude: ind.longitude,
                 count: ind.count,
-                sex: ind.sex,
-                posture: ind.posture,
-                singing: ind.singing,
+                sex: bf?.sex ?? ind.sex,
+                posture: bf?.posture ?? ind.posture,
+                singing: bf?.singing ?? ind.singing,
                 notes: ind.notes,
-              })
-            )
-          );
+              });
+            }
+          }
 
           // Add new individuals (those without id)
+          // Expand birdFieldsList into multiple records
           const newIndividuals = currentIndividuals.filter((ind) => !ind.id);
           await Promise.all(
-            newIndividuals.map((ind) =>
-              surveysAPI.addIndividualLocation(Number(id), sighting.id!, {
-                latitude: ind.latitude,
-                longitude: ind.longitude,
-                count: ind.count,
-                sex: ind.sex,
-                posture: ind.posture,
-                singing: ind.singing,
-                notes: ind.notes,
-              })
+            newIndividuals.flatMap((ind) =>
+              expandBirdFieldsToIndividuals(ind).map((rec) =>
+                surveysAPI.addIndividualLocation(Number(id), sighting.id!, rec)
+              )
             )
           );
         } else {
           // Add new sighting with individual locations
+          // Expand birdFieldsList into multiple records grouped by identical combos
           await surveysAPI.addSighting(Number(id), {
             species_id: sighting.species_id!,
             count: sighting.count,
             location_id: locationAtSightingLevel ? sighting.location_id : undefined,
             notes: sighting.notes,
-            individuals: sighting.individuals?.map((ind) => ({
-              latitude: ind.latitude,
-              longitude: ind.longitude,
-              count: ind.count,
-              sex: ind.sex,
-              posture: ind.posture,
-              singing: ind.singing,
-              notes: ind.notes,
-            })),
+            individuals: sighting.individuals?.flatMap((ind) =>
+              expandBirdFieldsToIndividuals(ind)
+            ),
           });
         }
       }

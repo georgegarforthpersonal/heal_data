@@ -14,6 +14,7 @@ import { Lock, Save, Cancel, CloudUpload, AudioFile, Delete, PhotoCamera } from 
 import dayjs, { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { expandBirdFieldsToIndividuals } from '../components/surveys/mapModeUtils';
 import {
   surveysAPI,
   surveyorsAPI,
@@ -330,15 +331,10 @@ export function NewSurveyPage() {
             location_id: selectedSurveyType?.location_at_sighting_level ? sighting.location_id : undefined,
             notes: sighting.notes,
             // Include individual locations with count and bird observation fields
-            individuals: sighting.individuals?.map((ind) => ({
-              latitude: ind.latitude,
-              longitude: ind.longitude,
-              count: ind.count,
-              sex: ind.sex,
-              posture: ind.posture,
-              singing: ind.singing,
-              notes: ind.notes,
-            })),
+            // Expand birdFieldsList into multiple records grouped by identical combos
+            individuals: sighting.individuals?.flatMap((ind) =>
+              expandBirdFieldsToIndividuals(ind)
+            ),
           })
         )
       );
