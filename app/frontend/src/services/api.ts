@@ -333,26 +333,22 @@ export interface Sighting {
 }
 
 /**
- * BTO Breeding Status Codes (for bird sightings only)
+ * Bird observation field types (for bird sightings only)
  */
-export type BreedingCategory = 'non_breeding' | 'possible_breeder' | 'probable_breeder' | 'confirmed_breeder';
-
-export interface BreedingStatusCode {
-  code: string;
-  description: string;
-  full_description: string | null;
-  category: BreedingCategory;
-}
+export type BirdSex = 'male' | 'female';
+export type BirdPosture = 'flying' | 'perched';
 
 /**
- * Individual location within a sighting with optional breeding status
+ * Individual location within a sighting with optional bird observation fields
  */
 export interface IndividualLocation {
   id?: number;
   latitude: number;
   longitude: number;
   count: number;
-  breeding_status_code?: string | null;
+  sex?: BirdSex | null;
+  posture?: BirdPosture | null;
+  singing?: boolean | null;
   notes?: string | null;
   camera_trap_image_id?: number | null;
 }
@@ -425,8 +421,9 @@ export interface SpeciesSightingLocation {
   longitude: number;
   species_name: string | null;
   species_scientific_name: string | null;
-  breeding_status_code: string | null;
-  breeding_status_description: string | null;
+  sex: BirdSex | null;
+  posture: BirdPosture | null;
+  singing: boolean | null;
   survey_type_id: number | null;
   survey_type_name: string | null;
   survey_type_icon: string | null;
@@ -599,13 +596,6 @@ export const surveysAPI = {
     return fetchAPI(`/surveys/${surveyId}/sightings/${sightingId}`, {
       method: 'DELETE',
     });
-  },
-
-  /**
-   * Get all BTO breeding status codes (for bird sightings)
-   */
-  getBreedingCodes: (): Promise<BreedingStatusCode[]> => {
-    return fetchAPI('/surveys/breeding-codes');
   },
 
   /**
