@@ -13,6 +13,7 @@ import {
   TextField,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -108,6 +109,7 @@ export default function MultiLocationMapPicker({
 }: MultiLocationMapPickerProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
+  const [expandedBirdDetails, setExpandedBirdDetails] = useState<Set<string>>(new Set());
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   // Calculate total count across all locations
@@ -442,38 +444,62 @@ export default function MultiLocationMapPicker({
                   )}
                 </Stack>
 
-                {/* Bird observation fields (birds only) - per individual */}
-                {showBirdFields && loc.birdFieldsList && loc.birdFieldsList.length > 0 && (
-                  <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
-                    {loc.birdFieldsList.map((bf, bfIndex) => (
-                      <Stack key={bfIndex} direction="row" alignItems="center" spacing={1}>
-                        {loc.count > 1 && (
-                          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                            {bfIndex + 1}
-                          </Typography>
-                        )}
-                        <BirdObservationFields
-                          sex={bf.sex}
-                          posture={bf.posture}
-                          singing={bf.singing}
-                          onChange={(fields) => handleBirdFieldsChange(loc.tempId, bfIndex, fields)}
-                          disabled={disabled}
-                          compact
-                        />
-                      </Stack>
-                    ))}
-                  </Stack>
-                )}
-                {/* Fallback for single bird fields without birdFieldsList */}
-                {showBirdFields && !loc.birdFieldsList && (
+                {/* Bird fields: inline for count=1, behind expander for count>1 */}
+                {showBirdFields && loc.count === 1 && (
                   <BirdObservationFields
-                    sex={loc.sex}
-                    posture={loc.posture}
-                    singing={loc.singing}
+                    sex={loc.birdFieldsList?.[0]?.sex ?? loc.sex}
+                    posture={loc.birdFieldsList?.[0]?.posture ?? loc.posture}
+                    singing={loc.birdFieldsList?.[0]?.singing ?? loc.singing}
                     onChange={(fields) => handleBirdFieldsChange(loc.tempId, 0, fields)}
                     disabled={disabled}
                     compact
                   />
+                )}
+                {showBirdFields && loc.count > 1 && (
+                  <>
+                    <Box
+                      onClick={() => {
+                        setExpandedBirdDetails((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(loc.tempId)) next.delete(loc.tempId);
+                          else next.add(loc.tempId);
+                          return next;
+                        });
+                      }}
+                      sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
+                    >
+                      <ExpandMoreIcon
+                        sx={{
+                          fontSize: 18,
+                          color: 'text.secondary',
+                          transform: expandedBirdDetails.has(loc.tempId) ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s',
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        Bird details
+                      </Typography>
+                    </Box>
+                    {expandedBirdDetails.has(loc.tempId) && loc.birdFieldsList && (
+                      <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
+                        {loc.birdFieldsList.map((bf, bfIndex) => (
+                          <Stack key={bfIndex} direction="row" alignItems="center" spacing={1}>
+                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                              {bfIndex + 1}
+                            </Typography>
+                            <BirdObservationFields
+                              sex={bf.sex}
+                              posture={bf.posture}
+                              singing={bf.singing}
+                              onChange={(fields) => handleBirdFieldsChange(loc.tempId, bfIndex, fields)}
+                              disabled={disabled}
+                              compact
+                            />
+                          </Stack>
+                        ))}
+                      </Stack>
+                    )}
+                  </>
                 )}
               </Stack>
             </Paper>

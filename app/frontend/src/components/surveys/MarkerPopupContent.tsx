@@ -10,6 +10,7 @@ import {
   Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MaleIcon from '@mui/icons-material/Male';
 import FemaleIcon from '@mui/icons-material/Female';
 import FlightIcon from '@mui/icons-material/Flight';
@@ -125,6 +126,7 @@ function AddPopupForm({
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [count, setCount] = useState(1);
   const [birdFieldsList, setBirdFieldsList] = useState<IndividualBirdFields[]>([{ sex: null, posture: null, singing: null }]);
+  const [birdDetailsExpanded, setBirdDetailsExpanded] = useState(false);
 
   const isBird = selectedSpecies?.type === 'bird';
 
@@ -256,25 +258,53 @@ function AddPopupForm({
           }}
         />
 
-        {isBird && count > 0 && (
-          <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
-            {birdFieldsList.slice(0, count).map((bf, index) => (
-              <Stack key={index} direction="row" alignItems="center" spacing={1}>
-                {count > 1 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                    {index + 1}
-                  </Typography>
-                )}
-                <BirdObservationFields
-                  sex={bf.sex}
-                  posture={bf.posture}
-                  singing={bf.singing}
-                  onChange={(fields) => handleBirdFieldChange(index, fields)}
-                  compact
-                />
+        {/* Bird fields: inline for count=1, behind expander for count>1 */}
+        {isBird && count === 1 && (
+          <BirdObservationFields
+            sex={birdFieldsList[0]?.sex}
+            posture={birdFieldsList[0]?.posture}
+            singing={birdFieldsList[0]?.singing}
+            onChange={(fields) => handleBirdFieldChange(0, fields)}
+            compact
+          />
+        )}
+        {isBird && count > 1 && (
+          <>
+            <Box
+              onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
+              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
+            >
+              <ExpandMoreIcon
+                sx={{
+                  fontSize: 18,
+                  color: 'text.secondary',
+                  transform: birdDetailsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Bird details
+              </Typography>
+            </Box>
+            {birdDetailsExpanded && (
+              <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
+                {birdFieldsList.slice(0, count).map((bf, index) => (
+                  <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                      {index + 1}
+                    </Typography>
+                    <BirdObservationFields
+                      sex={bf.sex}
+                      posture={bf.posture}
+                      singing={bf.singing}
+                      onChange={(fields) => handleBirdFieldChange(index, fields)}
+                      compact
+                    />
+                  </Stack>
+                ))}
               </Stack>
-            ))}
-          </Stack>
+            )}
+          </>
         )}
 
         <Stack direction="row" spacing={1}>
@@ -320,6 +350,7 @@ function EditPopupForm({
   const SpeciesIcon = getSpeciesIcon(sp?.type || 'insect');
 
   const birdFieldsList = marker.birdFieldsList || (isBird ? [{ sex: marker.sex, posture: marker.posture, singing: marker.singing }] : []);
+  const [birdDetailsExpanded, setBirdDetailsExpanded] = useState(false);
 
   const handleCountChange = (newCount: number) => {
     if (isBird) {
@@ -394,25 +425,53 @@ function EditPopupForm({
           }}
         />
 
-        {isBird && marker.count > 0 && (
-          <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
-            {birdFieldsList.slice(0, marker.count).map((bf, index) => (
-              <Stack key={index} direction="row" alignItems="center" spacing={1}>
-                {marker.count > 1 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
-                    {index + 1}
-                  </Typography>
-                )}
-                <BirdObservationFields
-                  sex={bf.sex}
-                  posture={bf.posture}
-                  singing={bf.singing}
-                  onChange={(fields) => handleBirdFieldChange(index, fields)}
-                  compact
-                />
+        {/* Bird fields: inline for count=1, behind expander for count>1 */}
+        {isBird && marker.count === 1 && (
+          <BirdObservationFields
+            sex={birdFieldsList[0]?.sex}
+            posture={birdFieldsList[0]?.posture}
+            singing={birdFieldsList[0]?.singing}
+            onChange={(fields) => handleBirdFieldChange(0, fields)}
+            compact
+          />
+        )}
+        {isBird && marker.count > 1 && (
+          <>
+            <Box
+              onClick={() => setBirdDetailsExpanded(!birdDetailsExpanded)}
+              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
+            >
+              <ExpandMoreIcon
+                sx={{
+                  fontSize: 18,
+                  color: 'text.secondary',
+                  transform: birdDetailsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Bird details
+              </Typography>
+            </Box>
+            {birdDetailsExpanded && (
+              <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', mr: -0.5, pr: 0.5 }}>
+                {birdFieldsList.slice(0, marker.count).map((bf, index) => (
+                  <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'right' }}>
+                      {index + 1}
+                    </Typography>
+                    <BirdObservationFields
+                      sex={bf.sex}
+                      posture={bf.posture}
+                      singing={bf.singing}
+                      onChange={(fields) => handleBirdFieldChange(index, fields)}
+                      compact
+                    />
+                  </Stack>
+                ))}
               </Stack>
-            ))}
-          </Stack>
+            )}
+          </>
         )}
       </Stack>
     </Box>
