@@ -914,11 +914,6 @@ export function AdminPage() {
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Download a snapshot of all your organisation's data as a SQLite database file.
-            You can open it with{' '}
-            <a href="https://sqlitebrowser.org" target="_blank" rel="noopener noreferrer">
-              DB Browser for SQLite
-            </a>{' '}
-            (free).
           </Typography>
           {exportError && (
             <Alert severity="error" sx={{ mb: 2 }}>

@@ -9,7 +9,8 @@ import io
 import sqlite3
 import logging
 import tempfile
-from datetime import datetime
+from datetime import datetime, date, time
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -24,6 +25,16 @@ from models import Organisation
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _convert_row(row):
+    """Convert a database row so all values are SQLite-compatible types."""
+    return tuple(
+        str(v) if isinstance(v, (date, time, datetime)) else
+        float(v) if isinstance(v, Decimal) else
+        v
+        for v in row
+    )
 
 
 def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
@@ -43,7 +54,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         )
     """)
     rows = db.execute(text("SELECT id, name, display_name FROM species_type")).fetchall()
-    cursor.executemany("INSERT INTO species_type VALUES (?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO species_type VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE species (
@@ -57,7 +68,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         )
     """)
     rows = db.execute(text("SELECT id, name, scientific_name, species_code, conservation_status, nbn_atlas_guid, species_type_id FROM species")).fetchall()
-    cursor.executemany("INSERT INTO species VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO species VALUES (?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE breeding_status_code (
@@ -68,7 +79,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         )
     """)
     rows = db.execute(text("SELECT code, description, full_description, category FROM breeding_status_code")).fetchall()
-    cursor.executemany("INSERT INTO breeding_status_code VALUES (?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO breeding_status_code VALUES (?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     # -- Organisation-scoped tables --
 
@@ -83,7 +94,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
     rows = db.execute(text(
         "SELECT id, first_name, last_name, is_active FROM surveyor WHERE organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO surveyor VALUES (?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO surveyor VALUES (?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE location (
@@ -99,7 +110,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "SELECT id, name, ST_AsText(boundary_geometry), boundary_fill_color, boundary_stroke_color, boundary_fill_opacity "
         "FROM location WHERE organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO location VALUES (?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO location VALUES (?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE survey_type (
@@ -120,7 +131,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "allow_sighting_notes, allow_audio_upload, allow_image_upload, color, is_active "
         "FROM survey_type WHERE organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_type VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO survey_type VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE survey_type_location (
@@ -135,7 +146,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey_type st ON st.id = stl.survey_type_id "
         "WHERE st.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_type_location VALUES (?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO survey_type_location VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE survey_type_species_type (
@@ -150,7 +161,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey_type st ON st.id = stst.survey_type_id "
         "WHERE st.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_type_species_type VALUES (?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO survey_type_species_type VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE device (
@@ -170,7 +181,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "location_id, is_active "
         "FROM device WHERE organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO device VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO device VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE survey (
@@ -192,7 +203,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "conditions_met, notes, location_id, survey_type_id, created_at "
         "FROM survey WHERE organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO survey VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE survey_surveyor (
@@ -207,7 +218,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey s ON s.id = ss.survey_id "
         "WHERE s.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_surveyor VALUES (?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO survey_surveyor VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE sighting (
@@ -226,7 +237,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey s ON s.id = si.survey_id "
         "WHERE s.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO sighting VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO sighting VALUES (?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE sighting_individual (
@@ -251,7 +262,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey s ON s.id = si.survey_id "
         "WHERE s.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO sighting_individual VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO sighting_individual VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE audio_recording (
@@ -273,7 +284,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey s ON s.id = ar.survey_id "
         "WHERE s.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO audio_recording VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO audio_recording VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE bird_detection (
@@ -295,7 +306,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey s ON s.id = ar.survey_id "
         "WHERE s.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO bird_detection VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO bird_detection VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE camera_trap_image (
@@ -318,7 +329,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey s ON s.id = cti.survey_id "
         "WHERE s.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO camera_trap_image VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO camera_trap_image VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     cursor.execute("""
         CREATE TABLE camera_trap_detection (
@@ -340,18 +351,22 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         "JOIN survey s ON s.id = cti.survey_id "
         "WHERE s.organisation_id = :org_id"
     ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO camera_trap_detection VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    cursor.executemany("INSERT INTO camera_trap_detection VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
 
     conn.commit()
 
     # Serialize in-memory DB to bytes via backup to a temp file
-    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=True) as tmp:
-        disk_conn = sqlite3.connect(tmp.name)
+    tmp_path = tempfile.mktemp(suffix=".sqlite")
+    try:
+        disk_conn = sqlite3.connect(tmp_path)
         conn.backup(disk_conn)
         disk_conn.close()
         conn.close()
-        tmp.seek(0)
-        return tmp.read()
+        with open(tmp_path, "rb") as f:
+            return f.read()
+    finally:
+        import os
+        os.unlink(tmp_path)
 
 
 @router.get("/sqlite")
