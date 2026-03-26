@@ -3,14 +3,20 @@ Export Router - SQLite database export for organisation data
 
 Endpoints:
   GET /api/export/sqlite - Download organisation data as a SQLite database file
+
+Schema is introspected from PostgreSQL at export time, so column changes
+from migrations are picked up automatically. Only the table list, org-scoping
+rules, and geometry transforms need manual maintenance.
 """
 
 import io
+import os
 import sqlite3
 import logging
 import tempfile
 from datetime import datetime, date, time
 from decimal import Decimal
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -23,12 +29,80 @@ from auth import require_admin
 from models import Organisation
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
+# ---------------------------------------------------------------------------
+# Export configuration
+#
+# To add a new table: append an entry to EXPORT_TABLES.
+# To add a new geometry column: add a transform to GEOMETRY_TRANSFORMS.
+# Column additions/removals/renames are handled automatically.
+# ---------------------------------------------------------------------------
+
+# Columns to exclude from every table in the export
+EXCLUDE_COLUMNS = {"organisation_id", "r2_key"}
+
+# PostGIS geometry columns → replacement SQLite columns.
+# Each maps a PG column name to a list of (output_name, sqlite_type, sql_expr).
+GEOMETRY_TRANSFORMS: dict[str, list[tuple[str, str, str]]] = {
+    "point_geometry": [
+        ("latitude", "REAL", "ST_Y({col})"),
+        ("longitude", "REAL", "ST_X({col})"),
+    ],
+    "coordinates": [
+        ("latitude", "REAL", "ST_Y({col})"),
+        ("longitude", "REAL", "ST_X({col})"),
+    ],
+    "boundary_geometry": [
+        ("boundary_geometry", "TEXT", "ST_AsText({col})"),
+    ],
+}
+
+# Tables to export, in FK-dependency order.
+#   org_filter absent/None  → reference table, export all rows
+#   org_filter="direct"     → table has organisation_id column
+#   org_filter=("parent_table", "fk_col") → filter via parent's org scope
+EXPORT_TABLES: list[dict[str, Any]] = [
+    # Reference tables
+    {"table": "species_type"},
+    {"table": "species"},
+    {"table": "breeding_status_code"},
+    # Directly org-scoped
+    {"table": "surveyor", "org_filter": "direct"},
+    {"table": "location", "org_filter": "direct"},
+    {"table": "survey_type", "org_filter": "direct"},
+    {"table": "device", "org_filter": "direct"},
+    {"table": "survey", "org_filter": "direct"},
+    # Indirectly org-scoped via FK chain
+    {"table": "survey_surveyor", "org_filter": ("survey", "survey_id")},
+    {"table": "survey_type_location", "org_filter": ("survey_type", "survey_type_id")},
+    {"table": "survey_type_species_type", "org_filter": ("survey_type", "survey_type_id")},
+    {"table": "sighting", "org_filter": ("survey", "survey_id")},
+    {"table": "sighting_individual", "org_filter": ("sighting", "sighting_id")},
+    {"table": "audio_recording", "org_filter": ("survey", "survey_id")},
+    {"table": "bird_detection", "org_filter": ("audio_recording", "audio_recording_id")},
+    {"table": "camera_trap_image", "org_filter": ("survey", "survey_id")},
+    {"table": "camera_trap_detection", "org_filter": ("camera_trap_image", "camera_trap_image_id")},
+]
+
+# PostgreSQL data_type → SQLite type affinity
+_PG_TYPE_MAP: dict[str, str] = {
+    "integer": "INTEGER", "bigint": "INTEGER", "smallint": "INTEGER",
+    "boolean": "INTEGER",
+    "real": "REAL", "double precision": "REAL", "numeric": "REAL",
+    "text": "TEXT", "character varying": "TEXT", "character": "TEXT",
+    "json": "TEXT", "jsonb": "TEXT",
+    "date": "TEXT", "time without time zone": "TEXT", "time with time zone": "TEXT",
+    "timestamp without time zone": "TEXT", "timestamp with time zone": "TEXT",
+}
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _convert_row(row: tuple[object, ...]) -> tuple[object, ...]:
-    """Convert a database row so all values are SQLite-compatible types."""
+    """Convert a database row so all values are SQLite-compatible."""
     return tuple(
         str(v) if isinstance(v, (date, time, datetime)) else
         float(v) if isinstance(v, Decimal) else
@@ -37,325 +111,119 @@ def _convert_row(row: tuple[object, ...]) -> tuple[object, ...]:
     )
 
 
+def _build_where(org_filter: Any, table_lookup: dict[str, dict[str, Any]]) -> str:
+    """Recursively build a WHERE clause for org-scoping."""
+    if org_filter is None:
+        return ""
+    if org_filter == "direct":
+        return "WHERE organisation_id = :org_id"
+    parent_table, fk_col = org_filter
+    parent_where = _build_where(
+        table_lookup[parent_table].get("org_filter"), table_lookup
+    )
+    return f"WHERE {fk_col} IN (SELECT id FROM {parent_table} {parent_where})"
+
+
+def _get_table_columns(
+    db: Session, table_name: str,
+) -> list[Any]:
+    """Get (column_name, data_type, udt_name) for a table, ordered by position."""
+    result: list[Any] = db.execute(text(
+        "SELECT column_name, data_type, udt_name "
+        "FROM information_schema.columns "
+        "WHERE table_name = :t AND table_schema = 'public' "
+        "ORDER BY ordinal_position"
+    ), {"t": table_name}).fetchall()
+    return result
+
+
+def _get_primary_keys(db: Session, table_name: str) -> set[str]:
+    """Get the set of primary key column names for a table."""
+    rows = db.execute(text(
+        "SELECT kcu.column_name "
+        "FROM information_schema.table_constraints tc "
+        "JOIN information_schema.key_column_usage kcu "
+        "  ON tc.constraint_name = kcu.constraint_name "
+        "  AND tc.table_schema = kcu.table_schema "
+        "WHERE tc.table_name = :t AND tc.table_schema = 'public' "
+        "  AND tc.constraint_type = 'PRIMARY KEY'"
+    ), {"t": table_name}).fetchall()
+    return {r[0] for r in rows}
+
+
+def _export_table(
+    db: Session,
+    cursor: sqlite3.Cursor,
+    table_name: str,
+    where: str,
+    org_id: Optional[int],
+) -> None:
+    """Introspect a PG table's schema and copy its data into SQLite."""
+    pg_columns = _get_table_columns(db, table_name)
+    if not pg_columns:
+        return
+
+    pk_cols = _get_primary_keys(db, table_name)
+
+    sqlite_cols: list[str] = []    # "name TYPE [PRIMARY KEY]"
+    select_exprs: list[str] = []   # SQL expressions for SELECT
+
+    for col_name, data_type, udt_name in pg_columns:
+        if col_name in EXCLUDE_COLUMNS:
+            continue
+
+        # Geometry columns: apply configured transform or skip
+        if data_type == "USER-DEFINED" and udt_name == "geometry":
+            if col_name in GEOMETRY_TRANSFORMS:
+                for out_name, out_type, expr in GEOMETRY_TRANSFORMS[col_name]:
+                    sqlite_cols.append(f"{out_name} {out_type}")
+                    select_exprs.append(expr.format(col=col_name))
+            continue
+
+        # Regular columns
+        sqlite_type = _PG_TYPE_MAP.get(data_type, "TEXT")
+        pk = " PRIMARY KEY" if col_name in pk_cols else ""
+        sqlite_cols.append(f"{col_name} {sqlite_type}{pk}")
+        select_exprs.append(col_name)
+
+    if not sqlite_cols:
+        return
+
+    # CREATE TABLE
+    cursor.execute(f"CREATE TABLE {table_name} ({', '.join(sqlite_cols)})")
+
+    # SELECT from PG + INSERT into SQLite
+    select_sql = f"SELECT {', '.join(select_exprs)} FROM {table_name} {where}"
+    params: dict[str, Any] = {"org_id": org_id} if ":org_id" in select_sql else {}
+    rows = db.execute(text(select_sql), params).fetchall()
+
+    if rows:
+        placeholders = ", ".join("?" * len(select_exprs))
+        cursor.executemany(
+            f"INSERT INTO {table_name} VALUES ({placeholders})",
+            [_convert_row(r) for r in rows],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Main export
+# ---------------------------------------------------------------------------
+
 def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
     """Build an in-memory SQLite database containing all organisation data."""
     conn = sqlite3.connect(":memory:")
     cursor = conn.cursor()
 
-    org_id = org.id
+    table_lookup = {t["table"]: t for t in EXPORT_TABLES}
 
-    # -- Reference tables (not org-scoped) --
-
-    cursor.execute("""
-        CREATE TABLE species_type (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            display_name TEXT
-        )
-    """)
-    rows = db.execute(text("SELECT id, name, display_name FROM species_type")).fetchall()
-    cursor.executemany("INSERT INTO species_type VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE species (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            scientific_name TEXT,
-            species_code TEXT,
-            conservation_status TEXT,
-            nbn_atlas_guid TEXT,
-            species_type_id INTEGER REFERENCES species_type(id)
-        )
-    """)
-    rows = db.execute(text("SELECT id, name, scientific_name, species_code, conservation_status, nbn_atlas_guid, species_type_id FROM species")).fetchall()
-    cursor.executemany("INSERT INTO species VALUES (?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE breeding_status_code (
-            code TEXT PRIMARY KEY,
-            description TEXT,
-            full_description TEXT,
-            category TEXT
-        )
-    """)
-    rows = db.execute(text("SELECT code, description, full_description, category FROM breeding_status_code")).fetchall()
-    cursor.executemany("INSERT INTO breeding_status_code VALUES (?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    # -- Organisation-scoped tables --
-
-    cursor.execute("""
-        CREATE TABLE surveyor (
-            id INTEGER PRIMARY KEY,
-            first_name TEXT,
-            last_name TEXT,
-            is_active INTEGER
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT id, first_name, last_name, is_active FROM surveyor WHERE organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO surveyor VALUES (?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE location (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            boundary_geometry TEXT,
-            boundary_fill_color TEXT,
-            boundary_stroke_color TEXT,
-            boundary_fill_opacity REAL
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT id, name, ST_AsText(boundary_geometry), boundary_fill_color, boundary_stroke_color, boundary_fill_opacity "
-        "FROM location WHERE organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO location VALUES (?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE survey_type (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            description TEXT,
-            location_at_sighting_level INTEGER,
-            allow_geolocation INTEGER,
-            allow_sighting_notes INTEGER,
-            allow_audio_upload INTEGER,
-            allow_image_upload INTEGER,
-            color TEXT,
-            is_active INTEGER
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT id, name, description, location_at_sighting_level, allow_geolocation, "
-        "allow_sighting_notes, allow_audio_upload, allow_image_upload, color, is_active "
-        "FROM survey_type WHERE organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_type VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE survey_type_location (
-            id INTEGER PRIMARY KEY,
-            survey_type_id INTEGER REFERENCES survey_type(id),
-            location_id INTEGER REFERENCES location(id)
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT stl.id, stl.survey_type_id, stl.location_id "
-        "FROM survey_type_location stl "
-        "JOIN survey_type st ON st.id = stl.survey_type_id "
-        "WHERE st.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_type_location VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE survey_type_species_type (
-            id INTEGER PRIMARY KEY,
-            survey_type_id INTEGER REFERENCES survey_type(id),
-            species_type_id INTEGER REFERENCES species_type(id)
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT stst.id, stst.survey_type_id, stst.species_type_id "
-        "FROM survey_type_species_type stst "
-        "JOIN survey_type st ON st.id = stst.survey_type_id "
-        "WHERE st.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_type_species_type VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE device (
-            id INTEGER PRIMARY KEY,
-            device_id TEXT,
-            name TEXT,
-            device_type TEXT,
-            latitude REAL,
-            longitude REAL,
-            location_id INTEGER REFERENCES location(id),
-            is_active INTEGER
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT id, device_id, name, device_type, "
-        "ST_Y(point_geometry), ST_X(point_geometry), "
-        "location_id, is_active "
-        "FROM device WHERE organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO device VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE survey (
-            id INTEGER PRIMARY KEY,
-            date TEXT,
-            start_time TEXT,
-            end_time TEXT,
-            sun_percentage INTEGER,
-            temperature_celsius REAL,
-            conditions_met INTEGER,
-            notes TEXT,
-            location_id INTEGER REFERENCES location(id),
-            survey_type_id INTEGER REFERENCES survey_type(id),
-            created_at TEXT
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT id, date, start_time, end_time, sun_percentage, temperature_celsius, "
-        "conditions_met, notes, location_id, survey_type_id, created_at "
-        "FROM survey WHERE organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE survey_surveyor (
-            id INTEGER PRIMARY KEY,
-            survey_id INTEGER REFERENCES survey(id),
-            surveyor_id INTEGER REFERENCES surveyor(id)
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT ss.id, ss.survey_id, ss.surveyor_id "
-        "FROM survey_surveyor ss "
-        "JOIN survey s ON s.id = ss.survey_id "
-        "WHERE s.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO survey_surveyor VALUES (?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE sighting (
-            id INTEGER PRIMARY KEY,
-            survey_id INTEGER REFERENCES survey(id),
-            species_id INTEGER REFERENCES species(id),
-            count INTEGER,
-            location_id INTEGER REFERENCES location(id),
-            notes TEXT,
-            created_at TEXT
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT si.id, si.survey_id, si.species_id, si.count, si.location_id, si.notes, si.created_at "
-        "FROM sighting si "
-        "JOIN survey s ON s.id = si.survey_id "
-        "WHERE s.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO sighting VALUES (?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE sighting_individual (
-            id INTEGER PRIMARY KEY,
-            sighting_id INTEGER REFERENCES sighting(id),
-            latitude REAL,
-            longitude REAL,
-            count INTEGER,
-            sex TEXT,
-            posture TEXT,
-            singing INTEGER,
-            notes TEXT,
-            created_at TEXT
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT si2.id, si2.sighting_id, "
-        "ST_Y(si2.coordinates), ST_X(si2.coordinates), "
-        "si2.count, si2.sex, si2.posture, si2.singing, si2.notes, si2.created_at "
-        "FROM sighting_individual si2 "
-        "JOIN sighting si ON si.id = si2.sighting_id "
-        "JOIN survey s ON s.id = si.survey_id "
-        "WHERE s.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO sighting_individual VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE audio_recording (
-            id INTEGER PRIMARY KEY,
-            survey_id INTEGER REFERENCES survey(id),
-            filename TEXT,
-            recording_timestamp TEXT,
-            device_serial TEXT,
-            file_size_bytes INTEGER,
-            duration_seconds REAL,
-            processing_status TEXT,
-            uploaded_at TEXT
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT ar.id, ar.survey_id, ar.filename, ar.recording_timestamp, ar.device_serial, "
-        "ar.file_size_bytes, ar.duration_seconds, ar.processing_status, ar.uploaded_at "
-        "FROM audio_recording ar "
-        "JOIN survey s ON s.id = ar.survey_id "
-        "WHERE s.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO audio_recording VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE bird_detection (
-            id INTEGER PRIMARY KEY,
-            audio_recording_id INTEGER REFERENCES audio_recording(id),
-            species_id INTEGER REFERENCES species(id),
-            species_name TEXT,
-            confidence REAL,
-            start_time TEXT,
-            end_time TEXT,
-            detection_timestamp TEXT
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT bd.id, bd.audio_recording_id, bd.species_id, bd.species_name, "
-        "bd.confidence, bd.start_time, bd.end_time, bd.detection_timestamp "
-        "FROM bird_detection bd "
-        "JOIN audio_recording ar ON ar.id = bd.audio_recording_id "
-        "JOIN survey s ON s.id = ar.survey_id "
-        "WHERE s.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO bird_detection VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE camera_trap_image (
-            id INTEGER PRIMARY KEY,
-            survey_id INTEGER REFERENCES survey(id),
-            filename TEXT,
-            image_timestamp TEXT,
-            device_serial TEXT,
-            file_size_bytes INTEGER,
-            processing_status TEXT,
-            flagged_for_review INTEGER,
-            review_reason TEXT,
-            created_at TEXT
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT cti.id, cti.survey_id, cti.filename, cti.image_timestamp, cti.device_serial, "
-        "cti.file_size_bytes, cti.processing_status, cti.flagged_for_review, cti.review_reason, cti.created_at "
-        "FROM camera_trap_image cti "
-        "JOIN survey s ON s.id = cti.survey_id "
-        "WHERE s.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO camera_trap_image VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
-
-    cursor.execute("""
-        CREATE TABLE camera_trap_detection (
-            id INTEGER PRIMARY KEY,
-            camera_trap_image_id INTEGER REFERENCES camera_trap_image(id),
-            species_id INTEGER REFERENCES species(id),
-            species_name TEXT,
-            scientific_name TEXT,
-            confidence REAL,
-            taxonomic_level TEXT,
-            is_primary INTEGER
-        )
-    """)
-    rows = db.execute(text(
-        "SELECT ctd.id, ctd.camera_trap_image_id, ctd.species_id, ctd.species_name, "
-        "ctd.scientific_name, ctd.confidence, ctd.taxonomic_level, ctd.is_primary "
-        "FROM camera_trap_detection ctd "
-        "JOIN camera_trap_image cti ON cti.id = ctd.camera_trap_image_id "
-        "JOIN survey s ON s.id = cti.survey_id "
-        "WHERE s.organisation_id = :org_id"
-    ), {"org_id": org_id}).fetchall()
-    cursor.executemany("INSERT INTO camera_trap_detection VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [_convert_row(r) for r in rows])
+    for table_config in EXPORT_TABLES:
+        table_name = table_config["table"]
+        org_filter = table_config.get("org_filter")
+        where = _build_where(org_filter, table_lookup)
+        _export_table(db, cursor, table_name, where, org.id)
 
     conn.commit()
 
-    # Serialize in-memory DB to bytes via backup to a temp file
     tmp_path = tempfile.mktemp(suffix=".sqlite")
     try:
         disk_conn = sqlite3.connect(tmp_path)
@@ -365,7 +233,6 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
         with open(tmp_path, "rb") as f:
             return f.read()
     finally:
-        import os
         os.unlink(tmp_path)
 
 
