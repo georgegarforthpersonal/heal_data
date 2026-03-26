@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from exceptions import AppException
-from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio, devices, images
+from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio, devices, images, export
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,7 @@ app.include_router(surveyors.router, prefix="/api/surveyors", tags=["Surveyors"]
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(survey_types.router, prefix="/api/survey-types", tags=["Survey Types"])
 app.include_router(devices.router, prefix="/api/devices", tags=["Devices"])
+app.include_router(export.router, prefix="/api/export", tags=["Export"])
 
 # ============================================================================
 # Health Check Endpoint
