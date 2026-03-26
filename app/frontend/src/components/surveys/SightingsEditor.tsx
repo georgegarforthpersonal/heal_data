@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, TextField, Autocomplete, IconButton, Alert, Stack, Card, CardContent, Button, Chip, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Delete, Edit, Add, LocationOnOutlined, PinDrop, StickyNote2Outlined, ViewList, Map as MapIcon } from '@mui/icons-material';
-import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
+import type { Species, LocationWithBoundary, Location } from '../../services/api';
 import { AddSightingModal } from './AddSightingModal';
 import type { SightingData } from './AddSightingModal';
 import { LocationModal } from './LocationModal';
@@ -26,7 +26,6 @@ export interface DraftSighting {
 interface SightingsEditorProps {
   sightings: DraftSighting[];
   species: Species[];
-  breedingCodes?: BreedingStatusCode[];
   onSightingsChange: (sightings: DraftSighting[]) => void;
   validationError?: string;
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on maps
@@ -47,7 +46,6 @@ interface SightingsEditorProps {
 export function SightingsEditor({
   sightings,
   species,
-  breedingCodes = [],
   onSightingsChange,
   validationError,
   locationsWithBoundaries,
@@ -258,7 +256,6 @@ export function SightingsEditor({
         <MapModeSightings
           sightings={sightings}
           species={species}
-          breedingCodes={breedingCodes}
           onSightingsChange={onSightingsChange}
           locationsWithBoundaries={locationsWithBoundaries}
           surveyLocationId={surveyLocationId}
@@ -443,7 +440,6 @@ export function SightingsEditor({
           onClose={handleModalClose}
           onSave={handleModalSave}
           species={species}
-          breedingCodes={breedingCodes}
           initialData={
             editingSighting
               ? {
@@ -821,7 +817,6 @@ export function SightingsEditor({
             ? getSpeciesType(locationEditingSighting.species_id)
             : undefined
         }
-        breedingCodes={breedingCodes}
         count={locationEditingSighting?.count || 1}
         locationsWithBoundaries={locationsWithBoundaries}
         surveyLocationId={surveyLocationId}

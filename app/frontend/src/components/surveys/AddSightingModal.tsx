@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete, Stack, Box, Typography, IconButton } from '@mui/material';
 import { Close } from '@mui/icons-material';
-import type { Species, BreedingStatusCode, LocationWithBoundary, Location } from '../../services/api';
+import type { Species, LocationWithBoundary, Location } from '../../services/api';
 import { getSpeciesIcon } from '../../config';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 
@@ -18,7 +18,6 @@ interface AddSightingModalProps {
   onClose: () => void;
   onSave: (sighting: SightingData) => void;
   species: Species[];
-  breedingCodes?: BreedingStatusCode[];
   initialData?: SightingData;
   mode: 'add' | 'edit';
   locationsWithBoundaries?: LocationWithBoundary[]; // Optional locations with boundaries to display on the map
@@ -43,7 +42,6 @@ export function AddSightingModal({
   onClose,
   onSave,
   species,
-  breedingCodes = [],
   initialData,
   mode,
   locationsWithBoundaries,
@@ -301,8 +299,7 @@ export function AddSightingModal({
               <MultiLocationMapPicker
                 locations={individuals}
                 onChange={setIndividuals}
-                breedingCodes={breedingCodes}
-                showBreedingStatus={isBirdSpecies}
+                showBirdFields={isBirdSpecies}
                 maxCount={count}
                 locationsWithBoundaries={locationsWithBoundaries}
                 surveyLocationId={surveyLocationId}

@@ -419,8 +419,9 @@ async def get_species_sightings(
                 ST_X(si.coordinates) as longitude,
                 species.name as species_name,
                 species.scientific_name as species_scientific_name,
-                si.breeding_status_code,
-                bsc.description as breeding_status_description,
+                si.sex,
+                si.posture,
+                si.singing,
                 survey_type.id as survey_type_id,
                 survey_type.name as survey_type_name,
                 survey_type.icon as survey_type_icon,
@@ -429,7 +430,6 @@ async def get_species_sightings(
             JOIN sighting ON si.sighting_id = sighting.id
             JOIN survey ON sighting.survey_id = survey.id
             JOIN species ON sighting.species_id = species.id
-            LEFT JOIN breeding_status_code bsc ON si.breeding_status_code = bsc.code
             LEFT JOIN survey_type ON survey.survey_type_id = survey_type.id
             WHERE sighting.species_id = :species_id
               AND survey.organisation_id = :org_id
@@ -455,8 +455,9 @@ async def get_species_sightings(
                 "longitude": row.longitude,
                 "species_name": row.species_name,
                 "species_scientific_name": row.species_scientific_name,
-                "breeding_status_code": row.breeding_status_code,
-                "breeding_status_description": row.breeding_status_description,
+                "sex": row.sex,
+                "posture": row.posture,
+                "singing": row.singing,
                 "survey_type_id": row.survey_type_id,
                 "survey_type_name": row.survey_type_name,
                 "survey_type_icon": row.survey_type_icon,

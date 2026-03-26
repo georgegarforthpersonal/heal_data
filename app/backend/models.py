@@ -28,6 +28,18 @@ class DeviceType(str, PyEnum):
     camera_trap = "camera_trap"
 
 
+class BirdSex(str, PyEnum):
+    """Sex of observed bird"""
+    male = "male"
+    female = "female"
+
+
+class BirdPosture(str, PyEnum):
+    """Posture of observed bird"""
+    flying = "flying"
+    perched = "perched"
+
+
 # ============================================================================
 # Organisation Models
 # ============================================================================
@@ -648,7 +660,7 @@ class BreedingStatusCodeRead(SQLModel):
 # ============================================================================
 
 class SightingIndividual(SQLModel, table=True):  # type: ignore[call-arg]
-    """Individual location point within a sighting with optional breeding status"""
+    """Individual location point within a sighting with optional bird observation fields"""
     __tablename__ = "sighting_individual"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -662,11 +674,21 @@ class SightingIndividual(SQLModel, table=True):  # type: ignore[call-arg]
         )
     )
     count: int = Field(default=1, ge=1, description="Number of individuals at this location")
-    breeding_status_code: Optional[str] = Field(
+    sex: Optional[BirdSex] = Field(
         default=None,
-        foreign_key="breeding_status_code.code",
-        max_length=2
+        sa_column=sa.Column(
+            sa.Enum(BirdSex, name='bird_sex', create_type=False),
+            nullable=True
+        )
     )
+    posture: Optional[BirdPosture] = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.Enum(BirdPosture, name='bird_posture', create_type=False),
+            nullable=True
+        )
+    )
+    singing: Optional[bool] = Field(default=None)
     notes: Optional[str] = Field(default=None)
     camera_trap_image_id: Optional[int] = Field(
         default=None,
@@ -680,7 +702,6 @@ class SightingIndividual(SQLModel, table=True):  # type: ignore[call-arg]
 
     # Relationships
     sighting: "Sighting" = Relationship(back_populates="individuals")
-    breeding_status: Optional["BreedingStatusCode"] = Relationship()
     camera_trap_image: Optional["CameraTrapImage"] = Relationship()
 
 
@@ -689,7 +710,9 @@ class IndividualLocationBase(SQLModel):
     latitude: float = Field(ge=-90, le=90, description="Latitude coordinate (WGS84)")
     longitude: float = Field(ge=-180, le=180, description="Longitude coordinate (WGS84)")
     count: int = Field(default=1, ge=1, description="Number of individuals at this location")
-    breeding_status_code: Optional[str] = Field(None, max_length=2, description="BTO breeding status code")
+    sex: Optional[str] = Field(None, description="Bird sex: male or female")
+    posture: Optional[str] = Field(None, description="Bird posture: flying or perched")
+    singing: Optional[bool] = Field(None, description="Whether the bird was singing")
     notes: Optional[str] = Field(None, description="Optional notes for this individual")
     camera_trap_image_id: Optional[int] = Field(None)
 

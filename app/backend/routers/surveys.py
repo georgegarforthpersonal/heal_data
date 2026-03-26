@@ -29,7 +29,6 @@ from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate,
     Sighting, SightingCreate, SightingUpdate, SightingWithDetails,
     Species, SpeciesType, Location, SurveySurveyor,
-    BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
     Organisation
 )
@@ -38,33 +37,6 @@ from services.r2_storage import delete_media_file
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# ============================================================================
-# Breeding Status Codes (BTO breeding evidence codes)
-# IMPORTANT: This route must come BEFORE /{survey_id} to avoid route conflicts
-# ============================================================================
-
-@router.get("/breeding-codes", response_model=List[BreedingStatusCodeRead])
-async def get_breeding_codes(db: Session = Depends(get_db)) -> List[dict[str, Any]]:
-    """
-    Get all BTO breeding status codes grouped by category.
-
-    Returns:
-        List of breeding status codes with code, description, and category.
-        Categories: non_breeding, possible_breeder, probable_breeder, confirmed_breeder
-    """
-    codes = db.query(BreedingStatusCode).order_by(
-        BreedingStatusCode.category,
-        BreedingStatusCode.code
-    ).all()
-
-    return [{
-        "code": code.code,
-        "description": code.description,
-        "full_description": code.full_description,
-        "category": code.category.value if hasattr(code.category, 'value') else str(code.category)
-    } for code in codes]
-
 
 # ============================================================================
 # Survey CRUD Operations
@@ -505,7 +477,7 @@ async def get_survey_sightings(
         # Fetch individual locations for this sighting
         individuals = db.execute(text("""
             SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-                   count, breeding_status_code, notes, camera_trap_image_id
+                   count, sex, posture, singing, notes, camera_trap_image_id
             FROM sighting_individual
             WHERE sighting_id = :sighting_id
             ORDER BY id
@@ -527,7 +499,9 @@ async def get_survey_sightings(
                     "latitude": ind.latitude,
                     "longitude": ind.longitude,
                     "count": ind.count,
-                    "breeding_status_code": ind.breeding_status_code,
+                    "sex": ind.sex,
+                    "posture": ind.posture,
+                    "singing": ind.singing,
                     "notes": ind.notes,
                     "camera_trap_image_id": ind.camera_trap_image_id
                 }
@@ -591,14 +565,16 @@ async def create_sighting(
     for ind in sighting.individuals:
         db.execute(
             text("""
-                INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id)
-                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id)
+                INSERT INTO sighting_individual (sighting_id, coordinates, count, sex, posture, singing, notes, camera_trap_image_id)
+                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :sex, :posture, :singing, :notes, :camera_trap_image_id)
             """).bindparams(
                 sighting_id=db_sighting.id,
                 lng=ind.longitude,
                 lat=ind.latitude,
                 count=ind.count,
-                code=ind.breeding_status_code,
+                sex=ind.sex,
+                posture=ind.posture,
+                singing=ind.singing,
                 notes=ind.notes,
                 camera_trap_image_id=ind.camera_trap_image_id
             )
@@ -611,7 +587,7 @@ async def create_sighting(
     # Fetch created individuals
     individuals = db.execute(text("""
         SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-               count, breeding_status_code, notes, camera_trap_image_id
+               count, sex, posture, singing, notes, camera_trap_image_id
         FROM sighting_individual
         WHERE sighting_id = :sighting_id
         ORDER BY id
@@ -630,7 +606,9 @@ async def create_sighting(
                 "latitude": ind.latitude,
                 "longitude": ind.longitude,
                 "count": ind.count,
-                "breeding_status_code": ind.breeding_status_code,
+                "sex": ind.sex,
+                "posture": ind.posture,
+                "singing": ind.singing,
                 "notes": ind.notes
             }
             for ind in individuals
@@ -781,15 +759,17 @@ async def add_individual_location(
     # Insert individual location
     result = db.execute(
         text("""
-            INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id)
-            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id)
-            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes, camera_trap_image_id
+            INSERT INTO sighting_individual (sighting_id, coordinates, count, sex, posture, singing, notes, camera_trap_image_id)
+            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :sex, :posture, :singing, :notes, :camera_trap_image_id)
+            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, sex, posture, singing, notes, camera_trap_image_id
         """).bindparams(
             sighting_id=sighting_id,
             lng=individual.longitude,
             lat=individual.latitude,
             count=individual.count,
-            code=individual.breeding_status_code,
+            sex=individual.sex,
+            posture=individual.posture,
+            singing=individual.singing,
             notes=individual.notes,
             camera_trap_image_id=individual.camera_trap_image_id
         )
@@ -801,7 +781,9 @@ async def add_individual_location(
         "latitude": result.latitude,
         "longitude": result.longitude,
         "count": result.count,
-        "breeding_status_code": result.breeding_status_code,
+        "sex": result.sex,
+        "posture": result.posture,
+        "singing": result.singing,
         "notes": result.notes,
         "camera_trap_image_id": result.camera_trap_image_id
     }
@@ -878,16 +860,20 @@ async def update_individual_location(
             UPDATE sighting_individual
             SET coordinates = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
                 count = :count,
-                breeding_status_code = :code,
+                sex = :sex,
+                posture = :posture,
+                singing = :singing,
                 notes = :notes
             WHERE id = :id
-            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes
+            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, sex, posture, singing, notes
         """).bindparams(
             id=individual_id,
             lng=individual.longitude,
             lat=individual.latitude,
             count=individual.count,
-            code=individual.breeding_status_code,
+            sex=individual.sex,
+            posture=individual.posture,
+            singing=individual.singing,
             notes=individual.notes
         )
     ).fetchone()
@@ -898,7 +884,9 @@ async def update_individual_location(
         "latitude": result.latitude,
         "longitude": result.longitude,
         "count": result.count,
-        "breeding_status_code": result.breeding_status_code,
+        "sex": result.sex,
+        "posture": result.posture,
+        "singing": result.singing,
         "notes": result.notes
     }
 

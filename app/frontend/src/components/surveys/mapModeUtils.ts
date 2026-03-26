@@ -1,5 +1,6 @@
+import type { BirdSex, BirdPosture } from '../../services/api';
 import type { DraftSighting } from './SightingsEditor';
-import type { DraftIndividualLocation } from './MultiLocationMapPicker';
+import type { DraftIndividualLocation, IndividualBirdFields } from './MultiLocationMapPicker';
 
 /**
  * Represents a single marker on the map: one species at one GPS location.
@@ -12,7 +13,10 @@ export interface MapMarker {
   latitude: number;
   longitude: number;
   count: number;
-  breeding_status_code?: string | null;
+  sex?: BirdSex | null;
+  posture?: BirdPosture | null;
+  singing?: boolean | null;
+  birdFieldsList?: IndividualBirdFields[];
 }
 
 /**
@@ -77,7 +81,10 @@ export function getMarkersFromSightings(draftSightings: DraftSighting[]): MapMar
         latitude: ind.latitude,
         longitude: ind.longitude,
         count: ind.count,
-        breeding_status_code: ind.breeding_status_code,
+        sex: ind.sex,
+        posture: ind.posture,
+        singing: ind.singing,
+        birdFieldsList: ind.birdFieldsList,
       });
     }
   }
@@ -95,14 +102,18 @@ export function addSpeciesAtLocation(
   lng: number,
   speciesId: number,
   count: number,
-  breedingStatusCode?: string | null
+  birdFieldsList?: IndividualBirdFields[]
 ): DraftSighting[] {
+  const firstBird = birdFieldsList?.[0];
   const newIndividual: DraftIndividualLocation = {
     tempId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     latitude: lat,
     longitude: lng,
     count,
-    breeding_status_code: breedingStatusCode ?? null,
+    birdFieldsList: birdFieldsList,
+    sex: firstBird?.sex ?? null,
+    posture: firstBird?.posture ?? null,
+    singing: firstBird?.singing ?? null,
   };
 
   const existingIndex = draftSightings.findIndex(
@@ -140,14 +151,14 @@ export function addSpeciesAtLocation(
 }
 
 /**
- * Update a marker's fields (count, breeding_status_code).
+ * Update a marker's fields (count, bird observation fields).
  * Recalculates the parent sighting's total count.
  */
 export function updateMarker(
   draftSightings: DraftSighting[],
   sightingTempId: string,
   individualTempId: string,
-  updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>
+  updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing' | 'birdFieldsList'>>
 ): DraftSighting[] {
   return draftSightings.map((s) => {
     if (s.tempId !== sightingTempId || !s.individuals) return s;
@@ -163,6 +174,51 @@ export function updateMarker(
       individuals,
     };
   });
+}
+
+/**
+ * Expand a DraftIndividualLocation with birdFieldsList into multiple API-ready individual records.
+ * Groups identical bird field combos to minimise records.
+ * Returns records without birdFieldsList, ready for the API.
+ */
+export function expandBirdFieldsToIndividuals(
+  ind: DraftIndividualLocation
+): Array<{ latitude: number; longitude: number; count: number; sex?: BirdSex | null; posture?: BirdPosture | null; singing?: boolean | null; notes?: string | null }> {
+  if (!ind.birdFieldsList || ind.birdFieldsList.length <= 1) {
+    // No per-individual fields or just one — use single fields as-is
+    const bf = ind.birdFieldsList?.[0];
+    return [{
+      latitude: ind.latitude,
+      longitude: ind.longitude,
+      count: ind.count,
+      sex: bf?.sex ?? ind.sex,
+      posture: bf?.posture ?? ind.posture,
+      singing: bf?.singing ?? ind.singing,
+      notes: ind.notes,
+    }];
+  }
+
+  // Group by identical bird field combos
+  const groups = new Map<string, { fields: IndividualBirdFields; count: number }>();
+  for (const bf of ind.birdFieldsList) {
+    const key = `${bf.sex ?? ''}_${bf.posture ?? ''}_${bf.singing ?? ''}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      groups.set(key, { fields: bf, count: 1 });
+    }
+  }
+
+  return Array.from(groups.values()).map(({ fields, count }) => ({
+    latitude: ind.latitude,
+    longitude: ind.longitude,
+    count,
+    sex: fields.sex,
+    posture: fields.posture,
+    singing: fields.singing,
+    notes: ind.notes,
+  }));
 }
 
 /**

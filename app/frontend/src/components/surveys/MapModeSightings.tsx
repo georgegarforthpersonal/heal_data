@@ -15,9 +15,9 @@ import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 
-import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
+import type { Species, LocationWithBoundary } from '../../services/api';
 import type { DraftSighting } from './SightingsEditor';
-import type { DraftIndividualLocation } from './MultiLocationMapPicker';
+import type { DraftIndividualLocation, IndividualBirdFields } from './MultiLocationMapPicker';
 import { getMarkersFromSightings, groupMarkersByLocation, addSpeciesAtLocation, updateMarker, removeMarker } from './mapModeUtils';
 import type { MapMarker } from './mapModeUtils';
 import { MarkerPopupContent, GroupedMarkerPopupContent } from './MarkerPopupContent';
@@ -26,7 +26,6 @@ import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 interface MapModeSightingsProps {
   sightings: DraftSighting[];
   species: Species[];
-  breedingCodes?: BreedingStatusCode[];
   onSightingsChange?: (sightings: DraftSighting[]) => void;
   locationsWithBoundaries?: LocationWithBoundary[];
   readOnly?: boolean;
@@ -38,16 +37,11 @@ function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
 
   useMapEvents({
     click(e) {
-      // Check if a popup is currently open and visible (closeOnClick is
-      // disabled on our popups so Leaflet won't close them on map click).
-      // We must check isOpen() because _popup can hold a stale reference
-      // after React unmounts a Popup component.
       const currentPopup = (map as any)._popup;
       if (currentPopup && currentPopup.isOpen()) {
         map.closePopup();
         return;
       }
-      // Only trigger onClick if provided (not in read-only mode)
       if (onClick) {
         onClick(e.latlng);
       }
@@ -113,7 +107,6 @@ function createSpeciesCodeIcon(speciesCode: string | null): DivIcon {
 export function MapModeSightings({
   sightings,
   species,
-  breedingCodes = [],
   onSightingsChange,
   locationsWithBoundaries,
   readOnly = false,
@@ -139,7 +132,7 @@ export function MapModeSightings({
   }, []);
 
   const handleAddFromPopup = useCallback(
-    (speciesId: number, count: number, breedingStatusCode?: string | null) => {
+    (speciesId: number, count: number, birdFieldsList?: IndividualBirdFields[]) => {
       if (!addPopupPosition) return;
       const updated = addSpeciesAtLocation(
         sightings,
@@ -147,7 +140,7 @@ export function MapModeSightings({
         addPopupPosition.lng,
         speciesId,
         count,
-        breedingStatusCode
+        birdFieldsList
       );
       onSightingsChange?.(updated);
       setAddPopupPosition(null);
@@ -160,7 +153,7 @@ export function MapModeSightings({
   }, []);
 
   const handleMarkerUpdate = useCallback(
-    (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => {
+    (sightingTempId: string, individualTempId: string, updates: Partial<Pick<DraftIndividualLocation, 'count' | 'sex' | 'posture' | 'singing' | 'birdFieldsList'>>) => {
       const updated = updateMarker(sightings, sightingTempId, individualTempId, updates);
       onSightingsChange?.(updated);
     },
@@ -273,14 +266,12 @@ export function MapModeSightings({
                         <MarkerPopupContent
                           mode="view"
                           species={species}
-                          breedingCodes={breedingCodes}
                           marker={firstMarker}
                         />
                       ) : (
                         <MarkerPopupContent
                           mode="edit"
                           species={species}
-                          breedingCodes={breedingCodes}
                           marker={firstMarker}
                           onUpdate={(updates) =>
                             handleMarkerUpdate(firstMarker.sightingTempId, firstMarker.individualTempId, updates)
@@ -295,7 +286,6 @@ export function MapModeSightings({
                       <GroupedMarkerPopupContent
                         markers={group.markers}
                         species={species}
-                        breedingCodes={breedingCodes}
                         readOnly={readOnly}
                         onUpdate={handleMarkerUpdate}
                         onDelete={handleMarkerDelete}
@@ -322,7 +312,6 @@ export function MapModeSightings({
                 <MarkerPopupContent
                   mode="add"
                   species={species}
-                  breedingCodes={breedingCodes}
                   onAdd={handleAddFromPopup}
                   onDiscard={handleAddPopupClose}
                 />
