@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _convert_row(row):
+def _convert_row(row: tuple[object, ...]) -> tuple[object, ...]:
     """Convert a database row so all values are SQLite-compatible types."""
     return tuple(
         str(v) if isinstance(v, (date, time, datetime)) else
@@ -374,7 +374,7 @@ async def export_sqlite(
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
     _admin: None = Depends(require_admin),
-):
+) -> StreamingResponse:
     """Export all organisation data as a downloadable SQLite database file."""
     logger.info(f"SQLite export requested for organisation: {org.slug}")
 
