@@ -371,12 +371,17 @@ export function NewCameraTrapSurveyPage() {
     try {
       // 1. Create survey
       setSaveProgress({ step: 'Creating survey...', percent: 5 });
-      const survey = await surveysAPI.create({
-        date: date.format('YYYY-MM-DD'),
-        survey_type_id: selectedSurveyType.id,
-        device_id: selectedDevice.id,
-        surveyor_ids: selectedSurveyors.map((s) => s.id),
-      });
+      let survey;
+      try {
+        survey = await surveysAPI.create({
+          date: date.format('YYYY-MM-DD'),
+          survey_type_id: selectedSurveyType.id,
+          device_id: selectedDevice.id,
+          surveyor_ids: selectedSurveyors.map((s) => s.id),
+        });
+      } catch (createErr: unknown) {
+        throw new Error(`Failed to create survey: ${createErr instanceof Error ? createErr.message : String(createErr)}`);
+      }
 
       // 2. Build list of images to upload, grouped by species
       const imagesToUpload = new Map<number, { file: File; exifDate: Date | null; speciesId: number }>();
@@ -413,12 +418,17 @@ export function NewCameraTrapSurveyPage() {
           }
         });
 
-        const result = await imagesAPI.uploadFilesWithMetadata(
-          survey.id,
-          batchFiles,
-          Object.keys(timestamps).length > 0 ? timestamps : undefined,
-          true // skip processing
-        );
+        let result;
+        try {
+          result = await imagesAPI.uploadFilesWithMetadata(
+            survey.id,
+            batchFiles,
+            Object.keys(timestamps).length > 0 ? timestamps : undefined,
+            true // skip processing
+          );
+        } catch (uploadErr: unknown) {
+          throw new Error(`Failed to upload images (batch ${Math.floor(i / UPLOAD_BATCH_SIZE) + 1}): ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`);
+        }
 
         // Map uploaded images back to their indices
         batch.forEach(([imageIndex], batchIdx) => {
