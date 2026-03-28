@@ -17,6 +17,32 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
 
 /**
+ * Small thumbnail component that lazily loads a presigned URL for a camera trap image
+ */
+function SightingImageThumbnail({ imageId }: { imageId: number }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    imagesAPI.getPreviewUrl(imageId).then((res) => {
+      if (mounted) setUrl(res.preview_url);
+    }).catch(() => { /* ignore */ });
+    return () => { mounted = false; };
+  }, [imageId]);
+
+  if (!url) return <Box sx={{ width: 60, height: 45, bgcolor: 'grey.200', borderRadius: 0.5, flexShrink: 0 }} />;
+
+  return (
+    <Box
+      component="img"
+      src={url}
+      alt=""
+      sx={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 0.5, flexShrink: 0 }}
+    />
+  );
+}
+
+/**
  * SurveyDetailPage displays detailed information about a single survey
  * - Survey metadata (date, surveyors, location, notes)
  * - Sightings with card-based editing interface
@@ -988,16 +1014,19 @@ export function SurveyDetailPage() {
                             ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} across ${locationCount} location${locationCount > 1 ? 's' : ''}`
                             : 'No location recorded';
 
+                          // Collect camera trap image IDs from individuals
+                          const imageIds: number[] = (sighting.individuals || [])
+                            .map((ind: any) => ind.camera_trap_image_id)
+                            .filter((id: number | null) => id != null);
+
                           return (
+                            <Box key={sighting.id} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                             <Box
-                              key={sighting.id}
                               sx={{
                                 display: 'grid',
                                 gridTemplateColumns: gridColumns,
                                 gap: 2,
                                 p: 1.5,
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
                                 alignItems: 'center',
                                 '&:hover': { bgcolor: 'grey.50' }
                               }}
@@ -1059,6 +1088,16 @@ export function SurveyDetailPage() {
                                   {sighting.notes || '-'}
                                 </Typography>
                               )}
+                            </Box>
+
+                            {/* Camera Trap Image Thumbnails */}
+                            {imageIds.length > 0 && (
+                              <Box sx={{ display: 'flex', gap: 0.5, px: 1.5, pb: 1.5, flexWrap: 'wrap' }}>
+                                {imageIds.map((imgId: number) => (
+                                  <SightingImageThumbnail key={imgId} imageId={imgId} />
+                                ))}
+                              </Box>
+                            )}
                             </Box>
                           );
                         })}

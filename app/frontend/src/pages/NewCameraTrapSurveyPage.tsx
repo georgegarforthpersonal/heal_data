@@ -30,7 +30,7 @@ import {
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   surveysAPI,
@@ -79,6 +79,7 @@ const UPLOAD_BATCH_SIZE = 10;
 
 export function NewCameraTrapSurveyPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // ---- Wizard step ----
@@ -127,9 +128,17 @@ export function NewCameraTrapSurveyPage() {
           surveyorsAPI.getAll(),
           devicesAPI.getAll(false, 'camera_trap'),
         ]);
-        setSurveyTypes(allSurveyTypes.filter((st) => st.allow_image_upload && st.is_active));
+        const cameraTrapTypes = allSurveyTypes.filter((st) => st.allow_image_upload && st.is_active);
+        setSurveyTypes(cameraTrapTypes);
         setSurveyors(allSurveyors);
         setDevices(allDevices);
+
+        // Pre-select survey type from URL param
+        const typeId = searchParams.get('type');
+        if (typeId) {
+          const preselected = cameraTrapTypes.find((st) => st.id === Number(typeId));
+          if (preselected) setSelectedSurveyType(preselected);
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {
@@ -518,7 +527,7 @@ export function NewCameraTrapSurveyPage() {
   // ============================================================================
 
   return (
-    <Box sx={{ pb: 4 }}>
+    <Box sx={{ pb: 4, maxWidth: 800, mx: 'auto' }}>
       <PageHeader
         backButton={{ label: 'Surveys', to: '/surveys' }}
         actions={
@@ -595,9 +604,10 @@ export function NewCameraTrapSurveyPage() {
             <Autocomplete
               multiple
               options={surveyors}
-              getOptionLabel={(option) => option.name}
+              getOptionLabel={(option) => option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
               value={selectedSurveyors}
               onChange={(_, value) => setSelectedSurveyors(value)}
+              disableCloseOnSelect
               renderInput={(params) => (
                 <TextField {...params} label="Surveyors" required />
               )}
