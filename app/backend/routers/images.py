@@ -215,9 +215,10 @@ async def upload_images(
         file_size = file.file.tell()
         file.file.seek(0)  # Reset
 
-        # Upload to R2
+        # Upload to R2 (scope by survey_id to avoid filename collisions across surveys)
         content_type = CONTENT_TYPE_MAP.get(ext, "image/jpeg")
-        r2_key = upload_image_file(file.file, file.filename, org.slug, content_type)
+        scoped_filename = f"survey_{survey_id}/{file.filename}"
+        r2_key = upload_image_file(file.file, scoped_filename, org.slug, content_type)
 
         # Create database record
         initial_status = ProcessingStatus.completed if skip_processing else ProcessingStatus.pending
