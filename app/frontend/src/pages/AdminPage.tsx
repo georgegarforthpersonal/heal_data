@@ -1135,18 +1135,18 @@ export function AdminPage() {
             </Typography>
           </Box>
           {!formAllowImageUpload && (
-          <Autocomplete
-            multiple
-            options={allLocations}
-            getOptionLabel={(option) => option.name}
-            value={formSelectedLocations}
-            onChange={(_, newValue) => setFormSelectedLocations(newValue)}
-            disabled={savingSurveyType}
-            renderInput={(params) => (
-              <TextField {...params} margin="normal" label="Available Locations" placeholder="Select locations" required />
-            )}
-            sx={{ mt: 2 }}
-          />
+            <Autocomplete
+              multiple
+              options={allLocations}
+              getOptionLabel={(option) => option.name}
+              value={formSelectedLocations}
+              onChange={(_, newValue) => setFormSelectedLocations(newValue)}
+              disabled={savingSurveyType}
+              renderInput={(params) => (
+                <TextField {...params} margin="normal" label="Available Locations" placeholder="Select locations" required />
+              )}
+              sx={{ mt: 2 }}
+            />
           )}
           {formAllowImageUpload && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
