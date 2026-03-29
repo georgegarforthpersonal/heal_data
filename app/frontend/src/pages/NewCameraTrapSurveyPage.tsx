@@ -20,13 +20,11 @@ import {
 import {
   ArrowBack,
   ArrowForward,
-  SkipNext,
   Save,
   Cancel,
   CloudUpload,
   PhotoCamera,
   CheckCircle,
-  Delete,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -66,9 +64,6 @@ interface Classification {
   speciesName: string;
 }
 
-// Classification state per image index: undefined = unvisited, 'skipped' = discarded, Classification = assigned
-type ImageClassification = Classification | 'skipped' | undefined;
-
 const WIZARD_STEPS = ['Setup', 'Upload', 'Classify', 'Review', 'Save'];
 
 const UPLOAD_BATCH_SIZE = 10;
@@ -101,7 +96,8 @@ export function NewCameraTrapSurveyPage() {
 
   // ---- Step 3: Classify ----
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [classifications, setClassifications] = useState<Map<number, ImageClassification>>(new Map());
+  const [classifications, setClassifications] = useState<Map<number, Classification>>(new Map());
+  const [viewedImages, setViewedImages] = useState<Set<number>>(new Set());
   const [species, setSpecies] = useState<Species[]>([]);
   const [speciesSearchValue, setSpeciesSearchValue] = useState('');
 
@@ -226,6 +222,7 @@ export function NewCameraTrapSurveyPage() {
 
       setImageFiles(processed);
       setClassifications(new Map());
+      setViewedImages(new Set());
       setCurrentImageIndex(0);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to process images');
@@ -238,6 +235,28 @@ export function NewCameraTrapSurveyPage() {
   // Step 3: Classification helpers
   // ============================================================================
 
+  // Mark current image as viewed when it changes
+  useEffect(() => {
+    if (activeStep === 2 && imageFiles.length > 0) {
+      setViewedImages((prev) => {
+        if (prev.has(currentImageIndex)) return prev;
+        const next = new Set(prev);
+        next.add(currentImageIndex);
+        return next;
+      });
+    }
+  }, [currentImageIndex, activeStep, imageFiles.length]);
+
+  const findNextUnviewed = useCallback((fromIndex: number): number | null => {
+    for (let i = fromIndex + 1; i < imageFiles.length; i++) {
+      if (!viewedImages.has(i)) return i;
+    }
+    for (let i = 0; i < fromIndex; i++) {
+      if (!viewedImages.has(i)) return i;
+    }
+    return null;
+  }, [viewedImages, imageFiles.length]);
+
   const classifyImage = useCallback(
     (speciesId: number, speciesName: string) => {
       setClassifications((prev) => {
@@ -245,42 +264,17 @@ export function NewCameraTrapSurveyPage() {
         next.set(currentImageIndex, { speciesId, speciesName });
         return next;
       });
-      // Auto-advance to next unclassified
-      const nextUnclassified = findNextUnclassified(currentImageIndex);
-      if (nextUnclassified !== null) {
-        setCurrentImageIndex(nextUnclassified);
-      } else {
-        // All done - advance to next image or stay
-        if (currentImageIndex < imageFiles.length - 1) {
-          setCurrentImageIndex(currentImageIndex + 1);
-        }
+      // Auto-advance to next unviewed image
+      const nextUnviewed = findNextUnviewed(currentImageIndex);
+      if (nextUnviewed !== null) {
+        setCurrentImageIndex(nextUnviewed);
+      } else if (currentImageIndex < imageFiles.length - 1) {
+        setCurrentImageIndex(currentImageIndex + 1);
       }
       setSpeciesSearchValue('');
     },
-    [currentImageIndex, imageFiles.length]
+    [currentImageIndex, imageFiles.length, findNextUnviewed]
   );
-
-  const skipImage = useCallback(() => {
-    setClassifications((prev) => {
-      const next = new Map(prev);
-      next.set(currentImageIndex, 'skipped');
-      return next;
-    });
-    if (currentImageIndex < imageFiles.length - 1) {
-      setCurrentImageIndex(currentImageIndex + 1);
-    }
-    setSpeciesSearchValue('');
-  }, [currentImageIndex, imageFiles.length]);
-
-  const findNextUnclassified = (fromIndex: number): number | null => {
-    for (let i = fromIndex + 1; i < imageFiles.length; i++) {
-      if (!classifications.has(i)) return i;
-    }
-    for (let i = 0; i < fromIndex; i++) {
-      if (!classifications.has(i)) return i;
-    }
-    return null;
-  };
 
   const goToPrev = useCallback(() => {
     setCurrentImageIndex((prev) => Math.max(0, prev - 1));
@@ -292,6 +286,14 @@ export function NewCameraTrapSurveyPage() {
     setSpeciesSearchValue('');
   }, [imageFiles.length]);
 
+  const goToNextUnviewed = useCallback(() => {
+    const next = findNextUnviewed(currentImageIndex);
+    if (next !== null) {
+      setCurrentImageIndex(next);
+      setSpeciesSearchValue('');
+    }
+  }, [currentImageIndex, findNextUnviewed]);
+
   // Keyboard navigation for classify step
   useEffect(() => {
     if (activeStep !== 2) return;
@@ -300,11 +302,11 @@ export function NewCameraTrapSurveyPage() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'ArrowRight') goToNext();
       if (e.key === 'ArrowLeft') goToPrev();
-      if (e.key === 's' || e.key === 'S') skipImage();
+      if (e.key === 'n' || e.key === 'N') goToNextUnviewed();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeStep, goToNext, goToPrev, skipImage]);
+  }, [activeStep, goToNext, goToPrev, goToNextUnviewed]);
 
   // ============================================================================
   // Step 4: Review computed data
@@ -314,7 +316,7 @@ export function NewCameraTrapSurveyPage() {
     const speciesMap = new Map<number, { speciesName: string; imageIndices: number[] }>();
 
     classifications.forEach((value, imageIndex) => {
-      if (value && value !== 'skipped') {
+      if (value) {
         const existing = speciesMap.get(value.speciesId);
         if (existing) {
           existing.imageIndices.push(imageIndex);
@@ -486,8 +488,9 @@ export function NewCameraTrapSurveyPage() {
   // Step validation
   // ============================================================================
 
-  const classifiedCount = Array.from(classifications.values()).filter((v) => v && v !== 'skipped').length;
-  const skippedCount = Array.from(classifications.values()).filter((v) => v === 'skipped').length;
+  const classifiedCount = classifications.size;
+  const viewedCount = viewedImages.size;
+  const remainingCount = imageFiles.length - viewedCount;
 
   const canProceed = (step: number): boolean => {
     switch (step) {
@@ -770,12 +773,12 @@ export function NewCameraTrapSurveyPage() {
                 Image {currentImageIndex + 1} of {imageFiles.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {classifiedCount} classified, {skippedCount} skipped
+                Viewed {viewedCount} of {imageFiles.length} · {classifiedCount} species identified
               </Typography>
             </Box>
             <LinearProgress
               variant="determinate"
-              value={(classifications.size / imageFiles.length) * 100}
+              value={(viewedCount / imageFiles.length) * 100}
               sx={{ height: 6, borderRadius: 3 }}
             />
           </Box>
@@ -783,28 +786,18 @@ export function NewCameraTrapSurveyPage() {
           {/* Current classification indicator */}
           {classifications.get(currentImageIndex) && (
             <Box sx={{ mb: 1 }}>
-              {classifications.get(currentImageIndex) === 'skipped' ? (
-                <Chip label="Skipped" size="small" color="default" onDelete={() => {
+              <Chip
+                label={classifications.get(currentImageIndex)!.speciesName}
+                size="small"
+                color="primary"
+                onDelete={() => {
                   setClassifications((prev) => {
                     const next = new Map(prev);
                     next.delete(currentImageIndex);
                     return next;
                   });
-                }} />
-              ) : (
-                <Chip
-                  label={(classifications.get(currentImageIndex) as Classification).speciesName}
-                  size="small"
-                  color="primary"
-                  onDelete={() => {
-                    setClassifications((prev) => {
-                      const next = new Map(prev);
-                      next.delete(currentImageIndex);
-                      return next;
-                    });
-                  }}
-                />
-              )}
+                }}
+              />
             </Box>
           )}
 
@@ -839,54 +832,53 @@ export function NewCameraTrapSurveyPage() {
             )}
           </Typography>
 
-          {/* Species selection + skip */}
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-            <Autocomplete
-              options={species}
-              getOptionLabel={(option) =>
-                option.name ? `${option.name} (${option.scientific_name || ''})` : option.scientific_name || ''
+          {/* Species selection */}
+          <Autocomplete
+            options={species}
+            getOptionLabel={(option) =>
+              option.name ? `${option.name} (${option.scientific_name || ''})` : option.scientific_name || ''
+            }
+            value={null}
+            inputValue={speciesSearchValue}
+            onInputChange={(_, value) => setSpeciesSearchValue(value)}
+            onChange={(_, value) => {
+              if (value) {
+                classifyImage(value.id, value.name || value.scientific_name || 'Unknown');
               }
-              value={null}
-              inputValue={speciesSearchValue}
-              onInputChange={(_, value) => setSpeciesSearchValue(value)}
-              onChange={(_, value) => {
-                if (value) {
-                  classifyImage(value.id, value.name || value.scientific_name || 'Unknown');
-                }
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Select species"
-                  placeholder="Type to search..."
-                  size="small"
-                />
-              )}
-              sx={{ flexGrow: 1 }}
-              clearOnBlur={false}
-              blurOnSelect
-            />
-            <Button
-              variant="outlined"
-              startIcon={<SkipNext />}
-              onClick={skipImage}
-              sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
-            >
-              Skip (S)
-            </Button>
-          </Stack>
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Select species"
+                placeholder="Type to search..."
+                size="small"
+              />
+            )}
+            sx={{ mb: 2 }}
+            clearOnBlur={false}
+            blurOnSelect
+          />
 
           {/* Navigation */}
           <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
             <IconButton onClick={goToPrev} disabled={currentImageIndex === 0}>
               <ArrowBack />
             </IconButton>
-            <Typography variant="body2">
-              Use arrow keys to navigate
+            <Typography variant="body2" color="text.secondary">
+              ← → to browse
             </Typography>
             <IconButton onClick={goToNext} disabled={currentImageIndex === imageFiles.length - 1}>
               <ArrowForward />
             </IconButton>
+            {remainingCount > 0 && (
+              <Button
+                size="small"
+                onClick={goToNextUnviewed}
+                sx={{ textTransform: 'none', ml: 1 }}
+              >
+                Next unviewed (N)
+              </Button>
+            )}
           </Stack>
 
           {/* Thumbnail strip */}
@@ -902,6 +894,7 @@ export function NewCameraTrapSurveyPage() {
           >
             {imageFiles.map((img, idx) => {
               const cls = classifications.get(idx);
+              const isViewed = viewedImages.has(idx);
               const isCurrent = idx === currentImageIndex;
               return (
                 <Box
@@ -916,7 +909,7 @@ export function NewCameraTrapSurveyPage() {
                     cursor: 'pointer',
                     border: isCurrent ? '2px solid' : '2px solid transparent',
                     borderColor: isCurrent ? 'primary.main' : 'transparent',
-                    opacity: cls === 'skipped' ? 0.4 : 1,
+                    opacity: isViewed ? 1 : 0.35,
                     position: 'relative',
                   }}
                 >
@@ -926,7 +919,7 @@ export function NewCameraTrapSurveyPage() {
                     loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                  {cls && cls !== 'skipped' && (
+                  {cls && (
                     <CheckCircle
                       sx={{
                         position: 'absolute',
@@ -943,6 +936,12 @@ export function NewCameraTrapSurveyPage() {
               );
             })}
           </Box>
+
+          {remainingCount === 0 && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              All images reviewed! {classifiedCount} species identified.
+            </Alert>
+          )}
 
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
             <Button
