@@ -566,9 +566,9 @@ export function NewCameraTrapSurveyPage() {
   // ============================================================================
 
   return (
-    <Box sx={{ pb: 4, maxWidth: 800, mx: 'auto' }}>
+    <Box sx={{ pb: 4 }}>
       <PageHeader
-        backButton={{ label: 'Surveys', to: '/surveys' }}
+        backButton={{ href: '/surveys' }}
         actions={
           <Button
             variant="outlined"
@@ -580,10 +580,6 @@ export function NewCameraTrapSurveyPage() {
           </Button>
         }
       />
-
-      <Typography variant="h5" fontWeight={600} gutterBottom>
-        New Camera Trap Survey
-      </Typography>
 
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
         {WIZARD_STEPS.map((label) => (
@@ -603,11 +599,11 @@ export function NewCameraTrapSurveyPage() {
       {/* Step 1: Setup                                                     */}
       {/* ================================================================ */}
       {activeStep === 0 && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Survey Setup
-          </Typography>
-          <Stack spacing={3}>
+        <>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Survey Type
+            </Typography>
             <Autocomplete
               options={surveyTypes}
               getOptionLabel={(option) => option.name}
@@ -617,53 +613,63 @@ export function NewCameraTrapSurveyPage() {
                 <TextField {...params} label="Survey Type" required />
               )}
             />
-            <Autocomplete
-              options={devices}
-              getOptionLabel={(option) =>
-                option.name ? `${option.name} (${option.device_id})` : option.device_id
-              }
-              value={selectedDevice}
-              onChange={(_, value) => setSelectedDevice(value)}
-              renderInput={(params) => (
-                <TextField {...params} label="Camera Trap Device" required />
-              )}
-              noOptionsText="No camera trap devices found. Add one in Admin > Devices."
-            />
-            {selectedDevice && !selectedDevice.latitude && (
-              <Alert severity="warning">
-                This device has no GPS coordinates set. Sightings will not have location data.
-              </Alert>
-            )}
-            <DatePicker
-              label="Survey Date"
-              value={date}
-              onChange={setDate}
-              slotProps={{ textField: { required: true, fullWidth: true } }}
-            />
-            <Autocomplete
-              multiple
-              options={surveyors}
-              getOptionLabel={(option) => option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
-              value={selectedSurveyors}
-              onChange={(_, value) => setSelectedSurveyors(value)}
-              disableCloseOnSelect
-              renderInput={(params) => (
-                <TextField {...params} label="Surveyors" required />
-              )}
-            />
-          </Stack>
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              endIcon={<ArrowForward />}
-              disabled={!canProceed(0)}
-              onClick={() => setActiveStep(1)}
-              sx={{ textTransform: 'none' }}
-            >
-              Next
-            </Button>
-          </Box>
-        </Paper>
+          </Paper>
+
+          {selectedSurveyType && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Survey Details
+              </Typography>
+              <Stack spacing={3}>
+                <Autocomplete
+                  options={devices}
+                  getOptionLabel={(option) =>
+                    option.name ? `${option.name} (${option.device_id})` : option.device_id
+                  }
+                  value={selectedDevice}
+                  onChange={(_, value) => setSelectedDevice(value)}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Device" required />
+                  )}
+                  noOptionsText="No camera trap devices found. Add one in Admin > Devices."
+                />
+                {selectedDevice && !selectedDevice.latitude && (
+                  <Alert severity="warning">
+                    This device has no GPS coordinates set. Sightings will not have location data.
+                  </Alert>
+                )}
+                <DatePicker
+                  label="Date"
+                  value={date}
+                  onChange={setDate}
+                  slotProps={{ textField: { required: true, fullWidth: true } }}
+                />
+                <Autocomplete
+                  multiple
+                  options={surveyors}
+                  getOptionLabel={(option) => option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
+                  value={selectedSurveyors}
+                  onChange={(_, value) => setSelectedSurveyors(value)}
+                  disableCloseOnSelect
+                  renderInput={(params) => (
+                    <TextField {...params} label="Surveyors" required />
+                  )}
+                />
+              </Stack>
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  variant="contained"
+                  endIcon={<ArrowForward />}
+                  disabled={!canProceed(0)}
+                  onClick={() => setActiveStep(1)}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Next
+                </Button>
+              </Box>
+            </Paper>
+          )}
+        </>
       )}
 
       {/* ================================================================ */}
