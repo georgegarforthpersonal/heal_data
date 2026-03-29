@@ -379,6 +379,12 @@ export function NewSurveyPage() {
   };
 
   const handleSurveyTypeChange = (surveyType: SurveyType | null) => {
+    // Redirect to camera trap wizard for image upload survey types
+    if (surveyType?.allow_image_upload) {
+      navigate(`/surveys/new/camera-trap?type=${surveyType.id}`);
+      return;
+    }
+
     setSelectedSurveyType(surveyType);
     // Clear location when survey type changes
     setLocationId(null);
