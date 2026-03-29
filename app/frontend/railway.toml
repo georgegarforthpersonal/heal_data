@@ -3,8 +3,7 @@
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "app/frontend/Dockerfile"
-dockerContext = "app/frontend"
+dockerfilePath = "Dockerfile"
 
 [build.args]
 VITE_API_URL = "${{VITE_API_URL}}"
