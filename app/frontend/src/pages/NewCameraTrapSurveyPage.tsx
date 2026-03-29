@@ -96,7 +96,7 @@ export function NewCameraTrapSurveyPage() {
 
   // ---- Step 3: Classify ----
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [classifications, setClassifications] = useState<Map<number, Classification>>(new Map());
+  const [classifications, setClassifications] = useState<Map<number, Classification[]>>(new Map());
   const [viewedImages, setViewedImages] = useState<Set<number>>(new Set());
   const [species, setSpecies] = useState<Species[]>([]);
   const [speciesSearchValue, setSpeciesSearchValue] = useState('');
@@ -282,19 +282,15 @@ export function NewCameraTrapSurveyPage() {
     (speciesId: number, speciesName: string) => {
       setClassifications((prev) => {
         const next = new Map(prev);
-        next.set(currentImageIndex, { speciesId, speciesName });
+        const existing = next.get(currentImageIndex) || [];
+        // Don't add duplicate species
+        if (existing.some((c) => c.speciesId === speciesId)) return prev;
+        next.set(currentImageIndex, [...existing, { speciesId, speciesName }]);
         return next;
       });
-      // Auto-advance to next unviewed image
-      const nextUnviewed = findNextUnviewed(currentImageIndex);
-      if (nextUnviewed !== null) {
-        setCurrentImageIndex(nextUnviewed);
-      } else if (currentImageIndex < imageFiles.length - 1) {
-        setCurrentImageIndex(currentImageIndex + 1);
-      }
       setSpeciesSearchValue('');
     },
-    [currentImageIndex, imageFiles.length, findNextUnviewed]
+    [currentImageIndex]
   );
 
   const goToPrev = useCallback(() => {
@@ -340,18 +336,20 @@ export function NewCameraTrapSurveyPage() {
   const reviewData = useMemo(() => {
     const speciesMap = new Map<number, { speciesName: string; imageIndices: number[] }>();
 
-    classifications.forEach((value, imageIndex) => {
-      if (value) {
+    classifications.forEach((speciesList, imageIndex) => {
+      speciesList.forEach((value) => {
         const existing = speciesMap.get(value.speciesId);
         if (existing) {
-          existing.imageIndices.push(imageIndex);
+          if (!existing.imageIndices.includes(imageIndex)) {
+            existing.imageIndices.push(imageIndex);
+          }
         } else {
           speciesMap.set(value.speciesId, {
             speciesName: value.speciesName,
             imageIndices: [imageIndex],
           });
         }
-      }
+      });
     });
 
     return Array.from(speciesMap.entries()).map(([speciesId, data]) => ({
@@ -410,36 +408,37 @@ export function NewCameraTrapSurveyPage() {
         throw new Error(`Failed to create survey: ${createErr instanceof Error ? createErr.message : String(createErr)}`);
       }
 
-      // 2. Build list of images to upload, grouped by species
-      const imagesToUpload = new Map<number, { file: File; exifDate: Date | null; speciesId: number }>();
+      // 2. Build set of unique image indices to upload (across all species)
+      const imageIndicesToUpload = new Set<number>();
 
       reviewData.forEach(({ speciesId, imageIndices }) => {
         imageIndices.forEach((idx) => {
           const key = `${speciesId}-${idx}`;
           if (!deselectedImages.has(key)) {
-            imagesToUpload.set(idx, {
-              file: imageFiles[idx].file,
-              exifDate: imageFiles[idx].exifDate,
-              speciesId,
-            });
+            imageIndicesToUpload.add(idx);
           }
         });
       });
 
-      const uploadEntries = Array.from(imagesToUpload.entries());
-      const totalFiles = uploadEntries.length;
+      const imagesToUpload = Array.from(imageIndicesToUpload).map((idx) => ({
+        idx,
+        file: imageFiles[idx].file,
+        exifDate: imageFiles[idx].exifDate,
+      }));
+
+      const totalFiles = imagesToUpload.length;
 
       // 3. Upload in batches
       setSaveProgress({ step: `Uploading ${totalFiles} images...`, percent: 10 });
       const uploadedImages = new Map<number, CameraTrapImage>(); // imageIndex -> CameraTrapImage
 
-      for (let i = 0; i < uploadEntries.length; i += UPLOAD_BATCH_SIZE) {
-        const batch = uploadEntries.slice(i, i + UPLOAD_BATCH_SIZE);
-        const batchFiles = batch.map(([, entry]) => entry.file);
+      for (let i = 0; i < imagesToUpload.length; i += UPLOAD_BATCH_SIZE) {
+        const batch = imagesToUpload.slice(i, i + UPLOAD_BATCH_SIZE);
+        const batchFiles = batch.map((entry) => entry.file);
 
         // Build timestamps metadata
         const timestamps: Record<string, string> = {};
-        batch.forEach(([, entry]) => {
+        batch.forEach((entry) => {
           if (entry.exifDate) {
             timestamps[entry.file.name] = entry.exifDate.toISOString();
           }
@@ -458,9 +457,9 @@ export function NewCameraTrapSurveyPage() {
         }
 
         // Map uploaded images back to their indices
-        batch.forEach(([imageIndex], batchIdx) => {
+        batch.forEach((entry, batchIdx) => {
           if (result[batchIdx]) {
-            uploadedImages.set(imageIndex, result[batchIdx]);
+            uploadedImages.set(entry.idx, result[batchIdx]);
           }
         });
 
@@ -514,7 +513,7 @@ export function NewCameraTrapSurveyPage() {
   // ============================================================================
 
   const classifiedCount = classifications.size;
-  const uniqueSpeciesCount = new Set(Array.from(classifications.values()).map((c) => c.speciesId)).size;
+  const uniqueSpeciesCount = new Set(Array.from(classifications.values()).flatMap((list) => list.map((c) => c.speciesId))).size;
   const viewedCount = viewedImages.size;
   const remainingCount = imageFiles.length - viewedCount;
 
@@ -816,21 +815,30 @@ export function NewCameraTrapSurveyPage() {
           </Box>
 
           {/* Current classification indicator */}
-          {classifications.get(currentImageIndex) && (
-            <Box sx={{ mb: 1 }}>
-              <Chip
-                label={classifications.get(currentImageIndex)!.speciesName}
-                size="small"
-                color="primary"
-                onDelete={() => {
-                  setClassifications((prev) => {
-                    const next = new Map(prev);
-                    next.delete(currentImageIndex);
-                    return next;
-                  });
-                }}
-              />
-            </Box>
+          {(classifications.get(currentImageIndex)?.length ?? 0) > 0 && (
+            <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
+              {classifications.get(currentImageIndex)!.map((cls) => (
+                <Chip
+                  key={cls.speciesId}
+                  label={cls.speciesName}
+                  size="small"
+                  color="primary"
+                  onDelete={() => {
+                    setClassifications((prev) => {
+                      const next = new Map(prev);
+                      const existing = next.get(currentImageIndex) || [];
+                      const filtered = existing.filter((c) => c.speciesId !== cls.speciesId);
+                      if (filtered.length === 0) {
+                        next.delete(currentImageIndex);
+                      } else {
+                        next.set(currentImageIndex, filtered);
+                      }
+                      return next;
+                    });
+                  }}
+                />
+              ))}
+            </Stack>
           )}
 
           {/* Main image */}
@@ -901,9 +909,6 @@ export function NewCameraTrapSurveyPage() {
               <IconButton onClick={goToNext} disabled={currentImageIndex === imageFiles.length - 1}>
                 <ArrowForward />
               </IconButton>
-              <Typography variant="caption" color="text.secondary">
-                ← → to browse
-              </Typography>
             </Stack>
             {remainingCount > 0 && (
               <Button
@@ -929,7 +934,7 @@ export function NewCameraTrapSurveyPage() {
             }}
           >
             {imageFiles.map((img, idx) => {
-              const cls = classifications.get(idx);
+              const hasClassifications = (classifications.get(idx)?.length ?? 0) > 0;
               const isViewed = viewedImages.has(idx);
               const isCurrent = idx === currentImageIndex;
               return (
@@ -955,7 +960,7 @@ export function NewCameraTrapSurveyPage() {
                     loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                  {cls && (
+                  {hasClassifications && (
                     <CheckCircle
                       sx={{
                         position: 'absolute',
