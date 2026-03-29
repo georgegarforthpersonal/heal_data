@@ -566,7 +566,7 @@ export function NewCameraTrapSurveyPage() {
   // ============================================================================
 
   return (
-    <Box sx={{ pb: 4 }}>
+    <Box sx={{ p: 4 }}>
       <PageHeader
         backButton={{ href: '/surveys' }}
         actions={
@@ -600,8 +600,8 @@ export function NewCameraTrapSurveyPage() {
       {/* ================================================================ */}
       {activeStep === 0 && (
         <>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 3, mb: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
               Survey Type
             </Typography>
             <Autocomplete
@@ -616,8 +616,8 @@ export function NewCameraTrapSurveyPage() {
           </Paper>
 
           {selectedSurveyType && (
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper sx={{ p: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                 Survey Details
               </Typography>
               <Stack spacing={3}>
@@ -676,8 +676,8 @@ export function NewCameraTrapSurveyPage() {
       {/* Step 2: Upload                                                    */}
       {/* ================================================================ */}
       {activeStep === 1 && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Paper sx={{ p: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
             Select Images
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -797,7 +797,7 @@ export function NewCameraTrapSurveyPage() {
       {/* Step 3: Classify                                                  */}
       {/* ================================================================ */}
       {activeStep === 2 && imageFiles.length > 0 && (
-        <Paper sx={{ p: 3 }}>
+        <Paper sx={{ p: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
           {/* Progress bar */}
           <Box sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
@@ -1004,8 +1004,8 @@ export function NewCameraTrapSurveyPage() {
       {/* Step 4: Review                                                    */}
       {/* ================================================================ */}
       {activeStep === 3 && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Paper sx={{ p: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
             Review Classifications
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -1121,11 +1121,11 @@ export function NewCameraTrapSurveyPage() {
       {/* Step 5: Save                                                      */}
       {/* ================================================================ */}
       {activeStep === 4 && (
-        <Paper sx={{ p: 3, textAlign: 'center' }}>
+        <Paper sx={{ p: 3, textAlign: 'center', boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
           {saving ? (
             <>
               <CircularProgress sx={{ mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                 {saveProgress.step}
               </Typography>
               <LinearProgress
