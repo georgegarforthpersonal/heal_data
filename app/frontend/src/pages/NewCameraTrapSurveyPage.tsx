@@ -101,6 +101,7 @@ export function NewCameraTrapSurveyPage() {
   const [species, setSpecies] = useState<Species[]>([]);
   const [speciesSearchValue, setSpeciesSearchValue] = useState('');
   const speciesInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailStripRef = useRef<HTMLDivElement>(null);
 
   // ---- Step 4: Review ----
   const [deselectedImages, setDeselectedImages] = useState<Set<string>>(new Set()); // "speciesId-imageIndex"
@@ -235,6 +236,16 @@ export function NewCameraTrapSurveyPage() {
   // ============================================================================
   // Step 3: Classification helpers
   // ============================================================================
+
+  // Scroll thumbnail strip to keep current image centred
+  useEffect(() => {
+    if (activeStep === 2 && thumbnailStripRef.current) {
+      const container = thumbnailStripRef.current;
+      const thumbWidth = 56 + 4; // width + gap
+      const scrollTarget = currentImageIndex * thumbWidth - container.clientWidth / 2 + thumbWidth / 2;
+      container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+    }
+  }, [currentImageIndex, activeStep]);
 
   // Focus species input when image changes
   useEffect(() => {
@@ -900,6 +911,7 @@ export function NewCameraTrapSurveyPage() {
 
           {/* Thumbnail strip */}
           <Box
+            ref={thumbnailStripRef}
             sx={{
               display: 'flex',
               gap: 0.5,
