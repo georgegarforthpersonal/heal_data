@@ -514,6 +514,7 @@ export function NewCameraTrapSurveyPage() {
   // ============================================================================
 
   const classifiedCount = classifications.size;
+  const uniqueSpeciesCount = new Set(Array.from(classifications.values()).map((c) => c.speciesId)).size;
   const viewedCount = viewedImages.size;
   const remainingCount = imageFiles.length - viewedCount;
 
@@ -798,7 +799,7 @@ export function NewCameraTrapSurveyPage() {
                 Image {currentImageIndex + 1} of {imageFiles.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Viewed {viewedCount} of {imageFiles.length} · {classifiedCount} species identified
+                Viewed {viewedCount} of {imageFiles.length} · {uniqueSpeciesCount} species identified
               </Typography>
             </Box>
             <LinearProgress
@@ -968,7 +969,7 @@ export function NewCameraTrapSurveyPage() {
 
           {remainingCount === 0 && (
             <Alert severity="success" sx={{ mt: 2 }}>
-              All images reviewed! {classifiedCount} species identified.
+              All images reviewed! {uniqueSpeciesCount} species identified.
             </Alert>
           )}
 
@@ -987,7 +988,7 @@ export function NewCameraTrapSurveyPage() {
               onClick={() => setActiveStep(3)}
               sx={{ textTransform: 'none' }}
             >
-              Next: Review ({classifiedCount} species identified)
+              Next: Review ({uniqueSpeciesCount} species identified)
             </Button>
           </Box>
         </Paper>
