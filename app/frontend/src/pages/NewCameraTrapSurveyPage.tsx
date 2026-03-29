@@ -100,6 +100,7 @@ export function NewCameraTrapSurveyPage() {
   const [viewedImages, setViewedImages] = useState<Set<number>>(new Set());
   const [species, setSpecies] = useState<Species[]>([]);
   const [speciesSearchValue, setSpeciesSearchValue] = useState('');
+  const speciesInputRef = useRef<HTMLInputElement>(null);
 
   // ---- Step 4: Review ----
   const [deselectedImages, setDeselectedImages] = useState<Set<string>>(new Set()); // "speciesId-imageIndex"
@@ -235,6 +236,15 @@ export function NewCameraTrapSurveyPage() {
   // Step 3: Classification helpers
   // ============================================================================
 
+  // Focus species input when image changes
+  useEffect(() => {
+    if (activeStep === 2) {
+      // Small delay to let the DOM settle after image change
+      const timer = setTimeout(() => speciesInputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [currentImageIndex, activeStep]);
+
   // Mark current image as viewed when it changes
   useEffect(() => {
     if (activeStep === 2 && imageFiles.length > 0) {
@@ -298,15 +308,19 @@ export function NewCameraTrapSurveyPage() {
   useEffect(() => {
     if (activeStep !== 2) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't capture if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === 'ArrowRight') goToNext();
-      if (e.key === 'ArrowLeft') goToPrev();
-      if (e.key === 'n' || e.key === 'N') goToNextUnviewed();
+      // Allow arrow navigation when species input is empty (no active search)
+      const isInSpeciesInput = e.target === speciesInputRef.current;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        if (!isInSpeciesInput) return;
+        // Only intercept arrows when species input is empty
+        if (speciesSearchValue) return;
+      }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goToNext(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrev(); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeStep, goToNext, goToPrev, goToNextUnviewed]);
+  }, [activeStep, goToNext, goToPrev, speciesSearchValue]);
 
   // ============================================================================
   // Step 4: Review computed data
@@ -849,6 +863,7 @@ export function NewCameraTrapSurveyPage() {
             renderInput={(params) => (
               <TextField
                 {...params}
+                inputRef={speciesInputRef}
                 label="Select species"
                 placeholder="Type to search..."
                 size="small"
@@ -860,23 +875,25 @@ export function NewCameraTrapSurveyPage() {
           />
 
           {/* Navigation */}
-          <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
-            <IconButton onClick={goToPrev} disabled={currentImageIndex === 0}>
-              <ArrowBack />
-            </IconButton>
-            <Typography variant="body2" color="text.secondary">
-              ← → to browse
-            </Typography>
-            <IconButton onClick={goToNext} disabled={currentImageIndex === imageFiles.length - 1}>
-              <ArrowForward />
-            </IconButton>
+          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <IconButton onClick={goToPrev} disabled={currentImageIndex === 0}>
+                <ArrowBack />
+              </IconButton>
+              <IconButton onClick={goToNext} disabled={currentImageIndex === imageFiles.length - 1}>
+                <ArrowForward />
+              </IconButton>
+              <Typography variant="caption" color="text.secondary">
+                ← → to browse
+              </Typography>
+            </Stack>
             {remainingCount > 0 && (
               <Button
                 size="small"
                 onClick={goToNextUnviewed}
-                sx={{ textTransform: 'none', ml: 1 }}
+                sx={{ textTransform: 'none' }}
               >
-                Next unviewed (N)
+                Next unviewed →
               </Button>
             )}
           </Stack>
