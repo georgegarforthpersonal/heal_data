@@ -967,8 +967,8 @@ export function SurveyDetailPage() {
                           const imageIds: number[] = sighting.image_ids?.length
                             ? sighting.image_ids
                             : (sighting.individuals || [])
-                                .map((ind) => ind.camera_trap_image_id)
-                                .filter((id): id is number => id != null);
+                                .map((ind: { camera_trap_image_id?: number | null }) => ind.camera_trap_image_id)
+                                .filter((id: number | null | undefined): id is number => id != null);
 
                           return (
                             <Box key={sighting.id} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
