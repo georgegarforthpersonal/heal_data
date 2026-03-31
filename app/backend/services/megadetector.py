@@ -114,7 +114,16 @@ class MegaDetectorService:
                             continue
 
                         # Category from labels list or default
-                        cat_name = str(labels[i]).lower() if i < len(labels) else CATEGORY_ANIMAL
+                        # Labels may be names ("animal") or IDs ("0"/"1")
+                        raw_label = str(labels[i]).lower().strip() if i < len(labels) and labels[i] is not None else ""
+                        CATEGORY_MAP = {
+                            "animal": CATEGORY_ANIMAL, "person": CATEGORY_PERSON, "vehicle": CATEGORY_VEHICLE,
+                            # MegaDetector ID convention (1-indexed)
+                            "1": CATEGORY_ANIMAL, "2": CATEGORY_PERSON, "3": CATEGORY_VEHICLE,
+                            # YOLO ID convention (0-indexed)
+                            "0": CATEGORY_ANIMAL,
+                        }
+                        cat_name = CATEGORY_MAP.get(raw_label, CATEGORY_ANIMAL)
 
                         if conf >= DETECTION_CONFIDENCE_THRESHOLD:
                             if cat_name not in categories_found:
