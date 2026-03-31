@@ -1336,31 +1336,35 @@ export function NewCameraTrapSurveyPage() {
           </Box>
 
           {/* Current classification indicator */}
-          {(classifications.get(currentImageIndex)?.length ?? 0) > 0 && (
-            <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
-              {classifications.get(currentImageIndex)!.map((cls) => (
-                <Chip
-                  key={cls.speciesId}
-                  label={cls.speciesName}
-                  size="small"
-                  color="primary"
-                  onDelete={() => {
-                    setClassifications((prev) => {
-                      const next = new Map(prev);
-                      const existing = next.get(currentImageIndex) || [];
-                      const filtered = existing.filter((c) => c.speciesId !== cls.speciesId);
-                      if (filtered.length === 0) {
-                        next.delete(currentImageIndex);
-                      } else {
-                        next.set(currentImageIndex, filtered);
-                      }
-                      return next;
-                    });
-                  }}
-                />
-              ))}
-            </Stack>
-          )}
+          {(() => {
+            const origIdx = filteredToOriginalIndex[currentImageIndex];
+            const currentClassifications = classifications.get(origIdx);
+            return (currentClassifications?.length ?? 0) > 0 ? (
+              <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                {currentClassifications!.map((cls) => (
+                  <Chip
+                    key={cls.speciesId}
+                    label={cls.speciesName}
+                    size="small"
+                    color="primary"
+                    onDelete={() => {
+                      setClassifications((prev) => {
+                        const next = new Map(prev);
+                        const existing = next.get(origIdx) || [];
+                        const filtered = existing.filter((c) => c.speciesId !== cls.speciesId);
+                        if (filtered.length === 0) {
+                          next.delete(origIdx);
+                        } else {
+                          next.set(origIdx, filtered);
+                        }
+                        return next;
+                      });
+                    }}
+                  />
+                ))}
+              </Stack>
+            ) : null;
+          })()}
 
           {/* Main image with bounding boxes */}
           {(() => {
@@ -1492,7 +1496,7 @@ export function NewCameraTrapSurveyPage() {
             }}
           >
             {filteredImageFiles.map((img, idx) => {
-              const hasClassifications = (classifications.get(idx)?.length ?? 0) > 0;
+              const hasClassifications = (classifications.get(filteredToOriginalIndex[idx])?.length ?? 0) > 0;
               const isViewed = viewedImages.has(idx);
               const isCurrent = idx === currentImageIndex;
               return (
