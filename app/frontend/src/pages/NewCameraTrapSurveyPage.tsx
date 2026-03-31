@@ -613,6 +613,11 @@ export function NewCameraTrapSurveyPage() {
           species_id: speciesId,
           count: 1,
           image_ids: imageIds,
+          individuals: [{
+            latitude: selectedDevice.latitude!,
+            longitude: selectedDevice.longitude!,
+            count: 1,
+          }],
         });
       }
 
