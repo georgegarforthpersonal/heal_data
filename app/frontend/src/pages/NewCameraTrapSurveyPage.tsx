@@ -110,6 +110,7 @@ export function NewCameraTrapSurveyPage() {
   // null = thumbnail overview, 'animal' | 'empty' = reviewing that group
   const [filterReviewGroup, setFilterReviewGroup] = useState<'animal' | 'empty' | null>(null);
   const [filterReviewIdx, setFilterReviewIdx] = useState(0); // index within the active group
+  const [expandedFilterGroups, setExpandedFilterGroups] = useState<Set<string>>(new Set());
 
   // ---- Step 4: Classify ----
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -999,44 +1000,67 @@ export function NewCameraTrapSurveyPage() {
             const currentResult = currentOrigIdx !== undefined ? filterResults.get(currentOrigIdx) : undefined;
             const currentImg = currentOrigIdx !== undefined ? imageFiles[currentOrigIdx] : undefined;
 
-            // Thumbnail grid for a group
-            const renderThumbnailGrid = (indices: number[]) => (
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                  gap: 0.5,
-                  maxHeight: 400,
-                  overflow: 'auto',
-                }}
-              >
-                {indices.map((idx) => (
+            // Thumbnail grid for a group with preview limit
+            const PREVIEW_LIMIT = 28;
+            const renderThumbnailGrid = (indices: number[], groupKey: string) => {
+              const isExpanded = expandedFilterGroups.has(groupKey);
+              const visibleIndices = isExpanded ? indices : indices.slice(0, PREVIEW_LIMIT);
+              const hasMore = indices.length > PREVIEW_LIMIT;
+
+              return (
+                <>
                   <Box
-                    key={idx}
-                    onClick={() => {
-                      const group = isImageIncluded(idx) ? 'animal' : 'empty';
-                      const groupIndices = group === 'animal' ? animalIndices : emptyIndices;
-                      setFilterReviewGroup(group);
-                      setFilterReviewIdx(groupIndices.indexOf(idx));
-                    }}
                     sx={{
-                      cursor: 'pointer',
-                      borderRadius: 0.5,
-                      overflow: 'hidden',
-                      border: '2px solid transparent',
-                      '&:hover': { opacity: 0.8 },
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                      gap: 0.5,
                     }}
                   >
-                    <img
-                      src={imageFiles[idx].objectUrl}
-                      alt={imageFiles[idx].filename}
-                      loading="lazy"
-                      style={{ width: '100%', height: 75, objectFit: 'cover' }}
-                    />
+                    {visibleIndices.map((idx) => (
+                      <Box
+                        key={idx}
+                        onClick={() => {
+                          const group = isImageIncluded(idx) ? 'animal' : 'empty';
+                          const groupIndices = group === 'animal' ? animalIndices : emptyIndices;
+                          setFilterReviewGroup(group);
+                          setFilterReviewIdx(groupIndices.indexOf(idx));
+                        }}
+                        sx={{
+                          cursor: 'pointer',
+                          borderRadius: 0.5,
+                          overflow: 'hidden',
+                          border: '2px solid transparent',
+                          '&:hover': { opacity: 0.8 },
+                        }}
+                      >
+                        <img
+                          src={imageFiles[idx].objectUrl}
+                          alt={imageFiles[idx].filename}
+                          loading="lazy"
+                          style={{ width: '100%', height: 75, objectFit: 'cover' }}
+                        />
+                      </Box>
+                    ))}
                   </Box>
-                ))}
-              </Box>
-            );
+                  {hasMore && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setExpandedFilterGroups((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(groupKey)) next.delete(groupKey);
+                          else next.add(groupKey);
+                          return next;
+                        });
+                      }}
+                      sx={{ textTransform: 'none', mt: 0.5, fontSize: '0.75rem' }}
+                    >
+                      {isExpanded ? 'Show less' : `Show all ${indices.length} images`}
+                    </Button>
+                  )}
+                </>
+              );
+            };
 
             return (
               <>
@@ -1142,7 +1166,7 @@ export function NewCameraTrapSurveyPage() {
                     )}
                   </Box>
                   {animalIndices.length > 0 ? (
-                    renderThumbnailGrid(animalIndices)
+                    renderThumbnailGrid(animalIndices, 'animal')
                   ) : (
                     <Typography variant="body2" color="text.secondary">
                       No animals detected in any images.
@@ -1168,7 +1192,7 @@ export function NewCameraTrapSurveyPage() {
                     )}
                   </Box>
                   {emptyIndices.length > 0 ? (
-                    renderThumbnailGrid(emptyIndices)
+                    renderThumbnailGrid(emptyIndices, 'empty')
                   ) : (
                     <Typography variant="body2" color="text.secondary">
                       All images appear to contain animals.
