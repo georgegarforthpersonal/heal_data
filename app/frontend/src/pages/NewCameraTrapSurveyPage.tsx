@@ -618,7 +618,7 @@ export function NewCameraTrapSurveyPage() {
 
         await surveysAPI.addSighting(survey.id, {
           species_id: speciesId,
-          count: individuals.length,
+          count: 1,
           individuals,
         });
       }
