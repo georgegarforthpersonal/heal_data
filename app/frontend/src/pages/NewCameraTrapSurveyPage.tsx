@@ -16,6 +16,8 @@ import {
   LinearProgress,
   IconButton,
   Chip,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -28,6 +30,7 @@ import {
   FilterList,
   Restore,
   RemoveCircleOutline,
+  Close,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -1056,145 +1059,156 @@ export function NewCameraTrapSurveyPage() {
                   )}
                 </Alert>
 
-                {/* Full-size review viewer (only when a group is being reviewed) */}
-                {filterReviewGroup !== null && currentImg && (
-                  <Box sx={{ mb: 3 }}>
-                    {/* Header */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {currentImg.filename}
-                        {currentImg.exifDate && (
-                          <> &mdash; {dayjs(currentImg.exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
-                        )}
-                        <> &mdash; {clampedIdx + 1} of {reviewIndices.length}</>
-                      </Typography>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        {filterReviewGroup === 'animal' ? (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            startIcon={<RemoveCircleOutline />}
-                            onClick={() => {
-                              if (restoredImages.has(currentOrigIdx)) {
-                                setRestoredImages((prev) => { const next = new Set(prev); next.delete(currentOrigIdx); return next; });
-                              } else {
-                                setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.add(currentOrigIdx); return next; });
-                              }
-                            }}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Exclude
-                          </Button>
-                        ) : (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="success"
-                            startIcon={<Restore />}
-                            onClick={() => {
-                              if (falsePositiveOverrides.has(currentOrigIdx)) {
-                                setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.delete(currentOrigIdx); return next; });
-                              } else {
-                                setRestoredImages((prev) => { const next = new Set(prev); next.add(currentOrigIdx); return next; });
-                              }
-                            }}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Restore
-                          </Button>
-                        )}
-                        <Button
-                          size="small"
-                          onClick={() => setFilterReviewGroup(null)}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          Close
-                        </Button>
-                      </Stack>
-                    </Box>
-
-                    {/* Image with bounding boxes */}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        bgcolor: 'black',
-                        borderRadius: 1,
-                        overflow: 'hidden',
-                        mb: 1,
-                        maxHeight: '50vh',
-                      }}
-                    >
-                      <Box sx={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '50vh' }}>
-                        <img
-                          src={currentImg.objectUrl}
-                          alt={currentImg.filename}
-                          style={{ display: 'block', maxWidth: '100%', maxHeight: '50vh' }}
-                        />
-                        {currentResult?.detections?.map((det, detIdx) => (
-                          <Box
-                            key={detIdx}
-                            sx={{
-                              position: 'absolute',
-                              left: `${det.x * 100}%`,
-                              top: `${det.y * 100}%`,
-                              width: `${det.w * 100}%`,
-                              height: `${det.h * 100}%`,
-                              border: '2.5px solid',
-                              borderColor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
-                              pointerEvents: 'none',
-                              '&::after': {
-                                content: `"${det.category} ${(det.confidence * 100).toFixed(0)}%"`,
-                                position: 'absolute',
-                                top: -18,
-                                left: -2,
-                                bgcolor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
-                                color: 'white',
-                                fontSize: '0.65rem',
-                                fontWeight: 600,
-                                px: 0.5,
-                                py: 0.1,
-                                borderRadius: '2px 2px 0 0',
-                                whiteSpace: 'nowrap',
-                              },
-                            }}
-                          />
-                        ))}
+                {/* Review modal */}
+                <Dialog
+                  open={filterReviewGroup !== null && !!currentImg}
+                  onClose={() => setFilterReviewGroup(null)}
+                  maxWidth="lg"
+                  fullWidth
+                  PaperProps={{ sx: { maxHeight: '90vh' } }}
+                >
+                  {currentImg && (
+                    <DialogContent sx={{ p: 2 }}>
+                      {/* Header */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            {filterReviewGroup === 'animal' ? 'Images with Animals' : 'Empty / No Animal Detected'}
+                            <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                              {clampedIdx + 1} of {reviewIndices.length}
+                            </Typography>
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {currentImg.filename}
+                            {currentImg.exifDate && (
+                              <> &mdash; {dayjs(currentImg.exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
+                            )}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          {filterReviewGroup === 'animal' ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              startIcon={<RemoveCircleOutline />}
+                              onClick={() => {
+                                if (restoredImages.has(currentOrigIdx)) {
+                                  setRestoredImages((prev) => { const next = new Set(prev); next.delete(currentOrigIdx); return next; });
+                                } else {
+                                  setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.add(currentOrigIdx); return next; });
+                                }
+                              }}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Exclude
+                            </Button>
+                          ) : (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="success"
+                              startIcon={<Restore />}
+                              onClick={() => {
+                                if (falsePositiveOverrides.has(currentOrigIdx)) {
+                                  setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.delete(currentOrigIdx); return next; });
+                                } else {
+                                  setRestoredImages((prev) => { const next = new Set(prev); next.add(currentOrigIdx); return next; });
+                                }
+                              }}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Restore
+                            </Button>
+                          )}
+                          <IconButton onClick={() => setFilterReviewGroup(null)} size="small">
+                            <Close />
+                          </IconButton>
+                        </Stack>
                       </Box>
-                    </Box>
 
-                    {/* Info + navigation */}
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                      {currentResult ? (
-                        <>
-                          Confidence: {(currentResult.max_confidence * 100).toFixed(0)}%
-                          {currentResult.detections?.length > 0 && (
-                            <> &middot; {currentResult.detections.length} detection{currentResult.detections.length !== 1 ? 's' : ''}</>
-                          )}
-                          {currentResult.detections?.length === 0 && !currentResult.has_animal && (
-                            <> &middot; No animals detected</>
-                          )}
-                        </>
-                      ) : 'No result'}
-                    </Typography>
+                      {/* Image with bounding boxes */}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          bgcolor: 'black',
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          mb: 1,
+                        }}
+                      >
+                        <Box sx={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '65vh' }}>
+                          <img
+                            src={currentImg.objectUrl}
+                            alt={currentImg.filename}
+                            style={{ display: 'block', maxWidth: '100%', maxHeight: '65vh' }}
+                          />
+                          {currentResult?.detections?.map((det, detIdx) => (
+                            <Box
+                              key={detIdx}
+                              sx={{
+                                position: 'absolute',
+                                left: `${det.x * 100}%`,
+                                top: `${det.y * 100}%`,
+                                width: `${det.w * 100}%`,
+                                height: `${det.h * 100}%`,
+                                border: '2.5px solid',
+                                borderColor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
+                                pointerEvents: 'none',
+                                '&::after': {
+                                  content: `"${det.category} ${(det.confidence * 100).toFixed(0)}%"`,
+                                  position: 'absolute',
+                                  top: -18,
+                                  left: -2,
+                                  bgcolor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
+                                  color: 'white',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 600,
+                                  px: 0.5,
+                                  py: 0.1,
+                                  borderRadius: '2px 2px 0 0',
+                                  whiteSpace: 'nowrap',
+                                },
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
 
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <IconButton
-                        onClick={() => setFilterReviewIdx((prev) => Math.max(0, prev - 1))}
-                        disabled={clampedIdx === 0}
-                      >
-                        <ArrowBack />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => setFilterReviewIdx((prev) => Math.min(reviewIndices.length - 1, prev + 1))}
-                        disabled={clampedIdx === reviewIndices.length - 1}
-                      >
-                        <ArrowForward />
-                      </IconButton>
-                    </Stack>
-                  </Box>
-                )}
+                      {/* Info + navigation */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {currentResult ? (
+                            <>
+                              Confidence: {(currentResult.max_confidence * 100).toFixed(0)}%
+                              {currentResult.detections?.length > 0 && (
+                                <> &middot; {currentResult.detections.length} detection{currentResult.detections.length !== 1 ? 's' : ''}</>
+                              )}
+                              {currentResult.detections?.length === 0 && !currentResult.has_animal && (
+                                <> &middot; No animals detected</>
+                              )}
+                            </>
+                          ) : 'No result'}
+                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <IconButton
+                            onClick={() => setFilterReviewIdx((prev) => Math.max(0, prev - 1))}
+                            disabled={clampedIdx === 0}
+                          >
+                            <ArrowBack />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => setFilterReviewIdx((prev) => Math.min(reviewIndices.length - 1, prev + 1))}
+                            disabled={clampedIdx === reviewIndices.length - 1}
+                          >
+                            <ArrowForward />
+                          </IconButton>
+                        </Stack>
+                      </Box>
+                    </DialogContent>
+                  )}
+                </Dialog>
 
                 {/* Images with Animals group (shown first) */}
                 <Box sx={{ mb: 3 }}>
