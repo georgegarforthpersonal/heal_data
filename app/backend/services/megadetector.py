@@ -96,29 +96,25 @@ class MegaDetectorService:
             if det_data is not None and hasattr(det_data, '__len__'):
                 for i, det in enumerate(det_data):
                     try:
-                        # Handle both list/tuple and tensor rows
-                        if hasattr(det, 'cpu'):
-                            det = det.cpu().tolist()
-                        elif hasattr(det, 'tolist'):
-                            det = det.tolist()
-                        else:
-                            det = list(det)
+                        # PytorchWildlife format: [bbox_array, category_or_None, confidence]
+                        # where bbox_array is np.array([x1, y1, x2, y2])
+                        det = list(det)
 
-                        if len(det) >= 5:
+                        if len(det) >= 3 and hasattr(det[0], '__len__'):
+                            # Format: [array([x1,y1,x2,y2]), category, confidence]
+                            bbox = det[0]
+                            if hasattr(bbox, 'tolist'):
+                                bbox = bbox.tolist()
+                            x1, y1, x2, y2 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
+                            conf = float(det[2]) if det[2] is not None else 0.0
+                        elif len(det) >= 5:
+                            # Flat format: [x1, y1, x2, y2, conf, ...]
                             x1, y1, x2, y2, conf = float(det[0]), float(det[1]), float(det[2]), float(det[3]), float(det[4])
                         else:
                             continue
 
-                        # Category: prefer labels list, fall back to 6th element or default
-                        if i < len(labels):
-                            cat_name = str(labels[i]).lower()
-                        elif len(det) >= 6:
-                            cat_id = str(det[5])
-                            cat_name = {
-                                "0": CATEGORY_ANIMAL, "1": CATEGORY_PERSON, "2": CATEGORY_VEHICLE,
-                            }.get(cat_id, cat_id.lower())
-                        else:
-                            cat_name = CATEGORY_ANIMAL
+                        # Category from labels list or default
+                        cat_name = str(labels[i]).lower() if i < len(labels) else CATEGORY_ANIMAL
 
                         if conf >= DETECTION_CONFIDENCE_THRESHOLD:
                             if cat_name not in categories_found:
@@ -137,7 +133,7 @@ class MegaDetectorService:
                             max_animal_conf = conf
 
                     except (ValueError, IndexError, TypeError) as row_err:
-                        logger.warning(f"Skipping detection row {i}: {row_err} (raw={repr(det)[:100]})")
+                        logger.warning(f"Skipping detection row {i}: {row_err} (raw={repr(det)[:200]})")
 
             has_animal = max_animal_conf >= DETECTION_CONFIDENCE_THRESHOLD
 
