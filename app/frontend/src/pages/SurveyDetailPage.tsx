@@ -5,41 +5,16 @@ import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, audioAPI, imagesAPI } from '../services/api';
-import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType, AudioRecording } from '../services/api';
+import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType, AudioRecording, CameraTrapImage } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import { DetectionsToSightingsPanel } from '../components/surveys/DetectionsToSightingsPanel';
+import { CameraTrapDetectionsPanel } from '../components/surveys/CameraTrapDetectionsPanel';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSpeciesIcon } from '../config';
 import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
-
-/**
- * Small thumbnail component that lazily loads a presigned URL for a camera trap image
- */
-function SightingImageThumbnail({ imageId }: { imageId: number }) {
-  const [url, setUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    imagesAPI.getPreviewUrl(imageId).then((res) => {
-      if (mounted) setUrl(res.preview_url);
-    }).catch(() => { /* ignore */ });
-    return () => { mounted = false; };
-  }, [imageId]);
-
-  if (!url) return <Box sx={{ width: 60, height: 45, bgcolor: 'grey.200', borderRadius: 0.5, flexShrink: 0 }} />;
-
-  return (
-    <Box
-      component="img"
-      src={url}
-      alt=""
-      sx={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 0.5, flexShrink: 0 }}
-    />
-  );
-}
 
 /**
  * SurveyDetailPage displays detailed information about a single survey
@@ -86,6 +61,10 @@ export function SurveyDetailPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Image upload state
+  const [cameraTrapImages, setCameraTrapImages] = useState<CameraTrapImage[]>([]);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   // ============================================================================
   // Edit Mode State
@@ -200,6 +179,43 @@ export function SurveyDetailPage() {
     return () => clearInterval(interval);
   }, [audioRecordings, survey]);
 
+  // Fetch camera trap images for image upload surveys
+  useEffect(() => {
+    const fetchImages = async () => {
+      if (!survey || !surveyType || !surveyType.allow_image_upload) {
+        return;
+      }
+
+      try {
+        const images = await imagesAPI.getImages(survey.id);
+        setCameraTrapImages(images);
+      } catch (err) {
+        console.error('Error fetching camera trap images:', err);
+      }
+    };
+
+    fetchImages();
+  }, [survey, surveyType]);
+
+  // Auto-refresh camera trap images while processing
+  useEffect(() => {
+    const hasProcessingImages = cameraTrapImages.some(
+      img => img.processing_status === 'pending' || img.processing_status === 'processing'
+    );
+
+    if (!hasProcessingImages || !survey) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const images = await imagesAPI.getImages(survey.id);
+        setCameraTrapImages(images);
+      } catch (err) {
+        console.error('Error auto-refreshing camera trap images:', err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [cameraTrapImages, survey]);
 
   // ============================================================================
   // Helper Functions
@@ -260,6 +276,7 @@ export function SurveyDetailPage() {
   const allowGeolocation = surveyType?.allow_geolocation ?? true;
   const allowSightingNotes = surveyType?.allow_sighting_notes ?? true;
   const allowAudioUpload = surveyType?.allow_audio_upload ?? false;
+  const allowImageUpload = surveyType?.allow_image_upload ?? false;
 
   // ============================================================================
   // Validation
@@ -542,6 +559,38 @@ export function SurveyDetailPage() {
       console.error('Error uploading audio files:', err);
     } finally {
       setUploading(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !survey) return;
+
+    // Validate file types
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp'];
+    const validFiles = Array.from(files).filter(f => {
+      const ext = f.name.toLowerCase().substring(f.name.lastIndexOf('.'));
+      return validExtensions.includes(ext);
+    });
+
+    if (validFiles.length === 0) {
+      setImageUploadError('Please select image files (JPG, PNG, TIFF, BMP)');
+      return;
+    }
+
+    setImageUploading(true);
+    setImageUploadError(null);
+
+    try {
+      const newImages = await imagesAPI.uploadFiles(survey.id, validFiles);
+      setCameraTrapImages(prev => [...prev, ...newImages]);
+    } catch (err) {
+      setImageUploadError(err instanceof Error ? err.message : 'Failed to upload files');
+      console.error('Error uploading image files:', err);
+    } finally {
+      setImageUploading(false);
       // Reset file input
       event.target.value = '';
     }
@@ -939,19 +988,16 @@ export function SurveyDetailPage() {
                             ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} across ${locationCount} location${locationCount > 1 ? 's' : ''}`
                             : 'No location recorded';
 
-                          // Collect camera trap image IDs from individuals
-                          const imageIds: number[] = (sighting.individuals || [])
-                            .map((ind: any) => ind.camera_trap_image_id)
-                            .filter((id: number | null) => id != null);
-
                           return (
-                            <Box key={sighting.id} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                             <Box
+                              key={sighting.id}
                               sx={{
                                 display: 'grid',
                                 gridTemplateColumns: gridColumns,
                                 gap: 2,
                                 p: 1.5,
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
                                 alignItems: 'center',
                                 '&:hover': { bgcolor: 'grey.50' }
                               }}
@@ -1013,16 +1059,6 @@ export function SurveyDetailPage() {
                                   {sighting.notes || '-'}
                                 </Typography>
                               )}
-                            </Box>
-
-                            {/* Camera Trap Image Thumbnails */}
-                            {imageIds.length > 0 && (
-                              <Box sx={{ display: 'flex', gap: 0.5, px: 1.5, pb: 1.5, flexWrap: 'wrap' }}>
-                                {imageIds.map((imgId: number) => (
-                                  <SightingImageThumbnail key={imgId} imageId={imgId} />
-                                ))}
-                              </Box>
-                            )}
                             </Box>
                           );
                         })}
@@ -1218,6 +1254,155 @@ export function SurveyDetailPage() {
           </Paper>
         )}
 
+        {/* Camera Trap Images Section - Only for image upload surveys */}
+        {allowImageUpload && (
+          <Paper
+            sx={{
+              p: { xs: 2, sm: 2.5, md: 3 },
+              mt: { xs: 2, md: 3 },
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Camera Trap Images ({cameraTrapImages.length})
+              </Typography>
+              <Button
+                component="label"
+                variant="contained"
+                startIcon={imageUploading ? <CircularProgress size={20} color="inherit" /> : <CloudUpload />}
+                disabled={imageUploading}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  boxShadow: 'none',
+                  '&:hover': { boxShadow: 'none' },
+                }}
+              >
+                {imageUploading ? 'Uploading...' : 'Upload Images'}
+                <input
+                  type="file"
+                  hidden
+                  multiple
+                  accept=".jpg,.jpeg,.png,.tiff,.tif,.bmp"
+                  onChange={handleImageUpload}
+                  disabled={imageUploading}
+                />
+              </Button>
+            </Stack>
+
+            {imageUploadError && (
+              <Alert severity="error" onClose={() => setImageUploadError(null)} sx={{ mb: 2 }}>
+                {imageUploadError}
+              </Alert>
+            )}
+
+            {cameraTrapImages.length > 0 ? (
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                {/* Table Header */}
+                <Box
+                  sx={{
+                    display: { xs: 'none', sm: 'grid' },
+                    gridTemplateColumns: '2fr 1fr 100px',
+                    gap: 2,
+                    p: 1.5,
+                    bgcolor: 'grey.50',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                >
+                  <Typography variant="body2" fontWeight={600} color="text.secondary">FILENAME</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.secondary">DEVICE</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">STATUS</Typography>
+                </Box>
+
+                {/* Table Rows */}
+                {cameraTrapImages.map((image) => (
+                  <Box
+                    key={image.id}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 1fr 100px',
+                      gap: 2,
+                      p: 1.5,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      alignItems: 'center',
+                      '&:last-child': { borderBottom: 'none' },
+                      '&:hover': { bgcolor: 'grey.50' }
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <PhotoCamera sx={{ fontSize: 20, color: 'text.secondary' }} />
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                        {image.filename}
+                      </Typography>
+                    </Stack>
+
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                      {image.device_serial || '-'}
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                      {image.processing_status === 'completed' && (
+                        <Tooltip title="Processing completed">
+                          <CheckCircle sx={{ color: 'success.main' }} />
+                        </Tooltip>
+                      )}
+                      {image.processing_status === 'failed' && (
+                        <Tooltip title={image.processing_error || 'Processing failed'}>
+                          <ErrorIcon sx={{ color: 'error.main' }} />
+                        </Tooltip>
+                      )}
+                      {image.processing_status === 'pending' && (
+                        <Tooltip title="Pending processing">
+                          <Pending sx={{ color: 'text.secondary' }} />
+                        </Tooltip>
+                      )}
+                      {image.processing_status === 'processing' && (
+                        <Tooltip title="Processing...">
+                          <CircularProgress size={20} />
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <PhotoCamera sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                <Typography color="text.secondary">
+                  No camera trap images yet. Upload images to analyze.
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        )}
+
+        {/* Camera Trap Detections Section - Only for image surveys with completed images */}
+        {allowImageUpload && cameraTrapImages.some(img => img.processing_status === 'completed' && img.detection_count > 0) && (
+          <Paper
+            sx={{
+              p: { xs: 2, sm: 2.5, md: 3 },
+              mt: { xs: 2, md: 3 },
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+              Camera Trap Detections
+            </Typography>
+            <CameraTrapDetectionsPanel
+              surveyId={survey.id}
+              sightings={sightings}
+              onSightingsCreated={refreshSightings}
+              refreshTrigger={cameraTrapImages.filter(img => img.processing_status === 'completed').length}
+            />
+          </Paper>
+        )}
 
         {/* Delete Confirmation Dialog */}
         <Dialog
