@@ -1336,11 +1336,21 @@ export interface CameraTrapImage {
   is_false_positive: boolean;
 }
 
+export interface FilterDetection {
+  x: number;  // normalised 0-1
+  y: number;
+  w: number;
+  h: number;
+  confidence: number;
+  category: string;
+}
+
 export interface ImageFilterResult {
   filename: string;
   has_animal: boolean;
   max_confidence: number;
   categories: string[];
+  detections: FilterDetection[];
   error?: string;
 }
 

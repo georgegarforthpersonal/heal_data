@@ -108,6 +108,9 @@ export function NewCameraTrapSurveyPage() {
   const [restoredImages, setRestoredImages] = useState<Set<number>>(new Set());
   const [filterError, setFilterError] = useState<string | null>(null);
   const [showAnimalImages, setShowAnimalImages] = useState(false);
+  const [filterViewIndex, setFilterViewIndex] = useState(0);
+  const filterImageRef = useRef<HTMLImageElement>(null);
+  const filterThumbnailStripRef = useRef<HTMLDivElement>(null);
 
   // ---- Step 4: Classify ----
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -340,6 +343,28 @@ export function NewCameraTrapSurveyPage() {
     });
     return { animalCount, emptyCount, personCount };
   }, [filterResults, falsePositiveOverrides, restoredImages]);
+
+  // Scroll filter thumbnail strip when viewer index changes
+  useEffect(() => {
+    if (activeStep === 2 && filterThumbnailStripRef.current) {
+      const container = filterThumbnailStripRef.current;
+      const thumbWidth = 56 + 4;
+      const scrollTarget = filterViewIndex * thumbWidth - container.clientWidth / 2 + thumbWidth / 2;
+      container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+    }
+  }, [filterViewIndex, activeStep]);
+
+  // Keyboard navigation for filter step
+  useEffect(() => {
+    if (activeStep !== 2 || filtering || filterResults.size === 0) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); setFilterViewIndex((prev) => Math.min(imageFiles.length - 1, prev + 1)); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setFilterViewIndex((prev) => Math.max(0, prev - 1)); }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeStep, filtering, filterResults.size, imageFiles.length]);
 
   // ============================================================================
   // Step 4: Classification helpers
@@ -955,207 +980,230 @@ export function NewCameraTrapSurveyPage() {
             </Alert>
           )}
 
-          {/* Results summary */}
-          {!filtering && filterResults.size > 0 && (
-            <>
-              <Alert
-                severity={filterSummary.emptyCount > 0 ? 'success' : 'info'}
-                sx={{ mb: 3 }}
-              >
-                {filterSummary.emptyCount > 0 ? (
-                  <>
-                    Found <strong>{filterSummary.animalCount}</strong> images with animals and{' '}
-                    <strong>{filterSummary.emptyCount}</strong> empty/false positive images
-                    {filterSummary.personCount > 0 && (
-                      <> ({filterSummary.personCount} with people)</>
-                    )}
-                    . Empty images will be excluded from classification.
-                  </>
-                ) : (
-                  <>All {filterSummary.animalCount} images appear to contain animals.</>
-                )}
-              </Alert>
+          {/* Results: full image viewer with bounding boxes */}
+          {!filtering && filterResults.size > 0 && (() => {
+            const currentResult = filterResults.get(filterViewIndex);
+            const currentImg = imageFiles[filterViewIndex];
+            const isRestored = restoredImages.has(filterViewIndex);
+            const isOverriddenFP = falsePositiveOverrides.has(filterViewIndex);
+            const isIncluded = isOverriddenFP ? false : (isRestored || (currentResult?.has_animal ?? true));
 
-              {/* Empty / No animal detected section */}
-              {filterSummary.emptyCount > 0 && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                    Empty / No Animal Detected ({filterSummary.emptyCount})
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Review these images. Click &quot;Restore&quot; on any that contain animals the AI missed.
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                      gap: 1,
-                      maxHeight: 400,
-                      overflow: 'auto',
-                    }}
-                  >
-                    {imageFiles.map((img, idx) => {
-                      const result = filterResults.get(idx);
-                      if (!result) return null;
-                      // Show images that are effectively false positives
-                      const isRestored = restoredImages.has(idx);
-                      const isOverriddenFP = falsePositiveOverrides.has(idx);
-                      const effectivelyEmpty = isOverriddenFP || (!isRestored && !result.has_animal);
-                      if (!effectivelyEmpty) return null;
-
-                      return (
-                        <Box key={idx} sx={{ position: 'relative' }}>
-                          <img
-                            src={img.objectUrl}
-                            alt={img.filename}
-                            loading="lazy"
-                            style={{
-                              width: '100%',
-                              height: 110,
-                              objectFit: 'cover',
-                              borderRadius: 4,
-                              opacity: 0.7,
-                            }}
-                          />
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              position: 'absolute',
-                              bottom: 2,
-                              left: 2,
-                              bgcolor: 'rgba(0,0,0,0.6)',
-                              color: 'white',
-                              px: 0.5,
-                              borderRadius: 0.5,
-                              fontSize: '0.6rem',
-                            }}
-                          >
-                            {(result.max_confidence * 100).toFixed(0)}% conf
-                          </Typography>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<Restore />}
-                            onClick={() => {
-                              if (isOverriddenFP) {
-                                setFalsePositiveOverrides((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(idx);
-                                  return next;
-                                });
-                              } else {
-                                setRestoredImages((prev) => {
-                                  const next = new Set(prev);
-                                  next.add(idx);
-                                  return next;
-                                });
-                              }
-                            }}
-                            sx={{
-                              position: 'absolute',
-                              top: 2,
-                              right: 2,
-                              textTransform: 'none',
-                              bgcolor: 'rgba(255,255,255,0.9)',
-                              fontSize: '0.65rem',
-                              py: 0,
-                              px: 0.5,
-                              minWidth: 0,
-                              '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
-                            }}
-                          >
-                            Restore
-                          </Button>
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                </Box>
-              )}
-
-              {/* Images with animals section (collapsible) */}
-              <Box sx={{ mb: 2 }}>
-                <Button
-                  onClick={() => setShowAnimalImages(!showAnimalImages)}
-                  startIcon={showAnimalImages ? <ExpandLess /> : <ExpandMore />}
-                  sx={{ textTransform: 'none', mb: 1, color: 'text.primary' }}
+            return (
+              <>
+                {/* Summary bar */}
+                <Alert
+                  severity={filterSummary.emptyCount > 0 ? 'success' : 'info'}
+                  sx={{ mb: 2 }}
                 >
-                  Images with Animals ({filterSummary.animalCount})
-                </Button>
-                {showAnimalImages && (
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                      gap: 1,
-                      maxHeight: 400,
-                      overflow: 'auto',
-                    }}
-                  >
-                    {imageFiles.map((img, idx) => {
-                      const result = filterResults.get(idx);
-                      if (!result) return null;
-                      const isRestored = restoredImages.has(idx);
-                      const isOverriddenFP = falsePositiveOverrides.has(idx);
-                      const effectivelyAnimal = isOverriddenFP ? false : (isRestored || result.has_animal);
-                      if (!effectivelyAnimal) return null;
+                  {filterSummary.emptyCount > 0 ? (
+                    <>
+                      Found <strong>{filterSummary.animalCount}</strong> images with animals and{' '}
+                      <strong>{filterSummary.emptyCount}</strong> empty/false positive images
+                      {filterSummary.personCount > 0 && (
+                        <> ({filterSummary.personCount} with people)</>
+                      )}
+                      . Empty images will be excluded from classification.
+                    </>
+                  ) : (
+                    <>All {filterSummary.animalCount} images appear to contain animals.</>
+                  )}
+                </Alert>
 
-                      return (
-                        <Box key={idx} sx={{ position: 'relative' }}>
-                          <img
-                            src={img.objectUrl}
-                            alt={img.filename}
-                            loading="lazy"
-                            style={{
-                              width: '100%',
-                              height: 110,
-                              objectFit: 'cover',
-                              borderRadius: 4,
-                            }}
-                          />
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            startIcon={<RemoveCircleOutline />}
-                            onClick={() => {
-                              if (isRestored) {
-                                setRestoredImages((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(idx);
-                                  return next;
-                                });
-                              } else {
-                                setFalsePositiveOverrides((prev) => {
-                                  const next = new Set(prev);
-                                  next.add(idx);
-                                  return next;
-                                });
-                              }
-                            }}
-                            sx={{
-                              position: 'absolute',
-                              top: 2,
-                              right: 2,
-                              textTransform: 'none',
-                              bgcolor: 'rgba(255,255,255,0.9)',
-                              fontSize: '0.65rem',
-                              py: 0,
-                              px: 0.5,
-                              minWidth: 0,
-                              '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </Box>
-                      );
-                    })}
+                {/* Image counter */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Image {filterViewIndex + 1} of {imageFiles.length}
+                  </Typography>
+                  <Chip
+                    label={isIncluded ? 'Included' : 'Excluded'}
+                    size="small"
+                    color={isIncluded ? 'success' : 'default'}
+                    variant={isIncluded ? 'filled' : 'outlined'}
+                  />
+                </Box>
+
+                {/* Full-size image with bounding box overlays */}
+                <Box
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    bgcolor: 'black',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    mb: 2,
+                    maxHeight: '50vh',
+                    opacity: isIncluded ? 1 : 0.5,
+                  }}
+                >
+                  <img
+                    ref={filterImageRef}
+                    src={currentImg?.objectUrl}
+                    alt={currentImg?.filename}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '50vh',
+                      objectFit: 'contain',
+                    }}
+                  />
+                  {/* Bounding box overlays */}
+                  {currentResult?.detections?.map((det, detIdx) => (
+                    <Box
+                      key={detIdx}
+                      sx={{
+                        position: 'absolute',
+                        left: `${det.x * 100}%`,
+                        top: `${det.y * 100}%`,
+                        width: `${det.w * 100}%`,
+                        height: `${det.h * 100}%`,
+                        border: '2px solid',
+                        borderColor: det.category === 'animal' ? 'error.main' : det.category === 'person' ? 'warning.main' : 'info.main',
+                        borderRadius: 0.5,
+                        pointerEvents: 'none',
+                        '&::after': {
+                          content: `"${det.category} ${(det.confidence * 100).toFixed(0)}%"`,
+                          position: 'absolute',
+                          top: -18,
+                          left: -2,
+                          bgcolor: det.category === 'animal' ? 'error.main' : det.category === 'person' ? 'warning.main' : 'info.main',
+                          color: 'white',
+                          fontSize: '0.6rem',
+                          px: 0.5,
+                          py: 0.1,
+                          borderRadius: '2px 2px 0 0',
+                          whiteSpace: 'nowrap',
+                        },
+                      }}
+                    />
+                  ))}
+                </Box>
+
+                {/* Image info and action */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      {currentImg?.filename}
+                      {currentImg?.exifDate && (
+                        <> &mdash; {dayjs(currentImg.exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
+                      )}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {currentResult ? (
+                        <>
+                          Confidence: {(currentResult.max_confidence * 100).toFixed(0)}%
+                          {currentResult.detections?.length > 0 && (
+                            <> &middot; {currentResult.detections.length} detection{currentResult.detections.length !== 1 ? 's' : ''}</>
+                          )}
+                        </>
+                      ) : 'No result'}
+                    </Typography>
                   </Box>
-                )}
-              </Box>
-            </>
-          )}
+                  {isIncluded ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<RemoveCircleOutline />}
+                      onClick={() => {
+                        if (isRestored) {
+                          setRestoredImages((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
+                        } else {
+                          setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
+                        }
+                      }}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Exclude
+                    </Button>
+                  ) : (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="success"
+                      startIcon={<Restore />}
+                      onClick={() => {
+                        if (isOverriddenFP) {
+                          setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
+                        } else {
+                          setRestoredImages((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
+                        }
+                      }}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Restore
+                    </Button>
+                  )}
+                </Box>
+
+                {/* Navigation arrows */}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                  <IconButton
+                    onClick={() => setFilterViewIndex((prev) => Math.max(0, prev - 1))}
+                    disabled={filterViewIndex === 0}
+                  >
+                    <ArrowBack />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => setFilterViewIndex((prev) => Math.min(imageFiles.length - 1, prev + 1))}
+                    disabled={filterViewIndex === imageFiles.length - 1}
+                  >
+                    <ArrowForward />
+                  </IconButton>
+                </Stack>
+
+                {/* Thumbnail strip */}
+                <Box
+                  ref={filterThumbnailStripRef}
+                  sx={{
+                    display: 'flex',
+                    gap: 0.5,
+                    overflowX: 'auto',
+                    pb: 1,
+                    '&::-webkit-scrollbar': { height: 6 },
+                    '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
+                  }}
+                >
+                  {imageFiles.map((img, idx) => {
+                    const result = filterResults.get(idx);
+                    const isCurrent = idx === filterViewIndex;
+                    const thumbIsRestored = restoredImages.has(idx);
+                    const thumbIsOverriddenFP = falsePositiveOverrides.has(idx);
+                    const thumbIncluded = thumbIsOverriddenFP ? false : (thumbIsRestored || (result?.has_animal ?? true));
+
+                    return (
+                      <Box
+                        key={idx}
+                        onClick={() => setFilterViewIndex(idx)}
+                        sx={{
+                          flexShrink: 0,
+                          width: 56,
+                          height: 42,
+                          borderRadius: 0.5,
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          border: '2px solid',
+                          borderColor: isCurrent ? 'primary.main' : thumbIncluded ? 'transparent' : 'error.main',
+                          opacity: thumbIncluded ? 1 : 0.4,
+                          position: 'relative',
+                        }}
+                      >
+                        <img
+                          src={img.objectUrl}
+                          alt={img.filename}
+                          loading="lazy"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </>
+            );
+          })()}
 
           {/* Navigation */}
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>

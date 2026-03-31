@@ -21,10 +21,21 @@ DETECTION_CONFIDENCE_THRESHOLD = 0.15
 
 
 @dataclass
+class BoundingBox:
+    x: float  # normalised 0-1 (left)
+    y: float  # normalised 0-1 (top)
+    w: float  # normalised 0-1 (width)
+    h: float  # normalised 0-1 (height)
+    confidence: float
+    category: str
+
+
+@dataclass
 class DetectionResult:
     has_animal: bool
     max_animal_confidence: float
     categories_found: list[str]
+    boxes: list[BoundingBox]
 
 
 class MegaDetectorService:
@@ -72,6 +83,7 @@ class MegaDetectorService:
 
             max_animal_conf = 0.0
             categories_found: list[str] = []
+            boxes: list[BoundingBox] = []
 
             if results and "detections" in results:
                 for det in results["detections"]:
@@ -90,6 +102,18 @@ class MegaDetectorService:
                         if cat_name not in categories_found:
                             categories_found.append(cat_name)
 
+                        # Extract bounding box (normalised xyxy → xywh)
+                        bbox = det.get("bbox", [])
+                        if len(bbox) == 4:
+                            boxes.append(BoundingBox(
+                                x=bbox[0],
+                                y=bbox[1],
+                                w=bbox[2] - bbox[0],
+                                h=bbox[3] - bbox[1],
+                                confidence=conf,
+                                category=cat_name,
+                            ))
+
                     if cat_name == CATEGORY_ANIMAL and conf > max_animal_conf:
                         max_animal_conf = conf
 
@@ -99,6 +123,7 @@ class MegaDetectorService:
                 has_animal=has_animal,
                 max_animal_confidence=max_animal_conf,
                 categories_found=categories_found,
+                boxes=boxes,
             )
 
         except Exception as e:
@@ -108,6 +133,7 @@ class MegaDetectorService:
                 has_animal=True,
                 max_animal_confidence=0.0,
                 categories_found=[],
+                boxes=[],
             )
 
 

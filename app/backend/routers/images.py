@@ -159,6 +159,17 @@ async def filter_images_for_false_positives(
                 "has_animal": detection.has_animal,
                 "max_confidence": detection.max_animal_confidence,
                 "categories": detection.categories_found,
+                "detections": [
+                    {
+                        "x": box.x,
+                        "y": box.y,
+                        "w": box.w,
+                        "h": box.h,
+                        "confidence": box.confidence,
+                        "category": box.category,
+                    }
+                    for box in detection.boxes
+                ],
             })
 
             if detection.has_animal:
