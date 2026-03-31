@@ -86,47 +86,39 @@ class MegaDetectorService:
             categories_found: list[str] = []
             boxes: list[BoundingBox] = []
 
-            # Log full result structure for debugging
-            logger.info(
-                f"MegaDetector result: type={type(results).__name__}, "
-                f"keys={list(results.keys()) if isinstance(results, dict) else 'N/A'}"
-            )
-            if isinstance(results, dict):
-                for k, v in results.items():
-                    logger.info(f"  result['{k}']: type={type(v).__name__}, value={repr(v)[:200]}")
+            # Extract detections from result dict.
+            # PytorchWildlife returns {"detections": list of tuples/lists, "labels": list}.
+            # Each detection row has 6 elements: [x1, y1, x2, y2, conf, category_id]
+            # where coords are pixel values and category_id may be int or str.
+            det_data = results.get("detections") if isinstance(results, dict) else None
+            labels = (results.get("labels") or []) if isinstance(results, dict) else []
 
-            # Extract detections - handle multiple PytorchWildlife output formats
-            det_data = None
-            labels: list[str] = []
+            if det_data is not None and hasattr(det_data, '__len__'):
+                for i, det in enumerate(det_data):
+                    try:
+                        # Handle both list/tuple and tensor rows
+                        if hasattr(det, 'cpu'):
+                            det = det.cpu().tolist()
+                        elif hasattr(det, 'tolist'):
+                            det = det.tolist()
+                        else:
+                            det = list(det)
 
-            if isinstance(results, dict):
-                det_data = results.get("detections")
-                labels = results.get("labels", [])
-                # Some versions use "classes" instead of "labels"
-                if not labels:
-                    labels = results.get("classes", [])
-            elif isinstance(results, (list, tuple)) and len(results) >= 2:
-                det_data = results[0]
-                labels = list(results[1]) if len(results) > 1 else []
+                        if len(det) >= 5:
+                            x1, y1, x2, y2, conf = float(det[0]), float(det[1]), float(det[2]), float(det[3]), float(det[4])
+                        else:
+                            continue
 
-            if det_data is not None:
-                # Convert to numpy array for uniform handling
-                if hasattr(det_data, 'cpu'):
-                    det_data = det_data.cpu().numpy()
-                det_array = np.atleast_2d(np.array(det_data, dtype=float))
-
-                # Skip if empty (shape (1, 0) or similar)
-                if det_array.size > 0 and det_array.shape[-1] >= 5:
-                    for i in range(det_array.shape[0]):
-                        x1, y1, x2, y2, conf = (
-                            float(det_array[i, 0]),
-                            float(det_array[i, 1]),
-                            float(det_array[i, 2]),
-                            float(det_array[i, 3]),
-                            float(det_array[i, 4]),
-                        )
-
-                        cat_name = str(labels[i]).lower() if i < len(labels) else CATEGORY_ANIMAL
+                        # Category: prefer labels list, fall back to 6th element or default
+                        if i < len(labels):
+                            cat_name = str(labels[i]).lower()
+                        elif len(det) >= 6:
+                            cat_id = str(det[5])
+                            cat_name = {
+                                "0": CATEGORY_ANIMAL, "1": CATEGORY_PERSON, "2": CATEGORY_VEHICLE,
+                            }.get(cat_id, cat_id.lower())
+                        else:
+                            cat_name = CATEGORY_ANIMAL
 
                         if conf >= DETECTION_CONFIDENCE_THRESHOLD:
                             if cat_name not in categories_found:
@@ -143,6 +135,9 @@ class MegaDetectorService:
 
                         if cat_name == CATEGORY_ANIMAL and conf > max_animal_conf:
                             max_animal_conf = conf
+
+                    except (ValueError, IndexError, TypeError) as row_err:
+                        logger.warning(f"Skipping detection row {i}: {row_err} (raw={repr(det)[:100]})")
 
             has_animal = max_animal_conf >= DETECTION_CONFIDENCE_THRESHOLD
 
