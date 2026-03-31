@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import { AddCircleOutline, CheckCircle, PhotoCamera, ZoomIn, Close } from '@mui/icons-material';
 import { imagesAPI, surveysAPI } from '../../services/api';
-import type { ImageWithDetections, ImageDetectionOption, Sighting, IndividualLocation } from '../../services/api';
+import type { ImageWithDetections, ImageDetectionOption, Sighting } from '../../services/api';
 import { notionColors } from '../../theme';
 
 interface CameraTrapDetectionsPanelProps {
@@ -301,7 +301,7 @@ export function CameraTrapDetectionsPanel({
   const isAddedForImage = (detection: ImageDetectionOption, imageId: number) => {
     if (!detection.species_id) return false;
     const sighting = sightingsBySpeciesId.get(detection.species_id);
-    return !!findIndividualByImageId(sighting, imageId);
+    return isImageLinkedToSighting(sighting, imageId);
   };
 
   const getSelectedDetection = (image: ImageWithDetections): ImageDetectionOption | null => {
@@ -372,16 +372,21 @@ export function CameraTrapDetectionsPanel({
     if (!detection || !detection.species_id) return;
 
     const sighting = sightingsBySpeciesId.get(detection.species_id);
-    const individual = findIndividualByImageId(sighting, image.image_id);
+    if (!sighting) return;
 
-    if (!sighting || !individual) return;
+    // Find individual linked to this image (legacy data via sighting_individual)
+    const individual = sighting.individuals?.find(
+      (ind) => ind.camera_trap_image_id === image.image_id,
+    );
 
-    const isLastIndividual = (sighting.individuals?.length ?? 0) <= 1;
+    const isLastImage = (sighting.image_ids?.length ?? 0) <= 1
+      && (sighting.individuals?.length ?? 0) <= 1;
+
     setShowRemoveConfirm({
       sightingId: sighting.id,
-      individualId: individual.id!,
+      individualId: individual?.id ?? 0,
       speciesName: detection.species_name || detection.scientific_name,
-      isLastIndividual,
+      isLastIndividual: isLastImage,
     });
   };
 
