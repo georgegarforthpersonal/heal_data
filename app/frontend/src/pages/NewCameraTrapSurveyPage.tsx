@@ -1082,7 +1082,6 @@ export function NewCameraTrapSurveyPage() {
 
                 <Box
                   sx={{
-                    position: 'relative',
                     display: 'flex',
                     justifyContent: 'center',
                     bgcolor: 'black',
@@ -1093,26 +1092,28 @@ export function NewCameraTrapSurveyPage() {
                     opacity: isIncluded ? 1 : 0.5,
                   }}
                 >
-                  <img
-                    ref={filterImageRef}
-                    src={currentImg?.objectUrl}
-                    alt={currentImg?.filename}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '50vh',
-                      objectFit: 'contain',
-                    }}
-                  />
-                  {/* Bounding box overlays */}
-                  {currentResult?.detections?.map((det, detIdx) => (
-                    <Box
-                      key={detIdx}
-                      sx={{
-                        position: 'absolute',
-                        left: `${det.x * 100}%`,
-                        top: `${det.y * 100}%`,
-                        width: `${det.w * 100}%`,
-                        height: `${det.h * 100}%`,
+                  {/* Wrapper sized to the rendered image so bbox % positions are correct */}
+                  <Box sx={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '50vh' }}>
+                    <img
+                      ref={filterImageRef}
+                      src={currentImg?.objectUrl}
+                      alt={currentImg?.filename}
+                      style={{
+                        display: 'block',
+                        maxWidth: '100%',
+                        maxHeight: '50vh',
+                      }}
+                    />
+                    {/* Bounding box overlays */}
+                    {currentResult?.detections?.map((det, detIdx) => (
+                      <Box
+                        key={detIdx}
+                        sx={{
+                          position: 'absolute',
+                          left: `${det.x * 100}%`,
+                          top: `${det.y * 100}%`,
+                          width: `${det.w * 100}%`,
+                          height: `${det.h * 100}%`,
                         border: '2.5px solid',
                         borderColor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
                         pointerEvents: 'none',
@@ -1133,6 +1134,7 @@ export function NewCameraTrapSurveyPage() {
                       }}
                     />
                   ))}
+                  </Box>
                 </Box>
 
                 {/* Image info below viewer */}
