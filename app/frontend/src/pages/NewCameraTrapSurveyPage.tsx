@@ -255,7 +255,7 @@ export function NewCameraTrapSurveyPage() {
   // Step 3: Filter logic
   // ============================================================================
 
-  const FILTER_BATCH_SIZE = 20;
+  const FILTER_BATCH_SIZE = 5;
 
   const runFiltering = useCallback(async () => {
     if (imageFiles.length === 0) return;
