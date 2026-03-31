@@ -292,10 +292,10 @@ export function NewCameraTrapSurveyPage() {
 
   // Start filtering when entering the Filter step
   useEffect(() => {
-    if (activeStep === 2 && filterResults.size === 0 && !filtering && imageFiles.length > 0) {
+    if (activeStep === 2 && filterResults.size === 0 && !filtering && !filterError && imageFiles.length > 0) {
       runFiltering();
     }
-  }, [activeStep, filterResults.size, filtering, imageFiles.length, runFiltering]);
+  }, [activeStep, filterResults.size, filtering, filterError, imageFiles.length, runFiltering]);
 
   // Compute which images pass the filter for the Classify step
   const filteredImageFiles = useMemo(() => {
