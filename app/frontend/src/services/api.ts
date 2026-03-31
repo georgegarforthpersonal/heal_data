@@ -1332,6 +1332,24 @@ export interface CameraTrapImage {
   created_at: string;
   detection_count: number;
   unmatched_species: string[] | null;
+  megadetector_confidence: number | null;
+  is_false_positive: boolean;
+}
+
+export interface ImageFilterResult {
+  filename: string;
+  has_animal: boolean;
+  max_confidence: number;
+  categories: string[];
+  error?: string;
+}
+
+export interface FilterResultsResponse {
+  results: ImageFilterResult[];
+  total: number;
+  animal_count: number;
+  empty_count: number;
+  person_count: number;
 }
 
 export interface CameraTrapDetection {
@@ -1372,6 +1390,42 @@ export interface SurveyImageDetectionsResponse {
 // ============================================================================
 
 export const imagesAPI = {
+  /**
+   * Run MegaDetector on images to filter false positives.
+   * Images are not persisted — this is for pre-classification filtering only.
+   */
+  filterImages: (files: File[]): Promise<FilterResultsResponse> => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'X-Org-Slug': ORG_SLUG,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(`${API_BASE_URL}/surveys/filter-images`, {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+      body: formData,
+    }).then(async (response) => {
+      if (!response.ok) {
+        let errorMessage = `Filter failed: ${response.status}`;
+        try {
+          const error = await response.json();
+          if (error.detail) {
+            errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+          }
+        } catch { /* ignore parse error */ }
+        throw new Error(errorMessage);
+      }
+      return response.json();
+    });
+  },
+
   /**
    * Get all camera trap images for a survey
    */

@@ -25,6 +25,11 @@ import {
   CloudUpload,
   PhotoCamera,
   CheckCircle,
+  FilterList,
+  Restore,
+  RemoveCircleOutline,
+  ExpandMore,
+  ExpandLess,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -44,6 +49,7 @@ import type {
   SurveyType,
   Device,
   CameraTrapImage,
+  ImageFilterResult,
 } from '../services/api';
 import { PageHeader } from '../components/layout/PageHeader';
 import exifr from 'exifr';
@@ -64,7 +70,7 @@ interface Classification {
   speciesName: string;
 }
 
-const WIZARD_STEPS = ['Setup', 'Upload', 'Classify', 'Review', 'Save'];
+const WIZARD_STEPS = ['Setup', 'Upload', 'Filter', 'Classify', 'Review', 'Save'];
 
 const UPLOAD_BATCH_SIZE = 10;
 
@@ -94,7 +100,16 @@ export function NewCameraTrapSurveyPage() {
   const [loadingImages, setLoadingImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ---- Step 3: Classify ----
+  // ---- Step 3: Filter ----
+  const [filterResults, setFilterResults] = useState<Map<number, ImageFilterResult>>(new Map());
+  const [filtering, setFiltering] = useState(false);
+  const [filterProgress, setFilterProgress] = useState({ processed: 0, total: 0 });
+  const [falsePositiveOverrides, setFalsePositiveOverrides] = useState<Set<number>>(new Set());
+  const [restoredImages, setRestoredImages] = useState<Set<number>>(new Set());
+  const [filterError, setFilterError] = useState<string | null>(null);
+  const [showAnimalImages, setShowAnimalImages] = useState(false);
+
+  // ---- Step 4: Classify ----
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [classifications, setClassifications] = useState<Map<number, Classification[]>>(new Map());
   const [viewedImages, setViewedImages] = useState<Set<number>>(new Set());
@@ -103,10 +118,10 @@ export function NewCameraTrapSurveyPage() {
   const speciesInputRef = useRef<HTMLInputElement>(null);
   const thumbnailStripRef = useRef<HTMLDivElement>(null);
 
-  // ---- Step 4: Review ----
+  // ---- Step 5: Review ----
   const [deselectedImages, setDeselectedImages] = useState<Set<string>>(new Set()); // "speciesId-imageIndex"
 
-  // ---- Step 5: Save ----
+  // ---- Step 6: Save ----
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState({ step: '', percent: 0 });
 
@@ -234,12 +249,105 @@ export function NewCameraTrapSurveyPage() {
   }, []);
 
   // ============================================================================
-  // Step 3: Classification helpers
+  // Step 3: Filter logic
+  // ============================================================================
+
+  const FILTER_BATCH_SIZE = 20;
+
+  const runFiltering = useCallback(async () => {
+    if (imageFiles.length === 0) return;
+
+    setFiltering(true);
+    setFilterError(null);
+    setFilterResults(new Map());
+    setFalsePositiveOverrides(new Set());
+    setRestoredImages(new Set());
+    setFilterProgress({ processed: 0, total: imageFiles.length });
+
+    try {
+      const results = new Map<number, ImageFilterResult>();
+
+      for (let i = 0; i < imageFiles.length; i += FILTER_BATCH_SIZE) {
+        const batch = imageFiles.slice(i, i + FILTER_BATCH_SIZE);
+        const batchFiles = batch.map((img) => img.file);
+
+        const response = await imagesAPI.filterImages(batchFiles);
+
+        response.results.forEach((result: ImageFilterResult, batchIdx: number) => {
+          results.set(i + batchIdx, result);
+        });
+
+        setFilterProgress({
+          processed: Math.min(i + FILTER_BATCH_SIZE, imageFiles.length),
+          total: imageFiles.length,
+        });
+        setFilterResults(new Map(results));
+      }
+    } catch (err: unknown) {
+      setFilterError(err instanceof Error ? err.message : 'Failed to filter images');
+    } finally {
+      setFiltering(false);
+    }
+  }, [imageFiles]);
+
+  // Start filtering when entering the Filter step
+  useEffect(() => {
+    if (activeStep === 2 && filterResults.size === 0 && !filtering && imageFiles.length > 0) {
+      runFiltering();
+    }
+  }, [activeStep, filterResults.size, filtering, imageFiles.length, runFiltering]);
+
+  // Compute which images pass the filter for the Classify step
+  const filteredImageFiles = useMemo(() => {
+    if (filterResults.size === 0) return imageFiles;
+    return imageFiles.filter((_, idx) => {
+      const result = filterResults.get(idx);
+      if (!result) return true; // No result = include (safe default)
+      if (falsePositiveOverrides.has(idx)) return false; // User manually excluded
+      if (restoredImages.has(idx)) return true; // User manually restored
+      return result.has_animal;
+    });
+  }, [imageFiles, filterResults, falsePositiveOverrides, restoredImages]);
+
+  // Index mapping: filteredImageFiles index -> original imageFiles index
+  const filteredToOriginalIndex = useMemo(() => {
+    if (filterResults.size === 0) {
+      return imageFiles.map((_, idx) => idx);
+    }
+    const mapping: number[] = [];
+    imageFiles.forEach((_, idx) => {
+      const result = filterResults.get(idx);
+      if (!result) { mapping.push(idx); return; }
+      if (falsePositiveOverrides.has(idx)) return;
+      if (restoredImages.has(idx)) { mapping.push(idx); return; }
+      if (result.has_animal) mapping.push(idx);
+    });
+    return mapping;
+  }, [imageFiles, filterResults, falsePositiveOverrides, restoredImages]);
+
+  // Filter summary counts
+  const filterSummary = useMemo(() => {
+    let animalCount = 0;
+    let emptyCount = 0;
+    let personCount = 0;
+    filterResults.forEach((result, idx) => {
+      const isOverriddenFP = falsePositiveOverrides.has(idx);
+      const isRestored = restoredImages.has(idx);
+      const effectiveHasAnimal = isOverriddenFP ? false : (isRestored ? true : result.has_animal);
+      if (effectiveHasAnimal) animalCount++;
+      else emptyCount++;
+      if (result.categories.includes('person')) personCount++;
+    });
+    return { animalCount, emptyCount, personCount };
+  }, [filterResults, falsePositiveOverrides, restoredImages]);
+
+  // ============================================================================
+  // Step 4: Classification helpers
   // ============================================================================
 
   // Scroll thumbnail strip to keep current image centred
   useEffect(() => {
-    if (activeStep === 2 && thumbnailStripRef.current) {
+    if (activeStep === 3 && thumbnailStripRef.current) {
       const container = thumbnailStripRef.current;
       const thumbWidth = 56 + 4; // width + gap
       const scrollTarget = currentImageIndex * thumbWidth - container.clientWidth / 2 + thumbWidth / 2;
@@ -249,7 +357,7 @@ export function NewCameraTrapSurveyPage() {
 
   // Focus species input when image changes
   useEffect(() => {
-    if (activeStep === 2) {
+    if (activeStep === 3) {
       // Small delay to let the DOM settle after image change
       const timer = setTimeout(() => speciesInputRef.current?.focus(), 50);
       return () => clearTimeout(timer);
@@ -258,7 +366,7 @@ export function NewCameraTrapSurveyPage() {
 
   // Mark current image as viewed when it changes
   useEffect(() => {
-    if (activeStep === 2 && imageFiles.length > 0) {
+    if (activeStep === 3 && filteredImageFiles.length > 0) {
       setViewedImages((prev) => {
         if (prev.has(currentImageIndex)) return prev;
         const next = new Set(prev);
@@ -269,28 +377,29 @@ export function NewCameraTrapSurveyPage() {
   }, [currentImageIndex, activeStep, imageFiles.length]);
 
   const findNextUnviewed = useCallback((fromIndex: number): number | null => {
-    for (let i = fromIndex + 1; i < imageFiles.length; i++) {
+    for (let i = fromIndex + 1; i < filteredImageFiles.length; i++) {
       if (!viewedImages.has(i)) return i;
     }
     for (let i = 0; i < fromIndex; i++) {
       if (!viewedImages.has(i)) return i;
     }
     return null;
-  }, [viewedImages, imageFiles.length]);
+  }, [viewedImages, filteredImageFiles.length]);
 
   const classifyImage = useCallback(
     (speciesId: number, speciesName: string) => {
+      const originalIndex = filteredToOriginalIndex[currentImageIndex];
       setClassifications((prev) => {
         const next = new Map(prev);
-        const existing = next.get(currentImageIndex) || [];
+        const existing = next.get(originalIndex) || [];
         // Don't add duplicate species
         if (existing.some((c) => c.speciesId === speciesId)) return prev;
-        next.set(currentImageIndex, [...existing, { speciesId, speciesName }]);
+        next.set(originalIndex, [...existing, { speciesId, speciesName }]);
         return next;
       });
       setSpeciesSearchValue('');
     },
-    [currentImageIndex]
+    [currentImageIndex, filteredToOriginalIndex]
   );
 
   const goToPrev = useCallback(() => {
@@ -299,9 +408,9 @@ export function NewCameraTrapSurveyPage() {
   }, []);
 
   const goToNext = useCallback(() => {
-    setCurrentImageIndex((prev) => Math.min(imageFiles.length - 1, prev + 1));
+    setCurrentImageIndex((prev) => Math.min(filteredImageFiles.length - 1, prev + 1));
     setSpeciesSearchValue('');
-  }, [imageFiles.length]);
+  }, [filteredImageFiles.length]);
 
   const goToNextUnviewed = useCallback(() => {
     const next = findNextUnviewed(currentImageIndex);
@@ -313,7 +422,7 @@ export function NewCameraTrapSurveyPage() {
 
   // Keyboard navigation for classify step
   useEffect(() => {
-    if (activeStep !== 2) return;
+    if (activeStep !== 3) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       // Allow arrow navigation when species input is empty (no active search)
       const isInSpeciesInput = e.target === speciesInputRef.current;
@@ -515,7 +624,7 @@ export function NewCameraTrapSurveyPage() {
   const classifiedCount = classifications.size;
   const uniqueSpeciesCount = new Set(Array.from(classifications.values()).flatMap((list) => list.map((c) => c.speciesId))).size;
   const viewedCount = viewedImages.size;
-  const remainingCount = imageFiles.length - viewedCount;
+  const remainingCount = filteredImageFiles.length - viewedCount;
 
   const canProceed = (step: number): boolean => {
     switch (step) {
@@ -523,9 +632,11 @@ export function NewCameraTrapSurveyPage() {
         return !!selectedSurveyType && !!selectedDevice && !!date && selectedSurveyors.length > 0;
       case 1: // Upload
         return imageFiles.length > 0;
-      case 2: // Classify
+      case 2: // Filter
+        return !filtering && filterResults.size === imageFiles.length && filteredImageFiles.length > 0;
+      case 3: // Classify
         return classifiedCount > 0;
-      case 3: // Review
+      case 4: // Review
         return selectedImageCount > 0;
       default:
         return false;
@@ -786,30 +897,332 @@ export function NewCameraTrapSurveyPage() {
               onClick={() => setActiveStep(2)}
               sx={{ textTransform: 'none' }}
             >
-              Next: Classify Images
+              Next: Filter Images
             </Button>
           </Box>
         </Paper>
       )}
 
       {/* ================================================================ */}
-      {/* Step 3: Classify                                                  */}
+      {/* Step 3: Filter                                                    */}
       {/* ================================================================ */}
       {activeStep === 2 && imageFiles.length > 0 && (
+        <Paper sx={{ p: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            <FilterList sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Filter False Positives
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            AI is analysing your images to identify and remove empty frames (false positives triggered by wind, vegetation, etc.).
+          </Typography>
+
+          {/* Progress during filtering */}
+          {filtering && (
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Filtering image {filterProgress.processed} of {filterProgress.total}...
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {filterProgress.total > 0
+                    ? `${Math.round((filterProgress.processed / filterProgress.total) * 100)}%`
+                    : '0%'}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={
+                  filterProgress.total > 0
+                    ? (filterProgress.processed / filterProgress.total) * 100
+                    : 0
+                }
+                sx={{ height: 6, borderRadius: 3 }}
+              />
+            </Box>
+          )}
+
+          {/* Filter error */}
+          {filterError && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {filterError}
+              <Button
+                size="small"
+                onClick={() => { setFilterError(null); runFiltering(); }}
+                sx={{ ml: 1, textTransform: 'none' }}
+              >
+                Retry
+              </Button>
+            </Alert>
+          )}
+
+          {/* Results summary */}
+          {!filtering && filterResults.size > 0 && (
+            <>
+              <Alert
+                severity={filterSummary.emptyCount > 0 ? 'success' : 'info'}
+                sx={{ mb: 3 }}
+              >
+                {filterSummary.emptyCount > 0 ? (
+                  <>
+                    Found <strong>{filterSummary.animalCount}</strong> images with animals and{' '}
+                    <strong>{filterSummary.emptyCount}</strong> empty/false positive images
+                    {filterSummary.personCount > 0 && (
+                      <> ({filterSummary.personCount} with people)</>
+                    )}
+                    . Empty images will be excluded from classification.
+                  </>
+                ) : (
+                  <>All {filterSummary.animalCount} images appear to contain animals.</>
+                )}
+              </Alert>
+
+              {/* Empty / No animal detected section */}
+              {filterSummary.emptyCount > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
+                    Empty / No Animal Detected ({filterSummary.emptyCount})
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Review these images. Click &quot;Restore&quot; on any that contain animals the AI missed.
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                      gap: 1,
+                      maxHeight: 400,
+                      overflow: 'auto',
+                    }}
+                  >
+                    {imageFiles.map((img, idx) => {
+                      const result = filterResults.get(idx);
+                      if (!result) return null;
+                      // Show images that are effectively false positives
+                      const isRestored = restoredImages.has(idx);
+                      const isOverriddenFP = falsePositiveOverrides.has(idx);
+                      const effectivelyEmpty = isOverriddenFP || (!isRestored && !result.has_animal);
+                      if (!effectivelyEmpty) return null;
+
+                      return (
+                        <Box key={idx} sx={{ position: 'relative' }}>
+                          <img
+                            src={img.objectUrl}
+                            alt={img.filename}
+                            loading="lazy"
+                            style={{
+                              width: '100%',
+                              height: 110,
+                              objectFit: 'cover',
+                              borderRadius: 4,
+                              opacity: 0.7,
+                            }}
+                          />
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              position: 'absolute',
+                              bottom: 2,
+                              left: 2,
+                              bgcolor: 'rgba(0,0,0,0.6)',
+                              color: 'white',
+                              px: 0.5,
+                              borderRadius: 0.5,
+                              fontSize: '0.6rem',
+                            }}
+                          >
+                            {(result.max_confidence * 100).toFixed(0)}% conf
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Restore />}
+                            onClick={() => {
+                              if (isOverriddenFP) {
+                                setFalsePositiveOverrides((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(idx);
+                                  return next;
+                                });
+                              } else {
+                                setRestoredImages((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(idx);
+                                  return next;
+                                });
+                              }
+                            }}
+                            sx={{
+                              position: 'absolute',
+                              top: 2,
+                              right: 2,
+                              textTransform: 'none',
+                              bgcolor: 'rgba(255,255,255,0.9)',
+                              fontSize: '0.65rem',
+                              py: 0,
+                              px: 0.5,
+                              minWidth: 0,
+                              '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
+                            }}
+                          >
+                            Restore
+                          </Button>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Images with animals section (collapsible) */}
+              <Box sx={{ mb: 2 }}>
+                <Button
+                  onClick={() => setShowAnimalImages(!showAnimalImages)}
+                  startIcon={showAnimalImages ? <ExpandLess /> : <ExpandMore />}
+                  sx={{ textTransform: 'none', mb: 1, color: 'text.primary' }}
+                >
+                  Images with Animals ({filterSummary.animalCount})
+                </Button>
+                {showAnimalImages && (
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                      gap: 1,
+                      maxHeight: 400,
+                      overflow: 'auto',
+                    }}
+                  >
+                    {imageFiles.map((img, idx) => {
+                      const result = filterResults.get(idx);
+                      if (!result) return null;
+                      const isRestored = restoredImages.has(idx);
+                      const isOverriddenFP = falsePositiveOverrides.has(idx);
+                      const effectivelyAnimal = isOverriddenFP ? false : (isRestored || result.has_animal);
+                      if (!effectivelyAnimal) return null;
+
+                      return (
+                        <Box key={idx} sx={{ position: 'relative' }}>
+                          <img
+                            src={img.objectUrl}
+                            alt={img.filename}
+                            loading="lazy"
+                            style={{
+                              width: '100%',
+                              height: 110,
+                              objectFit: 'cover',
+                              borderRadius: 4,
+                            }}
+                          />
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<RemoveCircleOutline />}
+                            onClick={() => {
+                              if (isRestored) {
+                                setRestoredImages((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(idx);
+                                  return next;
+                                });
+                              } else {
+                                setFalsePositiveOverrides((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(idx);
+                                  return next;
+                                });
+                              }
+                            }}
+                            sx={{
+                              position: 'absolute',
+                              top: 2,
+                              right: 2,
+                              textTransform: 'none',
+                              bgcolor: 'rgba(255,255,255,0.9)',
+                              fontSize: '0.65rem',
+                              py: 0,
+                              px: 0.5,
+                              minWidth: 0,
+                              '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+              </Box>
+            </>
+          )}
+
+          {/* Navigation */}
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={() => {
+                setActiveStep(1);
+                // Clear filter state when going back to upload
+                setFilterResults(new Map());
+                setFalsePositiveOverrides(new Set());
+                setRestoredImages(new Set());
+                setFilterError(null);
+              }}
+              sx={{ textTransform: 'none' }}
+            >
+              Back
+            </Button>
+            <Stack direction="row" spacing={1}>
+              {filterError && (
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setFilterError(null);
+                    setActiveStep(3);
+                  }}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Skip Filtering
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                endIcon={<ArrowForward />}
+                disabled={!canProceed(2)}
+                onClick={() => {
+                  setCurrentImageIndex(0);
+                  setClassifications(new Map());
+                  setViewedImages(new Set());
+                  setActiveStep(3);
+                }}
+                sx={{ textTransform: 'none' }}
+              >
+                Next: Classify ({filteredImageFiles.length} images)
+              </Button>
+            </Stack>
+          </Box>
+        </Paper>
+      )}
+
+      {/* ================================================================ */}
+      {/* Step 4: Classify                                                  */}
+      {/* ================================================================ */}
+      {activeStep === 3 && filteredImageFiles.length > 0 && (
         <Paper sx={{ p: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
           {/* Progress bar */}
           <Box sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
               <Typography variant="body2" color="text.secondary">
-                Image {currentImageIndex + 1} of {imageFiles.length}
+                Image {currentImageIndex + 1} of {filteredImageFiles.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Viewed {viewedCount} of {imageFiles.length} · {uniqueSpeciesCount} species identified
+                Viewed {viewedCount} of {filteredImageFiles.length} · {uniqueSpeciesCount} species identified
               </Typography>
             </Box>
             <LinearProgress
               variant="determinate"
-              value={(viewedCount / imageFiles.length) * 100}
+              value={(viewedCount / filteredImageFiles.length) * 100}
               sx={{ height: 6, borderRadius: 3 }}
             />
           </Box>
@@ -854,8 +1267,8 @@ export function NewCameraTrapSurveyPage() {
             }}
           >
             <img
-              src={imageFiles[currentImageIndex].objectUrl}
-              alt={imageFiles[currentImageIndex].filename}
+              src={filteredImageFiles[currentImageIndex].objectUrl}
+              alt={filteredImageFiles[currentImageIndex].filename}
               style={{
                 maxWidth: '100%',
                 maxHeight: '50vh',
@@ -866,9 +1279,9 @@ export function NewCameraTrapSurveyPage() {
 
           {/* Image info */}
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            {imageFiles[currentImageIndex].filename}
-            {imageFiles[currentImageIndex].exifDate && (
-              <> &mdash; {dayjs(imageFiles[currentImageIndex].exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
+            {filteredImageFiles[currentImageIndex].filename}
+            {filteredImageFiles[currentImageIndex].exifDate && (
+              <> &mdash; {dayjs(filteredImageFiles[currentImageIndex].exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
             )}
           </Typography>
 
@@ -906,7 +1319,7 @@ export function NewCameraTrapSurveyPage() {
               <IconButton onClick={goToPrev} disabled={currentImageIndex === 0}>
                 <ArrowBack />
               </IconButton>
-              <IconButton onClick={goToNext} disabled={currentImageIndex === imageFiles.length - 1}>
+              <IconButton onClick={goToNext} disabled={currentImageIndex === filteredImageFiles.length - 1}>
                 <ArrowForward />
               </IconButton>
             </Stack>
@@ -933,7 +1346,7 @@ export function NewCameraTrapSurveyPage() {
               '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
             }}
           >
-            {imageFiles.map((img, idx) => {
+            {filteredImageFiles.map((img, idx) => {
               const hasClassifications = (classifications.get(idx)?.length ?? 0) > 0;
               const isViewed = viewedImages.has(idx);
               const isCurrent = idx === currentImageIndex;
@@ -987,7 +1400,7 @@ export function NewCameraTrapSurveyPage() {
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
             <Button
               startIcon={<ArrowBack />}
-              onClick={() => setActiveStep(1)}
+              onClick={() => setActiveStep(2)}
               sx={{ textTransform: 'none' }}
             >
               Back
@@ -995,8 +1408,8 @@ export function NewCameraTrapSurveyPage() {
             <Button
               variant="contained"
               endIcon={<ArrowForward />}
-              disabled={!canProceed(2)}
-              onClick={() => setActiveStep(3)}
+              disabled={!canProceed(3)}
+              onClick={() => setActiveStep(4)}
               sx={{ textTransform: 'none' }}
             >
               Next: Review ({uniqueSpeciesCount} species identified)
@@ -1006,9 +1419,9 @@ export function NewCameraTrapSurveyPage() {
       )}
 
       {/* ================================================================ */}
-      {/* Step 4: Review                                                    */}
+      {/* Step 5: Review                                                    */}
       {/* ================================================================ */}
-      {activeStep === 3 && (
+      {activeStep === 4 && (
         <Paper sx={{ p: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
             Review Classifications
@@ -1104,7 +1517,7 @@ export function NewCameraTrapSurveyPage() {
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
             <Button
               startIcon={<ArrowBack />}
-              onClick={() => setActiveStep(2)}
+              onClick={() => setActiveStep(3)}
               sx={{ textTransform: 'none' }}
             >
               Back to Classify
@@ -1112,8 +1525,8 @@ export function NewCameraTrapSurveyPage() {
             <Button
               variant="contained"
               startIcon={<Save />}
-              disabled={!canProceed(3)}
-              onClick={() => { setActiveStep(4); handleSave(); }}
+              disabled={!canProceed(4)}
+              onClick={() => { setActiveStep(5); handleSave(); }}
               sx={{ textTransform: 'none' }}
             >
               Save Survey ({selectedImageCount} images)
@@ -1123,9 +1536,9 @@ export function NewCameraTrapSurveyPage() {
       )}
 
       {/* ================================================================ */}
-      {/* Step 5: Save                                                      */}
+      {/* Step 6: Save                                                      */}
       {/* ================================================================ */}
-      {activeStep === 4 && (
+      {activeStep === 5 && (
         <Paper sx={{ p: 3, textAlign: 'center', boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
           {saving ? (
             <>

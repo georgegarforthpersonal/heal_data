@@ -928,6 +928,12 @@ class CameraTrapImageBase(SQLModel):
         sa_column=sa.Column(sa.JSON, nullable=True),
         description="Species detected but not found in database"
     )
+    megadetector_confidence: Optional[float] = Field(
+        None, description="MegaDetector animal detection confidence (null = not scanned)"
+    )
+    is_false_positive: bool = Field(
+        default=False, description="Whether image was marked as false positive (no animal)"
+    )
 
 
 class CameraTrapImage(CameraTrapImageBase, table=True):  # type: ignore[call-arg]

@@ -9,6 +9,7 @@ Endpoints:
   POST   /api/surveys/{survey_id}/images/{id}/process - Trigger processing (manual)
   GET    /api/surveys/{survey_id}/images/{id}/detections - Get detections for image
   GET    /api/surveys/{survey_id}/image-detections/summary - Aggregated by species
+  POST   /api/surveys/filter-images                   - Run MegaDetector false positive filter
   GET    /api/images/{id}/download                    - Get presigned download URL
   GET    /api/images/{id}/preview                     - Get presigned preview URL
 """
@@ -64,6 +65,7 @@ from utils.filename_parser import extract_media_info
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+filter_router = APIRouter()
 
 # Accepted image extensions
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff", ".tif", ".bmp"}
@@ -104,6 +106,74 @@ def _build_image_response(image: CameraTrapImage, detection_count: int) -> dict:
         "created_at": image.created_at,
         "detection_count": detection_count,
         "unmatched_species": image.unmatched_species,
+        "megadetector_confidence": image.megadetector_confidence,
+        "is_false_positive": image.is_false_positive,
+    }
+
+
+@filter_router.post("/filter-images")
+async def filter_images_for_false_positives(
+    files: List[UploadFile] = File(...),
+    org: Organisation = Depends(get_current_organisation),
+) -> dict:
+    """
+    Run MegaDetector on uploaded images to identify false positives.
+    Returns per-image detection results. Does not persist images.
+    """
+    from services.megadetector import get_detector
+
+    detector = get_detector()
+    if not detector.load():
+        raise HTTPException(
+            status_code=503,
+            detail="MegaDetector model failed to load. Try again or skip filtering.",
+        )
+
+    results = []
+    animal_count = 0
+    empty_count = 0
+    person_count = 0
+
+    for file in files:
+        ext = Path(file.filename or "unknown.jpg").suffix.lower()
+        if ext not in IMAGE_EXTENSIONS:
+            results.append({
+                "filename": file.filename,
+                "has_animal": True,  # Safe default
+                "max_confidence": 0.0,
+                "categories": [],
+                "error": f"Unsupported file type: {ext}",
+            })
+            animal_count += 1
+            continue
+
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=True) as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp.flush()
+
+            detection = detector.detect(Path(tmp.name))
+
+            results.append({
+                "filename": file.filename,
+                "has_animal": detection.has_animal,
+                "max_confidence": detection.max_animal_confidence,
+                "categories": detection.categories_found,
+            })
+
+            if detection.has_animal:
+                animal_count += 1
+            else:
+                empty_count += 1
+            if "person" in detection.categories_found:
+                person_count += 1
+
+    return {
+        "results": results,
+        "total": len(results),
+        "animal_count": animal_count,
+        "empty_count": empty_count,
+        "person_count": person_count,
     }
 
 
