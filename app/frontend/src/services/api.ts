@@ -331,6 +331,7 @@ export interface Sighting {
   individuals?: IndividualLocation[]; // Individual locations with breeding status
   location_id?: number | null; // Location ID when location is at sighting level
   notes?: string | null; // Optional notes for this sighting
+  image_ids?: number[]; // Linked camera trap image IDs
 }
 
 /**
@@ -374,6 +375,7 @@ export interface SightingCreateRequest {
   individuals?: Omit<IndividualLocation, 'id'>[];
   location_id?: number | null; // Location ID when location is at sighting level
   notes?: string | null; // Optional notes for this sighting
+  image_ids?: number[]; // Camera trap image IDs to link
 }
 
 /**

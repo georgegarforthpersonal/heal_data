@@ -31,6 +31,7 @@ from models import (
     Species, SpeciesType, Location, SurveySurveyor,
     BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
+    SightingImage,
     Organisation
 )
 from services.r2_storage import delete_media_file
@@ -516,6 +517,13 @@ async def get_survey_sightings(
             ORDER BY id
         """).bindparams(sighting_id=row.id)).fetchall()
 
+        # Fetch linked image IDs from junction table
+        image_rows = db.query(SightingImage.camera_trap_image_id)\
+            .filter(SightingImage.sighting_id == row.id)\
+            .order_by(SightingImage.camera_trap_image_id)\
+            .all()
+        image_ids = [r[0] for r in image_rows]
+
         result.append({
             "id": row.id,
             "survey_id": row.survey_id,
@@ -537,7 +545,8 @@ async def get_survey_sightings(
                     "camera_trap_image_id": ind.camera_trap_image_id
                 }
                 for ind in individuals
-            ]
+            ],
+            "image_ids": image_ids,
         })
 
     return result
@@ -608,6 +617,13 @@ async def create_sighting(
                 camera_trap_image_id=ind.camera_trap_image_id
             )
         )
+    # Create sighting_image junction records
+    for image_id in sighting.image_ids:
+        db.add(SightingImage(
+            sighting_id=db_sighting.id,
+            camera_trap_image_id=image_id
+        ))
+
     db.commit()
 
     # Get species name
@@ -639,7 +655,8 @@ async def create_sighting(
                 "notes": ind.notes
             }
             for ind in individuals
-        ]
+        ],
+        "image_ids": sighting.image_ids,
     }
 
 

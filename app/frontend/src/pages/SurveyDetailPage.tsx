@@ -963,10 +963,12 @@ export function SurveyDetailPage() {
                             ? `${individualCount} of ${sighting.count} individual${sighting.count > 1 ? 's' : ''} across ${locationCount} location${locationCount > 1 ? 's' : ''}`
                             : 'No location recorded';
 
-                          // Collect camera trap image IDs from individuals
-                          const imageIds: number[] = (sighting.individuals || [])
-                            .map((ind: any) => ind.camera_trap_image_id)
-                            .filter((id: number | null) => id != null);
+                          // Collect camera trap image IDs (prefer junction table, fall back to individuals)
+                          const imageIds: number[] = (sighting as any).image_ids?.length
+                            ? (sighting as any).image_ids
+                            : (sighting.individuals || [])
+                                .map((ind: any) => ind.camera_trap_image_id)
+                                .filter((id: number | null) => id != null);
 
                           return (
                             <Box key={sighting.id} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>

@@ -712,11 +712,33 @@ class SightingCreate(SightingBase):
     location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
     notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
+    image_ids: List[int] = Field(default_factory=list, description="Camera trap image IDs to link")
 
 
 class SightingWithIndividuals(SightingWithDetails):
     """Sighting with individual location points"""
     individuals: List[IndividualLocationRead] = Field(default_factory=list, description="Individual location points")
+    image_ids: List[int] = Field(default_factory=list, description="Linked camera trap image IDs")
+
+
+# ============================================================================
+# Sighting Image Junction Table
+# ============================================================================
+
+class SightingImage(SQLModel, table=True):  # type: ignore[call-arg]
+    """Junction table linking sightings to camera trap images (many-to-many)"""
+    __tablename__ = "sighting_image"
+    __table_args__ = (
+        sa.UniqueConstraint('sighting_id', 'camera_trap_image_id', name='uq_sighting_image'),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    sighting_id: int = Field(foreign_key="sighting.id", ondelete="CASCADE", index=True)
+    camera_trap_image_id: int = Field(foreign_key="camera_trap_image.id", ondelete="CASCADE", index=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"server_default": sa.text("CURRENT_TIMESTAMP")}
+    )
 
 
 # ============================================================================

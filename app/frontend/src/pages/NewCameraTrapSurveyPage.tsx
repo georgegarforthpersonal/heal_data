@@ -602,25 +602,17 @@ export function NewCameraTrapSurveyPage() {
         );
         if (selectedIndices.length === 0) continue;
 
-        const individuals = selectedIndices
-          .map((idx) => {
-            const uploaded = uploadedImages.get(idx);
-            if (!uploaded) return null;
-            return {
-              latitude: selectedDevice.latitude!,
-              longitude: selectedDevice.longitude!,
-              count: 1,
-              camera_trap_image_id: uploaded.id,
-            };
-          })
-          .filter((ind): ind is NonNullable<typeof ind> => ind !== null);
+        // Collect uploaded image IDs for the junction table
+        const imageIds = selectedIndices
+          .map((idx) => uploadedImages.get(idx)?.id)
+          .filter((id): id is number => id != null);
 
-        if (individuals.length === 0) continue;
+        if (imageIds.length === 0) continue;
 
         await surveysAPI.addSighting(survey.id, {
           species_id: speciesId,
           count: 1,
-          individuals,
+          image_ids: imageIds,
         });
       }
 

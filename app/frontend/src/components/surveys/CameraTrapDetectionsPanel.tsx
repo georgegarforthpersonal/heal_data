@@ -46,14 +46,14 @@ interface DeviceImages {
   images: ImageWithDetections[];
 }
 
-function findIndividualByImageId(
+function isImageLinkedToSighting(
   sighting: Sighting | undefined,
   imageId: number
-): IndividualLocation | undefined {
-  if (!sighting?.individuals) {
-    return undefined;
-  }
-  return sighting.individuals.find((ind) => ind.camera_trap_image_id === imageId);
+): boolean {
+  if (!sighting) return false;
+  // Check junction table first, fall back to individuals
+  if (sighting.image_ids?.includes(imageId)) return true;
+  return sighting.individuals?.some((ind) => ind.camera_trap_image_id === imageId) ?? false;
 }
 
 function groupByDevice(images: ImageWithDetections[]): DeviceImages[] {
@@ -315,25 +315,31 @@ export function CameraTrapDetectionsPanel({
     if (!detection || !detection.species_id) return;
 
     const existingSighting = sightingsBySpeciesId.get(detection.species_id);
-    if (findIndividualByImageId(existingSighting, image.image_id)) return;
+    if (isImageLinkedToSighting(existingSighting, image.image_id)) return;
 
     setProcessingImages(prev => new Set(prev).add(image.image_id));
     setError(null);
 
     try {
-      if (existingSighting && device.device_latitude != null && device.device_longitude != null) {
-        await surveysAPI.addIndividualLocation(surveyId, existingSighting.id, {
-          latitude: device.device_latitude,
-          longitude: device.device_longitude,
-          count: 1,
-          camera_trap_image_id: image.image_id,
-        });
+      if (existingSighting) {
+        // Add image to existing sighting via junction table
+        // For now, create a new individual location to link the image
+        // TODO: Add dedicated endpoint for linking images to sightings
+        if (device.device_latitude != null && device.device_longitude != null) {
+          await surveysAPI.addIndividualLocation(surveyId, existingSighting.id, {
+            latitude: device.device_latitude,
+            longitude: device.device_longitude,
+            count: 1,
+            camera_trap_image_id: image.image_id,
+          });
+        }
         setSuccessMessage(`Added ${detection.species_name || detection.scientific_name} location`);
       } else {
         const sightingRequest: Parameters<typeof surveysAPI.addSighting>[1] = {
           species_id: detection.species_id,
           count: 1,
           location_id: device.location_id ?? undefined,
+          image_ids: [image.image_id],
         };
 
         if (device.device_latitude != null && device.device_longitude != null) {
@@ -342,7 +348,6 @@ export function CameraTrapDetectionsPanel({
               latitude: device.device_latitude,
               longitude: device.device_longitude,
               count: 1,
-              camera_trap_image_id: image.image_id,
             },
           ];
         }
