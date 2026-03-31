@@ -607,6 +607,10 @@ export function useCameraTrapWizard() {
           species_id: speciesId,
           count: 1,
           image_ids: imageIds,
+          individuals:
+            selectedDevice.latitude != null && selectedDevice.longitude != null
+              ? [{ latitude: selectedDevice.latitude, longitude: selectedDevice.longitude, count: 1 }]
+              : [],
         });
       }
 
