@@ -28,8 +28,6 @@ import {
   FilterList,
   Restore,
   RemoveCircleOutline,
-  ExpandMore,
-  ExpandLess,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -107,10 +105,9 @@ export function NewCameraTrapSurveyPage() {
   const [falsePositiveOverrides, setFalsePositiveOverrides] = useState<Set<number>>(new Set());
   const [restoredImages, setRestoredImages] = useState<Set<number>>(new Set());
   const [filterError, setFilterError] = useState<string | null>(null);
-  const [showAnimalImages, setShowAnimalImages] = useState(false);
-  const [filterViewIndex, setFilterViewIndex] = useState(0);
-  const filterImageRef = useRef<HTMLImageElement>(null);
-  const filterThumbnailStripRef = useRef<HTMLDivElement>(null);
+  // null = thumbnail overview, 'animal' | 'empty' = reviewing that group
+  const [filterReviewGroup, setFilterReviewGroup] = useState<'animal' | 'empty' | null>(null);
+  const [filterReviewIdx, setFilterReviewIdx] = useState(0); // index within the active group
 
   // ---- Step 4: Classify ----
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -344,27 +341,18 @@ export function NewCameraTrapSurveyPage() {
     return { animalCount, emptyCount, personCount };
   }, [filterResults, falsePositiveOverrides, restoredImages]);
 
-  // Scroll filter thumbnail strip when viewer index changes
+  // Keyboard navigation for filter review
   useEffect(() => {
-    if (activeStep === 2 && filterThumbnailStripRef.current) {
-      const container = filterThumbnailStripRef.current;
-      const thumbWidth = 56 + 4;
-      const scrollTarget = filterViewIndex * thumbWidth - container.clientWidth / 2 + thumbWidth / 2;
-      container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
-    }
-  }, [filterViewIndex, activeStep]);
-
-  // Keyboard navigation for filter step
-  useEffect(() => {
-    if (activeStep !== 2 || filtering || filterResults.size === 0) return;
+    if (activeStep !== 2 || filterReviewGroup === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === 'ArrowRight') { e.preventDefault(); setFilterViewIndex((prev) => Math.min(imageFiles.length - 1, prev + 1)); }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); setFilterViewIndex((prev) => Math.max(0, prev - 1)); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); setFilterReviewIdx((prev) => prev + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setFilterReviewIdx((prev) => Math.max(0, prev - 1)); }
+      if (e.key === 'Escape') { e.preventDefault(); setFilterReviewGroup(null); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeStep, filtering, filterResults.size, imageFiles.length]);
+  }, [activeStep, filterReviewGroup]);
 
   // ============================================================================
   // Step 4: Classification helpers
@@ -982,12 +970,6 @@ export function NewCameraTrapSurveyPage() {
 
           {/* Results */}
           {!filtering && filterResults.size > 0 && (() => {
-            const currentResult = filterResults.get(filterViewIndex);
-            const currentImg = imageFiles[filterViewIndex];
-            const isRestored = restoredImages.has(filterViewIndex);
-            const isOverriddenFP = falsePositiveOverrides.has(filterViewIndex);
-            const isIncluded = isOverriddenFP ? false : (isRestored || (currentResult?.has_animal ?? true));
-
             // Helper to compute inclusion for any image index
             const isImageIncluded = (idx: number) => {
               const r = filterResults.get(idx);
@@ -1006,12 +988,59 @@ export function NewCameraTrapSurveyPage() {
               }
             });
 
+            // Current review state
+            const reviewIndices = filterReviewGroup === 'animal' ? animalIndices : filterReviewGroup === 'empty' ? emptyIndices : [];
+            // Clamp index to valid range
+            const clampedIdx = Math.max(0, Math.min(filterReviewIdx, reviewIndices.length - 1));
+            const currentOrigIdx = reviewIndices[clampedIdx];
+            const currentResult = currentOrigIdx !== undefined ? filterResults.get(currentOrigIdx) : undefined;
+            const currentImg = currentOrigIdx !== undefined ? imageFiles[currentOrigIdx] : undefined;
+
+            // Thumbnail grid for a group
+            const renderThumbnailGrid = (indices: number[]) => (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                  gap: 0.5,
+                  maxHeight: 400,
+                  overflow: 'auto',
+                }}
+              >
+                {indices.map((idx) => (
+                  <Box
+                    key={idx}
+                    onClick={() => {
+                      const group = isImageIncluded(idx) ? 'animal' : 'empty';
+                      const groupIndices = group === 'animal' ? animalIndices : emptyIndices;
+                      setFilterReviewGroup(group);
+                      setFilterReviewIdx(groupIndices.indexOf(idx));
+                    }}
+                    sx={{
+                      cursor: 'pointer',
+                      borderRadius: 0.5,
+                      overflow: 'hidden',
+                      border: '2px solid transparent',
+                      '&:hover': { opacity: 0.8 },
+                    }}
+                  >
+                    <img
+                      src={imageFiles[idx].objectUrl}
+                      alt={imageFiles[idx].filename}
+                      loading="lazy"
+                      style={{ width: '100%', height: 75, objectFit: 'cover' }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            );
+
             return (
               <>
                 {/* Summary */}
                 <Alert
                   severity={filterSummary.emptyCount > 0 ? 'success' : 'info'}
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 3 }}
                 >
                   {filterSummary.emptyCount > 0 ? (
                     <>
@@ -1027,234 +1056,195 @@ export function NewCameraTrapSurveyPage() {
                   )}
                 </Alert>
 
-                {/* Full-size image viewer */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {currentImg?.filename}
-                    {currentImg?.exifDate && (
-                      <> &mdash; {dayjs(currentImg.exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
-                    )}
-                  </Typography>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Chip
-                      label={isIncluded ? 'Included' : 'Excluded'}
-                      size="small"
-                      color={isIncluded ? 'success' : 'default'}
-                      variant={isIncluded ? 'filled' : 'outlined'}
-                    />
-                    {isIncluded ? (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<RemoveCircleOutline />}
-                        onClick={() => {
-                          if (isRestored) {
-                            setRestoredImages((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
-                          } else {
-                            setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
-                          }
-                        }}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        Exclude
-                      </Button>
-                    ) : (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="success"
-                        startIcon={<Restore />}
-                        onClick={() => {
-                          if (isOverriddenFP) {
-                            setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
-                          } else {
-                            setRestoredImages((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
-                          }
-                        }}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        Restore
-                      </Button>
-                    )}
-                  </Stack>
-                </Box>
-
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    bgcolor: 'black',
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    mb: 2,
-                    maxHeight: '50vh',
-                    opacity: isIncluded ? 1 : 0.5,
-                  }}
-                >
-                  {/* Wrapper sized to the rendered image so bbox % positions are correct */}
-                  <Box sx={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '50vh' }}>
-                    <img
-                      ref={filterImageRef}
-                      src={currentImg?.objectUrl}
-                      alt={currentImg?.filename}
-                      style={{
-                        display: 'block',
-                        maxWidth: '100%',
-                        maxHeight: '50vh',
-                      }}
-                    />
-                    {/* Bounding box overlays */}
-                    {currentResult?.detections?.map((det, detIdx) => (
-                      <Box
-                        key={detIdx}
-                        sx={{
-                          position: 'absolute',
-                          left: `${det.x * 100}%`,
-                          top: `${det.y * 100}%`,
-                          width: `${det.w * 100}%`,
-                          height: `${det.h * 100}%`,
-                        border: '2.5px solid',
-                        borderColor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
-                        pointerEvents: 'none',
-                        '&::after': {
-                          content: `"${det.category} ${(det.confidence * 100).toFixed(0)}%"`,
-                          position: 'absolute',
-                          top: -18,
-                          left: -2,
-                          bgcolor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
-                          color: 'white',
-                          fontSize: '0.65rem',
-                          fontWeight: 600,
-                          px: 0.5,
-                          py: 0.1,
-                          borderRadius: '2px 2px 0 0',
-                          whiteSpace: 'nowrap',
-                        },
-                      }}
-                    />
-                  ))}
-                  </Box>
-                </Box>
-
-                {/* Image info below viewer */}
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                  {currentResult ? (
-                    <>
-                      Confidence: {(currentResult.max_confidence * 100).toFixed(0)}%
-                      {currentResult.detections?.length > 0 && (
-                        <> &middot; {currentResult.detections.length} detection{currentResult.detections.length !== 1 ? 's' : ''}</>
-                      )}
-                      {currentResult.detections?.length === 0 && !currentResult.has_animal && (
-                        <> &middot; No animals detected</>
-                      )}
-                    </>
-                  ) : 'No result'}
-                </Typography>
-
-                {/* Navigation arrows */}
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-                  <IconButton
-                    onClick={() => setFilterViewIndex((prev) => Math.max(0, prev - 1))}
-                    disabled={filterViewIndex === 0}
-                  >
-                    <ArrowBack />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => setFilterViewIndex((prev) => Math.min(imageFiles.length - 1, prev + 1))}
-                    disabled={filterViewIndex === imageFiles.length - 1}
-                  >
-                    <ArrowForward />
-                  </IconButton>
-                </Stack>
-
-                {/* Two-group thumbnail sections */}
-                {emptyIndices.length > 0 && (
+                {/* Full-size review viewer (only when a group is being reviewed) */}
+                {filterReviewGroup !== null && currentImg && (
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-                      Empty / No Animal Detected ({emptyIndices.length})
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      These images will be excluded. Click to review, then Restore any the AI got wrong.
-                    </Typography>
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {currentImg.filename}
+                        {currentImg.exifDate && (
+                          <> &mdash; {dayjs(currentImg.exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
+                        )}
+                        <> &mdash; {clampedIdx + 1} of {reviewIndices.length}</>
+                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        {filterReviewGroup === 'animal' ? (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<RemoveCircleOutline />}
+                            onClick={() => {
+                              if (restoredImages.has(currentOrigIdx)) {
+                                setRestoredImages((prev) => { const next = new Set(prev); next.delete(currentOrigIdx); return next; });
+                              } else {
+                                setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.add(currentOrigIdx); return next; });
+                              }
+                            }}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Exclude
+                          </Button>
+                        ) : (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="success"
+                            startIcon={<Restore />}
+                            onClick={() => {
+                              if (falsePositiveOverrides.has(currentOrigIdx)) {
+                                setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.delete(currentOrigIdx); return next; });
+                              } else {
+                                setRestoredImages((prev) => { const next = new Set(prev); next.add(currentOrigIdx); return next; });
+                              }
+                            }}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Restore
+                          </Button>
+                        )}
+                        <Button
+                          size="small"
+                          onClick={() => setFilterReviewGroup(null)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Close
+                        </Button>
+                      </Stack>
+                    </Box>
+
+                    {/* Image with bounding boxes */}
                     <Box
                       sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                        gap: 0.5,
-                        maxHeight: 300,
-                        overflow: 'auto',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        bgcolor: 'black',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        mb: 1,
+                        maxHeight: '50vh',
                       }}
                     >
-                      {emptyIndices.map((idx) => (
-                        <Box
-                          key={idx}
-                          onClick={() => setFilterViewIndex(idx)}
-                          sx={{
-                            cursor: 'pointer',
-                            borderRadius: 0.5,
-                            overflow: 'hidden',
-                            opacity: 0.6,
-                            border: '2px solid',
-                            borderColor: idx === filterViewIndex ? 'primary.main' : 'transparent',
-                            transition: 'opacity 0.15s',
-                            '&:hover': { opacity: 0.9 },
-                          }}
-                        >
-                          <img
-                            src={imageFiles[idx].objectUrl}
-                            alt={imageFiles[idx].filename}
-                            loading="lazy"
-                            style={{ width: '100%', height: 75, objectFit: 'cover' }}
+                      <Box sx={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '50vh' }}>
+                        <img
+                          src={currentImg.objectUrl}
+                          alt={currentImg.filename}
+                          style={{ display: 'block', maxWidth: '100%', maxHeight: '50vh' }}
+                        />
+                        {currentResult?.detections?.map((det, detIdx) => (
+                          <Box
+                            key={detIdx}
+                            sx={{
+                              position: 'absolute',
+                              left: `${det.x * 100}%`,
+                              top: `${det.y * 100}%`,
+                              width: `${det.w * 100}%`,
+                              height: `${det.h * 100}%`,
+                              border: '2.5px solid',
+                              borderColor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
+                              pointerEvents: 'none',
+                              '&::after': {
+                                content: `"${det.category} ${(det.confidence * 100).toFixed(0)}%"`,
+                                position: 'absolute',
+                                top: -18,
+                                left: -2,
+                                bgcolor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
+                                color: 'white',
+                                fontSize: '0.65rem',
+                                fontWeight: 600,
+                                px: 0.5,
+                                py: 0.1,
+                                borderRadius: '2px 2px 0 0',
+                                whiteSpace: 'nowrap',
+                              },
+                            }}
                           />
-                        </Box>
-                      ))}
+                        ))}
+                      </Box>
                     </Box>
+
+                    {/* Info + navigation */}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      {currentResult ? (
+                        <>
+                          Confidence: {(currentResult.max_confidence * 100).toFixed(0)}%
+                          {currentResult.detections?.length > 0 && (
+                            <> &middot; {currentResult.detections.length} detection{currentResult.detections.length !== 1 ? 's' : ''}</>
+                          )}
+                          {currentResult.detections?.length === 0 && !currentResult.has_animal && (
+                            <> &middot; No animals detected</>
+                          )}
+                        </>
+                      ) : 'No result'}
+                    </Typography>
+
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <IconButton
+                        onClick={() => setFilterReviewIdx((prev) => Math.max(0, prev - 1))}
+                        disabled={clampedIdx === 0}
+                      >
+                        <ArrowBack />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => setFilterReviewIdx((prev) => Math.min(reviewIndices.length - 1, prev + 1))}
+                        disabled={clampedIdx === reviewIndices.length - 1}
+                      >
+                        <ArrowForward />
+                      </IconButton>
+                    </Stack>
                   </Box>
                 )}
 
-                <Box sx={{ mb: 2 }}>
-                  <Button
-                    onClick={() => setShowAnimalImages(!showAnimalImages)}
-                    startIcon={showAnimalImages ? <ExpandLess /> : <ExpandMore />}
-                    sx={{ textTransform: 'none', mb: 1, color: 'text.primary', p: 0 }}
-                  >
+                {/* Images with Animals group (shown first) */}
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <Typography variant="subtitle2" fontWeight={600}>
                       Images with Animals ({animalIndices.length})
                     </Typography>
-                  </Button>
-                  {showAnimalImages && (
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                        gap: 0.5,
-                        maxHeight: 300,
-                        overflow: 'auto',
-                      }}
-                    >
-                      {animalIndices.map((idx) => (
-                        <Box
-                          key={idx}
-                          onClick={() => setFilterViewIndex(idx)}
-                          sx={{
-                            cursor: 'pointer',
-                            borderRadius: 0.5,
-                            overflow: 'hidden',
-                            border: '2px solid',
-                            borderColor: idx === filterViewIndex ? 'primary.main' : 'transparent',
-                            '&:hover': { opacity: 0.8 },
-                          }}
-                        >
-                          <img
-                            src={imageFiles[idx].objectUrl}
-                            alt={imageFiles[idx].filename}
-                            loading="lazy"
-                            style={{ width: '100%', height: 75, objectFit: 'cover' }}
-                          />
-                        </Box>
-                      ))}
-                    </Box>
+                    {animalIndices.length > 0 && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => { setFilterReviewGroup('animal'); setFilterReviewIdx(0); }}
+                        sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                      >
+                        Review
+                      </Button>
+                    )}
+                  </Box>
+                  {animalIndices.length > 0 ? (
+                    renderThumbnailGrid(animalIndices)
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No animals detected in any images.
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* Empty / No Animal group */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      Empty / No Animal Detected ({emptyIndices.length})
+                    </Typography>
+                    {emptyIndices.length > 0 && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => { setFilterReviewGroup('empty'); setFilterReviewIdx(0); }}
+                        sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                      >
+                        Review
+                      </Button>
+                    )}
+                  </Box>
+                  {emptyIndices.length > 0 ? (
+                    renderThumbnailGrid(emptyIndices)
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      All images appear to contain animals.
+                    </Typography>
                   )}
                 </Box>
               </>
