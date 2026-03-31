@@ -86,47 +86,63 @@ class MegaDetectorService:
             categories_found: list[str] = []
             boxes: list[BoundingBox] = []
 
-            logger.debug(f"MegaDetector raw result type: {type(results)}, keys: {results.keys() if hasattr(results, 'keys') else 'N/A'}")
+            # Log full result structure for debugging
+            logger.info(
+                f"MegaDetector result: type={type(results).__name__}, "
+                f"keys={list(results.keys()) if isinstance(results, dict) else 'N/A'}"
+            )
+            if isinstance(results, dict):
+                for k, v in results.items():
+                    logger.info(f"  result['{k}']: type={type(v).__name__}, value={repr(v)[:200]}")
 
-            # PytorchWildlife returns a dict with numpy arrays:
-            #   "detections": Tensor/array of shape (N, 5) [x1, y1, x2, y2, conf] (pixel coords)
-            #   "labels": list of category strings like "animal", "person", "vehicle"
-            det_array = results.get("detections") if hasattr(results, "get") else None
-            labels = results.get("labels", []) if hasattr(results, "get") else []
+            # Extract detections - handle multiple PytorchWildlife output formats
+            det_data = None
+            labels: list[str] = []
 
-            if det_array is not None and hasattr(det_array, '__len__') and len(det_array) > 0:
-                # Convert to numpy if tensor
-                if hasattr(det_array, 'cpu'):
-                    det_array = det_array.cpu().numpy()
-                det_array = np.array(det_array)
+            if isinstance(results, dict):
+                det_data = results.get("detections")
+                labels = results.get("labels", [])
+                # Some versions use "classes" instead of "labels"
+                if not labels:
+                    labels = results.get("classes", [])
+            elif isinstance(results, (list, tuple)) and len(results) >= 2:
+                det_data = results[0]
+                labels = list(results[1]) if len(results) > 1 else []
 
-                for i in range(len(det_array)):
-                    row = det_array[i]
-                    # row is [x1, y1, x2, y2, conf] in pixel coordinates
-                    if len(row) >= 5:
-                        x1, y1, x2, y2, conf = float(row[0]), float(row[1]), float(row[2]), float(row[3]), float(row[4])
-                    else:
-                        continue
+            if det_data is not None:
+                # Convert to numpy array for uniform handling
+                if hasattr(det_data, 'cpu'):
+                    det_data = det_data.cpu().numpy()
+                det_array = np.atleast_2d(np.array(det_data, dtype=float))
 
-                    # Get category label
-                    cat_name = str(labels[i]).lower() if i < len(labels) else CATEGORY_ANIMAL
+                # Skip if empty (shape (1, 0) or similar)
+                if det_array.size > 0 and det_array.shape[-1] >= 5:
+                    for i in range(det_array.shape[0]):
+                        x1, y1, x2, y2, conf = (
+                            float(det_array[i, 0]),
+                            float(det_array[i, 1]),
+                            float(det_array[i, 2]),
+                            float(det_array[i, 3]),
+                            float(det_array[i, 4]),
+                        )
 
-                    if conf >= DETECTION_CONFIDENCE_THRESHOLD:
-                        if cat_name not in categories_found:
-                            categories_found.append(cat_name)
+                        cat_name = str(labels[i]).lower() if i < len(labels) else CATEGORY_ANIMAL
 
-                        # Normalise pixel coords to 0-1
-                        boxes.append(BoundingBox(
-                            x=x1 / img_w,
-                            y=y1 / img_h,
-                            w=(x2 - x1) / img_w,
-                            h=(y2 - y1) / img_h,
-                            confidence=conf,
-                            category=cat_name,
-                        ))
+                        if conf >= DETECTION_CONFIDENCE_THRESHOLD:
+                            if cat_name not in categories_found:
+                                categories_found.append(cat_name)
 
-                    if cat_name == CATEGORY_ANIMAL and conf > max_animal_conf:
-                        max_animal_conf = conf
+                            boxes.append(BoundingBox(
+                                x=x1 / img_w,
+                                y=y1 / img_h,
+                                w=(x2 - x1) / img_w,
+                                h=(y2 - y1) / img_h,
+                                confidence=conf,
+                                category=cat_name,
+                            ))
+
+                        if cat_name == CATEGORY_ANIMAL and conf > max_animal_conf:
+                            max_animal_conf = conf
 
             has_animal = max_animal_conf >= DETECTION_CONFIDENCE_THRESHOLD
 

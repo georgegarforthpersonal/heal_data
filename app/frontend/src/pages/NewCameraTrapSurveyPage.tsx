@@ -980,7 +980,7 @@ export function NewCameraTrapSurveyPage() {
             </Alert>
           )}
 
-          {/* Results: full image viewer with bounding boxes */}
+          {/* Results */}
           {!filtering && filterResults.size > 0 && (() => {
             const currentResult = filterResults.get(filterViewIndex);
             const currentImg = imageFiles[filterViewIndex];
@@ -988,9 +988,27 @@ export function NewCameraTrapSurveyPage() {
             const isOverriddenFP = falsePositiveOverrides.has(filterViewIndex);
             const isIncluded = isOverriddenFP ? false : (isRestored || (currentResult?.has_animal ?? true));
 
+            // Helper to compute inclusion for any image index
+            const isImageIncluded = (idx: number) => {
+              const r = filterResults.get(idx);
+              if (falsePositiveOverrides.has(idx)) return false;
+              if (restoredImages.has(idx)) return true;
+              return r?.has_animal ?? true;
+            };
+
+            // Build the two groups
+            const animalIndices: number[] = [];
+            const emptyIndices: number[] = [];
+            imageFiles.forEach((_, idx) => {
+              if (filterResults.has(idx)) {
+                if (isImageIncluded(idx)) animalIndices.push(idx);
+                else emptyIndices.push(idx);
+              }
+            });
+
             return (
               <>
-                {/* Summary bar */}
+                {/* Summary */}
                 <Alert
                   severity={filterSummary.emptyCount > 0 ? 'success' : 'info'}
                   sx={{ mb: 2 }}
@@ -1009,20 +1027,59 @@ export function NewCameraTrapSurveyPage() {
                   )}
                 </Alert>
 
-                {/* Image counter */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                {/* Full-size image viewer */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Image {filterViewIndex + 1} of {imageFiles.length}
+                    {currentImg?.filename}
+                    {currentImg?.exifDate && (
+                      <> &mdash; {dayjs(currentImg.exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
+                    )}
                   </Typography>
-                  <Chip
-                    label={isIncluded ? 'Included' : 'Excluded'}
-                    size="small"
-                    color={isIncluded ? 'success' : 'default'}
-                    variant={isIncluded ? 'filled' : 'outlined'}
-                  />
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip
+                      label={isIncluded ? 'Included' : 'Excluded'}
+                      size="small"
+                      color={isIncluded ? 'success' : 'default'}
+                      variant={isIncluded ? 'filled' : 'outlined'}
+                    />
+                    {isIncluded ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={<RemoveCircleOutline />}
+                        onClick={() => {
+                          if (isRestored) {
+                            setRestoredImages((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
+                          } else {
+                            setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
+                          }
+                        }}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Exclude
+                      </Button>
+                    ) : (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        startIcon={<Restore />}
+                        onClick={() => {
+                          if (isOverriddenFP) {
+                            setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
+                          } else {
+                            setRestoredImages((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
+                          }
+                        }}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Restore
+                      </Button>
+                    )}
+                  </Stack>
                 </Box>
 
-                {/* Full-size image with bounding box overlays */}
                 <Box
                   sx={{
                     position: 'relative',
@@ -1056,18 +1113,18 @@ export function NewCameraTrapSurveyPage() {
                         top: `${det.y * 100}%`,
                         width: `${det.w * 100}%`,
                         height: `${det.h * 100}%`,
-                        border: '2px solid',
-                        borderColor: det.category === 'animal' ? 'error.main' : det.category === 'person' ? 'warning.main' : 'info.main',
-                        borderRadius: 0.5,
+                        border: '2.5px solid',
+                        borderColor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
                         pointerEvents: 'none',
                         '&::after': {
                           content: `"${det.category} ${(det.confidence * 100).toFixed(0)}%"`,
                           position: 'absolute',
                           top: -18,
                           left: -2,
-                          bgcolor: det.category === 'animal' ? 'error.main' : det.category === 'person' ? 'warning.main' : 'info.main',
+                          bgcolor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
                           color: 'white',
-                          fontSize: '0.6rem',
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
                           px: 0.5,
                           py: 0.1,
                           borderRadius: '2px 2px 0 0',
@@ -1078,65 +1135,23 @@ export function NewCameraTrapSurveyPage() {
                   ))}
                 </Box>
 
-                {/* Image info and action */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {currentImg?.filename}
-                      {currentImg?.exifDate && (
-                        <> &mdash; {dayjs(currentImg.exifDate).format('DD/MM/YYYY HH:mm:ss')}</>
+                {/* Image info below viewer */}
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                  {currentResult ? (
+                    <>
+                      Confidence: {(currentResult.max_confidence * 100).toFixed(0)}%
+                      {currentResult.detections?.length > 0 && (
+                        <> &middot; {currentResult.detections.length} detection{currentResult.detections.length !== 1 ? 's' : ''}</>
                       )}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {currentResult ? (
-                        <>
-                          Confidence: {(currentResult.max_confidence * 100).toFixed(0)}%
-                          {currentResult.detections?.length > 0 && (
-                            <> &middot; {currentResult.detections.length} detection{currentResult.detections.length !== 1 ? 's' : ''}</>
-                          )}
-                        </>
-                      ) : 'No result'}
-                    </Typography>
-                  </Box>
-                  {isIncluded ? (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      startIcon={<RemoveCircleOutline />}
-                      onClick={() => {
-                        if (isRestored) {
-                          setRestoredImages((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
-                        } else {
-                          setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
-                        }
-                      }}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Exclude
-                    </Button>
-                  ) : (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="success"
-                      startIcon={<Restore />}
-                      onClick={() => {
-                        if (isOverriddenFP) {
-                          setFalsePositiveOverrides((prev) => { const next = new Set(prev); next.delete(filterViewIndex); return next; });
-                        } else {
-                          setRestoredImages((prev) => { const next = new Set(prev); next.add(filterViewIndex); return next; });
-                        }
-                      }}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Restore
-                    </Button>
-                  )}
-                </Box>
+                      {currentResult.detections?.length === 0 && !currentResult.has_animal && (
+                        <> &middot; No animals detected</>
+                      )}
+                    </>
+                  ) : 'No result'}
+                </Typography>
 
                 {/* Navigation arrows */}
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
                   <IconButton
                     onClick={() => setFilterViewIndex((prev) => Math.max(0, prev - 1))}
                     disabled={filterViewIndex === 0}
@@ -1151,55 +1166,94 @@ export function NewCameraTrapSurveyPage() {
                   </IconButton>
                 </Stack>
 
-                {/* Thumbnail strip */}
-                <Box
-                  ref={filterThumbnailStripRef}
-                  sx={{
-                    display: 'flex',
-                    gap: 0.5,
-                    overflowX: 'auto',
-                    pb: 1,
-                    '&::-webkit-scrollbar': { height: 6 },
-                    '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 },
-                  }}
-                >
-                  {imageFiles.map((img, idx) => {
-                    const result = filterResults.get(idx);
-                    const isCurrent = idx === filterViewIndex;
-                    const thumbIsRestored = restoredImages.has(idx);
-                    const thumbIsOverriddenFP = falsePositiveOverrides.has(idx);
-                    const thumbIncluded = thumbIsOverriddenFP ? false : (thumbIsRestored || (result?.has_animal ?? true));
-
-                    return (
-                      <Box
-                        key={idx}
-                        onClick={() => setFilterViewIndex(idx)}
-                        sx={{
-                          flexShrink: 0,
-                          width: 56,
-                          height: 42,
-                          borderRadius: 0.5,
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          border: '2px solid',
-                          borderColor: isCurrent ? 'primary.main' : thumbIncluded ? 'transparent' : 'error.main',
-                          opacity: thumbIncluded ? 1 : 0.4,
-                          position: 'relative',
-                        }}
-                      >
-                        <img
-                          src={img.objectUrl}
-                          alt={img.filename}
-                          loading="lazy"
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
+                {/* Two-group thumbnail sections */}
+                {emptyIndices.length > 0 && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                      Empty / No Animal Detected ({emptyIndices.length})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      These images will be excluded. Click to review, then Restore any the AI got wrong.
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                        gap: 0.5,
+                        maxHeight: 300,
+                        overflow: 'auto',
+                      }}
+                    >
+                      {emptyIndices.map((idx) => (
+                        <Box
+                          key={idx}
+                          onClick={() => setFilterViewIndex(idx)}
+                          sx={{
+                            cursor: 'pointer',
+                            borderRadius: 0.5,
+                            overflow: 'hidden',
+                            opacity: 0.6,
+                            border: '2px solid',
+                            borderColor: idx === filterViewIndex ? 'primary.main' : 'transparent',
+                            transition: 'opacity 0.15s',
+                            '&:hover': { opacity: 0.9 },
                           }}
-                        />
-                      </Box>
-                    );
-                  })}
+                        >
+                          <img
+                            src={imageFiles[idx].objectUrl}
+                            alt={imageFiles[idx].filename}
+                            loading="lazy"
+                            style={{ width: '100%', height: 75, objectFit: 'cover' }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                <Box sx={{ mb: 2 }}>
+                  <Button
+                    onClick={() => setShowAnimalImages(!showAnimalImages)}
+                    startIcon={showAnimalImages ? <ExpandLess /> : <ExpandMore />}
+                    sx={{ textTransform: 'none', mb: 1, color: 'text.primary', p: 0 }}
+                  >
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      Images with Animals ({animalIndices.length})
+                    </Typography>
+                  </Button>
+                  {showAnimalImages && (
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                        gap: 0.5,
+                        maxHeight: 300,
+                        overflow: 'auto',
+                      }}
+                    >
+                      {animalIndices.map((idx) => (
+                        <Box
+                          key={idx}
+                          onClick={() => setFilterViewIndex(idx)}
+                          sx={{
+                            cursor: 'pointer',
+                            borderRadius: 0.5,
+                            overflow: 'hidden',
+                            border: '2px solid',
+                            borderColor: idx === filterViewIndex ? 'primary.main' : 'transparent',
+                            '&:hover': { opacity: 0.8 },
+                          }}
+                        >
+                          <img
+                            src={imageFiles[idx].objectUrl}
+                            alt={imageFiles[idx].filename}
+                            loading="lazy"
+                            style={{ width: '100%', height: 75, objectFit: 'cover' }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
                 </Box>
               </>
             );
