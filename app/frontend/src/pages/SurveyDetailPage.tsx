@@ -14,6 +14,7 @@ import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSpeciesIcon } from '../config';
 import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
+import { ImageViewerModal, type ImageViewerItem } from '../components/ImageViewerModal';
 
 /**
  * Small thumbnail component that lazily loads a presigned URL for a camera trap image
@@ -80,6 +81,28 @@ export function SurveyDetailPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Sighting image viewer state
+  const [sightingViewerImages, setSightingViewerImages] = useState<ImageViewerItem[]>([]);
+  const [sightingViewerOpen, setSightingViewerOpen] = useState(false);
+  const [sightingViewerInitialIdx, setSightingViewerInitialIdx] = useState(0);
+
+  const openSightingImageViewer = async (imageIds: number[], clickedIndex: number) => {
+    // Fetch preview URLs for all images in parallel
+    const urls = await Promise.all(
+      imageIds.map(async (imgId) => {
+        try {
+          const res = await imagesAPI.getPreviewUrl(imgId);
+          return { src: res.preview_url, alt: `Image ${imgId}` };
+        } catch {
+          return { src: '', alt: `Image ${imgId}` };
+        }
+      })
+    );
+    setSightingViewerImages(urls.filter((u) => u.src));
+    setSightingViewerInitialIdx(clickedIndex);
+    setSightingViewerOpen(true);
+  };
 
   // Audio upload state
   const [audioRecordings, setAudioRecordings] = useState<AudioRecording[]>([]);
@@ -1016,11 +1039,17 @@ export function SurveyDetailPage() {
                               )}
                             </Box>
 
-                            {/* Camera Trap Image Thumbnails */}
+                            {/* Camera Trap Image Thumbnails — click to view */}
                             {imageIds.length > 0 && (
                               <Box sx={{ display: 'flex', gap: 0.5, px: 1.5, pb: 1.5, flexWrap: 'wrap' }}>
-                                {imageIds.map((imgId: number) => (
-                                  <SightingImageThumbnail key={imgId} imageId={imgId} />
+                                {imageIds.map((imgId: number, imgIdx: number) => (
+                                  <Box
+                                    key={imgId}
+                                    onClick={() => openSightingImageViewer(imageIds, imgIdx)}
+                                    sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+                                  >
+                                    <SightingImageThumbnail imageId={imgId} />
+                                  </Box>
                                 ))}
                               </Box>
                             )}
@@ -1261,6 +1290,14 @@ export function SurveyDetailPage() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Sighting image viewer modal */}
+        <ImageViewerModal
+          open={sightingViewerOpen}
+          onClose={() => setSightingViewerOpen(false)}
+          images={sightingViewerImages}
+          initialIndex={sightingViewerInitialIdx}
+        />
     </Box>
   );
 }
