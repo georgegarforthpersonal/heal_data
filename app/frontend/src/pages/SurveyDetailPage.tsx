@@ -77,7 +77,6 @@ export function SurveyDetailPage() {
   const [locationsWithBoundaries, setLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSightingImages, setExpandedSightingImages] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1019,31 +1018,10 @@ export function SurveyDetailPage() {
 
                             {/* Camera Trap Image Thumbnails */}
                             {imageIds.length > 0 && (
-                              <Box sx={{ px: 1.5, pb: 1.5 }}>
-                                {expandedSightingImages.has(sighting.id) ? (
-                                  <>
-                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 0.5 }}>
-                                      {imageIds.map((imgId: number) => (
-                                        <SightingImageThumbnail key={imgId} imageId={imgId} />
-                                      ))}
-                                    </Box>
-                                    <Button
-                                      size="small"
-                                      onClick={() => setExpandedSightingImages((prev) => { const next = new Set(prev); next.delete(sighting.id); return next; })}
-                                      sx={{ textTransform: 'none', fontSize: '0.7rem', p: 0, minWidth: 0 }}
-                                    >
-                                      Hide images
-                                    </Button>
-                                  </>
-                                ) : (
-                                  <Button
-                                    size="small"
-                                    onClick={() => setExpandedSightingImages((prev) => { const next = new Set(prev); next.add(sighting.id); return next; })}
-                                    sx={{ textTransform: 'none', fontSize: '0.7rem', p: 0, minWidth: 0 }}
-                                  >
-                                    View {imageIds.length} image{imageIds.length !== 1 ? 's' : ''}
-                                  </Button>
-                                )}
+                              <Box sx={{ display: 'flex', gap: 0.5, px: 1.5, pb: 1.5, flexWrap: 'wrap' }}>
+                                {imageIds.map((imgId: number) => (
+                                  <SightingImageThumbnail key={imgId} imageId={imgId} />
+                                ))}
                               </Box>
                             )}
                             </Box>
