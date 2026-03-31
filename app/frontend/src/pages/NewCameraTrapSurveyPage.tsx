@@ -1362,28 +1362,65 @@ export function NewCameraTrapSurveyPage() {
             </Stack>
           )}
 
-          {/* Main image */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              bgcolor: 'black',
-              borderRadius: 1,
-              overflow: 'hidden',
-              mb: 2,
-              maxHeight: '50vh',
-            }}
-          >
-            <img
-              src={filteredImageFiles[currentImageIndex].objectUrl}
-              alt={filteredImageFiles[currentImageIndex].filename}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '50vh',
-                objectFit: 'contain',
-              }}
-            />
-          </Box>
+          {/* Main image with bounding boxes */}
+          {(() => {
+            const origIdx = filteredToOriginalIndex[currentImageIndex];
+            const detections = origIdx !== undefined ? filterResults.get(origIdx)?.detections : undefined;
+            return (
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  bgcolor: 'black',
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  mb: 2,
+                  maxHeight: '50vh',
+                }}
+              >
+                <Box sx={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '50vh' }}>
+                  <img
+                    src={filteredImageFiles[currentImageIndex].objectUrl}
+                    alt={filteredImageFiles[currentImageIndex].filename}
+                    style={{
+                      display: 'block',
+                      maxWidth: '100%',
+                      maxHeight: '50vh',
+                    }}
+                  />
+                  {detections?.map((det, detIdx) => (
+                    <Box
+                      key={detIdx}
+                      sx={{
+                        position: 'absolute',
+                        left: `${det.x * 100}%`,
+                        top: `${det.y * 100}%`,
+                        width: `${det.w * 100}%`,
+                        height: `${det.h * 100}%`,
+                        border: '2.5px solid',
+                        borderColor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
+                        pointerEvents: 'none',
+                        '&::after': {
+                          content: `"${det.category} ${(det.confidence * 100).toFixed(0)}%"`,
+                          position: 'absolute',
+                          top: -18,
+                          left: -2,
+                          bgcolor: det.category === 'animal' ? '#f44336' : det.category === 'person' ? '#ff9800' : '#2196f3',
+                          color: 'white',
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          px: 0.5,
+                          py: 0.1,
+                          borderRadius: '2px 2px 0 0',
+                          whiteSpace: 'nowrap',
+                        },
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            );
+          })()}
 
           {/* Image info */}
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
