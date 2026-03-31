@@ -123,7 +123,6 @@ export function NewCameraTrapSurveyPage() {
 
   // ---- Step 5: Review ----
   const [deselectedImages, setDeselectedImages] = useState<Set<string>>(new Set()); // "speciesId-imageIndex"
-  const [expandedReviewSpecies, setExpandedReviewSpecies] = useState<Set<number>>(new Set());
 
   // ---- Step 6: Save ----
   const [saving, setSaving] = useState(false);
@@ -619,7 +618,7 @@ export function NewCameraTrapSurveyPage() {
 
         await surveysAPI.addSighting(survey.id, {
           species_id: speciesId,
-          count: 1,
+          count: individuals.length,
           individuals,
         });
       }
@@ -1587,16 +1586,15 @@ export function NewCameraTrapSurveyPage() {
             </Alert>
           )}
 
-          <Stack spacing={2}>
+          <Stack spacing={3}>
             {reviewData.map(({ speciesId, speciesName, imageIndices }) => {
               const selectedCount = imageIndices.filter(
                 (idx) => !deselectedImages.has(`${speciesId}-${idx}`)
               ).length;
-              const isExpanded = expandedReviewSpecies.has(speciesId);
 
               return (
                 <Box key={speciesId}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <PhotoCamera fontSize="small" color="action" />
                     <Typography variant="subtitle1" fontWeight={600}>
                       {speciesName}
@@ -1606,77 +1604,60 @@ export function NewCameraTrapSurveyPage() {
                       size="small"
                       color={selectedCount > 0 ? 'primary' : 'default'}
                     />
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        setExpandedReviewSpecies((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(speciesId)) next.delete(speciesId);
-                          else next.add(speciesId);
-                          return next;
-                        });
-                      }}
-                      sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-                    >
-                      {isExpanded ? 'Hide images' : 'View images'}
-                    </Button>
                   </Box>
-                  {isExpanded && (
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                        gap: 1,
-                        mt: 1,
-                      }}
-                    >
-                      {imageIndices.map((idx) => {
-                        const key = `${speciesId}-${idx}`;
-                        const isSelected = !deselectedImages.has(key);
-                        return (
-                          <Box
-                            key={idx}
-                            onClick={() => toggleImageSelection(speciesId, idx)}
-                            sx={{
-                              position: 'relative',
-                              cursor: 'pointer',
-                              opacity: isSelected ? 1 : 0.4,
-                              border: isSelected ? '2px solid' : '2px solid transparent',
-                              borderColor: isSelected ? 'primary.main' : 'transparent',
-                              borderRadius: 1,
-                              overflow: 'hidden',
-                              transition: 'opacity 0.15s',
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                      gap: 1,
+                    }}
+                  >
+                    {imageIndices.map((idx) => {
+                      const key = `${speciesId}-${idx}`;
+                      const isSelected = !deselectedImages.has(key);
+                      return (
+                        <Box
+                          key={idx}
+                          onClick={() => toggleImageSelection(speciesId, idx)}
+                          sx={{
+                            position: 'relative',
+                            cursor: 'pointer',
+                            opacity: isSelected ? 1 : 0.4,
+                            border: isSelected ? '2px solid' : '2px solid transparent',
+                            borderColor: isSelected ? 'primary.main' : 'transparent',
+                            borderRadius: 1,
+                            overflow: 'hidden',
+                            transition: 'opacity 0.15s',
+                          }}
+                        >
+                          <img
+                            src={imageFiles[idx].objectUrl}
+                            alt={imageFiles[idx].filename}
+                            loading="lazy"
+                            style={{
+                              width: '100%',
+                              height: 100,
+                              objectFit: 'cover',
                             }}
-                          >
-                            <img
-                              src={imageFiles[idx].objectUrl}
-                              alt={imageFiles[idx].filename}
-                              loading="lazy"
-                              style={{
-                                width: '100%',
-                                height: 100,
-                                objectFit: 'cover',
-                              }}
-                            />
-                            <Checkbox
-                              checked={isSelected}
-                              size="small"
-                              sx={{
-                                position: 'absolute',
-                                top: 0,
-                                right: 0,
-                                bgcolor: 'rgba(255,255,255,0.8)',
-                                borderRadius: 0,
-                                p: 0.25,
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={() => toggleImageSelection(speciesId, idx)}
-                            />
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
+                          />
+                          <Checkbox
+                            checked={isSelected}
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              bgcolor: 'rgba(255,255,255,0.8)',
+                              borderRadius: 0,
+                              p: 0.25,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => toggleImageSelection(speciesId, idx)}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Box>
                 </Box>
               );
             })}
