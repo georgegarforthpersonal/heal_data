@@ -42,7 +42,7 @@ class MegaDetectorService:
             from PytorchWildlife.models import detection as pw_detection
 
             logger.info("Loading MegaDetector V6 model...")
-            self.model = pw_detection.MegaDetectorV6()
+            self.model = pw_detection.MegaDetectorV6(version="MDV6-yolov9-c")
             logger.info("MegaDetector V6 loaded successfully")
             self._loaded = True
             return True
