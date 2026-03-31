@@ -1,7 +1,7 @@
 """add_megadetector_fields_to_camera_trap_image
 
 Revision ID: b7f8e9a1c2d3
-Revises: 127e785ae2ca
+Revises: l7m8n9o0p1q2
 Create Date: 2026-03-31 12:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'b7f8e9a1c2d3'
-down_revision: Union[str, Sequence[str], None] = '127e785ae2ca'
+down_revision: Union[str, Sequence[str], None] = 'l7m8n9o0p1q2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

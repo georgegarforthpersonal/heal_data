@@ -964,11 +964,11 @@ export function SurveyDetailPage() {
                             : 'No location recorded';
 
                           // Collect camera trap image IDs (prefer junction table, fall back to individuals)
-                          const imageIds: number[] = (sighting as any).image_ids?.length
-                            ? (sighting as any).image_ids
+                          const imageIds: number[] = sighting.image_ids?.length
+                            ? sighting.image_ids
                             : (sighting.individuals || [])
-                                .map((ind: any) => ind.camera_trap_image_id)
-                                .filter((id: number | null) => id != null);
+                                .map((ind) => ind.camera_trap_image_id)
+                                .filter((id): id is number => id != null);
 
                           return (
                             <Box key={sighting.id} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>

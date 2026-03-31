@@ -19,6 +19,15 @@ CATEGORY_VEHICLE = "vehicle"
 # Deliberately low to avoid filtering real animals.
 DETECTION_CONFIDENCE_THRESHOLD = 0.15
 
+# Map MegaDetector label strings/IDs to canonical category names
+CATEGORY_MAP: dict[str, str] = {
+    "animal": CATEGORY_ANIMAL, "person": CATEGORY_PERSON, "vehicle": CATEGORY_VEHICLE,
+    # MegaDetector ID convention (1-indexed)
+    "1": CATEGORY_ANIMAL, "2": CATEGORY_PERSON, "3": CATEGORY_VEHICLE,
+    # YOLO ID convention (0-indexed)
+    "0": CATEGORY_ANIMAL,
+}
+
 
 @dataclass
 class BoundingBox:
@@ -43,6 +52,7 @@ class MegaDetectorService:
 
     def __init__(self) -> None:
         self.model: Any = None
+        self._np: Any = None
         self._loaded = False
 
     def load(self) -> bool:
@@ -51,9 +61,11 @@ class MegaDetectorService:
 
         try:
             from PytorchWildlife.models import detection as pw_detection
+            import numpy as np
 
             logger.info("Loading MegaDetector V6 model...")
             self.model = pw_detection.MegaDetectorV6(version="MDV6-yolov9-c")
+            self._np = np
             logger.info("MegaDetector V6 loaded successfully")
             self._loaded = True
             return True
@@ -70,9 +82,7 @@ class MegaDetectorService:
             raise RuntimeError("MegaDetector model not loaded")
 
         try:
-            from PytorchWildlife import utils as pw_utils
-            import torch
-            import numpy as np
+            np = self._np
 
             # Load and prepare image
             img = Image.open(image_path).convert("RGB")
@@ -116,13 +126,6 @@ class MegaDetectorService:
                         # Category from labels list or default
                         # Labels may be names ("animal") or IDs ("0"/"1")
                         raw_label = str(labels[i]).lower().strip() if i < len(labels) and labels[i] is not None else ""
-                        CATEGORY_MAP = {
-                            "animal": CATEGORY_ANIMAL, "person": CATEGORY_PERSON, "vehicle": CATEGORY_VEHICLE,
-                            # MegaDetector ID convention (1-indexed)
-                            "1": CATEGORY_ANIMAL, "2": CATEGORY_PERSON, "3": CATEGORY_VEHICLE,
-                            # YOLO ID convention (0-indexed)
-                            "0": CATEGORY_ANIMAL,
-                        }
                         cat_name = CATEGORY_MAP.get(raw_label, CATEGORY_ANIMAL)
 
                         if conf >= DETECTION_CONFIDENCE_THRESHOLD:
