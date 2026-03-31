@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon, CloudUpload, AudioFile, CheckCircle, Error as ErrorIcon, Pending, Warning, PhotoCamera } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon, CloudUpload, AudioFile, CheckCircle, Error as ErrorIcon, Pending, Warning } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, audioAPI, imagesAPI } from '../services/api';
@@ -208,7 +208,8 @@ export function SurveyDetailPage() {
   /**
    * Get location name from ID
    */
-  const getLocationName = (id: number): string => {
+  const getLocationName = (id: number | null): string => {
+    if (id === null) return 'Unknown';
     const location = locations.find(l => l.id === id);
     return location?.name || 'Unknown';
   };
