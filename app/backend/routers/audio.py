@@ -267,13 +267,13 @@ async def upload_audio_files(
         # Extract metadata from filename
         info = extract_recording_info(file.filename)
 
-        # Upload to R2
-        r2_key = upload_audio_file(file.file, file.filename, org.slug)
-
-        # Get file size
+        # Get file size before upload (upload may close the stream)
         file.file.seek(0, 2)  # Seek to end
         file_size = file.file.tell()
         file.file.seek(0)  # Reset
+
+        # Upload to R2
+        r2_key = upload_audio_file(file.file, file.filename, org.slug)
 
         # Create database record
         recording = AudioRecording(
