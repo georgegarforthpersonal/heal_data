@@ -71,10 +71,8 @@ export function ReviewStep({ wizard }: ReviewStepProps) {
                 borderColor: 'divider',
                 alignItems: 'center',
                 '&:last-child': { borderBottom: 'none' },
-                opacity: isSelected ? 1 : 0.4,
                 cursor: 'pointer',
                 '&:hover': { bgcolor: 'grey.50' },
-                transition: 'opacity 0.15s',
               }}
               onClick={() => toggleSpecies(species.speciesId)}
             >
