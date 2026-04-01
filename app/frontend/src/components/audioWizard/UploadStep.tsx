@@ -101,9 +101,6 @@ export function UploadStep({ wizard }: UploadStepProps) {
               {processProgress.currentFilename}
             </Typography>
           )}
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, ml: 4.5 }}>
-            Uploading file and running BirdNET analysis.
-          </Typography>
           <LinearProgress
             variant="determinate"
             value={processProgress.total > 0 ? (processProgress.processed / processProgress.total) * 100 : 0}
