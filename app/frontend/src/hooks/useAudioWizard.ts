@@ -18,6 +18,7 @@ import type {
   AudioDetectionResult,
   FileProcessingResult,
 } from '../services/api';
+import { extractWavSnippet } from '../utils/wavSnippet';
 
 // ============================================================================
 // Types
@@ -52,6 +53,20 @@ export interface SpeciesReviewData {
 export const AUDIO_WIZARD_STEPS = ['Setup', 'Upload', 'Review', 'Save'] as const;
 
 const UPLOAD_BATCH_SIZE = 10;
+
+function parseTime(timeStr: string): number {
+  const parts = timeStr.split(':').map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return Number(timeStr) || 0;
+}
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 // ============================================================================
 // Hook
@@ -333,48 +348,84 @@ export function useAudioWizard() {
         throw new Error(`Failed to create survey: ${createErr instanceof Error ? createErr.message : String(createErr)}`);
       }
 
-      // 2. Upload audio files (skip processing — already done in wizard)
-      const filesToUpload = audioFiles.map((af) => af.file);
-      const totalFiles = filesToUpload.length;
-      setSaveProgress({ step: `Uploading ${totalFiles} audio files...`, percent: 10 });
+      // 2. Collect top 3 snippets per selected species
+      const selectedReviewData = reviewData.filter((s) => !deselectedSpecies.has(s.speciesId));
+      interface SnippetInfo {
+        speciesId: number;
+        speciesData: SpeciesReviewData;
+        det: WizardDetection;
+        snippetFilename: string;
+      }
+      const snippetsToExtract: SnippetInfo[] = [];
 
+      for (const speciesData of selectedReviewData) {
+        // Only top 3 detections per species
+        for (const det of speciesData.topDetections) {
+          snippetsToExtract.push({
+            speciesId: speciesData.speciesId,
+            speciesData,
+            det,
+            snippetFilename: `snippet_${speciesData.speciesId}_${det.start_time.replace(/:/g, '')}_${det.fileIndex}.wav`,
+          });
+        }
+      }
+
+      // 3. Extract WAV snippets from local files and upload
+      const totalSnippets = snippetsToExtract.length;
+      setSaveProgress({ step: `Extracting ${totalSnippets} audio snippets...`, percent: 10 });
+
+      const snippetFiles: File[] = [];
+      for (let i = 0; i < snippetsToExtract.length; i++) {
+        const { det, snippetFilename } = snippetsToExtract[i];
+        const sourceFile = audioFiles[det.fileIndex]?.file;
+        if (!sourceFile) continue;
+
+        const snippetBlob = await extractWavSnippet(sourceFile, det.start_time, det.end_time);
+        snippetFiles.push(new File([snippetBlob], snippetFilename, { type: 'audio/wav' }));
+
+        const extractPercent = 10 + Math.round(((i + 1) / totalSnippets) * 25);
+        setSaveProgress({ step: `Extracted ${i + 1} of ${totalSnippets} snippets...`, percent: extractPercent });
+      }
+
+      setSaveProgress({ step: `Uploading ${totalSnippets} snippets...`, percent: 40 });
       const uploadedRecordings: AudioRecording[] = [];
-      for (let i = 0; i < filesToUpload.length; i += UPLOAD_BATCH_SIZE) {
-        const batch = filesToUpload.slice(i, i + UPLOAD_BATCH_SIZE);
+      for (let i = 0; i < snippetFiles.length; i += UPLOAD_BATCH_SIZE) {
+        const batch = snippetFiles.slice(i, i + UPLOAD_BATCH_SIZE);
         let result;
         try {
           result = await audioAPI.uploadFilesSkipProcessing(survey.id, batch);
         } catch (uploadErr: unknown) {
-          throw new Error(`Failed to upload audio files (batch ${Math.floor(i / UPLOAD_BATCH_SIZE) + 1}): ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`);
+          throw new Error(`Failed to upload snippets: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`);
         }
         uploadedRecordings.push(...result);
-        const uploadPercent = 10 + Math.round(((i + batch.length) / totalFiles) * 55);
-        setSaveProgress({ step: `Uploaded ${Math.min(i + UPLOAD_BATCH_SIZE, totalFiles)} of ${totalFiles} files...`, percent: uploadPercent });
+        const uploadPercent = 40 + Math.round(((i + batch.length) / totalSnippets) * 30);
+        setSaveProgress({ step: `Uploaded ${Math.min(i + UPLOAD_BATCH_SIZE, totalSnippets)} of ${totalSnippets} snippets...`, percent: uploadPercent });
       }
 
-      // Build filename -> recording ID mapping
+      // Build snippet filename -> recording ID mapping
       const filenameToRecordingId = new Map<string, number>();
       for (const rec of uploadedRecordings) {
         filenameToRecordingId.set(rec.filename, rec.id);
       }
 
-      // 3. Create sightings for selected species
-      setSaveProgress({ step: 'Creating sightings...', percent: 70 });
-      const selectedReviewData = reviewData.filter((s) => !deselectedSpecies.has(s.speciesId));
+      // 4. Create sightings for selected species
+      setSaveProgress({ step: 'Creating sightings...', percent: 75 });
 
       for (const speciesData of selectedReviewData) {
-        // Map detections to audio_detections with recording IDs
-        const audioDetections = speciesData.allDetections
+        const audioDetections = speciesData.topDetections
           .map((det) => {
-            const filename = audioFiles[det.fileIndex]?.filename;
-            const recordingId = filename ? filenameToRecordingId.get(filename) : undefined;
+            const snippetFilename = `snippet_${speciesData.speciesId}_${det.start_time.replace(/:/g, '')}_${det.fileIndex}.wav`;
+            const recordingId = filenameToRecordingId.get(snippetFilename);
             if (!recordingId) return null;
             return {
               audio_recording_id: recordingId,
               species_name: det.species_name,
               confidence: det.confidence,
-              start_time: det.start_time,
-              end_time: det.end_time,
+              // Snippet-relative times (file IS the clip)
+              start_time: '00:00:00',
+              end_time: det.end_time > det.start_time
+                ? formatDuration(parseTime(det.end_time) - parseTime(det.start_time))
+                : '00:00:03',
             };
           })
           .filter((d): d is NonNullable<typeof d> => d !== null);

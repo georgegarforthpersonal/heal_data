@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon, AudioFile } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from '../context/AuthContext';
-import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, audioAPI, imagesAPI } from '../services/api';
-import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType, AudioRecording } from '../services/api';
+import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, imagesAPI } from '../services/api';
+import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -104,8 +104,6 @@ export function SurveyDetailPage() {
     setSightingViewerOpen(true);
   };
 
-  // Audio recordings state
-  const [audioRecordings, setAudioRecordings] = useState<AudioRecording[]>([]);
 
 
   // ============================================================================
@@ -183,45 +181,6 @@ export function SurveyDetailPage() {
     fetchData();
   }, [id]);
 
-  // Fetch audio recordings for audio surveys
-  useEffect(() => {
-    const fetchAudioRecordings = async () => {
-      if (!survey || !surveyType || surveyType.name.toLowerCase() !== 'audio') {
-        return;
-      }
-
-      try {
-        const recordings = await audioAPI.getRecordings(survey.id);
-        setAudioRecordings(recordings);
-      } catch (err) {
-        console.error('Error fetching audio recordings:', err);
-      }
-    };
-
-    fetchAudioRecordings();
-  }, [survey, surveyType]);
-
-  // Auto-refresh audio recordings while processing
-  useEffect(() => {
-    const hasProcessingRecordings = audioRecordings.some(
-      r => r.processing_status === 'pending' || r.processing_status === 'processing'
-    );
-
-    if (!hasProcessingRecordings || !survey) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const recordings = await audioAPI.getRecordings(survey.id);
-        setAudioRecordings(recordings);
-      } catch (err) {
-        console.error('Error auto-refreshing audio recordings:', err);
-      }
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [audioRecordings, survey]);
-
-
   // ============================================================================
   // Helper Functions
   // ============================================================================
@@ -281,7 +240,7 @@ export function SurveyDetailPage() {
   const locationAtSightingLevel = surveyType?.location_at_sighting_level ?? false;
   const allowGeolocation = surveyType?.allow_geolocation ?? true;
   const allowSightingNotes = surveyType?.allow_sighting_notes ?? true;
-  const allowAudioUpload = surveyType?.allow_audio_upload ?? false;
+
 
   // ============================================================================
   // Validation
@@ -1046,45 +1005,6 @@ export function SurveyDetailPage() {
           )}
         </Paper>
 
-        {/* Audio Recordings Section - Read-only list for audio surveys */}
-        {allowAudioUpload && audioRecordings.length > 0 && (
-          <Paper
-            sx={{
-              p: { xs: 2, sm: 2.5, md: 3 },
-              mt: { xs: 2, md: 3 },
-              boxShadow: 'none',
-              border: '1px solid',
-              borderColor: 'divider'
-            }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-              Audio Recordings ({audioRecordings.length})
-            </Typography>
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
-              {audioRecordings.map((recording, idx) => (
-                <Stack
-                  key={recording.id}
-                  direction="row"
-                  alignItems="center"
-                  spacing={1}
-                  sx={{
-                    px: 1.5, py: 1,
-                    borderBottom: idx < audioRecordings.length - 1 ? '1px solid' : 'none',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <AudioFile sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                    {recording.filename}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
-                    {recording.device_serial || ''}
-                  </Typography>
-                </Stack>
-              ))}
-            </Box>
-          </Paper>
-        )}
 
 
         {/* Delete Confirmation Dialog */}
