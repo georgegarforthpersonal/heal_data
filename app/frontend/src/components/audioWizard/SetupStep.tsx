@@ -1,15 +1,15 @@
 import { SetupStep as SharedSetupStep } from '../wizard';
-import type { CameraTrapWizardState } from '../../hooks/useCameraTrapWizard';
+import type { AudioWizardState } from '../../hooks/useAudioWizard';
 
 interface SetupStepProps {
-  wizard: CameraTrapWizardState;
+  wizard: AudioWizardState;
 }
 
 export function SetupStep({ wizard }: SetupStepProps) {
   return (
     <SharedSetupStep
       wizard={wizard}
-      noDevicesText="No camera trap devices found. Add one in Admin > Devices."
+      noDevicesText="No audio recorder devices found. Add one in Admin > Devices."
     />
   );
 }

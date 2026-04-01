@@ -81,7 +81,7 @@ EXPORT_TABLES: list[dict[str, Any]] = [
     {"table": "sighting_individual", "org_filter": ("sighting", "sighting_id")},
     {"table": "sighting_image", "org_filter": ("sighting", "sighting_id")},
     {"table": "audio_recording", "org_filter": ("survey", "survey_id")},
-    {"table": "bird_detection", "org_filter": ("audio_recording", "audio_recording_id")},
+    {"table": "audio_detection", "org_filter": ("audio_recording", "audio_recording_id")},
     {"table": "camera_trap_image", "org_filter": ("survey", "survey_id")},
     {"table": "camera_trap_detection", "org_filter": ("camera_trap_image", "camera_trap_image_id")},
 ]

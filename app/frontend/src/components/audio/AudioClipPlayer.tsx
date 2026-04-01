@@ -2,25 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Box, IconButton, Typography, CircularProgress, Tooltip } from '@mui/material';
 import { PlayArrow, Stop } from '@mui/icons-material';
 import { audioAPI } from '../../services/api';
+import { parseTimeToSeconds } from '../../utils/time';
 
 interface AudioClipPlayerProps {
-  audioRecordingId: number;
+  audioRecordingId?: number;
+  audioUrl?: string; // Direct URL (e.g. object URL for local files)
   startTime: string; // HH:MM:SS format
   endTime: string;   // HH:MM:SS format
   confidence: number; // 0-1
-}
-
-/**
- * Parse time string (HH:MM:SS) to seconds
- */
-function parseTimeToSeconds(timeStr: string): number {
-  const parts = timeStr.split(':').map(Number);
-  if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  } else if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
-  }
-  return Number(timeStr) || 0;
 }
 
 /**
@@ -31,6 +20,7 @@ function parseTimeToSeconds(timeStr: string): number {
  */
 export function AudioClipPlayer({
   audioRecordingId,
+  audioUrl,
   startTime,
   endTime,
   confidence
@@ -77,12 +67,22 @@ export function AudioClipPlayer({
     setError(null);
 
     try {
-      // Fetch presigned URL
-      const { download_url } = await audioAPI.getDownloadUrl(audioRecordingId);
+      // Use direct URL if provided, otherwise fetch presigned URL
+      let baseUrl: string;
+      if (audioUrl) {
+        baseUrl = audioUrl;
+      } else if (audioRecordingId) {
+        const { download_url } = await audioAPI.getDownloadUrl(audioRecordingId);
+        baseUrl = download_url;
+      } else {
+        setError('No audio source');
+        setIsLoading(false);
+        return;
+      }
 
       // Use Media Fragments URI to specify time range
       // This helps browsers handle seeking in large remote files
-      const urlWithFragment = `${download_url}#t=${startSeconds},${endSeconds}`;
+      const urlWithFragment = `${baseUrl}#t=${startSeconds},${endSeconds}`;
 
       // Create audio element
       const audio = new Audio(urlWithFragment);

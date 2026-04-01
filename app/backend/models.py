@@ -707,18 +707,37 @@ class IndividualLocationRead(IndividualLocationBase):
     id: int
 
 
+class AudioDetectionCreate(SQLModel):
+    """Model for creating a bird detection linked to a sighting"""
+    audio_recording_id: int = Field(description="Audio recording ID")
+    species_name: str = Field(description="BirdNET species name (Scientific_Common)")
+    confidence: float = Field(ge=0, le=1, description="Detection confidence")
+    start_time: str = Field(description="Start time within audio file (HH:MM:SS)")
+    end_time: str = Field(description="End time within audio file (HH:MM:SS)")
+
+
 class SightingCreate(SightingBase):
     """Model for creating a sighting with individual locations"""
     location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
     notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
     image_ids: List[int] = Field(default_factory=list, description="Camera trap image IDs to link")
+    audio_detections: List[AudioDetectionCreate] = Field(default_factory=list, description="Bird detections to link")
+
+
+class SightingAudioClip(SQLModel):
+    """Audio clip info returned with a sighting"""
+    confidence: float
+    audio_recording_id: int
+    start_time: time_type
+    end_time: time_type
 
 
 class SightingWithIndividuals(SightingWithDetails):
     """Sighting with individual location points"""
     individuals: List[IndividualLocationRead] = Field(default_factory=list, description="Individual location points")
     image_ids: List[int] = Field(default_factory=list, description="Linked camera trap image IDs")
+    audio_clips: List[SightingAudioClip] = Field(default_factory=list, description="Linked audio detection clips")
 
 
 # ============================================================================
@@ -841,7 +860,7 @@ class AudioRecording(AudioRecordingBase, table=True):  # type: ignore[call-arg]
 
     # Relationships
     survey: "Survey" = Relationship(back_populates="audio_recordings")
-    detections: List["BirdDetection"] = Relationship(
+    detections: List["AudioDetection"] = Relationship(
         back_populates="audio_recording",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
@@ -861,8 +880,8 @@ class AudioRecordingRead(AudioRecordingBase):
     unmatched_species: Optional[List[str]] = None
 
 
-class BirdDetectionBase(SQLModel):
-    """Base bird detection fields"""
+class AudioDetectionBase(SQLModel):
+    """Base audio detection fields"""
     species_name: str = Field(max_length=255)
     confidence: float = Field(ge=0, le=1)
     start_time: time_type
@@ -870,13 +889,14 @@ class BirdDetectionBase(SQLModel):
     detection_timestamp: datetime
 
 
-class BirdDetection(BirdDetectionBase, table=True):  # type: ignore[call-arg]
-    """Bird detection database model"""
-    __tablename__ = "bird_detection"
+class AudioDetection(AudioDetectionBase, table=True):  # type: ignore[call-arg]
+    """Audio detection database model"""
+    __tablename__ = "audio_detection"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     audio_recording_id: int = Field(foreign_key="audio_recording.id", ondelete="CASCADE", index=True)
     species_id: int = Field(foreign_key="species.id", ondelete="CASCADE")
+    sighting_id: Optional[int] = Field(default=None, foreign_key="sighting.id", ondelete="SET NULL", index=True)
 
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
@@ -886,10 +906,11 @@ class BirdDetection(BirdDetectionBase, table=True):  # type: ignore[call-arg]
     # Relationships
     audio_recording: "AudioRecording" = Relationship(back_populates="detections")
     species: "Species" = Relationship()
+    sighting: Optional["Sighting"] = Relationship()
 
 
-class BirdDetectionRead(BirdDetectionBase):
-    """Model for reading bird detection"""
+class AudioDetectionRead(AudioDetectionBase):
+    """Model for reading audio detection"""
     id: int
     species_id: Optional[int]
     species_common_name: Optional[str] = None
@@ -932,6 +953,33 @@ class SurveyDetectionsSummaryResponse(SQLModel):
         default_factory=list,
         description="List of species with their detection summaries"
     )
+
+
+# ============================================================================
+# Audio Processing Models (Wizard - process without storage)
+# ============================================================================
+
+class AudioDetectionResult(SQLModel):
+    """Single detection result from BirdNET processing"""
+    species_name: str = Field(description="BirdNET species string (Scientific_Common)")
+    species_id: Optional[int] = Field(None, description="Matched DB species ID")
+    species_common_name: Optional[str] = Field(None, description="DB common name")
+    species_scientific_name: Optional[str] = Field(None, description="DB scientific name")
+    confidence: float = Field(description="Detection confidence (0-1)")
+    start_time: str = Field(description="Start time HH:MM:SS")
+    end_time: str = Field(description="End time HH:MM:SS")
+
+
+class FileProcessingResult(SQLModel):
+    """Processing results for a single audio file"""
+    filename: str
+    detections: List[AudioDetectionResult] = Field(default_factory=list)
+    unmatched_species: List[str] = Field(default_factory=list)
+
+
+class AudioProcessingResponse(SQLModel):
+    """Response from the process-audio endpoint"""
+    results: List[FileProcessingResult] = Field(default_factory=list)
 
 
 # ============================================================================

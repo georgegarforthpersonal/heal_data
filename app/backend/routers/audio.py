@@ -2,6 +2,7 @@
 Audio Recordings Router - API endpoints for bird audio analysis
 
 Endpoints:
+  POST   /api/surveys/process-audio                  - Process audio files with BirdNET (no storage)
   GET    /api/surveys/{survey_id}/audio              - List audio recordings for survey
   POST   /api/surveys/{survey_id}/audio              - Upload audio file(s)
   GET    /api/surveys/{survey_id}/audio/{id}         - Get audio recording details
@@ -23,6 +24,7 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Query,
     UploadFile,
     status,
 )
@@ -34,12 +36,15 @@ from auth import require_admin
 from database.connection import get_db, get_session_factory
 from dependencies import get_current_organisation
 from models import (
+    AudioDetectionResult,
+    AudioProcessingResponse,
     AudioRecording,
     AudioRecordingRead,
-    BirdDetection,
-    BirdDetectionRead,
+    AudioDetection,
+    AudioDetectionRead,
     DetectionClip,
     Device,
+    FileProcessingResult,
     Location,
     Organisation,
     ProcessingStatus,
@@ -61,15 +66,99 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Cannwood coordinates for location-based species filtering
-CANNWOOD_LAT = 51.3452
-CANNWOOD_LON = -2.2525
+# Default coordinates for location-based species filtering (used by background processing)
+DEFAULT_LAT = 51.3452
+DEFAULT_LON = -2.2525
 
 
 def extract_recording_info(filename: str) -> dict:
     """Extract device serial and timestamp from filename."""
     info = extract_media_info(filename)
     return {"device_serial": info.device_serial, "recording_timestamp": info.timestamp}
+
+
+@router.post(
+    "/process-audio",
+    response_model=AudioProcessingResponse,
+    dependencies=[Depends(require_admin)],
+)
+async def process_audio_files(
+    files: List[UploadFile] = File(...),
+    lat: float = Query(DEFAULT_LAT, description="Latitude for location-based species filtering"),
+    lon: float = Query(DEFAULT_LON, description="Longitude for location-based species filtering"),
+    org: Organisation = Depends(get_current_organisation),
+    db: Session = Depends(get_db),
+) -> AudioProcessingResponse:
+    """
+    Process audio files with BirdNET and return detections.
+    Files are NOT stored — this is for the audio wizard preview.
+    """
+    from services.bird_audio import analyze_file, get_db_scientific_name, get_location_species
+
+    # Get location-filtered species list
+    species_list = get_location_species(lat, lon)
+
+    results = []
+    for file in files:
+        if not file.filename or not file.filename.lower().endswith(".wav"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type: {file.filename}. Only WAV files accepted.",
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_path = Path(tmpdir) / file.filename
+            content = await file.read()
+            local_path.write_bytes(content)
+
+            try:
+                detections = analyze_file(local_path, species_list)
+            except Exception as e:
+                logger.exception(f"Error processing {file.filename}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to process {file.filename}: {str(e)}",
+                )
+
+            file_detections = []
+            unmatched = []
+            for det in detections:
+                scientific_name = get_db_scientific_name(det.species)
+                species = (
+                    db.query(Species)
+                    .join(Species.species_type)
+                    .filter(
+                        Species.scientific_name == scientific_name,
+                        SpeciesType.name == "bird",
+                    )
+                    .first()
+                )
+
+                if species:
+                    file_detections.append(
+                        AudioDetectionResult(
+                            species_name=det.species,
+                            species_id=species.id,
+                            species_common_name=species.name,
+                            species_scientific_name=species.scientific_name,
+                            confidence=det.confidence,
+                            start_time=det.start.strftime("%H:%M:%S"),
+                            end_time=det.end.strftime("%H:%M:%S"),
+                        )
+                    )
+                else:
+                    if det.species not in unmatched:
+                        unmatched.append(det.species)
+
+            results.append(
+                FileProcessingResult(
+                    filename=file.filename,
+                    detections=file_detections,
+                    unmatched_species=unmatched,
+                )
+            )
+
+    return AudioProcessingResponse(results=results)
 
 
 def _build_recording_response(recording: AudioRecording, detection_count: int) -> dict:
@@ -119,8 +208,8 @@ async def list_audio_recordings(
     result = []
     for rec in recordings:
         detection_count = (
-            db.query(func.count(BirdDetection.id))
-            .filter(BirdDetection.audio_recording_id == rec.id)
+            db.query(func.count(AudioDetection.id))
+            .filter(AudioDetection.audio_recording_id == rec.id)
             .scalar()
         )
         result.append(_build_recording_response(rec, detection_count))
@@ -137,12 +226,13 @@ async def upload_audio_files(
     survey_id: int,
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
+    skip_processing: bool = Query(False, description="Skip BirdNET processing (for wizard uploads)"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """
     Upload one or more audio files to a survey.
-    Files are stored in R2 and processing is auto-triggered.
+    Files are stored in R2. Processing is auto-triggered unless skip_processing=true.
     """
     # Verify survey belongs to org
     survey = (
@@ -178,13 +268,13 @@ async def upload_audio_files(
         # Extract metadata from filename
         info = extract_recording_info(file.filename)
 
-        # Upload to R2
-        r2_key = upload_audio_file(file.file, file.filename, org.slug)
-
-        # Get file size
+        # Get file size before upload (upload may close the stream)
         file.file.seek(0, 2)  # Seek to end
         file_size = file.file.tell()
         file.file.seek(0)  # Reset
+
+        # Upload to R2
+        r2_key = upload_audio_file(file.file, file.filename, org.slug)
 
         # Create database record
         recording = AudioRecording(
@@ -194,15 +284,16 @@ async def upload_audio_files(
             file_size_bytes=file_size,
             device_serial=info["device_serial"],
             recording_timestamp=info["recording_timestamp"],
-            processing_status=ProcessingStatus.pending,
+            processing_status=ProcessingStatus.completed if skip_processing else ProcessingStatus.pending,
         )
         db.add(recording)
         db.flush()  # Get the ID
 
         uploaded.append(recording)
 
-        # Auto-trigger background processing
-        background_tasks.add_task(process_recording_background, recording_id=recording.id)
+        # Auto-trigger background processing (unless skipped for wizard uploads)
+        if not skip_processing:
+            background_tasks.add_task(process_recording_background, recording_id=recording.id)
 
     db.commit()
 
@@ -283,7 +374,7 @@ def process_recording_background(recording_id: int) -> None:
             download_audio_file(recording.r2_key, local_path)
 
             # Get location-filtered species list
-            species_list = get_location_species(CANNWOOD_LAT, CANNWOOD_LON)
+            species_list = get_location_species(DEFAULT_LAT, DEFAULT_LON)
 
             # Run BirdNET analysis
             detections = analyze_file(local_path, species_list)
@@ -302,7 +393,7 @@ def process_recording_background(recording_id: int) -> None:
                 ).first()
 
                 if species:
-                    bird_det = BirdDetection(
+                    audio_det = AudioDetection(
                         audio_recording_id=recording_id,
                         species_name=det.species,
                         species_id=species.id,
@@ -311,7 +402,7 @@ def process_recording_background(recording_id: int) -> None:
                         end_time=det.end,
                         detection_timestamp=det.timestamp,
                     )
-                    db.add(bird_det)
+                    db.add(audio_det)
                     matched_count += 1
                 else:
                     # Track unmatched species (avoid duplicates)
@@ -371,8 +462,8 @@ async def get_audio_recording(
         raise HTTPException(status_code=404, detail="Recording not found")
 
     detection_count = (
-        db.query(func.count(BirdDetection.id))
-        .filter(BirdDetection.audio_recording_id == recording_id)
+        db.query(func.count(AudioDetection.id))
+        .filter(AudioDetection.audio_recording_id == recording_id)
         .scalar()
     )
 
@@ -381,7 +472,7 @@ async def get_audio_recording(
 
 @router.get(
     "/{survey_id}/audio/{recording_id}/detections",
-    response_model=List[BirdDetectionRead],
+    response_model=List[AudioDetectionRead],
 )
 async def get_audio_detections(
     survey_id: int,
@@ -405,13 +496,13 @@ async def get_audio_detections(
     if not recording:
         raise HTTPException(status_code=404, detail="Recording not found")
 
-    query = db.query(BirdDetection).filter(
-        BirdDetection.audio_recording_id == recording_id
+    query = db.query(AudioDetection).filter(
+        AudioDetection.audio_recording_id == recording_id
     )
     if min_confidence > 0:
-        query = query.filter(BirdDetection.confidence >= min_confidence)
+        query = query.filter(AudioDetection.confidence >= min_confidence)
 
-    detections = query.order_by(BirdDetection.detection_timestamp).all()
+    detections = query.order_by(AudioDetection.detection_timestamp).all()
 
     return [
         {
@@ -507,18 +598,18 @@ async def get_detections_summary(
     # We need to join through AudioRecording to get device_serial
     species_device_counts = (
         db.query(
-            BirdDetection.species_id,
+            AudioDetection.species_id,
             Species.name.label("species_name"),  # type: ignore[union-attr]
             Species.scientific_name.label("species_scientific_name"),  # type: ignore[union-attr]
             AudioRecording.device_serial,
-            func.count(BirdDetection.id).label("detection_count"),
-            func.max(BirdDetection.confidence).label("max_confidence"),
+            func.count(AudioDetection.id).label("detection_count"),
+            func.max(AudioDetection.confidence).label("max_confidence"),
         )
-        .join(Species, BirdDetection.species_id == Species.id)
-        .join(AudioRecording, BirdDetection.audio_recording_id == AudioRecording.id)
-        .filter(col(BirdDetection.audio_recording_id).in_(recording_ids))
+        .join(Species, AudioDetection.species_id == Species.id)
+        .join(AudioRecording, AudioDetection.audio_recording_id == AudioRecording.id)
+        .filter(col(AudioDetection.audio_recording_id).in_(recording_ids))
         .group_by(
-            BirdDetection.species_id,
+            AudioDetection.species_id,
             Species.name,
             Species.scientific_name,
             AudioRecording.device_serial,
@@ -539,12 +630,12 @@ async def get_detections_summary(
 
         # Get top 3 detections for this species FROM THIS DEVICE ONLY
         top_detections = (
-            db.query(BirdDetection)
+            db.query(AudioDetection)
             .filter(
-                col(BirdDetection.audio_recording_id).in_(device_recording_ids),
-                BirdDetection.species_id == row.species_id,
+                col(AudioDetection.audio_recording_id).in_(device_recording_ids),
+                AudioDetection.species_id == row.species_id,
             )
-            .order_by(desc(BirdDetection.confidence))
+            .order_by(desc(AudioDetection.confidence))
             .limit(3)
             .all()
         )

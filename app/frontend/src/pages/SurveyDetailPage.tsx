@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon, CloudUpload, AudioFile, CheckCircle, Error as ErrorIcon, Pending, Warning } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList, Map as MapIcon } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from '../context/AuthContext';
-import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, audioAPI, imagesAPI } from '../services/api';
-import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType, AudioRecording } from '../services/api';
+import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, imagesAPI } from '../services/api';
+import type { SurveyDetail, Sighting, SightingAudioClip, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
-import { DetectionsToSightingsPanel } from '../components/surveys/DetectionsToSightingsPanel';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
+import { AudioClipPlayer } from '../components/audio/AudioClipPlayer';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSpeciesIcon } from '../config';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -104,10 +104,6 @@ export function SurveyDetailPage() {
     setSightingViewerOpen(true);
   };
 
-  // Audio upload state
-  const [audioRecordings, setAudioRecordings] = useState<AudioRecording[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
 
 
   // ============================================================================
@@ -185,45 +181,6 @@ export function SurveyDetailPage() {
     fetchData();
   }, [id]);
 
-  // Fetch audio recordings for audio surveys
-  useEffect(() => {
-    const fetchAudioRecordings = async () => {
-      if (!survey || !surveyType || surveyType.name.toLowerCase() !== 'audio') {
-        return;
-      }
-
-      try {
-        const recordings = await audioAPI.getRecordings(survey.id);
-        setAudioRecordings(recordings);
-      } catch (err) {
-        console.error('Error fetching audio recordings:', err);
-      }
-    };
-
-    fetchAudioRecordings();
-  }, [survey, surveyType]);
-
-  // Auto-refresh audio recordings while processing
-  useEffect(() => {
-    const hasProcessingRecordings = audioRecordings.some(
-      r => r.processing_status === 'pending' || r.processing_status === 'processing'
-    );
-
-    if (!hasProcessingRecordings || !survey) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const recordings = await audioAPI.getRecordings(survey.id);
-        setAudioRecordings(recordings);
-      } catch (err) {
-        console.error('Error auto-refreshing audio recordings:', err);
-      }
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [audioRecordings, survey]);
-
-
   // ============================================================================
   // Helper Functions
   // ============================================================================
@@ -283,7 +240,7 @@ export function SurveyDetailPage() {
   const locationAtSightingLevel = surveyType?.location_at_sighting_level ?? false;
   const allowGeolocation = surveyType?.allow_geolocation ?? true;
   const allowSightingNotes = surveyType?.allow_sighting_notes ?? true;
-  const allowAudioUpload = surveyType?.allow_audio_upload ?? false;
+
 
   // ============================================================================
   // Validation
@@ -538,46 +495,6 @@ export function SurveyDetailPage() {
     // Clear sightings validation error when user changes sightings
     if (validationErrors.sightings) {
       setValidationErrors({ ...validationErrors, sightings: undefined });
-    }
-  };
-
-  const handleAudioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0 || !survey) return;
-
-    // Validate file types
-    const validFiles = Array.from(files).filter(f =>
-      f.name.endsWith('.wav') || f.name.endsWith('.WAV')
-    );
-
-    if (validFiles.length === 0) {
-      setUploadError('Please select WAV audio files');
-      return;
-    }
-
-    setUploading(true);
-    setUploadError(null);
-
-    try {
-      const newRecordings = await audioAPI.uploadFiles(survey.id, validFiles);
-      setAudioRecordings(prev => [...prev, ...newRecordings]);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Failed to upload files');
-      console.error('Error uploading audio files:', err);
-    } finally {
-      setUploading(false);
-      // Reset file input
-      event.target.value = '';
-    }
-  };
-
-  const refreshSightings = async () => {
-    if (!survey) return;
-    try {
-      const sightingsData = await surveysAPI.getSightings(survey.id);
-      setSightings(sightingsData);
-    } catch (err) {
-      console.error('Error refreshing sightings:', err);
     }
   };
 
@@ -1055,6 +972,21 @@ export function SurveyDetailPage() {
                                 ))}
                               </Box>
                             )}
+
+                            {/* Audio Detection Clips */}
+                            {sighting.audio_clips && sighting.audio_clips.length > 0 && (
+                              <Stack direction="row" spacing={1} sx={{ px: 1.5, pb: 1.5 }}>
+                                {sighting.audio_clips.map((clip: SightingAudioClip, clipIdx: number) => (
+                                  <AudioClipPlayer
+                                    key={clipIdx}
+                                    audioRecordingId={clip.audio_recording_id}
+                                    startTime={clip.start_time}
+                                    endTime={clip.end_time}
+                                    confidence={clip.confidence}
+                                  />
+                                ))}
+                              </Stack>
+                            )}
                             </Box>
                           );
                         })}
@@ -1073,182 +1005,6 @@ export function SurveyDetailPage() {
           )}
         </Paper>
 
-        {/* Audio Recordings Section - Only for audio surveys */}
-        {allowAudioUpload && (
-          <Paper
-            sx={{
-              p: { xs: 2, sm: 2.5, md: 3 },
-              mt: { xs: 2, md: 3 },
-              boxShadow: 'none',
-              border: '1px solid',
-              borderColor: 'divider'
-            }}
-          >
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Audio Recordings ({audioRecordings.length})
-              </Typography>
-              <Button
-                component="label"
-                variant="contained"
-                startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUpload />}
-                disabled={uploading}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  boxShadow: 'none',
-                  '&:hover': { boxShadow: 'none' },
-                }}
-              >
-                {uploading ? 'Uploading...' : 'Upload Files'}
-                <input
-                  type="file"
-                  hidden
-                  multiple
-                  accept=".wav,.WAV"
-                  onChange={handleAudioUpload}
-                  disabled={uploading}
-                />
-              </Button>
-            </Stack>
-
-            {uploadError && (
-              <Alert severity="error" onClose={() => setUploadError(null)} sx={{ mb: 2 }}>
-                {uploadError}
-              </Alert>
-            )}
-
-            {audioRecordings.length > 0 ? (
-              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
-                {/* Table Header */}
-                <Box
-                  sx={{
-                    display: { xs: 'none', sm: 'grid' },
-                    gridTemplateColumns: '2fr 1fr 100px 120px',
-                    gap: 2,
-                    p: 1.5,
-                    bgcolor: 'grey.50',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography variant="body2" fontWeight={600} color="text.secondary">FILENAME</Typography>
-                  <Typography variant="body2" fontWeight={600} color="text.secondary">DEVICE</Typography>
-                  <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="center">STATUS</Typography>
-                  <Typography variant="body2" fontWeight={600} color="text.secondary" textAlign="right">DETECTIONS</Typography>
-                </Box>
-
-                {/* Table Rows */}
-                {audioRecordings.map((recording) => (
-                  <Box
-                    key={recording.id}
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: '2fr 1fr 100px 120px',
-                      gap: 2,
-                      p: 1.5,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                      alignItems: 'center',
-                      '&:last-child': { borderBottom: 'none' },
-                      '&:hover': { bgcolor: 'grey.50' }
-                    }}
-                  >
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <AudioFile sx={{ fontSize: 20, color: 'text.secondary' }} />
-                      <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                        {recording.filename}
-                      </Typography>
-                    </Stack>
-
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-                      {recording.device_serial || '-'}
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                      {recording.processing_status === 'completed' && (
-                        <Tooltip title="Processing completed">
-                          <CheckCircle sx={{ color: 'success.main' }} />
-                        </Tooltip>
-                      )}
-                      {recording.processing_status === 'failed' && (
-                        <Tooltip title={recording.processing_error || 'Processing failed'}>
-                          <ErrorIcon sx={{ color: 'error.main' }} />
-                        </Tooltip>
-                      )}
-                      {recording.processing_status === 'pending' && (
-                        <Tooltip title="Pending processing">
-                          <Pending sx={{ color: 'text.secondary' }} />
-                        </Tooltip>
-                      )}
-                      {recording.processing_status === 'processing' && (
-                        <Tooltip title="Processing...">
-                          <CircularProgress size={20} />
-                        </Tooltip>
-                      )}
-                    </Box>
-
-                    <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
-                      {recording.unmatched_species && recording.unmatched_species.length > 0 && (
-                        <Tooltip
-                          title={
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                                Unmatched species ({recording.unmatched_species.length}):
-                              </Typography>
-                              {recording.unmatched_species.map((species, idx) => (
-                                <Typography key={idx} variant="body2" sx={{ fontSize: '0.8rem' }}>
-                                  {species}
-                                </Typography>
-                              ))}
-                            </Box>
-                          }
-                          arrow
-                        >
-                          <Warning sx={{ fontSize: 18, color: 'warning.main' }} />
-                        </Tooltip>
-                      )}
-                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
-                        {recording.detection_count}
-                      </Typography>
-                    </Stack>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <AudioFile sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                <Typography color="text.secondary">
-                  No audio recordings yet. Upload WAV files to analyze.
-                </Typography>
-              </Box>
-            )}
-
-          </Paper>
-        )}
-
-        {/* Bird Detections Section - Only for audio surveys with completed recordings */}
-        {allowAudioUpload && audioRecordings.some(r => r.processing_status === 'completed' && r.detection_count > 0) && (
-          <Paper
-            sx={{
-              p: { xs: 2, sm: 2.5, md: 3 },
-              mt: { xs: 2, md: 3 },
-              boxShadow: 'none',
-              border: '1px solid',
-              borderColor: 'divider'
-            }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-              Bird Detections
-            </Typography>
-            <DetectionsToSightingsPanel
-              surveyId={survey.id}
-              sightings={sightings}
-              onSightingsCreated={refreshSightings}
-              refreshTrigger={audioRecordings.filter(r => r.processing_status === 'completed').length}
-            />
-          </Paper>
-        )}
 
 
         {/* Delete Confirmation Dialog */}

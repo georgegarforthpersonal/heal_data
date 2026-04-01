@@ -17,9 +17,9 @@ Refactored to use SQLModel ORM instead of raw SQL.
 
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional, Any
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import desc, func, text
 from sqlmodel import col
 from database.connection import get_db
 from auth import require_admin
@@ -31,7 +31,8 @@ from models import (
     Species, SpeciesType, Location, SurveySurveyor,
     BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
-    SightingImage,
+    SightingImage, SightingAudioClip,
+    AudioRecording, AudioDetection,
     Organisation
 )
 from services.r2_storage import delete_media_file
@@ -506,6 +507,22 @@ async def get_survey_sightings(
      .order_by(func.coalesce(Species.name, Species.scientific_name))\
      .all()
 
+    # Batch-fetch audio detection clips for all sightings
+    sighting_ids = [row.id for row in sightings]
+    audio_clips_by_sighting: dict[int, list[dict]] = {sid: [] for sid in sighting_ids}
+    if sighting_ids:
+        all_audio_dets = db.query(AudioDetection)\
+            .filter(col(AudioDetection.sighting_id).in_(sighting_ids))\
+            .order_by(desc(AudioDetection.confidence))\
+            .all()
+        for d in all_audio_dets:
+            audio_clips_by_sighting[d.sighting_id].append({
+                "confidence": d.confidence,
+                "audio_recording_id": d.audio_recording_id,
+                "start_time": d.start_time,
+                "end_time": d.end_time,
+            })
+
     result = []
     for row in sightings:
         # Fetch individual locations for this sighting
@@ -547,6 +564,7 @@ async def get_survey_sightings(
                 for ind in individuals
             ],
             "image_ids": image_ids,
+            "audio_clips": audio_clips_by_sighting.get(row.id, []),
         })
 
     return result
@@ -624,6 +642,42 @@ async def create_sighting(
             camera_trap_image_id=image_id
         ))
 
+    # Create audio detection records linked to this sighting
+    audio_clips = []
+    for det in sighting.audio_detections:
+        # Parse time strings
+        parts = det.start_time.split(":")
+        start_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
+        parts = det.end_time.split(":")
+        end_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
+
+        # Compute detection_timestamp from recording
+        recording = db.query(AudioRecording).filter(
+            AudioRecording.id == det.audio_recording_id
+        ).first()
+        detection_ts = datetime.now(timezone.utc)
+        if recording and recording.recording_timestamp:
+            start_seconds = start_t.hour * 3600 + start_t.minute * 60 + start_t.second
+            detection_ts = recording.recording_timestamp + timedelta(seconds=start_seconds)
+
+        audio_det = AudioDetection(
+            audio_recording_id=det.audio_recording_id,
+            species_name=det.species_name,
+            species_id=sighting.species_id,
+            confidence=det.confidence,
+            start_time=start_t,
+            end_time=end_t,
+            detection_timestamp=detection_ts,
+            sighting_id=db_sighting.id,
+        )
+        db.add(audio_det)
+        audio_clips.append(SightingAudioClip(
+            confidence=det.confidence,
+            audio_recording_id=det.audio_recording_id,
+            start_time=start_t,
+            end_time=end_t,
+        ))
+
     db.commit()
 
     # Get species name
@@ -657,6 +711,7 @@ async def create_sighting(
             for ind in individuals
         ],
         "image_ids": sighting.image_ids,
+        "audio_clips": [clip.model_dump() for clip in audio_clips],
     }
 
 
