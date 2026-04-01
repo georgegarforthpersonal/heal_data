@@ -5,12 +5,7 @@
  * which is critical for large recordings (100MB+).
  */
 
-function parseTimeToSeconds(timeStr: string): number {
-  const parts = timeStr.split(':').map(Number);
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return Number(timeStr) || 0;
-}
+import { parseTimeToSeconds } from './time';
 
 function writeString(view: DataView, offset: number, str: string) {
   for (let i = 0; i < str.length; i++) {

@@ -1296,8 +1296,12 @@ export const audioAPI = {
   /**
    * Process audio files with BirdNET (no storage — wizard preview)
    */
-  processFiles: (files: File[]): Promise<AudioProcessingResponse> => {
-    return uploadMediaFiles('/surveys/process-audio', files);
+  processFiles: (files: File[], lat?: number, lon?: number): Promise<AudioProcessingResponse> => {
+    const params = new URLSearchParams();
+    if (lat != null) params.set('lat', String(lat));
+    if (lon != null) params.set('lon', String(lon));
+    const qs = params.toString();
+    return uploadMediaFiles(`/surveys/process-audio${qs ? `?${qs}` : ''}`, files);
   },
 
   /**

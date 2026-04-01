@@ -17,7 +17,7 @@ Refactored to use SQLModel ORM instead of raw SQL.
 
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional, Any
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, text
 from sqlmodel import col
@@ -507,6 +507,22 @@ async def get_survey_sightings(
      .order_by(func.coalesce(Species.name, Species.scientific_name))\
      .all()
 
+    # Batch-fetch audio detection clips for all sightings
+    sighting_ids = [row.id for row in sightings]
+    audio_clips_by_sighting: dict[int, list[dict]] = {sid: [] for sid in sighting_ids}
+    if sighting_ids:
+        all_audio_dets = db.query(AudioDetection)\
+            .filter(col(AudioDetection.sighting_id).in_(sighting_ids))\
+            .order_by(desc(AudioDetection.confidence))\
+            .all()
+        for d in all_audio_dets:
+            audio_clips_by_sighting[d.sighting_id].append({
+                "confidence": d.confidence,
+                "audio_recording_id": d.audio_recording_id,
+                "start_time": d.start_time,
+                "end_time": d.end_time,
+            })
+
     result = []
     for row in sightings:
         # Fetch individual locations for this sighting
@@ -524,21 +540,6 @@ async def get_survey_sightings(
             .order_by(SightingImage.camera_trap_image_id)\
             .all()
         image_ids = [r[0] for r in image_rows]
-
-        # Fetch linked audio detection clips
-        audio_dets = db.query(AudioDetection)\
-            .filter(AudioDetection.sighting_id == row.id)\
-            .order_by(desc(AudioDetection.confidence))\
-            .all()
-        audio_clips = [
-            {
-                "confidence": d.confidence,
-                "audio_recording_id": d.audio_recording_id,
-                "start_time": d.start_time,
-                "end_time": d.end_time,
-            }
-            for d in audio_dets
-        ]
 
         result.append({
             "id": row.id,
@@ -563,7 +564,7 @@ async def get_survey_sightings(
                 for ind in individuals
             ],
             "image_ids": image_ids,
-            "audio_clips": audio_clips,
+            "audio_clips": audio_clips_by_sighting.get(row.id, []),
         })
 
     return result
@@ -641,26 +642,25 @@ async def create_sighting(
             camera_trap_image_id=image_id
         ))
 
-    # Create bird detection records linked to this sighting
+    # Create audio detection records linked to this sighting
     audio_clips = []
     for det in sighting.audio_detections:
         # Parse time strings
-        from datetime import time as time_type, datetime as dt_type, timedelta
         parts = det.start_time.split(":")
-        start_t = time_type(int(parts[0]), int(parts[1]), int(parts[2]))
+        start_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
         parts = det.end_time.split(":")
-        end_t = time_type(int(parts[0]), int(parts[1]), int(parts[2]))
+        end_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
 
         # Compute detection_timestamp from recording
         recording = db.query(AudioRecording).filter(
             AudioRecording.id == det.audio_recording_id
         ).first()
-        detection_ts = dt_type.utcnow()
+        detection_ts = datetime.now(timezone.utc)
         if recording and recording.recording_timestamp:
             start_seconds = start_t.hour * 3600 + start_t.minute * 60 + start_t.second
             detection_ts = recording.recording_timestamp + timedelta(seconds=start_seconds)
 
-        bird_det = AudioDetection(
+        audio_det = AudioDetection(
             audio_recording_id=det.audio_recording_id,
             species_name=det.species_name,
             species_id=sighting.species_id,
@@ -670,7 +670,7 @@ async def create_sighting(
             detection_timestamp=detection_ts,
             sighting_id=db_sighting.id,
         )
-        db.add(bird_det)
+        db.add(audio_det)
         audio_clips.append(SightingAudioClip(
             confidence=det.confidence,
             audio_recording_id=det.audio_recording_id,

@@ -65,11 +65,10 @@ from utils.filename_parser import extract_media_info
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-process_router = APIRouter()
 
-# Cannwood coordinates for location-based species filtering
-CANNWOOD_LAT = 51.3452
-CANNWOOD_LON = -2.2525
+# Default coordinates for location-based species filtering (used by background processing)
+DEFAULT_LAT = 51.3452
+DEFAULT_LON = -2.2525
 
 
 def extract_recording_info(filename: str) -> dict:
@@ -78,13 +77,15 @@ def extract_recording_info(filename: str) -> dict:
     return {"device_serial": info.device_serial, "recording_timestamp": info.timestamp}
 
 
-@process_router.post(
+@router.post(
     "/process-audio",
     response_model=AudioProcessingResponse,
     dependencies=[Depends(require_admin)],
 )
 async def process_audio_files(
     files: List[UploadFile] = File(...),
+    lat: float = Query(DEFAULT_LAT, description="Latitude for location-based species filtering"),
+    lon: float = Query(DEFAULT_LON, description="Longitude for location-based species filtering"),
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
 ) -> AudioProcessingResponse:
@@ -95,7 +96,7 @@ async def process_audio_files(
     from services.bird_audio import analyze_file, get_db_scientific_name, get_location_species
 
     # Get location-filtered species list
-    species_list = get_location_species(CANNWOOD_LAT, CANNWOOD_LON)
+    species_list = get_location_species(lat, lon)
 
     results = []
     for file in files:
@@ -373,7 +374,7 @@ def process_recording_background(recording_id: int) -> None:
             download_audio_file(recording.r2_key, local_path)
 
             # Get location-filtered species list
-            species_list = get_location_species(CANNWOOD_LAT, CANNWOOD_LON)
+            species_list = get_location_species(DEFAULT_LAT, DEFAULT_LON)
 
             # Run BirdNET analysis
             detections = analyze_file(local_path, species_list)
@@ -392,7 +393,7 @@ def process_recording_background(recording_id: int) -> None:
                 ).first()
 
                 if species:
-                    bird_det = AudioDetection(
+                    audio_det = AudioDetection(
                         audio_recording_id=recording_id,
                         species_name=det.species,
                         species_id=species.id,
@@ -401,7 +402,7 @@ def process_recording_background(recording_id: int) -> None:
                         end_time=det.end,
                         detection_timestamp=det.timestamp,
                     )
-                    db.add(bird_det)
+                    db.add(audio_det)
                     matched_count += 1
                 else:
                     # Track unmatched species (avoid duplicates)

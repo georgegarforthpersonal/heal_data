@@ -7,7 +7,6 @@ import {
   Alert,
   CircularProgress,
   LinearProgress,
-  Chip,
 } from '@mui/material';
 import { ArrowBack, ArrowForward, CloudUpload, AudioFile, Warning } from '@mui/icons-material';
 import type { AudioWizardState } from '../../hooks/useAudioWizard';

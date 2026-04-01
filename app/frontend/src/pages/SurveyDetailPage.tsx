@@ -5,7 +5,7 @@ import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, ViewList
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, imagesAPI } from '../services/api';
-import type { SurveyDetail, Sighting, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
+import type { SurveyDetail, Sighting, SightingAudioClip, Surveyor, Location, Species, Survey, BreedingStatusCode, LocationWithBoundary, SurveyType } from '../services/api';
 import { SurveyFormFields } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -976,7 +976,7 @@ export function SurveyDetailPage() {
                             {/* Audio Detection Clips */}
                             {sighting.audio_clips && sighting.audio_clips.length > 0 && (
                               <Stack direction="row" spacing={1} sx={{ px: 1.5, pb: 1.5 }}>
-                                {sighting.audio_clips.map((clip: any, clipIdx: number) => (
+                                {sighting.audio_clips.map((clip: SightingAudioClip, clipIdx: number) => (
                                   <AudioClipPlayer
                                     key={clipIdx}
                                     audioRecordingId={clip.audio_recording_id}

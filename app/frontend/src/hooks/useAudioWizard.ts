@@ -4,21 +4,19 @@ import dayjs, { Dayjs } from 'dayjs';
 import {
   surveysAPI,
   surveyorsAPI,
-  speciesAPI,
   surveyTypesAPI,
   devicesAPI,
   audioAPI,
 } from '../services/api';
 import type {
   Surveyor,
-  Species,
   SurveyType,
   Device,
   AudioRecording,
   AudioDetectionResult,
-  FileProcessingResult,
 } from '../services/api';
 import { extractWavSnippet } from '../utils/wavSnippet';
+import { parseTimeToSeconds, formatDuration } from '../utils/time';
 
 // ============================================================================
 // Types
@@ -53,20 +51,6 @@ export interface SpeciesReviewData {
 export const AUDIO_WIZARD_STEPS = ['Setup', 'Upload', 'Review', 'Save'] as const;
 
 const UPLOAD_BATCH_SIZE = 10;
-
-function parseTime(timeStr: string): number {
-  const parts = timeStr.split(':').map(Number);
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return Number(timeStr) || 0;
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
 
 // ============================================================================
 // Hook
@@ -265,7 +249,11 @@ export function useAudioWizard() {
       for (let i = 0; i < audioFiles.length; i++) {
         const af = audioFiles[i];
         setProcessProgress({ processed: i, total: audioFiles.length, currentFilename: af.filename });
-        const response = await audioAPI.processFiles([af.file]);
+        const response = await audioAPI.processFiles(
+          [af.file],
+          selectedDevice?.latitude ?? undefined,
+          selectedDevice?.longitude ?? undefined,
+        );
 
         for (const result of response.results) {
           for (const det of result.detections) {
@@ -295,7 +283,7 @@ export function useAudioWizard() {
     } finally {
       setProcessing(false);
     }
-  }, [audioFiles]);
+  }, [audioFiles, selectedDevice]);
 
   // Auto-start processing when entering Upload step with new files
   useEffect(() => {
@@ -424,7 +412,7 @@ export function useAudioWizard() {
               // Snippet-relative times (file IS the clip)
               start_time: '00:00:00',
               end_time: det.end_time > det.start_time
-                ? formatDuration(parseTime(det.end_time) - parseTime(det.start_time))
+                ? formatDuration(parseTimeToSeconds(det.end_time) - parseTimeToSeconds(det.start_time))
                 : '00:00:03',
             };
           })

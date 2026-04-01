@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Box, IconButton, Typography, CircularProgress, Tooltip } from '@mui/material';
 import { PlayArrow, Stop } from '@mui/icons-material';
 import { audioAPI } from '../../services/api';
+import { parseTimeToSeconds } from '../../utils/time';
 
 interface AudioClipPlayerProps {
   audioRecordingId?: number;
@@ -9,19 +10,6 @@ interface AudioClipPlayerProps {
   startTime: string; // HH:MM:SS format
   endTime: string;   // HH:MM:SS format
   confidence: number; // 0-1
-}
-
-/**
- * Parse time string (HH:MM:SS) to seconds
- */
-function parseTimeToSeconds(timeStr: string): number {
-  const parts = timeStr.split(':').map(Number);
-  if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  } else if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
-  }
-  return Number(timeStr) || 0;
 }
 
 /**
