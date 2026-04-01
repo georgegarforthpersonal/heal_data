@@ -102,7 +102,7 @@ export function UploadStep({ wizard }: UploadStepProps) {
             </Typography>
           )}
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, ml: 4.5 }}>
-            Uploading file and running BirdNET analysis. This may take a few minutes per file.
+            Uploading file and running BirdNET analysis.
           </Typography>
           <LinearProgress
             variant="determinate"
