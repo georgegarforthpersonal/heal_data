@@ -31,7 +31,8 @@ from models import (
     Species, SpeciesType, Location, SurveySurveyor,
     BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
-    SightingImage,
+    SightingImage, SightingAudioClip,
+    AudioRecording, BirdDetection,
     Organisation
 )
 from services.r2_storage import delete_media_file
@@ -524,6 +525,21 @@ async def get_survey_sightings(
             .all()
         image_ids = [r[0] for r in image_rows]
 
+        # Fetch linked audio detection clips
+        audio_dets = db.query(BirdDetection)\
+            .filter(BirdDetection.sighting_id == row.id)\
+            .order_by(BirdDetection.confidence.desc())\
+            .all()
+        audio_clips = [
+            {
+                "confidence": d.confidence,
+                "audio_recording_id": d.audio_recording_id,
+                "start_time": d.start_time,
+                "end_time": d.end_time,
+            }
+            for d in audio_dets
+        ]
+
         result.append({
             "id": row.id,
             "survey_id": row.survey_id,
@@ -547,6 +563,7 @@ async def get_survey_sightings(
                 for ind in individuals
             ],
             "image_ids": image_ids,
+            "audio_clips": audio_clips,
         })
 
     return result
@@ -624,6 +641,43 @@ async def create_sighting(
             camera_trap_image_id=image_id
         ))
 
+    # Create bird detection records linked to this sighting
+    audio_clips = []
+    for det in sighting.audio_detections:
+        # Parse time strings
+        from datetime import time as time_type, datetime as dt_type, timedelta
+        parts = det.start_time.split(":")
+        start_t = time_type(int(parts[0]), int(parts[1]), int(parts[2]))
+        parts = det.end_time.split(":")
+        end_t = time_type(int(parts[0]), int(parts[1]), int(parts[2]))
+
+        # Compute detection_timestamp from recording
+        recording = db.query(AudioRecording).filter(
+            AudioRecording.id == det.audio_recording_id
+        ).first()
+        detection_ts = dt_type.utcnow()
+        if recording and recording.recording_timestamp:
+            start_seconds = start_t.hour * 3600 + start_t.minute * 60 + start_t.second
+            detection_ts = recording.recording_timestamp + timedelta(seconds=start_seconds)
+
+        bird_det = BirdDetection(
+            audio_recording_id=det.audio_recording_id,
+            species_name=det.species_name,
+            species_id=sighting.species_id,
+            confidence=det.confidence,
+            start_time=start_t,
+            end_time=end_t,
+            detection_timestamp=detection_ts,
+            sighting_id=db_sighting.id,
+        )
+        db.add(bird_det)
+        audio_clips.append(SightingAudioClip(
+            confidence=det.confidence,
+            audio_recording_id=det.audio_recording_id,
+            start_time=start_t,
+            end_time=end_t,
+        ))
+
     db.commit()
 
     # Get species name
@@ -657,6 +711,7 @@ async def create_sighting(
             for ind in individuals
         ],
         "image_ids": sighting.image_ids,
+        "audio_clips": [clip.model_dump() for clip in audio_clips],
     }
 
 

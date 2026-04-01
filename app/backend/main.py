@@ -61,6 +61,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(surveys.router, prefix="/api/surveys", tags=["Surveys"])
 app.include_router(audio.router, prefix="/api/surveys", tags=["Audio"])
+app.include_router(audio.process_router, prefix="/api/surveys", tags=["Audio"])
 app.include_router(audio.download_router, prefix="/api/audio", tags=["Audio"])
 app.include_router(images.router, prefix="/api/surveys", tags=["Images"])
 app.include_router(images.filter_router, prefix="/api/surveys", tags=["Images"])

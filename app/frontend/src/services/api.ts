@@ -321,6 +321,13 @@ export interface SurveyDetail extends Omit<Survey, 'sightings_count'> {
   surveyors?: Surveyor[];
 }
 
+export interface SightingAudioClip {
+  confidence: number;
+  audio_recording_id: number;
+  start_time: string; // HH:MM:SS
+  end_time: string;   // HH:MM:SS
+}
+
 export interface Sighting {
   id: number;
   survey_id: number;
@@ -332,6 +339,7 @@ export interface Sighting {
   location_id?: number | null; // Location ID when location is at sighting level
   notes?: string | null; // Optional notes for this sighting
   image_ids?: number[]; // Linked camera trap image IDs
+  audio_clips?: SightingAudioClip[]; // Linked audio detection clips
 }
 
 /**
@@ -369,6 +377,14 @@ export interface SightingWithIndividuals extends Sighting {
 /**
  * Request body for creating a sighting (with optional individual locations)
  */
+export interface AudioDetectionCreateRequest {
+  audio_recording_id: number;
+  species_name: string;
+  confidence: number;
+  start_time: string; // HH:MM:SS
+  end_time: string;   // HH:MM:SS
+}
+
 export interface SightingCreateRequest {
   species_id: number;
   count: number;
@@ -376,6 +392,7 @@ export interface SightingCreateRequest {
   location_id?: number | null; // Location ID when location is at sighting level
   notes?: string | null; // Optional notes for this sighting
   image_ids?: number[]; // Camera trap image IDs to link
+  audio_detections?: AudioDetectionCreateRequest[]; // Bird detections to link
 }
 
 /**
@@ -1248,10 +1265,41 @@ export interface SurveyDetectionsSummaryResponse {
 }
 
 // ============================================================================
+// Audio Processing Types (Wizard)
+// ============================================================================
+
+export interface AudioDetectionResult {
+  species_name: string;
+  species_id: number | null;
+  species_common_name: string | null;
+  species_scientific_name: string | null;
+  confidence: number;
+  start_time: string; // HH:MM:SS
+  end_time: string;   // HH:MM:SS
+}
+
+export interface FileProcessingResult {
+  filename: string;
+  detections: AudioDetectionResult[];
+  unmatched_species: string[];
+}
+
+export interface AudioProcessingResponse {
+  results: FileProcessingResult[];
+}
+
+// ============================================================================
 // API Methods - Audio
 // ============================================================================
 
 export const audioAPI = {
+  /**
+   * Process audio files with BirdNET (no storage — wizard preview)
+   */
+  processFiles: (files: File[]): Promise<AudioProcessingResponse> => {
+    return uploadMediaFiles('/surveys/process-audio', files);
+  },
+
   /**
    * Get all audio recordings for a survey
    */
@@ -1265,6 +1313,13 @@ export const audioAPI = {
    */
   uploadFiles: (surveyId: number, files: File[]): Promise<AudioRecording[]> => {
     return uploadMediaFiles(`/surveys/${surveyId}/audio`, files);
+  },
+
+  /**
+   * Upload audio files to a survey, skipping BirdNET processing
+   */
+  uploadFilesSkipProcessing: (surveyId: number, files: File[]): Promise<AudioRecording[]> => {
+    return uploadMediaFiles(`/surveys/${surveyId}/audio?skip_processing=true`, files);
   },
 
   /**

@@ -1,0 +1,470 @@
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import dayjs, { Dayjs } from 'dayjs';
+import {
+  surveysAPI,
+  surveyorsAPI,
+  speciesAPI,
+  surveyTypesAPI,
+  devicesAPI,
+  audioAPI,
+} from '../services/api';
+import type {
+  Surveyor,
+  Species,
+  SurveyType,
+  Device,
+  AudioRecording,
+  AudioDetectionResult,
+  FileProcessingResult,
+} from '../services/api';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface AudioFile {
+  file: File;
+  objectUrl: string;
+  filename: string;
+}
+
+/** Detection result enriched with source file info */
+export interface WizardDetection extends AudioDetectionResult {
+  /** Index into audioFiles array */
+  fileIndex: number;
+}
+
+/** Aggregated species data for the Review step */
+export interface SpeciesReviewData {
+  speciesId: number;
+  speciesName: string;
+  speciesScientificName: string | null;
+  /** BirdNET species string (Scientific_Common) */
+  birdnetName: string;
+  detectionCount: number;
+  /** Top 3 detections sorted by confidence */
+  topDetections: WizardDetection[];
+  /** All detections for this species */
+  allDetections: WizardDetection[];
+}
+
+export const AUDIO_WIZARD_STEPS = ['Setup', 'Upload', 'Review', 'Save'] as const;
+
+const UPLOAD_BATCH_SIZE = 10;
+
+// ============================================================================
+// Hook
+// ============================================================================
+
+export function useAudioWizard() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // ---- Wizard step ----
+  const [activeStep, setActiveStep] = useState(0);
+
+  // ---- Step 0: Setup ----
+  const [surveyTypes, setSurveyTypes] = useState<SurveyType[]>([]);
+  const [selectedSurveyType, setSelectedSurveyType] = useState<SurveyType | null>(null);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [date, setDate] = useState<Dayjs | null>(dayjs());
+  const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
+  const [selectedSurveyors, setSelectedSurveyors] = useState<Surveyor[]>([]);
+
+  // ---- Step 1: Upload + Process ----
+  const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [processing, setProcessing] = useState(false);
+  const [processProgress, setProcessProgress] = useState({ processed: 0, total: 0 });
+  const [processError, setProcessError] = useState<string | null>(null);
+  const [detections, setDetections] = useState<WizardDetection[]>([]);
+  const [unmatchedSpecies, setUnmatchedSpecies] = useState<string[]>([]);
+  /** Track which files have been processed (to detect re-selection) */
+  const [processedFileSet, setProcessedFileSet] = useState<AudioFile[] | null>(null);
+
+  // ---- Step 2: Review ----
+  const [deselectedSpecies, setDeselectedSpecies] = useState<Set<number>>(new Set());
+
+  // ---- Step 3: Save ----
+  const [saving, setSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState({ step: '', percent: 0 });
+
+  // ---- Shared ----
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // ============================================================================
+  // Derived review data
+  // ============================================================================
+
+  const reviewData = useMemo((): SpeciesReviewData[] => {
+    // Group detections by species_id
+    const speciesMap = new Map<number, {
+      speciesName: string;
+      speciesScientificName: string | null;
+      birdnetName: string;
+      detections: WizardDetection[];
+    }>();
+
+    for (const det of detections) {
+      if (!det.species_id) continue;
+      const existing = speciesMap.get(det.species_id);
+      if (existing) {
+        existing.detections.push(det);
+      } else {
+        speciesMap.set(det.species_id, {
+          speciesName: det.species_common_name || det.species_scientific_name || det.species_name,
+          speciesScientificName: det.species_scientific_name,
+          birdnetName: det.species_name,
+          detections: [det],
+        });
+      }
+    }
+
+    return Array.from(speciesMap.entries())
+      .map(([speciesId, data]) => {
+        const sorted = [...data.detections].sort((a, b) => b.confidence - a.confidence);
+        return {
+          speciesId,
+          speciesName: data.speciesName,
+          speciesScientificName: data.speciesScientificName,
+          birdnetName: data.birdnetName,
+          detectionCount: data.detections.length,
+          topDetections: sorted.slice(0, 3),
+          allDetections: sorted,
+        };
+      })
+      .sort((a, b) => {
+        // Sort by max confidence descending
+        const maxA = a.topDetections[0]?.confidence ?? 0;
+        const maxB = b.topDetections[0]?.confidence ?? 0;
+        return maxB - maxA;
+      });
+  }, [detections]);
+
+  const selectedSpeciesCount = useMemo(() => {
+    return reviewData.filter((s) => !deselectedSpecies.has(s.speciesId)).length;
+  }, [reviewData, deselectedSpecies]);
+
+  // ============================================================================
+  // Data fetching
+  // ============================================================================
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [allSurveyTypes, allSurveyors, allDevices] = await Promise.all([
+          surveyTypesAPI.getAll(),
+          surveyorsAPI.getAll(),
+          devicesAPI.getAll(false, 'audio_recorder'),
+        ]);
+        const audioTypes = allSurveyTypes.filter((st) => st.allow_audio_upload && st.is_active);
+        setSurveyTypes(audioTypes);
+        setSurveyors(allSurveyors);
+        setDevices(allDevices);
+
+        const typeId = searchParams.get('type');
+        if (typeId) {
+          const preselected = audioTypes.find((st) => st.id === Number(typeId));
+          if (preselected) setSelectedSurveyType(preselected);
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      audioFiles.forEach((af) => URL.revokeObjectURL(af.objectUrl));
+    };
+  }, [audioFiles]);
+
+  // ============================================================================
+  // Step 1: File selection + processing
+  // ============================================================================
+
+  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setLoadingFiles(true);
+    setError(null);
+
+    try {
+      const wavFiles = Array.from(files).filter((f) => {
+        return f.name.toLowerCase().endsWith('.wav');
+      });
+
+      if (wavFiles.length === 0) {
+        setError('No valid audio files found. Only WAV files are accepted.');
+        setLoadingFiles(false);
+        return;
+      }
+
+      // Revoke old object URLs before replacing
+      audioFiles.forEach((af) => URL.revokeObjectURL(af.objectUrl));
+
+      const processed: AudioFile[] = wavFiles
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((file) => ({
+          file,
+          objectUrl: URL.createObjectURL(file),
+          filename: file.name,
+        }));
+
+      setAudioFiles(processed);
+      setDetections([]);
+      setUnmatchedSpecies([]);
+      setDeselectedSpecies(new Set());
+      setProcessedFileSet(null);
+      setProcessError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to process files');
+    } finally {
+      setLoadingFiles(false);
+    }
+  }, [audioFiles]);
+
+  const runProcessing = useCallback(async () => {
+    if (audioFiles.length === 0) return;
+
+    setProcessing(true);
+    setProcessError(null);
+    setDetections([]);
+    setUnmatchedSpecies([]);
+    setProcessProgress({ processed: 0, total: audioFiles.length });
+
+    try {
+      const allDetections: WizardDetection[] = [];
+      const allUnmatched: string[] = [];
+
+      // Process one file at a time for progress tracking
+      for (let i = 0; i < audioFiles.length; i++) {
+        const af = audioFiles[i];
+        const response = await audioAPI.processFiles([af.file]);
+
+        for (const result of response.results) {
+          for (const det of result.detections) {
+            allDetections.push({ ...det, fileIndex: i });
+          }
+          for (const species of result.unmatched_species) {
+            if (!allUnmatched.includes(species)) {
+              allUnmatched.push(species);
+            }
+          }
+        }
+
+        setProcessProgress({ processed: i + 1, total: audioFiles.length });
+        // Update detections progressively so UI updates
+        setDetections([...allDetections]);
+      }
+
+      setUnmatchedSpecies(allUnmatched);
+      setProcessedFileSet(audioFiles);
+    } catch (err: unknown) {
+      setProcessError(err instanceof Error ? err.message : 'Failed to process audio files');
+    } finally {
+      setProcessing(false);
+    }
+  }, [audioFiles]);
+
+  // Auto-start processing when entering Upload step with new files
+  useEffect(() => {
+    if (activeStep !== 1 || processing || processError) return;
+    if (audioFiles.length === 0) return;
+    const needsRun = processedFileSet !== audioFiles;
+    if (needsRun) {
+      runProcessing();
+    }
+  }, [activeStep, processing, processError, audioFiles, processedFileSet, runProcessing]);
+
+  // ============================================================================
+  // Step 2: Review
+  // ============================================================================
+
+  const toggleSpecies = useCallback((speciesId: number) => {
+    setDeselectedSpecies((prev) => {
+      const next = new Set(prev);
+      if (next.has(speciesId)) {
+        next.delete(speciesId);
+      } else {
+        next.add(speciesId);
+      }
+      return next;
+    });
+  }, []);
+
+  // ============================================================================
+  // Step 3: Save
+  // ============================================================================
+
+  const handleSave = useCallback(async () => {
+    if (!selectedSurveyType || !selectedDevice || !date) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      // 1. Create survey
+      setSaveProgress({ step: 'Creating survey...', percent: 5 });
+      let survey;
+      try {
+        survey = await surveysAPI.create({
+          date: date.format('YYYY-MM-DD'),
+          survey_type_id: selectedSurveyType.id,
+          device_id: selectedDevice.id,
+          surveyor_ids: selectedSurveyors.map((s) => s.id),
+        });
+      } catch (createErr: unknown) {
+        throw new Error(`Failed to create survey: ${createErr instanceof Error ? createErr.message : String(createErr)}`);
+      }
+
+      // 2. Upload audio files (skip processing — already done in wizard)
+      const filesToUpload = audioFiles.map((af) => af.file);
+      const totalFiles = filesToUpload.length;
+      setSaveProgress({ step: `Uploading ${totalFiles} audio files...`, percent: 10 });
+
+      const uploadedRecordings: AudioRecording[] = [];
+      for (let i = 0; i < filesToUpload.length; i += UPLOAD_BATCH_SIZE) {
+        const batch = filesToUpload.slice(i, i + UPLOAD_BATCH_SIZE);
+        let result;
+        try {
+          result = await audioAPI.uploadFilesSkipProcessing(survey.id, batch);
+        } catch (uploadErr: unknown) {
+          throw new Error(`Failed to upload audio files (batch ${Math.floor(i / UPLOAD_BATCH_SIZE) + 1}): ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`);
+        }
+        uploadedRecordings.push(...result);
+        const uploadPercent = 10 + Math.round(((i + batch.length) / totalFiles) * 55);
+        setSaveProgress({ step: `Uploaded ${Math.min(i + UPLOAD_BATCH_SIZE, totalFiles)} of ${totalFiles} files...`, percent: uploadPercent });
+      }
+
+      // Build filename -> recording ID mapping
+      const filenameToRecordingId = new Map<string, number>();
+      for (const rec of uploadedRecordings) {
+        filenameToRecordingId.set(rec.filename, rec.id);
+      }
+
+      // 3. Create sightings for selected species
+      setSaveProgress({ step: 'Creating sightings...', percent: 70 });
+      const selectedReviewData = reviewData.filter((s) => !deselectedSpecies.has(s.speciesId));
+
+      for (const speciesData of selectedReviewData) {
+        // Map detections to audio_detections with recording IDs
+        const audioDetections = speciesData.allDetections
+          .map((det) => {
+            const filename = audioFiles[det.fileIndex]?.filename;
+            const recordingId = filename ? filenameToRecordingId.get(filename) : undefined;
+            if (!recordingId) return null;
+            return {
+              audio_recording_id: recordingId,
+              species_name: det.species_name,
+              confidence: det.confidence,
+              start_time: det.start_time,
+              end_time: det.end_time,
+            };
+          })
+          .filter((d): d is NonNullable<typeof d> => d !== null);
+
+        if (audioDetections.length === 0) continue;
+
+        await surveysAPI.addSighting(survey.id, {
+          species_id: speciesData.speciesId,
+          count: 1,
+          audio_detections: audioDetections,
+          individuals:
+            selectedDevice.latitude != null && selectedDevice.longitude != null
+              ? [{ latitude: selectedDevice.latitude, longitude: selectedDevice.longitude, count: 1 }]
+              : [],
+        });
+      }
+
+      setSaveProgress({ step: 'Done!', percent: 100 });
+      navigate(`/surveys/${survey.id}`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save survey');
+      setSaving(false);
+    }
+  }, [selectedSurveyType, selectedDevice, date, selectedSurveyors, audioFiles, reviewData, deselectedSpecies, navigate]);
+
+  // ============================================================================
+  // Step validation
+  // ============================================================================
+
+  const canProceed = useCallback(
+    (step: number): boolean => {
+      switch (step) {
+        case 0:
+          return !!selectedSurveyType && !!selectedDevice && !!date && selectedSurveyors.length > 0;
+        case 1:
+          return !processing && processedFileSet === audioFiles && detections.length > 0;
+        case 2:
+          return selectedSpeciesCount > 0;
+        default:
+          return false;
+      }
+    },
+    [selectedSurveyType, selectedDevice, date, selectedSurveyors.length, processing, processedFileSet, audioFiles, detections.length, selectedSpeciesCount],
+  );
+
+  return {
+    // Step
+    activeStep,
+    setActiveStep,
+
+    // Setup
+    surveyTypes,
+    selectedSurveyType,
+    setSelectedSurveyType,
+    devices,
+    selectedDevice,
+    setSelectedDevice,
+    date,
+    setDate,
+    surveyors,
+    selectedSurveyors,
+    setSelectedSurveyors,
+
+    // Upload + Process
+    audioFiles,
+    loadingFiles,
+    fileInputRef,
+    handleFileSelect,
+    processing,
+    processProgress,
+    processError,
+    setProcessError,
+    runProcessing,
+    detections,
+    unmatchedSpecies,
+
+    // Review
+    reviewData,
+    deselectedSpecies,
+    selectedSpeciesCount,
+    toggleSpecies,
+
+    // Save
+    saving,
+    saveProgress,
+    handleSave,
+
+    // Navigation
+    navigate,
+    canProceed,
+
+    // Shared
+    error,
+    setError,
+    loading,
+  };
+}
+
+export type AudioWizardState = ReturnType<typeof useAudioWizard>;
