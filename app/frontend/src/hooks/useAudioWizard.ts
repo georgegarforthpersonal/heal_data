@@ -268,6 +268,11 @@ export function useAudioWizard() {
       }
 
       setUnmatchedSpecies(allUnmatched);
+      // All species start deselected — user must explicitly tick to include
+      const allSpeciesIds = new Set(
+        allDetections.map((d) => d.species_id).filter((id): id is number => id != null),
+      );
+      setDeselectedSpecies(allSpeciesIds);
       setProcessedFileSet(audioFiles);
     } catch (err: unknown) {
       setProcessError(err instanceof Error ? err.message : 'Failed to process audio files');

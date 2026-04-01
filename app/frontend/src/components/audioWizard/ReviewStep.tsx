@@ -26,7 +26,7 @@ export function ReviewStep({ wizard }: ReviewStepProps) {
         Review Detections
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {selectedSpeciesCount} of {reviewData.length} species selected. Deselect any species you don't want to include as sightings.
+        {selectedSpeciesCount} of {reviewData.length} species selected. Tick the species you want to include as sightings.
       </Typography>
 
       <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
