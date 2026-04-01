@@ -1227,7 +1227,7 @@ export interface AudioRecording {
   unmatched_species: string[] | null;
 }
 
-export interface BirdDetection {
+export interface AudioDetection {
   id: number;
   species_name: string;
   confidence: number;
@@ -1341,7 +1341,7 @@ export const audioAPI = {
   /**
    * Get bird detections for an audio recording
    */
-  getDetections: (surveyId: number, recordingId: number, minConfidence?: number): Promise<BirdDetection[]> => {
+  getDetections: (surveyId: number, recordingId: number, minConfidence?: number): Promise<AudioDetection[]> => {
     const params = minConfidence ? `?min_confidence=${minConfidence}` : '';
     return fetchAPI(`/surveys/${surveyId}/audio/${recordingId}/detections${params}`);
   },

@@ -32,7 +32,7 @@ from models import (
     BreedingStatusCode, BreedingStatusCodeRead,
     IndividualLocationCreate, IndividualLocationRead, SightingWithIndividuals,
     SightingImage, SightingAudioClip,
-    AudioRecording, BirdDetection,
+    AudioRecording, AudioDetection,
     Organisation
 )
 from services.r2_storage import delete_media_file
@@ -526,9 +526,9 @@ async def get_survey_sightings(
         image_ids = [r[0] for r in image_rows]
 
         # Fetch linked audio detection clips
-        audio_dets = db.query(BirdDetection)\
-            .filter(BirdDetection.sighting_id == row.id)\
-            .order_by(desc(BirdDetection.confidence))\
+        audio_dets = db.query(AudioDetection)\
+            .filter(AudioDetection.sighting_id == row.id)\
+            .order_by(desc(AudioDetection.confidence))\
             .all()
         audio_clips = [
             {
@@ -660,7 +660,7 @@ async def create_sighting(
             start_seconds = start_t.hour * 3600 + start_t.minute * 60 + start_t.second
             detection_ts = recording.recording_timestamp + timedelta(seconds=start_seconds)
 
-        bird_det = BirdDetection(
+        bird_det = AudioDetection(
             audio_recording_id=det.audio_recording_id,
             species_name=det.species_name,
             species_id=sighting.species_id,

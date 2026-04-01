@@ -860,7 +860,7 @@ class AudioRecording(AudioRecordingBase, table=True):  # type: ignore[call-arg]
 
     # Relationships
     survey: "Survey" = Relationship(back_populates="audio_recordings")
-    detections: List["BirdDetection"] = Relationship(
+    detections: List["AudioDetection"] = Relationship(
         back_populates="audio_recording",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
@@ -880,8 +880,8 @@ class AudioRecordingRead(AudioRecordingBase):
     unmatched_species: Optional[List[str]] = None
 
 
-class BirdDetectionBase(SQLModel):
-    """Base bird detection fields"""
+class AudioDetectionBase(SQLModel):
+    """Base audio detection fields"""
     species_name: str = Field(max_length=255)
     confidence: float = Field(ge=0, le=1)
     start_time: time_type
@@ -889,9 +889,9 @@ class BirdDetectionBase(SQLModel):
     detection_timestamp: datetime
 
 
-class BirdDetection(BirdDetectionBase, table=True):  # type: ignore[call-arg]
-    """Bird detection database model"""
-    __tablename__ = "bird_detection"
+class AudioDetection(AudioDetectionBase, table=True):  # type: ignore[call-arg]
+    """Audio detection database model"""
+    __tablename__ = "audio_detection"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     audio_recording_id: int = Field(foreign_key="audio_recording.id", ondelete="CASCADE", index=True)
@@ -909,8 +909,8 @@ class BirdDetection(BirdDetectionBase, table=True):  # type: ignore[call-arg]
     sighting: Optional["Sighting"] = Relationship()
 
 
-class BirdDetectionRead(BirdDetectionBase):
-    """Model for reading bird detection"""
+class AudioDetectionRead(AudioDetectionBase):
+    """Model for reading audio detection"""
     id: int
     species_id: Optional[int]
     species_common_name: Optional[str] = None

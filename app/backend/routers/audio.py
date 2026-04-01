@@ -40,8 +40,8 @@ from models import (
     AudioProcessingResponse,
     AudioRecording,
     AudioRecordingRead,
-    BirdDetection,
-    BirdDetectionRead,
+    AudioDetection,
+    AudioDetectionRead,
     DetectionClip,
     Device,
     FileProcessingResult,
@@ -207,8 +207,8 @@ async def list_audio_recordings(
     result = []
     for rec in recordings:
         detection_count = (
-            db.query(func.count(BirdDetection.id))
-            .filter(BirdDetection.audio_recording_id == rec.id)
+            db.query(func.count(AudioDetection.id))
+            .filter(AudioDetection.audio_recording_id == rec.id)
             .scalar()
         )
         result.append(_build_recording_response(rec, detection_count))
@@ -392,7 +392,7 @@ def process_recording_background(recording_id: int) -> None:
                 ).first()
 
                 if species:
-                    bird_det = BirdDetection(
+                    bird_det = AudioDetection(
                         audio_recording_id=recording_id,
                         species_name=det.species,
                         species_id=species.id,
@@ -461,8 +461,8 @@ async def get_audio_recording(
         raise HTTPException(status_code=404, detail="Recording not found")
 
     detection_count = (
-        db.query(func.count(BirdDetection.id))
-        .filter(BirdDetection.audio_recording_id == recording_id)
+        db.query(func.count(AudioDetection.id))
+        .filter(AudioDetection.audio_recording_id == recording_id)
         .scalar()
     )
 
@@ -471,7 +471,7 @@ async def get_audio_recording(
 
 @router.get(
     "/{survey_id}/audio/{recording_id}/detections",
-    response_model=List[BirdDetectionRead],
+    response_model=List[AudioDetectionRead],
 )
 async def get_audio_detections(
     survey_id: int,
@@ -495,13 +495,13 @@ async def get_audio_detections(
     if not recording:
         raise HTTPException(status_code=404, detail="Recording not found")
 
-    query = db.query(BirdDetection).filter(
-        BirdDetection.audio_recording_id == recording_id
+    query = db.query(AudioDetection).filter(
+        AudioDetection.audio_recording_id == recording_id
     )
     if min_confidence > 0:
-        query = query.filter(BirdDetection.confidence >= min_confidence)
+        query = query.filter(AudioDetection.confidence >= min_confidence)
 
-    detections = query.order_by(BirdDetection.detection_timestamp).all()
+    detections = query.order_by(AudioDetection.detection_timestamp).all()
 
     return [
         {
@@ -597,18 +597,18 @@ async def get_detections_summary(
     # We need to join through AudioRecording to get device_serial
     species_device_counts = (
         db.query(
-            BirdDetection.species_id,
+            AudioDetection.species_id,
             Species.name.label("species_name"),  # type: ignore[union-attr]
             Species.scientific_name.label("species_scientific_name"),  # type: ignore[union-attr]
             AudioRecording.device_serial,
-            func.count(BirdDetection.id).label("detection_count"),
-            func.max(BirdDetection.confidence).label("max_confidence"),
+            func.count(AudioDetection.id).label("detection_count"),
+            func.max(AudioDetection.confidence).label("max_confidence"),
         )
-        .join(Species, BirdDetection.species_id == Species.id)
-        .join(AudioRecording, BirdDetection.audio_recording_id == AudioRecording.id)
-        .filter(col(BirdDetection.audio_recording_id).in_(recording_ids))
+        .join(Species, AudioDetection.species_id == Species.id)
+        .join(AudioRecording, AudioDetection.audio_recording_id == AudioRecording.id)
+        .filter(col(AudioDetection.audio_recording_id).in_(recording_ids))
         .group_by(
-            BirdDetection.species_id,
+            AudioDetection.species_id,
             Species.name,
             Species.scientific_name,
             AudioRecording.device_serial,
@@ -629,12 +629,12 @@ async def get_detections_summary(
 
         # Get top 3 detections for this species FROM THIS DEVICE ONLY
         top_detections = (
-            db.query(BirdDetection)
+            db.query(AudioDetection)
             .filter(
-                col(BirdDetection.audio_recording_id).in_(device_recording_ids),
-                BirdDetection.species_id == row.species_id,
+                col(AudioDetection.audio_recording_id).in_(device_recording_ids),
+                AudioDetection.species_id == row.species_id,
             )
-            .order_by(desc(BirdDetection.confidence))
+            .order_by(desc(AudioDetection.confidence))
             .limit(3)
             .all()
         )
