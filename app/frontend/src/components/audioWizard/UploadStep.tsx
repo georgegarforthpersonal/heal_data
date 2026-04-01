@@ -90,22 +90,29 @@ export function UploadStep({ wizard }: UploadStepProps) {
       {/* Processing progress */}
       {processing && (
         <Box sx={{ mb: 2 }}>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
             <CircularProgress size={20} />
-            <Typography variant="body2">
-              Processing file {processProgress.processed} of {processProgress.total}...
+            <Typography variant="body2" fontWeight={600}>
+              Analysing file {processProgress.processed + 1} of {processProgress.total}
             </Typography>
           </Stack>
+          {processProgress.currentFilename && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, ml: 4.5 }}>
+              {processProgress.currentFilename}
+            </Typography>
+          )}
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, ml: 4.5 }}>
+            Uploading file and running BirdNET analysis. This may take a few minutes per file.
+          </Typography>
           <LinearProgress
             variant="determinate"
             value={processProgress.total > 0 ? (processProgress.processed / processProgress.total) * 100 : 0}
             sx={{ height: 6, borderRadius: 3 }}
           />
-          {reviewData.length > 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {reviewData.length} species detected so far
-            </Typography>
-          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {processProgress.processed} of {processProgress.total} files complete
+            {reviewData.length > 0 && <> &middot; {reviewData.length} species detected so far</>}
+          </Typography>
         </Box>
       )}
 

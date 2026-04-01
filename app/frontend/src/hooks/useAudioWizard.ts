@@ -78,7 +78,7 @@ export function useAudioWizard() {
   const [loadingFiles, setLoadingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState(false);
-  const [processProgress, setProcessProgress] = useState({ processed: 0, total: 0 });
+  const [processProgress, setProcessProgress] = useState({ processed: 0, total: 0, currentFilename: '' });
   const [processError, setProcessError] = useState<string | null>(null);
   const [detections, setDetections] = useState<WizardDetection[]>([]);
   const [unmatchedSpecies, setUnmatchedSpecies] = useState<string[]>([]);
@@ -240,7 +240,7 @@ export function useAudioWizard() {
     setProcessError(null);
     setDetections([]);
     setUnmatchedSpecies([]);
-    setProcessProgress({ processed: 0, total: audioFiles.length });
+    setProcessProgress({ processed: 0, total: audioFiles.length, currentFilename: audioFiles[0]?.filename ?? '' });
 
     try {
       const allDetections: WizardDetection[] = [];
@@ -249,6 +249,7 @@ export function useAudioWizard() {
       // Process one file at a time for progress tracking
       for (let i = 0; i < audioFiles.length; i++) {
         const af = audioFiles[i];
+        setProcessProgress({ processed: i, total: audioFiles.length, currentFilename: af.filename });
         const response = await audioAPI.processFiles([af.file]);
 
         for (const result of response.results) {
@@ -262,7 +263,7 @@ export function useAudioWizard() {
           }
         }
 
-        setProcessProgress({ processed: i + 1, total: audioFiles.length });
+        setProcessProgress({ processed: i + 1, total: audioFiles.length, currentFilename: '' });
         // Update detections progressively so UI updates
         setDetections([...allDetections]);
       }
