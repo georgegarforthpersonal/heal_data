@@ -19,7 +19,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional, Any
 from datetime import date
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import desc, func, text
 from sqlmodel import col
 from database.connection import get_db
 from auth import require_admin
@@ -528,7 +528,7 @@ async def get_survey_sightings(
         # Fetch linked audio detection clips
         audio_dets = db.query(BirdDetection)\
             .filter(BirdDetection.sighting_id == row.id)\
-            .order_by(BirdDetection.confidence.desc())\
+            .order_by(desc(BirdDetection.confidence))\
             .all()
         audio_clips = [
             {
