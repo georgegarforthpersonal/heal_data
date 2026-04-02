@@ -14,6 +14,7 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
+import { DEFAULT_MAP_CENTER } from '../../config';
 
 import type { Species, BreedingStatusCode, LocationWithBoundary } from '../../services/api';
 import type { DraftSighting } from './SightingsEditor';
@@ -120,7 +121,7 @@ export function MapModeSightings({
   surveyLocationId,
 }: MapModeSightingsProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
-  const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
+  const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
   const [addPopupPosition, setAddPopupPosition] = useState<{ lat: number; lng: number } | null>(null);
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
