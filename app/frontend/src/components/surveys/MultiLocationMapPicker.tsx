@@ -28,6 +28,7 @@ import 'leaflet/dist/leaflet.css';
 
 import type { BreedingStatusCode, BreedingCategory, LocationWithBoundary } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
+import { DEFAULT_MAP_CENTER } from '../../config';
 import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
@@ -130,7 +131,7 @@ export default function MultiLocationMapPicker({
   surveyLocationId,
 }: MultiLocationMapPickerProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
-  const [mapCenter] = useState<LatLng>(new LatLng(51.159480, -2.385541));
+  const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   // Calculate total count across all locations

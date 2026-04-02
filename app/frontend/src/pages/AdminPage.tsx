@@ -52,6 +52,7 @@ import {
   type DeviceType,
 } from '../services/api';
 import LocationMapPicker from '../components/surveys/LocationMapPicker';
+import DeviceMap from '../components/admin/DeviceMap';
 import { SurveyTypeColorSelector, SurveyTypeChip } from '../components/SurveyTypeColors';
 import { brandColors } from '../theme';
 
@@ -412,14 +413,14 @@ export function AdminPage() {
   };
 
   // Device handlers
-  const handleOpenAddDevice = () => {
+  const handleOpenAddDevice = (lat?: number, lng?: number) => {
     setDeviceDialogMode('add');
     setEditingDevice(null);
     setFormDeviceId('');
     setFormDeviceName('');
     setFormDeviceType('audio_recorder');
-    setFormDeviceLatitude(undefined);
-    setFormDeviceLongitude(undefined);
+    setFormDeviceLatitude(lat);
+    setFormDeviceLongitude(lng);
     setFormDeviceLocationId(null);
     setDeviceFormError(null);
     setDeviceDialogOpen(true);
@@ -780,22 +781,35 @@ export function AdminPage() {
 
       {/* Devices Tab */}
       <TabPanel value={tabValue} index={2}>
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleOpenAddDevice}
-            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
-          >
-            Add Device
-          </Button>
-        </Box>
-
         {devicesError && (
           <Alert severity="error" sx={{ mb: 3 }} onClose={() => setDevicesError(null)}>
             {devicesError}
           </Alert>
         )}
+
+        <DeviceMap
+          devices={devices}
+          locationsWithBoundaries={allLocationsWithBoundaries}
+          loading={devicesLoading}
+          onEditDevice={handleOpenEditDevice}
+          onDeactivateDevice={(device) => {
+            setDeviceToDeactivate(device);
+            setDeactivateDeviceDialogOpen(true);
+          }}
+          onReactivateDevice={handleReactivateDevice}
+          onAddDeviceAtLocation={handleOpenAddDevice}
+        />
+
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenAddDevice()}
+            sx={{ bgcolor: brandColors.main, '&:hover': { bgcolor: brandColors.hover } }}
+          >
+            Add Device
+          </Button>
+        </Box>
 
         <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
           <Table>

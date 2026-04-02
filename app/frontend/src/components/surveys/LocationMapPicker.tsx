@@ -9,6 +9,7 @@ import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import LayersIcon from '@mui/icons-material/Layers';
 import 'leaflet/dist/leaflet.css';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
+import { DEFAULT_MAP_CENTER } from '../../config';
 
 // Fix for default marker icon in React Leaflet
 import L from 'leaflet';
@@ -74,7 +75,7 @@ export default function LocationMapPicker({
     latitude && longitude ? new LatLng(latitude, longitude) : null
   );
   const [mapCenter, setMapCenter] = useState<LatLng>(
-    latitude && longitude ? new LatLng(latitude, longitude) : new LatLng(51.159480, -2.385541) // Default to survey area
+    latitude && longitude ? new LatLng(latitude, longitude) : new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1])
   );
   const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();

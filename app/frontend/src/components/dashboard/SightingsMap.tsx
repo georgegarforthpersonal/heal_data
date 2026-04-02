@@ -14,6 +14,7 @@ import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { getSurveyTypeColorStyles } from '../SurveyTypeColors';
 import { brandColors } from '../../theme';
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../config';
 
 interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
@@ -211,9 +212,8 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
     }
   };
 
-  // Default map center (UK survey area)
-  const defaultCenter: [number, number] = [51.159480, -2.385541];
-  const defaultZoom = 13;
+  const defaultCenter = DEFAULT_MAP_CENTER;
+  const defaultZoom = DEFAULT_MAP_ZOOM;
 
   if (loading) {
     return (
