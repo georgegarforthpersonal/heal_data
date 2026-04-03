@@ -14,6 +14,7 @@ Refactored to use SQLModel ORM instead of raw SQL.
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from database.connection import get_db
 from models import Surveyor, SurveyorRead, SurveyorCreate, SurveyorUpdate, Organisation
@@ -120,7 +121,15 @@ async def create_surveyor(
         organisation_id=org.id
     )
     db.add(db_surveyor)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        full_name = f"{surveyor.first_name} {surveyor.last_name}".strip() if surveyor.last_name else surveyor.first_name
+        raise HTTPException(
+            status_code=409,
+            detail=f"A surveyor named '{full_name}' already exists"
+        )
     db.refresh(db_surveyor)
     return db_surveyor
 
@@ -153,7 +162,15 @@ async def update_surveyor(
     for field, value in update_data.items():
         setattr(db_surveyor, field, value)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        full_name = f"{final_first_name} {final_last_name}".strip() if final_last_name else final_first_name
+        raise HTTPException(
+            status_code=409,
+            detail=f"A surveyor named '{full_name}' already exists"
+        )
     db.refresh(db_surveyor)
     return db_surveyor  # type: ignore[no-any-return]
 
