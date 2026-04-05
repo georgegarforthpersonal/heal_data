@@ -23,11 +23,18 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: |
-          SINCE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%S 2>/dev/null || date -u -v-24H +%Y-%m-%dT%H:%M:%S)
-          COUNT=$(curl -s \
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
             -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
-            "https://sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/?query=is:unresolved+firstSeen:>${SINCE}&statsPeriod=24h" \
-            | jq 'length')
+            "https://sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/?query=is%3Aunresolved&statsPeriod=24h")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "Sentry API status: ${HTTP_CODE}"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Sentry API error: ${BODY}"
+            echo "issue_count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          COUNT=$(echo "$BODY" | jq 'length')
           echo "issue_count=${COUNT}" >> "$GITHUB_OUTPUT"
           echo "Found ${COUNT} unresolved Sentry issues in the last 24 hours"
 
