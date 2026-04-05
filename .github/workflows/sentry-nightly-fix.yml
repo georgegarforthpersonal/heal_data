@@ -16,12 +16,29 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Check Sentry for unresolved issues
+        id: sentry-check
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          SINCE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%S 2>/dev/null || date -u -v-24H +%Y-%m-%dT%H:%M:%S)
+          COUNT=$(curl -s \
+            -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+            "https://sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/?query=is:unresolved+firstSeen:>${SINCE}&statsPeriod=24h" \
+            | jq 'length')
+          echo "issue_count=${COUNT}" >> "$GITHUB_OUTPUT"
+          echo "Found ${COUNT} unresolved Sentry issues in the last 24 hours"
+
       - name: Checkout repository
+        if: steps.sentry-check.outputs.issue_count != '0'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Run Claude Code
+        if: steps.sentry-check.outputs.issue_count != '0'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
