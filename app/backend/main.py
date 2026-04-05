@@ -7,7 +7,9 @@ database logic from the Streamlit POC.
 """
 
 import logging
+import os
 
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,6 +19,12 @@ from exceptions import AppException
 from routers import surveys, species, locations, surveyors, dashboard, survey_types, auth, audio, devices, images, export
 
 logger = logging.getLogger(__name__)
+
+# Initialize Sentry error monitoring
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN"),
+    traces_sample_rate=0.1,
+)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -76,6 +84,11 @@ app.include_router(export.router, prefix="/api/export", tags=["Export"])
 # ============================================================================
 # Health Check Endpoint
 # ============================================================================
+
+@app.get("/sentry-debug")
+async def trigger_error() -> None:
+    division_by_zero = 1 / 0
+
 
 @app.get("/api/health")
 async def health_check() -> dict[str, str]:
