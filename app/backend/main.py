@@ -86,7 +86,7 @@ app.include_router(export.router, prefix="/api/export", tags=["Export"])
 # ============================================================================
 
 @app.get("/sentry-debug")
-async def trigger_error():
+async def trigger_error() -> None:
     division_by_zero = 1 / 0
 
 
