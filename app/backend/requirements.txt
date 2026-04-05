@@ -14,6 +14,9 @@ alembic>=1.13.0
 python-dotenv>=1.0.0
 pydantic-settings>=2.0.0
 
+# Error monitoring
+sentry-sdk[fastapi]>=2.0.0
+
 # Testing
 requests>=2.31.0  # For testing API endpoints
 pytest>=8.0.0
