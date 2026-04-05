@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   sentry-fix:
@@ -23,7 +24,6 @@ jobs:
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
-          model: "claude-sonnet-4-6"
           prompt: |
             You are a developer working on the Canopy Data wildlife monitoring platform (FastAPI + PostgreSQL, deployed on Railway).
 
@@ -41,9 +41,8 @@ jobs:
             8. Only modify files directly implicated by the stack traces
             9. Never push directly to main
             10. If there are no issues in the last 24 hours, exit cleanly without opening a PR
-          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep,WebFetch"
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
