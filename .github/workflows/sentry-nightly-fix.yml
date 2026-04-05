@@ -16,57 +16,104 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Check Sentry for unresolved issues
-        id: sentry-check
+      - name: Fetch Sentry issues and stack traces
+        id: sentry
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: |
+          # Fetch unresolved issues from last 24 hours
           RESPONSE=$(curl -s -w "\n%{http_code}" \
             -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
             "https://sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/?query=is%3Aunresolved&statsPeriod=24h")
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
           echo "Sentry API status: ${HTTP_CODE}"
+
           if [ "$HTTP_CODE" != "200" ]; then
             echo "Sentry API error: ${BODY}"
             echo "issue_count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
           COUNT=$(echo "$BODY" | jq 'length')
           echo "issue_count=${COUNT}" >> "$GITHUB_OUTPUT"
-          echo "Found ${COUNT} unresolved Sentry issues in the last 24 hours"
+          echo "Found ${COUNT} unresolved Sentry issues"
+
+          if [ "$COUNT" = "0" ]; then
+            exit 0
+          fi
+
+          # Get top 5 issues with metadata
+          ISSUES=$(echo "$BODY" | jq -c '[.[:5] | .[] | {id, title, culprit, count, level, permalink}]')
+
+          # For each issue, fetch the latest event's stack trace
+          REPORT=""
+          for ISSUE_ID in $(echo "$ISSUES" | jq -r '.[].id'); do
+            ISSUE_META=$(echo "$ISSUES" | jq -r ".[] | select(.id==\"${ISSUE_ID}\")")
+            TITLE=$(echo "$ISSUE_META" | jq -r '.title')
+            CULPRIT=$(echo "$ISSUE_META" | jq -r '.culprit')
+            OCCURRENCES=$(echo "$ISSUE_META" | jq -r '.count')
+            LEVEL=$(echo "$ISSUE_META" | jq -r '.level')
+            LINK=$(echo "$ISSUE_META" | jq -r '.permalink')
+
+            # Fetch latest event for this issue
+            EVENT=$(curl -s \
+              -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+              "https://sentry.io/api/0/issues/${ISSUE_ID}/events/latest/")
+
+            # Extract stack trace frames
+            STACKTRACE=$(echo "$EVENT" | jq '[.entries[]? | select(.type=="exception") | .data.values[]? | {type: .type, value: .value, frames: [.stacktrace.frames[]? | {filename, function, lineNo, context: .context}]}]' 2>/dev/null || echo "[]")
+
+            REPORT="${REPORT}
+          --- ISSUE: ${TITLE} ---
+          ID: ${ISSUE_ID}
+          Link: ${LINK}
+          Culprit: ${CULPRIT}
+          Occurrences: ${OCCURRENCES}
+          Level: ${LEVEL}
+          Stack trace:
+          ${STACKTRACE}
+          "
+          done
+
+          # Save report for next step
+          {
+            echo "report<<SENTRY_EOF"
+            echo "$REPORT"
+            echo "SENTRY_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Checkout repository
-        if: steps.sentry-check.outputs.issue_count != '0'
+        if: steps.sentry.outputs.issue_count != '0'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Run Claude Code
-        if: steps.sentry-check.outputs.issue_count != '0'
+        if: steps.sentry.outputs.issue_count != '0'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: "--max-turns 10"
           prompt: |
-            You are a developer working on the Canopy Data wildlife monitoring platform (FastAPI + PostgreSQL, deployed on Railway).
+            You are fixing bugs in the Canopy Data wildlife monitoring platform (FastAPI + PostgreSQL).
 
-            Your task:
-            1. Use the Sentry REST API (auth token is in the SENTRY_AUTH_TOKEN env var, org slug in SENTRY_ORG, project slug in SENTRY_PROJECT) to fetch all unresolved issues from the last 24 hours, ordered by frequency
-            2. For each issue, read the stack trace and identify the relevant source files in this repository
-            3. Prioritise issues by: frequency of occurrence, severity, and confidence that the fix is correct
-            4. Attempt to fix the top 1-2 issues only — where you are confident the fix is correct and safe. Do not attempt speculative fixes.
-            5. Create a new branch called fix/sentry-$(date +%Y-%m-%d)
-            6. Commit fixes with clear commit messages explaining what was fixed and why
-            7. Open a pull request titled "Nightly Sentry fixes - $(date +%Y-%m-%d)" with:
-               - A summary table of ALL issues reviewed (columns: Issue, Occurrences, Severity, Action)
-               - For each fix: Sentry issue link, root cause, what was changed, any caveats
-               - A section for unfixed issues explaining why (too complex, needs human decision, etc.)
-            8. Only modify files directly implicated by the stack traces
-            9. Never push directly to main
-            10. If there are no issues in the last 24 hours, exit cleanly without opening a PR
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+            Below are unresolved Sentry issues from the last 24 hours with full stack traces.
+            Source files are under app/backend/ in this repository.
+
+            ${{ steps.sentry.outputs.report }}
+
+            Instructions:
+            1. Read ONLY the source files referenced in the stack traces above
+            2. Prioritise by: frequency, severity, and confidence the fix is correct
+            3. Fix the top 1-2 issues where you are confident the fix is safe. Do not attempt speculative fixes.
+            4. Create a branch called fix/sentry-$(date +%Y-%m-%d)
+            5. Commit with clear messages explaining what was fixed and why
+            6. Open a PR titled "Nightly Sentry fixes - $(date +%Y-%m-%d)" with:
+               - A summary table of ALL issues (columns: Issue, Occurrences, Severity, Action taken)
+               - For fixed issues: Sentry link, root cause, what changed, caveats
+               - For unfixed issues: why (too complex, needs human decision, etc.)
+            7. Only modify files directly implicated by the stack traces
+            8. Never push directly to main
