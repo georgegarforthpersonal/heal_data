@@ -1,0 +1,49 @@
+name: Nightly Sentry Fix
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # 6am UTC daily
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sentry-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          model: "claude-sonnet-4-6"
+          prompt: |
+            You are a developer working on the Canopy Data wildlife monitoring platform (FastAPI + PostgreSQL, deployed on Railway).
+
+            Your task:
+            1. Use the Sentry REST API (auth token is in the SENTRY_AUTH_TOKEN env var, org slug in SENTRY_ORG, project slug in SENTRY_PROJECT) to fetch all unresolved issues from the last 24 hours, ordered by frequency
+            2. For each issue, read the stack trace and identify the relevant source files in this repository
+            3. Prioritise issues by: frequency of occurrence, severity, and confidence that the fix is correct
+            4. Attempt to fix the top 1-2 issues only — where you are confident the fix is correct and safe. Do not attempt speculative fixes.
+            5. Create a new branch called fix/sentry-$(date +%Y-%m-%d)
+            6. Commit fixes with clear commit messages explaining what was fixed and why
+            7. Open a pull request titled "Nightly Sentry fixes - $(date +%Y-%m-%d)" with:
+               - A summary table of ALL issues reviewed (columns: Issue, Occurrences, Severity, Action)
+               - For each fix: Sentry issue link, root cause, what was changed, any caveats
+               - A section for unfixed issues explaining why (too complex, needs human decision, etc.)
+            8. Only modify files directly implicated by the stack traces
+            9. Never push directly to main
+            10. If there are no issues in the last 24 hours, exit cleanly without opening a PR
+          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep,WebFetch"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
