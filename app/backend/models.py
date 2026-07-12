@@ -974,11 +974,26 @@ class SurveyBase(SQLModel):
     location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (required when survey type uses survey-level location)")
     survey_type_id: Optional[int] = Field(None, foreign_key="survey_type.id", description="Survey type ID")
     device_id: Optional[int] = Field(None, foreign_key="device.id", description="Device ID (for camera trap surveys)")
+    # Client-minted idempotency id: offline-capable clients send a UUID with the
+    # create so a retried request (response lost on flaky signal) returns the
+    # already-created row instead of inserting a duplicate.
+    client_uuid: Optional[str] = Field(
+        None, max_length=36, description="Client-minted UUID making the create idempotent on retry"
+    )
 
 
 class Survey(SurveyBase, table=True):  # type: ignore[call-arg]
     """Survey database model"""
     __tablename__ = "survey"
+    __table_args__ = (
+        sa.Index(
+            "ux_survey_org_client_uuid",
+            "organisation_id",
+            "client_uuid",
+            unique=True,
+            postgresql_where=sa.text("client_uuid IS NOT NULL"),
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this survey belongs to")
@@ -1070,6 +1085,10 @@ class SightingBase(SQLModel):
     larvae: Optional[int] = Field(None, ge=0, description="Larvae")
     exuviae: Optional[int] = Field(None, ge=0, description="Exuviae (cast larval skins)")
     emerging_adults: Optional[int] = Field(None, ge=0, description="Emerging/teneral adults")
+    # See Survey.client_uuid — same idempotent-retry contract, scoped to the survey.
+    client_uuid: Optional[str] = Field(
+        None, max_length=36, description="Client-minted UUID making the create idempotent on retry"
+    )
 
 
 #: The BDS stage/behaviour count columns, in recording-form order. `count`
@@ -1086,6 +1105,15 @@ STAGE_COUNT_FIELDS = (
 class Sighting(SightingBase, table=True):  # type: ignore[call-arg]
     """Sighting database model"""
     __tablename__ = "sighting"
+    __table_args__ = (
+        sa.Index(
+            "ux_sighting_survey_client_uuid",
+            "survey_id",
+            "client_uuid",
+            unique=True,
+            postgresql_where=sa.text("client_uuid IS NOT NULL"),
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     survey_id: int = Field(foreign_key="survey.id")
@@ -1185,9 +1213,21 @@ class BreedingStatusCodeRead(SQLModel):
 class SightingIndividual(SQLModel, table=True):  # type: ignore[call-arg]
     """Individual location point within a sighting with optional breeding status"""
     __tablename__ = "sighting_individual"
+    __table_args__ = (
+        sa.Index(
+            "ux_sighting_individual_client_uuid",
+            "sighting_id",
+            "client_uuid",
+            unique=True,
+            postgresql_where=sa.text("client_uuid IS NOT NULL"),
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     sighting_id: int = Field(foreign_key="sighting.id", ondelete="CASCADE")
+    # See Survey.client_uuid — idempotent-retry contract, scoped to the sighting.
+    # Replayed adds must also not re-bump the parent sighting's count.
+    client_uuid: Optional[str] = Field(None, max_length=36)
     # PostGIS geometry column (not directly exposed in API - use latitude/longitude instead)
     coordinates: str = Field(
         sa_column=sa.Column(
@@ -1227,6 +1267,9 @@ class IndividualLocationBase(SQLModel):
     breeding_status_code: Optional[str] = Field(None, max_length=2, description="BTO breeding status code")
     notes: Optional[str] = Field(None, description="Optional notes for this individual")
     camera_trap_image_id: Optional[int] = Field(None)
+    client_uuid: Optional[str] = Field(
+        None, max_length=36, description="Client-minted UUID making the create idempotent on retry"
+    )
 
 
 class IndividualLocationCreate(IndividualLocationBase):
