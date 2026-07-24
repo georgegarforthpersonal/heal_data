@@ -89,13 +89,11 @@ export default function GroupCard({
           <Stat label="Surveys" value={String(surveyCount)} />
           {countStat.label === 'Sightings' ? (
             <Stat label="Sightings" value={String(countStat.value)} />
-          ) : countStat.perType.length === 0 ? (
-            <Stat label="Species" value="0" />
           ) : (
-            <Box sx={{ minWidth: 0 }}>
-              <TypeCountChips counts={countStat.perType} max={2} />
-              <Typography sx={{ fontSize: 11, color: '#888', mt: 0.25 }}>Species</Typography>
-            </Box>
+            <Stat
+              label="Species"
+              value={String(countStat.perType.reduce((sum, t) => sum + t.count, 0))}
+            />
           )}
           {/* An upcoming date is actionable (brand green); a past one is just history. */}
           <Stat
@@ -110,6 +108,15 @@ export default function GroupCard({
             }
           />
         </Box>
+
+        {/* The count's "of what": a full-width breakdown strip below the stat
+            row (never inside it — pills in a stat cell wreck the row's
+            scannable number+label grammar). Only when the count spans types. */}
+        {countStat.label === 'Species' && countStat.perType.length > 1 && (
+          <Box sx={{ mt: 1.5 }}>
+            <TypeCountChips counts={countStat.perType} max={4} />
+          </Box>
+        )}
       </ButtonBase>
     </Paper>
   );
