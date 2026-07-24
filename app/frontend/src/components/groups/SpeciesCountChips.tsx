@@ -5,22 +5,11 @@
  * cards. Falls back to a single zero chip with the group's primary species
  * icon when the survey has no sightings.
  */
-import { Box, Tooltip } from '@mui/material';
+import { Box } from '@mui/material';
 import type { Survey } from '../../services/api';
-import { getSpeciesIcon, formatSpeciesCount } from '../../config/speciesTypes';
-
-const chipSx = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.5,
-  px: 1,
-  py: 0.4,
-  borderRadius: '6px',
-  bgcolor: '#EBECED',
-  color: '#454648',
-  fontSize: 12.5,
-  fontWeight: 600,
-} as const;
+import { getSpeciesIcon } from '../../config/speciesTypes';
+import { typeCountChipSx as chipSx } from '../../pages/groups/groupsTokens';
+import TypeCountChips from './TypeCountChips';
 
 interface SpeciesCountChipsProps {
   survey: Survey;
@@ -44,19 +33,5 @@ export default function SpeciesCountChips({
       </Box>
     );
   }
-  return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: justify, gap: 0.75 }}>
-      {survey.species_breakdown.map((sighting) => {
-        const Icon = getSpeciesIcon(sighting.type);
-        return (
-          <Tooltip key={sighting.type} title={formatSpeciesCount(sighting.type, sighting.count)} arrow>
-            <Box sx={chipSx}>
-              <Icon sx={{ fontSize: 15 }} />
-              {sighting.count}
-            </Box>
-          </Tooltip>
-        );
-      })}
-    </Box>
-  );
+  return <TypeCountChips counts={survey.species_breakdown} justify={justify} />;
 }

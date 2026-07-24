@@ -24,13 +24,15 @@ import { dashboardAPI } from '../../services/api';
 import type { CumulativeSpeciesDataPoint } from '../../services/api';
 import { brandColors } from '../../theme';
 import { getSpeciesDisplayName } from '../../config';
-import { combineCumulative, totalUniqueSpecies, typesInSeries } from './cumulativeSeries';
+import { combineCumulative, perTypeTotals, totalUniqueSpecies, typesInSeries } from './cumulativeSeries';
 
 export interface CumulativeSummary {
   /** Total unique species recorded all-time. */
   total: number;
   /** Species types actually present in the data (for per-type follow-ups). */
   types: string[];
+  /** Distinct-species total per type, largest first (for breakdown chips). */
+  perType: { type: string; count: number }[];
 }
 
 interface CumulativeSpeciesChartProps {
@@ -141,6 +143,7 @@ export default function CumulativeSpeciesChart({
         onSummaryRef.current?.({
           total: totalUniqueSpecies(res.data),
           types: typesInSeries(res.data),
+          perType: perTypeTotals(res.data),
         });
       })
       .catch((err) => {

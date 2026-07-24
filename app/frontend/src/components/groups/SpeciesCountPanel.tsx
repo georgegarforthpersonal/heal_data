@@ -9,7 +9,9 @@ import { Box, Paper, ToggleButton, ToggleButtonGroup, Typography } from '@mui/ma
 import { BarChart as ChartIcon, ViewList } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { dashboardAPI, type SpeciesWithCount } from '../../services/api';
+import { getSpeciesIcon } from '../../config/speciesTypes';
 import CumulativeSpeciesChart, { type CumulativeSummary } from '../dashboard/CumulativeSpeciesChart';
+import TypeCountChips from './TypeCountChips';
 import { groupCardSx, groupColors } from '../../pages/groups/groupsTokens';
 
 interface SpeciesCountPanelProps {
@@ -35,7 +37,7 @@ const listGridSx = {
 } as const;
 
 export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: SpeciesCountPanelProps) {
-  const [summary, setSummary] = useState<CumulativeSummary>({ total: 0, types: [] });
+  const [summary, setSummary] = useState<CumulativeSummary>({ total: 0, types: [], perType: [] });
   const [view, setView] = useState<'chart' | 'list'>('chart');
   const [species, setSpecies] = useState<SpeciesWithCount[] | null>(null);
 
@@ -119,6 +121,15 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
         </ToggleButtonGroup>
       </Box>
 
+      {/* Per-type breakdown chips — the headline total spans several species
+          types on e.g. a bird group that also logs mammals, and without the
+          "of what" it reads as all birds. Hidden when there's only one type. */}
+      {summary.perType.length > 1 && (
+        <Box sx={{ px: 2.25, pt: 1.75 }}>
+          <TypeCountChips counts={summary.perType} />
+        </Box>
+      )}
+
       {/* The chart stays mounted (hidden) while the list is shown so its
           summary keeps feeding the headline count. */}
       <Box sx={{ p: 2.25, display: view === 'chart' ? 'block' : 'none' }}>
@@ -160,18 +171,26 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
                       borderTop: `1px solid ${groupColors.dividerInner}`,
                     }}
                   >
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: 13.5, color: groupColors.textPrimary }} noWrap>
-                        {s.name ?? s.scientific_name ?? 'Unknown'}
-                      </Typography>
-                      {s.name && s.scientific_name && (
-                        <Typography
-                          sx={{ fontSize: 11.5, color: groupColors.textMuted, fontStyle: 'italic' }}
-                          noWrap
-                        >
-                          {s.scientific_name}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      {/* Type icon carries the breakdown into the list — a
+                          Vole row on a bird group answers its own question. */}
+                      {(() => {
+                        const Icon = getSpeciesIcon(s.type);
+                        return <Icon sx={{ fontSize: 15, color: groupColors.textMuted, flexShrink: 0 }} />;
+                      })()}
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 13.5, color: groupColors.textPrimary }} noWrap>
+                          {s.name ?? s.scientific_name ?? 'Unknown'}
                         </Typography>
-                      )}
+                        {s.name && s.scientific_name && (
+                          <Typography
+                            sx={{ fontSize: 11.5, color: groupColors.textMuted, fontStyle: 'italic' }}
+                            noWrap
+                          >
+                            {s.scientific_name}
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
                     <Typography
                       sx={{

@@ -51,6 +51,21 @@ export const recordButtonSx = {
   py: 0.6,
 } as const;
 
+// The neutral icon+count chip used for per-species-type breakdowns (survey
+// rows, species-count summaries).
+export const typeCountChipSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 0.5,
+  px: 1,
+  py: 0.4,
+  borderRadius: '6px',
+  bgcolor: '#EBECED',
+  color: '#454648',
+  fontSize: 12.5,
+  fontWeight: 600,
+} as const;
+
 // Surveyor avatar palette (cycled). A freshly-assigned surveyor renders green.
 const SURVEYOR_AVATAR_COLORS = ['#6b7280', '#7c6f64', '#5f6b7a', '#7a6678'] as const;
 

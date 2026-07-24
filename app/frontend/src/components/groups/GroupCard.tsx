@@ -8,16 +8,20 @@ import { ChevronRight } from '@mui/icons-material';
 import type { SurveyTypeWithDetails } from '../../services/api';
 import { groupColors } from '../../pages/groups/groupsTokens';
 import SurveyTypeBadge from './SurveyTypeBadge';
+import TypeCountChips from './TypeCountChips';
 
 interface GroupCardProps {
   surveyType: SurveyTypeWithDetails;
   surveyCount: number;
   /**
-   * Middle stat: distinct species recorded across all surveys of this type,
-   * or total sightings when the type is fixed to a single species (a species
-   * count would always read 1 there).
+   * Middle stat: distinct species per species type (chips — "101 Species"
+   * on a bird group that also logs mammals reads as 101 birds, so the
+   * breakdown carries the "of what"), or total sightings when the type is
+   * fixed to a single species (a species count would always read 1 there).
    */
-  countStat: { label: 'Species' | 'Sightings'; value: number };
+  countStat:
+    | { label: 'Sightings'; value: number }
+    | { label: 'Species'; perType: { type: string; count: number }[] };
   /**
    * Third stat: the soonest scheduled survey for worklist groups, or the most
    * recently recorded one for unscheduled groups. Null value = none yet.
@@ -83,7 +87,16 @@ export default function GroupCard({
 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 1 }}>
           <Stat label="Surveys" value={String(surveyCount)} />
-          <Stat label={countStat.label} value={String(countStat.value)} />
+          {countStat.label === 'Sightings' ? (
+            <Stat label="Sightings" value={String(countStat.value)} />
+          ) : countStat.perType.length === 0 ? (
+            <Stat label="Species" value="0" />
+          ) : (
+            <Box sx={{ minWidth: 0 }}>
+              <TypeCountChips counts={countStat.perType} max={2} />
+              <Typography sx={{ fontSize: 11, color: '#888', mt: 0.25 }}>Species</Typography>
+            </Box>
+          )}
           {/* An upcoming date is actionable (brand green); a past one is just history. */}
           <Stat
             label={dateStat.label}

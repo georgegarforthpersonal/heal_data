@@ -47,3 +47,15 @@ export function totalUniqueSpecies(data: CumulativeSpeciesDataPoint[]): number {
 export function typesInSeries(data: CumulativeSpeciesDataPoint[]): string[] {
   return Array.from(new Set(data.map((d) => d.type)));
 }
+
+/** Distinct-species total per type, largest first — for breakdown chips. */
+export function perTypeTotals(data: CumulativeSpeciesDataPoint[]): { type: string; count: number }[] {
+  const maxPerType = new Map<string, number>();
+  for (const d of data) {
+    maxPerType.set(d.type, Math.max(maxPerType.get(d.type) ?? 0, d.cumulative_count));
+  }
+  return Array.from(maxPerType.entries())
+    .map(([type, count]) => ({ type, count }))
+    .filter((t) => t.count > 0)
+    .sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));
+}
