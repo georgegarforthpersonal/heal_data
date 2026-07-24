@@ -111,10 +111,11 @@ export default function GroupCard({
 
         {/* The count's "of what": a full-width breakdown strip below the stat
             row (never inside it — pills in a stat cell wreck the row's
-            scannable number+label grammar). Only when the count spans types. */}
+            scannable number+label grammar). Only when the count spans types;
+            every type shows, wrapping as needed (George: no "+n"). */}
         {countStat.label === 'Species' && countStat.perType.length > 1 && (
           <Box sx={{ mt: 1.5 }}>
-            <TypeCountChips counts={countStat.perType} max={4} />
+            <TypeCountChips counts={countStat.perType} />
           </Box>
         )}
       </ButtonBase>
