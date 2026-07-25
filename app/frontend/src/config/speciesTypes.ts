@@ -13,22 +13,15 @@ import {
   ButterflyIcon,
   BirdIcon,
   MushroomIcon,
-  SpiderIcon,
   BatIcon,
   MammalIcon,
   ReptileIcon,
   AmphibianIcon,
   MothIcon,
-  BugIcon,
   LeafIcon,
   BeeIcon,
-  BeetleIcon,
-  FlyIcon,
-  GrasshopperIcon,
   DragonflyIcon,
   EarwigIcon,
-  WoodlouseIcon,
-  MiteIcon,
 } from '../components/icons/WildlifeIcons';
 
 // Type for icon components
@@ -41,27 +34,25 @@ interface SpeciesTypeConfig {
   plural: string;
 }
 
-// Central configuration map
+// Central configuration map. Keyed by the twelve species-type slugs that
+// survive the July 2026 taxonomy collapse (see
+// docs/species-type-refactor-plan.md), in the group display order. The 'insect'
+// slug is the "Other invertebrates" catch-all — it holds arachnids and
+// crustaceans too, not only insects — and EarwigIcon doubles as the
+// unknown-type fallback. Order here drives speciesTypes (below).
 const speciesTypeConfig: Record<string, SpeciesTypeConfig> = {
   butterfly: { icon: ButterflyIcon, singular: 'Butterfly', plural: 'Butterflies' },
-  bird: { icon: BirdIcon, singular: 'Bird', plural: 'Birds' },
   moth: { icon: MothIcon, singular: 'Moth', plural: 'Moths' },
-  beetle: { icon: BeetleIcon, singular: 'Beetle', plural: 'Beetles' },
-  fly: { icon: FlyIcon, singular: 'Fly', plural: 'Flies' },
-  'bee-wasp-ant': { icon: BeeIcon, singular: 'Bee, Wasp or Ant', plural: 'Bees, Wasps & Ants' },
-  bug: { icon: BugIcon, singular: 'Bug', plural: 'Bugs' },
-  'dragonfly-damselfly': { icon: DragonflyIcon, singular: 'Dragonfly or Damselfly', plural: 'Dragonflies & Damselflies' },
-  'grasshopper-cricket': { icon: GrasshopperIcon, singular: 'Grasshopper or Cricket', plural: 'Grasshoppers & Crickets' },
-  insect: { icon: EarwigIcon, singular: 'Other Insect', plural: 'Other Insects' },
-  gall: { icon: LeafIcon, singular: 'Gall', plural: 'Galls' },
-  spider: { icon: SpiderIcon, singular: 'Spider', plural: 'Spiders' },
-  bat: { icon: BatIcon, singular: 'Bat', plural: 'Bats' },
+  bee: { icon: BeeIcon, singular: 'Bee', plural: 'Bees' },
+  'dragonfly-damselfly': { icon: DragonflyIcon, singular: 'Dragonfly', plural: 'Dragonflies' },
+  insect: { icon: EarwigIcon, singular: 'Other Invertebrate', plural: 'Other Invertebrates' },
   mammal: { icon: MammalIcon, singular: 'Mammal', plural: 'Mammals' },
+  bat: { icon: BatIcon, singular: 'Bat', plural: 'Bats' },
+  bird: { icon: BirdIcon, singular: 'Bird', plural: 'Birds' },
   reptile: { icon: ReptileIcon, singular: 'Reptile', plural: 'Reptiles' },
   amphibian: { icon: AmphibianIcon, singular: 'Amphibian', plural: 'Amphibians' },
   fungus: { icon: MushroomIcon, singular: 'Fungus', plural: 'Fungi' },
-  woodlouse: { icon: WoodlouseIcon, singular: 'Woodlouse', plural: 'Woodlice' },
-  mite: { icon: MiteIcon, singular: 'Mite', plural: 'Mites' },
+  plant: { icon: LeafIcon, singular: 'Plant', plural: 'Plants' },
 };
 
 // Default icon for unknown types
