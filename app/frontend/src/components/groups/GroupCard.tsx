@@ -8,20 +8,16 @@ import { ChevronRight } from '@mui/icons-material';
 import type { SurveyTypeWithDetails } from '../../services/api';
 import { groupColors } from '../../pages/groups/groupsTokens';
 import SurveyTypeBadge from './SurveyTypeBadge';
-import TypeCountChips from './TypeCountChips';
 
 interface GroupCardProps {
   surveyType: SurveyTypeWithDetails;
   surveyCount: number;
   /**
-   * Middle stat: distinct species per species type (chips — "101 Species"
-   * on a bird group that also logs mammals reads as 101 birds, so the
-   * breakdown carries the "of what"), or total sightings when the type is
-   * fixed to a single species (a species count would always read 1 there).
+   * Middle stat: distinct species recorded across all of the type's species
+   * types, or total sightings when the type is fixed to a single species (a
+   * species count would always read 1 there).
    */
-  countStat:
-    | { label: 'Sightings'; value: number }
-    | { label: 'Species'; perType: { type: string; count: number }[] };
+  countStat: { label: 'Species' | 'Sightings'; value: number };
   /**
    * Third stat: the soonest scheduled survey for worklist groups, or the most
    * recently recorded one for unscheduled groups. Null value = none yet.
@@ -87,14 +83,7 @@ export default function GroupCard({
 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 1 }}>
           <Stat label="Surveys" value={String(surveyCount)} />
-          {countStat.label === 'Sightings' ? (
-            <Stat label="Sightings" value={String(countStat.value)} />
-          ) : (
-            <Stat
-              label="Species"
-              value={String(countStat.perType.reduce((sum, t) => sum + t.count, 0))}
-            />
-          )}
+          <Stat label={countStat.label} value={String(countStat.value)} />
           {/* An upcoming date is actionable (brand green); a past one is just history. */}
           <Stat
             label={dateStat.label}
@@ -108,16 +97,6 @@ export default function GroupCard({
             }
           />
         </Box>
-
-        {/* The count's "of what": a full-width breakdown strip below the stat
-            row (never inside it — pills in a stat cell wreck the row's
-            scannable number+label grammar). Only when the count spans types;
-            every type shows, wrapping as needed (George: no "+n"). */}
-        {countStat.label === 'Species' && countStat.perType.length > 1 && (
-          <Box sx={{ mt: 1.5 }}>
-            <TypeCountChips counts={countStat.perType} />
-          </Box>
-        )}
       </ButtonBase>
     </Paper>
   );

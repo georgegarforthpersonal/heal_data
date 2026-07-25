@@ -16,16 +16,14 @@ import { surveyTypesAPI, surveysAPI, scheduledSurveysAPI, dashboardAPI, type Sur
 import { groupColors, GROUP_MAX_WIDTH } from './groupsTokens';
 import { formatRecordedDateShort, formatSurveyDateShort, nextScheduledSurvey } from './surveyState';
 import { groupPath, betaGroupNames, groupActivity, compareGroups } from './groupMeta';
-import { perTypeTotals } from '../../components/dashboard/cumulativeSeries';
+import { totalUniqueSpecies } from '../../components/dashboard/cumulativeSeries';
 import GroupCard from '../../components/groups/GroupCard';
 import { PageTitle } from '../../components/layout/PageTitle';
 
 interface CardData {
   surveyType: SurveyTypeWithDetails;
   surveyCount: number;
-  countStat:
-    | { label: 'Sightings'; value: number }
-    | { label: 'Species'; perType: { type: string; count: number }[] };
+  countStat: { label: 'Species' | 'Sightings'; value: number };
   dateStat: { label: 'Next survey' | 'Last survey'; value: string | null };
 }
 
@@ -44,7 +42,7 @@ async function countStatFor(details: SurveyTypeWithDetails): Promise<CardData['c
   }
   const types = details.species_types.map((st) => st.name);
   const res = await dashboardAPI.getCumulativeSpecies(types.length > 0 ? types : undefined, details.id);
-  return { label: 'Species', perType: perTypeTotals(res.data) };
+  return { label: 'Species', value: totalUniqueSpecies(res.data) };
 }
 
 export default function GroupsPage() {

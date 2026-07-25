@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { combineCumulative, perTypeTotals, totalUniqueSpecies, typesInSeries } from './cumulativeSeries';
+import { combineCumulative, totalUniqueSpecies, typesInSeries } from './cumulativeSeries';
 import type { CumulativeSpeciesDataPoint } from '../../services/api';
 
 const point = (
@@ -47,22 +47,6 @@ describe('totalUniqueSpecies', () => {
 
   it('is zero for an empty series', () => {
     expect(totalUniqueSpecies([])).toBe(0);
-  });
-});
-
-describe('perTypeTotals', () => {
-  it('reports each type\'s max, largest first, dropping zero-count types', () => {
-    expect(
-      perTypeTotals([
-        point('2026-01-01', 'mammal', 2),
-        point('2026-02-01', 'bird', 40),
-        point('2026-03-01', 'bird', 89),
-        point('2026-01-01', 'reptile', 0),
-      ]),
-    ).toEqual([
-      { type: 'bird', count: 89 },
-      { type: 'mammal', count: 2 },
-    ]);
   });
 });
 
