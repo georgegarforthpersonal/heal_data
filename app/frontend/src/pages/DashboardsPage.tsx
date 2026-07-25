@@ -54,8 +54,10 @@ export function DashboardsPage() {
   }, [selectedSpeciesTypes]);
 
   // Fetch all-time sightings for the selected species (for the map).
+  // Heal doesn't record GPS coordinates on sightings, so the map section is
+  // hidden for them and the fetch skipped.
   useEffect(() => {
-    if (!selectedSpeciesId) {
+    if (!selectedSpeciesId || !isCannwood) {
       setSightingsData([]);
       return;
     }
@@ -175,24 +177,27 @@ export function DashboardsPage() {
             <SpeciesOccurrenceChart speciesId={selectedSpeciesId} height={300} />
           </Paper>
 
-          {/* Sightings Map Section */}
-          <Paper elevation={0} sx={{ p: 3, mt: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              Sighting Locations
-            </Typography>
-            {selectedSpeciesId ? (
-              <SightingsMap
-                sightings={sightingsData}
-                loading={sightingsLoading}
-                error={sightingsError}
-                locationsWithBoundaries={locationsWithBoundaries}
-              />
-            ) : (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'text.secondary' }}>
-                <Typography variant="body1">Select a species to view sighting locations</Typography>
-              </Box>
-            )}
-          </Paper>
+          {/* Sightings Map Section — Cannwood only: Heal doesn't record GPS
+              coordinates on sightings, so the map would always be empty. */}
+          {isCannwood && (
+            <Paper elevation={0} sx={{ p: 3, mt: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Sighting Locations
+              </Typography>
+              {selectedSpeciesId ? (
+                <SightingsMap
+                  sightings={sightingsData}
+                  loading={sightingsLoading}
+                  error={sightingsError}
+                  locationsWithBoundaries={locationsWithBoundaries}
+                />
+              ) : (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'text.secondary' }}>
+                  <Typography variant="body1">Select a species to view sighting locations</Typography>
+                </Box>
+              )}
+            </Paper>
+          )}
         </>
       )}
     </Box>
