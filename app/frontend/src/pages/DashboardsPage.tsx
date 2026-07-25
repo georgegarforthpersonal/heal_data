@@ -1,15 +1,49 @@
-import { Box, Typography, Paper, Stack, IconButton, Tooltip, Autocomplete, TextField, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Paper, Stack, ButtonBase, Autocomplete, TextField, Tabs, Tab } from '@mui/material';
 import { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { dashboardAPI, locationsAPI, getOrgSlug } from '../services/api';
 import type { SpeciesWithCount, SpeciesSightingLocation, LocationWithBoundary } from '../services/api';
 import SightingsMap from '../components/dashboard/SightingsMap';
 import CumulativeSpeciesChart from '../components/dashboard/CumulativeSpeciesChart';
 import SpeciesOccurrenceChart from '../components/dashboard/SpeciesOccurrenceChart';
+import SpeciesGroupIcon from '../components/dashboard/SpeciesGroupIcon';
 import { DeviceTrackerMap } from '../components/dashboard/DeviceTrackerMap';
-import { speciesTypes, getSpeciesIcon, getSpeciesDisplayName } from '../config';
+import { speciesTypes, getSpeciesDisplayName } from '../config';
 import { notionColors, brandColors } from '../theme';
 import { SPACING } from '../config/responsive';
 import { PageTitle } from '../components/layout/PageTitle';
+
+/** Headline figures for the selected species group, all derived from the
+ * ranked species list the page already fetches. */
+function groupStats(speciesList: SpeciesWithCount[]) {
+  const year = String(new Date().getFullYear());
+  const individuals = speciesList.reduce((sum, s) => sum + s.total_count, 0);
+  const newThisYear = speciesList.filter((s) => s.first_observed?.startsWith(year)).length;
+  const latest = speciesList.reduce<SpeciesWithCount | null>(
+    (best, s) =>
+      s.first_observed && (!best?.first_observed || s.first_observed > best.first_observed) ? s : best,
+    null,
+  );
+  return { species: speciesList.length, individuals, newThisYear, latest };
+}
+
+function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', minWidth: 0 }}>
+      <Typography sx={{ fontSize: 20, fontWeight: 700, lineHeight: 1.2 }} noWrap>
+        {value}
+      </Typography>
+      {sub && (
+        <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }} noWrap>
+          {sub}
+        </Typography>
+      )}
+      <Typography sx={{ fontSize: 11.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, mt: 0.25 }} noWrap>
+        {label}
+      </Typography>
+    </Paper>
+  );
+}
 
 /**
  * DashboardsPage displays cumulative species and per-species occurrence charts,
@@ -116,38 +150,77 @@ export function DashboardsPage() {
 
       {(!isCannwood || activeTab === 0) && (
         <>
-          {/* Species Group Selector */}
-          <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {speciesTypes
-                .filter((type) => availableSpeciesTypes.includes(type))
-                .map((type) => {
-                  const Icon = getSpeciesIcon(type);
-                  const isSelected = selectedSpeciesTypes.includes(type);
-                  return (
-                    <Tooltip key={type} title={getSpeciesDisplayName(type)} arrow>
-                      <IconButton
-                        onClick={() => handleToggle(type)}
-                        sx={{
-                          bgcolor: isSelected ? brandColors.main : notionColors.gray.background,
-                          color: isSelected ? '#fff' : 'text.secondary',
-                          width: 40,
-                          height: 40,
-                          '&:hover': { bgcolor: isSelected ? brandColors.hover : '#DDD' },
-                          transition: 'all 0.2s',
-                          border: isSelected ? `2px solid ${brandColors.hover}` : 'none',
-                        }}
-                      >
-                        <Icon sx={{ fontSize: '20px' }} />
-                      </IconButton>
-                    </Tooltip>
-                  );
-                })}
-            </Stack>
-          </Paper>
+          {/* Species group chips — icon + name, the same visual language as
+              the survey badges (placeholder tile where no badge exists yet).
+              Unlabelled icon circles failed at a glance and had no labels at
+              all on phones. */}
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
+            {speciesTypes
+              .filter((type) => availableSpeciesTypes.includes(type))
+              .map((type) => {
+                const isSelected = selectedSpeciesTypes.includes(type);
+                return (
+                  <ButtonBase
+                    key={type}
+                    onClick={() => handleToggle(type)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.9,
+                      px: 1.5,
+                      py: 0.7,
+                      borderRadius: '20px',
+                      bgcolor: isSelected ? brandColors.main : notionColors.gray.background,
+                      color: isSelected ? '#fff' : 'text.primary',
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      transition: 'all 0.15s',
+                      '&:hover': { bgcolor: isSelected ? brandColors.hover : '#DDD' },
+                    }}
+                  >
+                    <SpeciesGroupIcon type={type} size={22} />
+                    {getSpeciesDisplayName(type)}
+                  </ButtonBase>
+                );
+              })}
+          </Stack>
+
+          {/* Headline figures for the selected group */}
+          {(() => {
+            const stats = groupStats(speciesList);
+            return (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+                  gap: 2,
+                  mb: 3,
+                }}
+              >
+                <StatTile label="Species recorded" value={String(stats.species)} />
+                <StatTile label="Individuals recorded" value={stats.individuals.toLocaleString()} />
+                <StatTile label="New species this year" value={String(stats.newThisYear)} />
+                <StatTile
+                  label="Latest addition"
+                  value={stats.latest ? (stats.latest.name ?? stats.latest.scientific_name ?? '—') : '—'}
+                  sub={
+                    stats.latest?.first_observed
+                      ? dayjs(stats.latest.first_observed).format('D MMM YYYY')
+                      : undefined
+                  }
+                />
+              </Box>
+            );
+          })()}
 
           {/* Cumulative species chart */}
           <Paper elevation={0} sx={{ p: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', minHeight: 500 }}>
+            <Typography variant="h6" sx={{ mb: 0.25, fontWeight: 600 }}>
+              Species discovery
+            </Typography>
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
+              Unique {getSpeciesDisplayName(selectedSpeciesTypes[0]).toLowerCase()} recorded over time
+            </Typography>
             <CumulativeSpeciesChart
               speciesTypes={[selectedSpeciesTypes[0]]}
               height={400}
@@ -157,10 +230,18 @@ export function DashboardsPage() {
 
           {/* Species occurrence chart */}
           <Paper elevation={0} sx={{ p: 3, mt: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
+            <Typography variant="h6" sx={{ mb: 0.25, fontWeight: 600 }}>
+              Seasonal counts
+            </Typography>
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
+              Per-survey counts through the year, compared season on season
+            </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
               <Autocomplete
                 options={speciesList}
-                getOptionLabel={(option) => `${option.name || option.scientific_name} (${option.total_count} total)`}
+                getOptionLabel={(option) =>
+                  `${option.name || option.scientific_name} (${option.total_count.toLocaleString()} individuals)`
+                }
                 value={speciesList.find((s) => s.id === selectedSpeciesId) || null}
                 onChange={(_event, newValue) => setSelectedSpeciesId(newValue ? newValue.id : null)}
                 renderInput={(params) => (
