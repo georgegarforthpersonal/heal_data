@@ -43,6 +43,70 @@ function refTimestamp(isoDate: string): { x: number; year: number } {
   return { x: new Date(REF_YEAR, m - 1, day).getTime(), year: y };
 }
 
+/**
+ * Aggregate to monthly peaks when any shown year has more surveys than this
+ * (~fortnightly coverage). Sparse seasonal programmes keep per-survey dots —
+ * with eight visits a season every dot is the data; with weekly surveys the
+ * raw counts are visit-to-visit noise and the seasonal shape drowns.
+ */
+export const MONTHLY_AGGREGATION_THRESHOLD = 16;
+
+export function shouldAggregateMonthly(data: SpeciesOccurrenceDataPoint[]): boolean {
+  const perYear = new Map<string, number>();
+  for (const d of data) {
+    const year = d.survey_date.slice(0, 4);
+    perYear.set(year, (perYear.get(year) ?? 0) + 1);
+  }
+  return Array.from(perYear.values()).some((n) => n > MONTHLY_AGGREGATION_THRESHOLD);
+}
+
+/**
+ * Monthly-peak variant for densely surveyed species: one point per surveyed
+ * month per year — the highest single count that month (the bird-recording
+ * "peak count" convention, e.g. WeBS). A month with surveys but no
+ * individuals is an honest zero; a month with no surveys stays a gap.
+ */
+export function buildMonthlyPeakSeries(data: SpeciesOccurrenceDataPoint[]): SeasonalSeries | null {
+  if (data.length === 0) return null;
+
+  const allYears = Array.from(new Set(data.map((d) => Number(d.survey_date.slice(0, 4)))))
+    .sort((a, b) => b - a);
+  const years = allYears.slice(0, MAX_SEASON_YEARS);
+  const shown = new Set(years);
+
+  // One row per calendar month, placed mid-month on the shared axis.
+  const byMonth = new Map<number, SeasonalRow>();
+  for (const point of data) {
+    const [y, m] = point.survey_date.split('-').map(Number);
+    if (!shown.has(y)) continue;
+    const x = new Date(REF_YEAR, m - 1, 15).getTime();
+    const row = byMonth.get(x) ?? { x };
+    const key = String(y);
+    row[key] = Math.max(row[key] ?? 0, point.occurrence_count);
+    byMonth.set(x, row);
+  }
+
+  const rows = Array.from(byMonth.values()).sort((a, b) => a.x - b.x);
+  const first = new Date(rows[0].x);
+  const last = new Date(rows[rows.length - 1].x);
+  const monthTicks: number[] = [];
+  for (let m = first.getMonth(); m <= last.getMonth(); m++) {
+    monthTicks.push(new Date(REF_YEAR, m, 1).getTime());
+  }
+  const domain: [number, number] = [
+    new Date(REF_YEAR, first.getMonth(), 1).getTime(),
+    new Date(REF_YEAR, last.getMonth() + 1, 0).getTime(),
+  ];
+
+  return {
+    rows,
+    years,
+    truncated: allYears.length > years.length,
+    monthTicks,
+    domain,
+  };
+}
+
 export function buildSeasonalSeries(data: SpeciesOccurrenceDataPoint[]): SeasonalSeries | null {
   if (data.length === 0) return null;
 

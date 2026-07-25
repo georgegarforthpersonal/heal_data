@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildSeasonalSeries, MAX_SEASON_YEARS } from './seasonalSeries';
+import {
+  buildMonthlyPeakSeries,
+  buildSeasonalSeries,
+  MAX_SEASON_YEARS,
+  MONTHLY_AGGREGATION_THRESHOLD,
+  shouldAggregateMonthly,
+} from './seasonalSeries';
 import type { SpeciesOccurrenceDataPoint } from '../../services/api';
 
 function point(survey_date: string, occurrence_count: number, survey_id = 1): SpeciesOccurrenceDataPoint {
@@ -68,5 +74,51 @@ describe('buildSeasonalSeries', () => {
     expect(new Date(series.rows[0].x).getMonth()).toBe(1);
     const tickMonths = series.monthTicks.map((t) => new Date(t).getMonth());
     expect(tickMonths).toEqual([1]);
+  });
+});
+
+describe('shouldAggregateMonthly', () => {
+  it('is false for sparse seasonal programmes', () => {
+    const sparse = Array.from({ length: 10 }, (_, i) =>
+      point(`2026-05-${String(i + 1).padStart(2, '0')}`, 1),
+    );
+    expect(shouldAggregateMonthly(sparse)).toBe(false);
+  });
+
+  it('is true once any year exceeds the threshold', () => {
+    const dense = Array.from({ length: MONTHLY_AGGREGATION_THRESHOLD + 1 }, (_, i) =>
+      point(`2026-0${(i % 9) + 1}-0${(i % 8) + 1}`, 1),
+    );
+    expect(shouldAggregateMonthly(dense)).toBe(true);
+  });
+});
+
+describe('buildMonthlyPeakSeries', () => {
+  it('returns null with no surveys', () => {
+    expect(buildMonthlyPeakSeries([])).toBeNull();
+  });
+
+  it('keeps the highest count per month per year, mid-month on the axis', () => {
+    const series = buildMonthlyPeakSeries([
+      point('2025-11-02', 40),
+      point('2025-11-16', 300),
+      point('2025-11-23', 12),
+      point('2025-12-07', 5),
+      point('2026-11-09', 80),
+    ])!;
+
+    expect(series.years).toEqual([2026, 2025]);
+    expect(series.rows).toHaveLength(2);
+    const november = series.rows[0];
+    expect(new Date(november.x).getMonth()).toBe(10);
+    expect(new Date(november.x).getDate()).toBe(15);
+    expect(november['2025']).toBe(300);
+    expect(november['2026']).toBe(80);
+    expect(series.rows[1]['2025']).toBe(5);
+  });
+
+  it('keeps a surveyed zero-month as a zero, not a gap', () => {
+    const series = buildMonthlyPeakSeries([point('2026-06-14', 0)])!;
+    expect(series.rows[0]['2026']).toBe(0);
   });
 });
