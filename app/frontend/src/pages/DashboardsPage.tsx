@@ -72,7 +72,7 @@ export function DashboardsPage() {
     return () => {
       active = false;
     };
-  }, [selectedSpeciesId]);
+  }, [selectedSpeciesId, isCannwood]);
 
   // Field boundaries (once)
   useEffect(() => {
