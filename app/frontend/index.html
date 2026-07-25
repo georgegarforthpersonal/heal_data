@@ -3,6 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/canopy-logo.svg" />
+    <link rel="apple-touch-icon" href="/og-canopy.png" />
+
+    <!-- Link previews (WhatsApp etc.). Crawlers don't run JS, so these are
+         static and org-neutral: Canopy branding for every tenant domain.
+         og:image must be absolute; assets are served on every org domain, so
+         one canonical host works for all of them. -->
+    <meta property="og:site_name" content="Canopy" />
+    <meta property="og:title" content="Canopy" />
+    <meta property="og:description" content="Wildlife monitoring surveys, sightings and records." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://cannwood.canopydata.app/og-canopy.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
