@@ -192,7 +192,8 @@ export default function CumulativeSpeciesChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={prepared.data} margin={CHART_MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+        {/* Hairline solid grid — dashed reads as "projection" when it's just a grid. */}
+        <CartesianGrid vertical={false} stroke="#eceeec" />
         <XAxis
           dataKey="date"
           type="number"
@@ -202,9 +203,16 @@ export default function CumulativeSpeciesChart({
           tickFormatter={formatXAxisTick}
           tick={{ fontSize: 12, fill: '#666' }}
           tickLine={false}
-          axisLine={{ stroke: '#e0e0e0' }}
+          axisLine={{ stroke: '#eceeec' }}
         />
-        <YAxis hide />
+        {/* The count is the point of a discovery curve — show the scale. */}
+        <YAxis
+          width={32}
+          allowDecimals={false}
+          tick={{ fontSize: 11, fill: '#666' }}
+          tickLine={false}
+          axisLine={false}
+        />
         <RechartsTooltip
           content={
             <CumulativeTooltip
@@ -223,7 +231,9 @@ export default function CumulativeSpeciesChart({
             dataKey={type}
             stroke={color}
             fill={color}
-            fillOpacity={0.6}
+            // A wash, never a saturated block — the fill was reading as one
+            // solid green slab and hiding the curve inside it.
+            fillOpacity={0.12}
             strokeWidth={2}
             isAnimationActive={false}
           />

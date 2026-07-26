@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, Stack, ButtonBase, Autocomplete, TextField } from '@mui/material';
+import { Box, Typography, Paper, ButtonBase, Autocomplete, TextField } from '@mui/material';
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { dashboardAPI, locationsAPI, getOrgSlug } from '../services/api';
@@ -26,21 +26,30 @@ function groupStats(speciesList: SpeciesWithCount[]) {
   return { species: speciesList.length, individuals, newThisYear, latest };
 }
 
-function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+/**
+ * One figure in the stats band. Labels are sentence case and WRAP — uppercase
+ * no-wrap labels truncated on phones ("NEW SPECIES THIS ..."). `hero` marks
+ * the single lead figure of the view.
+ */
+function Stat({ label, value, sub, hero = false }: { label: string; value: string; sub?: string; hero?: boolean }) {
   return (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', minWidth: 0 }}>
-      <Typography sx={{ fontSize: 20, fontWeight: 700, lineHeight: 1.2 }} noWrap>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography
+        sx={{
+          fontSize: hero ? 40 : 24,
+          fontWeight: 600,
+          lineHeight: 1.1,
+          letterSpacing: hero ? -0.5 : 0,
+          overflowWrap: 'anywhere',
+        }}
+      >
         {value}
       </Typography>
       {sub && (
-        <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }} noWrap>
-          {sub}
-        </Typography>
+        <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.25 }}>{sub}</Typography>
       )}
-      <Typography sx={{ fontSize: 11.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, mt: 0.25 }} noWrap>
-        {label}
-      </Typography>
-    </Paper>
+      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>{label}</Typography>
+    </Box>
   );
 }
 
@@ -137,11 +146,22 @@ export function SpeciesPage() {
   return (
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
       <PageTitle title="Species" />
-      {/* Species group chips — icon + name, the same visual language as
-          the survey badges (placeholder tile where no badge exists yet).
-          Unlabelled icon circles failed at a glance and had no labels at
-          all on phones. */}
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
+
+      {/* Group filter: ONE row above the content, scrolling sideways rather
+          than wrapping into a block of chips that ate the top of the page. */}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1,
+          mb: 2.5,
+          overflowX: 'auto',
+          pb: 0.5,
+          mx: { xs: -1, sm: 0 },
+          px: { xs: 1, sm: 0 },
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': { display: 'none' },
+        }}
+      >
         {speciesTypes
           .filter((type) => availableSpeciesTypes.includes(type))
           .sort((a, b) => getSpeciesDisplayName(a).localeCompare(getSpeciesDisplayName(b)))
@@ -154,41 +174,56 @@ export function SpeciesPage() {
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 0.9,
-                  px: 1.5,
-                  py: 0.7,
-                  borderRadius: '20px',
+                  gap: 0.75,
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: '18px',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                   bgcolor: isSelected ? brandColors.main : notionColors.gray.background,
                   color: isSelected ? '#fff' : 'text.primary',
-                  fontSize: 13.5,
+                  fontSize: 13,
                   fontWeight: 600,
                   transition: 'all 0.15s',
                   '&:hover': { bgcolor: isSelected ? brandColors.hover : '#DDD' },
                 }}
               >
-                <SpeciesGroupIcon type={type} size={22} />
+                <SpeciesGroupIcon type={type} size={20} />
                 {getSpeciesDisplayName(type)}
               </ButtonBase>
             );
           })}
-      </Stack>
+      </Box>
 
-      {/* Headline figures for the selected group */}
+      {/* Headline figures — one card, hero figure first (four bordered boxes
+          read as heavy chrome for four small numbers, and their uppercase
+          no-wrap labels truncated on phones). */}
       {(() => {
         const stats = groupStats(speciesList);
         return (
-          <Box
+          <Paper
+            elevation={0}
             sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-              gap: 2,
+              p: { xs: 2.5, sm: 3 },
               mb: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr 1fr', md: 'auto 1px 1fr 1fr 1.2fr' },
+              columnGap: { xs: 2, md: 3.5 },
+              rowGap: 2.5,
+              alignItems: 'start',
             }}
           >
-            <StatTile label="Species recorded" value={String(stats.species)} />
-            <StatTile label="Individuals recorded" value={stats.individuals.toLocaleString()} />
-            <StatTile label="New species this year" value={String(stats.newThisYear)} />
-            <StatTile
+            <Stat
+              hero
+              label={`${getSpeciesDisplayName(selectedSpeciesTypes[0])} recorded`}
+              value={String(stats.species)}
+            />
+            <Box sx={{ display: { xs: 'none', md: 'block' }, alignSelf: 'stretch', bgcolor: 'divider' }} />
+            <Stat label="Individuals recorded" value={stats.individuals.toLocaleString()} />
+            <Stat label="New this year" value={String(stats.newThisYear)} />
+            <Stat
               label="Latest addition"
               value={stats.latest ? (stats.latest.name ?? stats.latest.scientific_name ?? '—') : '—'}
               sub={
@@ -197,75 +232,84 @@ export function SpeciesPage() {
                   : undefined
               }
             />
-              </Box>
-            );
-          })()}
-
-          {/* Cumulative species chart */}
-          <Paper elevation={0} sx={{ p: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', minHeight: 500 }}>
-            <Typography variant="h6" sx={{ mb: 0.25, fontWeight: 600 }}>
-              Species discovery
-            </Typography>
-            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
-              Unique {getSpeciesDisplayName(selectedSpeciesTypes[0]).toLowerCase()} recorded over time
-            </Typography>
-            <CumulativeSpeciesChart
-              speciesTypes={[selectedSpeciesTypes[0]]}
-              height={400}
-              emptyMessage="No data available for selected species groups"
-            />
           </Paper>
+        );
+      })()}
 
-          {/* Species occurrence chart */}
-          <Paper elevation={0} sx={{ p: 3, mt: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
+      <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, border: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h6" sx={{ mb: 0.25, fontWeight: 600 }}>
+          Species discovery
+        </Typography>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
+          Unique {getSpeciesDisplayName(selectedSpeciesTypes[0]).toLowerCase()} recorded over time
+        </Typography>
+        <CumulativeSpeciesChart
+          speciesTypes={[selectedSpeciesTypes[0]]}
+          height={280}
+          emptyMessage="No data available for selected species groups"
+        />
+      </Paper>
+
+      <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, mt: 3, border: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'flex-end' },
+            justifyContent: 'space-between',
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
             <Typography variant="h6" sx={{ mb: 0.25, fontWeight: 600 }}>
               Seasonal counts
             </Typography>
-            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
-              Per-survey counts through the year, compared season on season
+            <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+              Counts through the year, compared season on season
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
-              <Autocomplete
-                options={speciesList}
-                getOptionLabel={(option) =>
-                  `${option.name || option.scientific_name} (${option.total_count.toLocaleString()} individuals)`
-                }
-                value={speciesList.find((s) => s.id === selectedSpeciesId) || null}
-                onChange={(_event, newValue) => setSelectedSpeciesId(newValue ? newValue.id : null)}
-                renderInput={(params) => (
-                  <TextField {...params} label="Select Species" placeholder="Type to search..." size="small" />
-                )}
-                sx={{ minWidth: { xs: '100%', sm: 300 } }}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                selectOnFocus
-                clearOnBlur
-                blurOnSelect
-                autoHighlight
-              />
-            </Box>
-            <SpeciesOccurrenceChart speciesId={selectedSpeciesId} height={300} />
-          </Paper>
+          </Box>
+          <Autocomplete
+            options={speciesList}
+            getOptionLabel={(option) =>
+              `${option.name || option.scientific_name} (${option.total_count.toLocaleString()} individuals)`
+            }
+            value={speciesList.find((s) => s.id === selectedSpeciesId) || null}
+            onChange={(_event, newValue) => setSelectedSpeciesId(newValue ? newValue.id : null)}
+            renderInput={(params) => (
+              <TextField {...params} label="Species" placeholder="Type to search..." size="small" />
+            )}
+            sx={{ width: { xs: '100%', sm: 300 }, flexShrink: 0 }}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            selectOnFocus
+            clearOnBlur
+            blurOnSelect
+            autoHighlight
+          />
+        </Box>
+        <SpeciesOccurrenceChart speciesId={selectedSpeciesId} height={280} />
+      </Paper>
 
-          {/* Sightings Map Section — Cannwood only: Heal doesn't record GPS
-              coordinates on sightings, so the map would always be empty. */}
-          {isCannwood && (
-            <Paper elevation={0} sx={{ p: 3, mt: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Sighting Locations
-              </Typography>
-              {selectedSpeciesId ? (
-                <SightingsMap
-                  sightings={sightingsData}
-                  loading={sightingsLoading}
-                  error={sightingsError}
-                  locationsWithBoundaries={locationsWithBoundaries}
-                />
-              ) : (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'text.secondary' }}>
-                  <Typography variant="body1">Select a species to view sighting locations</Typography>
-                </Box>
-              )}
-            </Paper>
+      {/* Sightings map — Cannwood only: Heal doesn't record GPS coordinates
+          on sightings, so the map would always be empty. */}
+      {isCannwood && (
+        <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, mt: 3, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Sighting locations
+          </Typography>
+          {selectedSpeciesId ? (
+            <SightingsMap
+              sightings={sightingsData}
+              loading={sightingsLoading}
+              error={sightingsError}
+              locationsWithBoundaries={locationsWithBoundaries}
+            />
+          ) : (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'text.secondary' }}>
+              <Typography variant="body1">Select a species to view sighting locations</Typography>
+            </Box>
+          )}
+        </Paper>
       )}
     </Box>
   );

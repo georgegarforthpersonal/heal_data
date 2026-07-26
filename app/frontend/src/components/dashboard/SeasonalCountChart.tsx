@@ -56,7 +56,7 @@ export default function SeasonalCountChart({
     <>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={series.rows} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+          <CartesianGrid vertical={false} stroke="#eceeec" />
           <XAxis
             dataKey="x"
             type="number"
@@ -66,7 +66,7 @@ export default function SeasonalCountChart({
             tickFormatter={(t: number) => dayjs(t).format('MMM')}
             tick={{ fontSize: 12, fill: '#666' }}
             tickLine={false}
-            axisLine={{ stroke: '#e0e0e0' }}
+            axisLine={{ stroke: '#eceeec' }}
           />
           <YAxis
             width={32}
@@ -83,8 +83,9 @@ export default function SeasonalCountChart({
               stroke={YEAR_SERIES_COLORS[i]}
               strokeWidth={2}
               connectNulls
-              dot={{ r: 3.5, fill: YEAR_SERIES_COLORS[i], strokeWidth: 0 }}
-              activeDot={{ r: 5 }}
+              // 2px surface ring keeps dots legible where year-lines overlap.
+              dot={{ r: 4, fill: YEAR_SERIES_COLORS[i], stroke: '#fff', strokeWidth: 2 }}
+              activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
               isAnimationActive={false}
             />
           ))}
