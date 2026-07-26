@@ -220,28 +220,20 @@ export default function GroupDetailPage() {
 
         <GroupHero surveyType={surveyType} />
 
-        {/* Two columns of panels with the wide chart spanning both beneath
-            them. Column membership is FIXED, never packed by height: a group
-            page should have the same shape whichever group you open, and a
-            masonry that reflows when a survey type gains a file would move
-            panels around under people who have learnt where they live. The
-            slack that a fixed assignment leaves is dealt with by giving
-            full-width content full width, not by shuffling.
-
-            On xs the column wrappers become display: contents so every panel
-            stacks as a direct grid item in its `order`; on md they are the
-            two grid cells and orders preserve in-column order. */}
+        {/* On xs the column wrappers become display: contents so the four
+            panels stack as direct flex items in their `order`; the md column
+            grouping is unaffected (orders preserve in-column order). */}
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            alignItems: 'start',
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'stretch', md: 'flex-start' },
             gap: 2.25,
             mt: 2.25,
           }}
         >
           {/* Left column */}
-          <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, minWidth: 0 }}>
+          <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, flex: 1, minWidth: 0 }}>
             <Box sx={{ order: 2, minWidth: 0 }}>
               {activity === 'record' ? (
                 <RecordPanel
@@ -281,7 +273,7 @@ export default function GroupDetailPage() {
               )}
             </Box>
             {(surveyType.allow_image_upload || surveyType.allow_audio_upload) && (
-              <Box sx={{ order: 5, minWidth: 0 }}>
+              <Box sx={{ order: 6, minWidth: 0 }}>
                 <RecentMediaPanel
                   kind={surveyType.allow_image_upload ? 'photos' : 'clips'}
                   surveyTypeId={surveyType.id}
@@ -292,32 +284,29 @@ export default function GroupDetailPage() {
           </Box>
 
           {/* Right column */}
-          <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, minWidth: 0 }}>
+          <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, flex: 1, minWidth: 0 }}>
             <Box sx={{ order: 1, minWidth: 0 }}>
               <FilesPanel surveyTypeId={surveyType.id} files={files} loading={filesLoading} />
             </Box>
             <Box sx={{ order: 3, minWidth: 0 }}>
               <LocationsPanel locations={locations} devices={surveyType.devices} />
             </Box>
+            {/* Seasonal counts need repeat visits through a season to compare,
+                so they belong to the scheduled groups: Bird, Butterfly,
+                Dragonfly today. Single-species scheduled groups already get
+                the same chart from SingleSpeciesCountPanel, without a picker. */}
+            {activity === 'worklist' && !singleSpecies && (
+              <Box sx={{ order: 5, minWidth: 0 }}>
+                <SeasonalCountPanel
+                  surveyTypeId={surveyType.id}
+                  speciesTypes={surveyType.species_types.map((st) => st.name)}
+                />
+              </Box>
+            )}
             <Box sx={{ order: 7, minWidth: 0 }}>
               <DataPanel surveyTypeId={surveyType.id} surveyTypeName={surveyType.name} />
             </Box>
           </Box>
-
-          {/* Seasonal counts need repeat visits through a season to compare,
-              so they belong to the scheduled groups: Bird, Butterfly,
-              Dragonfly today. Single-species scheduled groups already get the
-              same chart from SingleSpeciesCountPanel, without a picker.
-              Twelve months of it read badly in half a column, so it spans the
-              full width — which is also what soaks up the columns' slack. */}
-          {activity === 'worklist' && !singleSpecies && (
-            <Box sx={{ order: 6, minWidth: 0, gridColumn: { md: '1 / -1' } }}>
-              <SeasonalCountPanel
-                surveyTypeId={surveyType.id}
-                speciesTypes={surveyType.species_types.map((st) => st.name)}
-              />
-            </Box>
-          )}
         </Box>
       </Box>
 
