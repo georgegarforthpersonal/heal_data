@@ -4,9 +4,10 @@
  * every sighting this group's surveys recorded. Reference files are managed in
  * Edit Survey Type; this view is download-only.
  *
- * This is the shortest panel on the page and the only one with no partner its
- * own size, so it runs the page's full width as a footer strip rather than
- * sitting in a column where it would leave a void beside a taller card.
+ * This is the shortest panel on the page, so it is the one that gets stretched
+ * to its grid row. The export is pinned to the card's foot (`mt: 'auto'`) so
+ * the slack lands between the files and the export and reads as a card footer
+ * rather than as a void.
  */
 import { useState } from 'react';
 import { Box, Paper, Typography, ButtonBase, CircularProgress } from '@mui/material';
@@ -61,7 +62,7 @@ export default function FilesPanel({ surveyTypeId, surveyTypeName, files, loadin
   };
 
   return (
-    <Paper sx={groupCardSx}>
+    <Paper sx={{ ...groupCardSx, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ px: 2.25, py: 1.75, borderBottom: `1px solid ${groupColors.divider}` }}>
         <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary }}>
           Files &amp; data
@@ -104,7 +105,7 @@ export default function FilesPanel({ surveyTypeId, surveyTypeName, files, loadin
       <ButtonBase
         onClick={handleExport}
         disabled={downloading}
-        sx={{ ...rowSx, borderTop: `1px solid ${groupColors.divider}` }}
+        sx={{ ...rowSx, mt: 'auto', borderTop: `1px solid ${groupColors.divider}` }}
       >
         <FileTypeBadge filename="records.xlsx" />
         <Box sx={{ flex: 1, minWidth: 0 }}>

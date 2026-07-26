@@ -292,16 +292,21 @@ export default function GroupDetailPage() {
             />
           )}
 
-          {/* Everything else spans both columns. Each of these is either wide
-              content in its own right (a map, a media strip, twelve months of
-              a season) or too short to partner anything (files and the export
-              are a footer strip). Spanning is also what keeps the page free of
-              half-empty rows: with five or six panels, any that stayed in a
-              column would leave one beside it. */}
-          <Box sx={{ minWidth: 0, gridColumn: { md: '1 / -1' } }}>
-            <LocationsPanel locations={locations} devices={surveyType.devices} />
-          </Box>
+          {/* Row 2 — the map is the fixed one (400px), so it sets the row and
+              Files & data stretches to it, pinning its export to the foot so
+              the slack reads as a card footer. Only one panel per page spans
+              both columns; the rest stay paired. */}
+          <LocationsPanel locations={locations} devices={surveyType.devices} />
+          <FilesPanel
+            surveyTypeId={surveyType.id}
+            surveyTypeName={surveyType.name}
+            files={files}
+            loading={filesLoading}
+          />
 
+          {/* The full-width slot. A panel takes it when its content is
+              intrinsically wide — a media strip, twelve months of a season —
+              and no group has more than one of them. */}
           {(surveyType.allow_image_upload || surveyType.allow_audio_upload) && (
             <Box sx={{ minWidth: 0, gridColumn: { md: '1 / -1' } }}>
               <RecentMediaPanel
@@ -324,15 +329,6 @@ export default function GroupDetailPage() {
               />
             </Box>
           )}
-
-          <Box sx={{ minWidth: 0, gridColumn: { md: '1 / -1' } }}>
-            <FilesPanel
-              surveyTypeId={surveyType.id}
-              surveyTypeName={surveyType.name}
-              files={files}
-              loading={filesLoading}
-            />
-          </Box>
         </Box>
       </Box>
 

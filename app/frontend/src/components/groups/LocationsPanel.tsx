@@ -150,15 +150,16 @@ export default function LocationsPanel({ locations, devices = [] }: LocationsPan
           </Typography>
         </Box>
       ) : view === 'map' ? (
-        // 400 is what this actually rendered at: DeviceMap floors its map box
-        // at minHeight 400, so the old height={360} never took effect. Stated
-        // honestly here because this is the fixed side of its grid row — the
-        // species chart opposite fills to match it.
+        // 320, and the floor lowered to match: this map sets the height of a
+        // grid row it shares with Files & data, the shortest card on the page,
+        // so every px here becomes empty space in that card. (The old
+        // height={360} never applied at all — DeviceMap's floor was 400.)
         <DeviceMap
           locationsWithBoundaries={visible}
           devices={devices}
           readOnly
-          height={400}
+          height={320}
+          minHeight={320}
         />
       ) : (
         <Box>
