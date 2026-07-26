@@ -44,6 +44,12 @@ export default function SeasonalCountChart({
   const monthly = shouldAggregateMonthly(data);
   const series = monthly ? buildMonthlyPeakSeries(data) : buildSeasonalSeries(data);
 
+  // series.years is most-recent-first so the brand green lands on the current
+  // season. Colour therefore binds to the YEAR, not to render order — lines,
+  // legend and tooltip all read chronologically without repainting anything.
+  const colourOf = (year: number) => YEAR_SERIES_COLORS[series ? series.years.indexOf(year) : 0];
+  const chronological = series ? [...series.years].sort((a, b) => a - b) : [];
+
   if (!series) {
     return (
       <Box sx={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -76,15 +82,15 @@ export default function SeasonalCountChart({
             axisLine={false}
           />
           <RechartsTooltip content={<SeasonTooltip monthly={monthly} />} />
-          {series.years.map((year, i) => (
+          {chronological.map((year) => (
             <Line
               key={year}
               dataKey={String(year)}
-              stroke={YEAR_SERIES_COLORS[i]}
+              stroke={colourOf(year)}
               strokeWidth={2}
               connectNulls
               // 2px surface ring keeps dots legible where year-lines overlap.
-              dot={{ r: 4, fill: YEAR_SERIES_COLORS[i], stroke: '#fff', strokeWidth: 2 }}
+              dot={{ r: 4, fill: colourOf(year), stroke: '#fff', strokeWidth: 2 }}
               activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
               isAnimationActive={false}
             />
@@ -94,9 +100,9 @@ export default function SeasonalCountChart({
       {(series.years.length > 1 || monthly) && (
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', mt: 1 }}>
           {series.years.length > 1 &&
-            series.years.map((year, i) => (
+            chronological.map((year) => (
               <Box key={year} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: YEAR_SERIES_COLORS[i] }} />
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colourOf(year) }} />
                 <Typography sx={{ fontSize: 12, color: '#666' }}>{year}</Typography>
               </Box>
             ))}
