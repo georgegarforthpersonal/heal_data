@@ -1,8 +1,8 @@
 /**
  * A type card on the Groups grid. The whole card is a button that opens the
  * group page. Shows the survey-type badge, name + sub-label, and one stat row
- * of up to four columns: surveys, species-or-sightings count, next survey,
- * last survey.
+ * of up to four columns: surveys, species-or-sightings count, last survey,
+ * next survey.
  *
  * The dates share the row but not the figures' type size — set as figures they
  * wrapped to two lines and turned an ordinary empty schedule into a bold
@@ -25,13 +25,13 @@ interface GroupCardProps {
    */
   countStat: { label: 'Species' | 'Sightings'; value: number };
   /**
-   * Third column: the next survey still to be carried out, `due` when its
+   * Fourth column: the next survey still to be carried out, `due` when its
    * window is the current one. Null for unscheduled groups, which never have
    * slots, and for scheduled groups with an empty diary — an ordinary state,
    * so the column simply goes rather than announcing itself.
    */
   nextSurvey: { date: string; due: boolean } | null;
-  /** Fourth column: the most recently recorded survey. Null = none yet. */
+  /** Third column: the most recently recorded survey. Null = none yet. */
   lastSurveyDate: string | null;
   onOpen: () => void;
 }
@@ -140,11 +140,13 @@ export default function GroupCard({
         </Box>
 
         {/* Fixed columns, not content-sized ones: every card's Surveys /
-            Species / Next / Last land on the same four positions across the
+            Species / Last / Next land on the same four positions across the
             grid, and a card missing a date keeps an empty cell rather than
             sliding its remaining columns about. The date columns are wider —
             equal quarters would starve them and pad the counts. Dates truncate
-            rather than wrap; a two-line date is what this row exists to avoid. */}
+            rather than wrap; a two-line date is what this row exists to avoid.
+            The row reads left to right in time: counts, then what happened,
+            then what's coming. */}
         <Box
           sx={{
             mt: surveyType.description ? 2 : 1.5,
@@ -159,12 +161,13 @@ export default function GroupCard({
             // "13 Nov 2025" need more room than a count does.
             gridTemplateColumns: 'repeat(2, 1fr)',
             '@media (min-width:390px)': {
-              gridTemplateColumns: '1fr 1.15fr 2.1fr 1.75fr',
+              gridTemplateColumns: '1fr 1.15fr 1.75fr 2.1fr',
             },
           }}
         >
           <Stat label="Surveys" value={String(surveyCount)} />
           <Stat label={countStat.label} value={String(countStat.value)} />
+          {lastSurveyDate ? <Stat label="Last" value={lastSurveyDate} date /> : <Box />}
           {nextSurvey ? (
             <Stat
               label={nextSurvey.due ? 'Due' : 'Next'}
@@ -175,7 +178,6 @@ export default function GroupCard({
           ) : (
             <Box />
           )}
-          {lastSurveyDate ? <Stat label="Last" value={lastSurveyDate} date /> : <Box />}
         </Box>
       </ButtonBase>
     </Paper>
