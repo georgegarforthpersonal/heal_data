@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, MenuItem, Autocomplete, TextField } from '@mui/material';
+import { Box, Typography, Paper, MenuItem, Autocomplete, TextField, createFilterOptions } from '@mui/material';
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { dashboardAPI, locationsAPI, getOrgSlug } from '../services/api';
@@ -10,6 +10,12 @@ import SpeciesGroupIcon from '../components/dashboard/SpeciesGroupIcon';
 import { speciesTypes, getSpeciesDisplayName } from '../config';
 import { SPACING } from '../config/responsive';
 import { PageTitle } from '../components/layout/PageTitle';
+
+/** Search species by common OR scientific name (the input shows the common
+ * name, so the scientific one would otherwise be unsearchable). */
+const filterSpecies = createFilterOptions<SpeciesWithCount>({
+  stringify: (option) => `${option.name ?? ''} ${option.scientific_name ?? ''}`,
+});
 
 /** Headline figures for the selected species group, all derived from the
  * ranked species list the page already fetches. */
@@ -141,6 +147,9 @@ export function SpeciesPage() {
   }, []);
 
   const handleToggle = (type: string) => setSelectedSpeciesTypes([type]);
+  // Non-null selection lets the picker use disableClearable: clearing to
+  // "no species" only empties the chart, so the X is a dead end.
+  const selectedSpecies = speciesList.find((s) => s.id === selectedSpeciesId) ?? null;
 
   return (
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
@@ -250,23 +259,53 @@ export function SpeciesPage() {
               Counts through the year, compared season on season
             </Typography>
           </Box>
+          {/* A species is always selected — clearing to "none" only empties
+              the chart, so there's no clear (X). Clicking opens the list
+              (it behaves like a dropdown that also accepts typing); the
+              input holds just the name, with the count in the option rows,
+              so the select-on-focus highlight is a word, not a sentence. */}
+          {selectedSpecies ? (
           <Autocomplete
             options={speciesList}
-            getOptionLabel={(option) =>
-              `${option.name || option.scientific_name} (${option.total_count.toLocaleString()} individuals)`
-            }
-            value={speciesList.find((s) => s.id === selectedSpeciesId) || null}
-            onChange={(_event, newValue) => setSelectedSpeciesId(newValue ? newValue.id : null)}
+            getOptionLabel={(option) => option.name || option.scientific_name || ''}
+            filterOptions={filterSpecies}
+            renderOption={({ key, ...props }, option) => (
+              <Box
+                component="li"
+                key={key}
+                {...props}
+                sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}
+              >
+                <span>{option.name || option.scientific_name}</span>
+                <Typography component="span" sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+                  {option.total_count.toLocaleString()}
+                </Typography>
+              </Box>
+            )}
+            value={selectedSpecies}
+            onChange={(_event, newValue) => setSelectedSpeciesId(newValue.id)}
             renderInput={(params) => (
               <TextField {...params} label="Species" placeholder="Type to search..." size="small" />
             )}
             sx={{ width: { xs: '100%', sm: 300 }, flexShrink: 0 }}
             isOptionEqualToValue={(option, value) => option.id === value.id}
+            disableClearable
+            openOnFocus
             selectOnFocus
-            clearOnBlur
+            handleHomeEndKeys
             blurOnSelect
             autoHighlight
           />
+          ) : (
+            <TextField
+              label="Species"
+              size="small"
+              value=""
+              placeholder="No species recorded"
+              disabled
+              sx={{ width: { xs: '100%', sm: 300 }, flexShrink: 0 }}
+            />
+          )}
         </Box>
         <SpeciesOccurrenceChart speciesId={selectedSpeciesId} height={280} />
       </Paper>
