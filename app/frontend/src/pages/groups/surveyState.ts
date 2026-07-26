@@ -120,22 +120,19 @@ function byWindowStart(a: ScheduledSurvey, b: ScheduledSurvey): number {
 
 /**
  * Build the worklist for the Surveys panel, split by section and ordered so
- * the panel reads chronologically top to bottom: the 3 oldest overdue rows
- * (`overdue`), the current week's still-due rows (`dueThisWeek`), then the
- * next 3 upcoming rows (soonest first). Both endless directions are capped at
- * SECTION_CAP: a season's untouched backlog would otherwise make the panel
- * grow without limit, which is what left the page's other column stranded.
- * The totals ride along so the panel can say how many rows the cap hid, and
- * the All surveys door is the way to the rest.
+ * the panel reads chronologically top to bottom: every overdue row
+ * (`overdue`, oldest first — the actionable backlog is never hidden), the
+ * current week's still-due rows (`dueThisWeek`), then the next 3 upcoming
+ * rows (soonest first; future weeks are effectively endless, so they stay
+ * capped). `upcomingTotal` carries the true upcoming count so the panel can
+ * say how many the cap hid.
  */
-const SECTION_CAP = 3;
-
 export function buildWorklist(slots: ScheduledSurvey[], today: string = todayIso()) {
   const dueThisWeek = slots
     .filter((s) => deriveSlotState(s, today) === 'due-this-week')
     .sort(byWindowStart);
 
-  const allOverdue = slots
+  const overdue = slots
     .filter((s) => deriveSlotState(s, today) === 'needs-survey')
     .sort(byWindowStart);
 
@@ -143,13 +140,7 @@ export function buildWorklist(slots: ScheduledSurvey[], today: string = todayIso
     .filter((s) => deriveSlotState(s, today) === 'upcoming')
     .sort(byWindowStart);
 
-  return {
-    dueThisWeek,
-    overdue: allOverdue.slice(0, SECTION_CAP),
-    overdueTotal: allOverdue.length,
-    upcoming: allUpcoming.slice(0, SECTION_CAP),
-    upcomingTotal: allUpcoming.length,
-  };
+  return { dueThisWeek, overdue, upcoming: allUpcoming.slice(0, 3), upcomingTotal: allUpcoming.length };
 }
 
 /**

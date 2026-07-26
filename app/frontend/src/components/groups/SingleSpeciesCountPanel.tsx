@@ -18,10 +18,6 @@ import SeasonalCountChart from '../dashboard/SeasonalCountChart';
 interface SingleSpeciesCountPanelProps {
   surveyTypeId: number;
   species: Species;
-  /** Grow the chart to fill the card's grid row. This panel partners the
-   *  worklist, whose height moves with the data, so it is the one that
-   *  absorbs the row's slack. */
-  fill?: boolean;
 }
 
 const CHART_HEIGHT = 240;
@@ -41,7 +37,7 @@ const listGridSx = {
   px: 2.25,
 } as const;
 
-export default function SingleSpeciesCountPanel({ surveyTypeId, species, fill }: SingleSpeciesCountPanelProps) {
+export default function SingleSpeciesCountPanel({ surveyTypeId, species }: SingleSpeciesCountPanelProps) {
   const [view, setView] = useState<'chart' | 'list'>('chart');
   const [data, setData] = useState<SpeciesOccurrenceDataPoint[] | null>(null);
   const [error, setError] = useState(false);
@@ -63,12 +59,7 @@ export default function SingleSpeciesCountPanel({ surveyTypeId, species, fill }:
   const totalCount = data?.reduce((sum, d) => sum + d.occurrence_count, 0) ?? 0;
 
   return (
-    <Paper
-      sx={{
-        ...groupCardSx,
-        ...(fill && { height: '100%', display: 'flex', flexDirection: 'column' }),
-      }}
-    >
+    <Paper sx={groupCardSx}>
       <Box
         sx={{
           px: 2.25,
@@ -127,9 +118,7 @@ export default function SingleSpeciesCountPanel({ surveyTypeId, species, fill }:
       </Box>
 
       {view === 'chart' && (
-        // minHeight: 0 lets this flex child shrink below its content size;
-        // without it the automatic minimum defeats the fill.
-        <Box sx={{ p: 2.25, ...(fill && { flex: 1, minHeight: 0 }) }}>
+        <Box sx={{ p: 2.25 }}>
           {error ? (
             <CenteredMessage>Failed to load counts.</CenteredMessage>
           ) : data === null ? (
@@ -137,11 +126,7 @@ export default function SingleSpeciesCountPanel({ surveyTypeId, species, fill }:
               <CircularProgress size={24} />
             </Box>
           ) : (
-            <SeasonalCountChart
-              data={data}
-              height={fill ? '100%' : CHART_HEIGHT}
-              minHeight={CHART_HEIGHT}
-            />
+            <SeasonalCountChart data={data} height={CHART_HEIGHT} />
           )}
         </Box>
       )}

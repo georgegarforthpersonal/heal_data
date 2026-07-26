@@ -28,18 +28,13 @@ import {
 
 interface SeasonalCountChartProps {
   data: SpeciesOccurrenceDataPoint[];
-  /** A number of px, or '100%' to fill a parent of definite height. */
-  height?: number | `${number}%`;
-  /** Floor for a percentage height — a parent that resolves to 0 would
-   *  otherwise render a 0×0 chart. */
-  minHeight?: number;
+  height?: number;
   emptyMessage?: string;
 }
 
 export default function SeasonalCountChart({
   data,
   height = 240,
-  minHeight,
   emptyMessage = 'No surveys recorded yet.',
 }: SeasonalCountChartProps) {
   // Densely surveyed species (weekly bird counts) aggregate to monthly peak
@@ -57,7 +52,7 @@ export default function SeasonalCountChart({
 
   if (!series) {
     return (
-      <Box sx={{ height, minHeight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography sx={{ fontSize: 13.5, color: '#888' }}>{emptyMessage}</Typography>
       </Box>
     );
@@ -65,7 +60,7 @@ export default function SeasonalCountChart({
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={height} minHeight={minHeight}>
+      <ResponsiveContainer width="100%" height={height}>
         <LineChart data={series.rows} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="#eceeec" />
           <XAxis

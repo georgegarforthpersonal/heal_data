@@ -45,9 +45,6 @@ interface DeviceMapProps {
   loading?: boolean;
   /** Height of the map area (not fullscreen). Defaults to a fixed 500px. */
   height?: number | string;
-  /** Floor under `height`. Defaults to 400, which suits a full-width admin
-   *  map; a map sharing a grid row with a short card wants a lower one. */
-  minHeight?: number;
   /** Read-only: shapes/markers show hover names but no click popups or actions. */
   readOnly?: boolean;
   onEditDevice?: (device: Device) => void;
@@ -170,7 +167,6 @@ export default function DeviceMap({
   locationsWithBoundaries,
   loading,
   height = 500,
-  minHeight = 400,
   readOnly = false,
   onEditDevice,
   onDeactivateDevice,
@@ -319,7 +315,7 @@ export default function DeviceMap({
         <Box
           sx={{
             height,
-            minHeight,
+            minHeight: 400,
             width: '100%',
             ...fullscreenMapSx,
           }}

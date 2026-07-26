@@ -150,16 +150,11 @@ export default function LocationsPanel({ locations, devices = [] }: LocationsPan
           </Typography>
         </Box>
       ) : view === 'map' ? (
-        // 320, and the floor lowered to match: this map sets the height of a
-        // grid row it shares with Files & data, the shortest card on the page,
-        // so every px here becomes empty space in that card. (The old
-        // height={360} never applied at all — DeviceMap's floor was 400.)
         <DeviceMap
           locationsWithBoundaries={visible}
           devices={devices}
           readOnly
-          height={320}
-          minHeight={320}
+          height={360}
         />
       ) : (
         <Box>

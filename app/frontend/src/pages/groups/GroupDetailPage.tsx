@@ -38,6 +38,7 @@ import LocationsPanel from '../../components/groups/LocationsPanel';
 import SpeciesCountPanel from '../../components/groups/SpeciesCountPanel';
 import SingleSpeciesCountPanel from '../../components/groups/SingleSpeciesCountPanel';
 import SeasonalCountPanel from '../../components/groups/SeasonalCountPanel';
+import DataPanel from '../../components/groups/DataPanel';
 
 export default function GroupDetailPage() {
   const { typeId } = useParams<{ typeId: string }>();
@@ -219,110 +220,98 @@ export default function GroupDetailPage() {
 
         <GroupHero surveyType={surveyType} />
 
-        {/* ROWS, not columns. Panels are laid out as pairs that share a grid
-            row, and each row's cards stretch to its height (grid's default
-            `align-items: stretch` — note there is deliberately no
-            `alignItems: 'start'` here). Slack therefore lands *inside* the
-            shorter card, never as page background below a column that ran out
-            of content.
+        {/* Two columns of panels with the wide chart spanning both beneath
+            them. Column membership is FIXED, never packed by height: a group
+            page should have the same shape whichever group you open, and a
+            masonry that reflows when a survey type gains a file would move
+            panels around under people who have learnt where they live. The
+            slack that a fixed assignment leaves is dealt with by giving
+            full-width content full width, not by shuffling.
 
-            Independent columns are what produced the gap: the right-hand
-            stack was ~735px for every group (a 400px map plus a fixed export
-            card) while the left swung between 555px and 1235px on data, so no
-            assignment of panels to columns could balance them.
-
-            Height-packing (masonry) is the other way out and is rejected:
-            `display: grid-lanes` is Safari-only as of 26.4, it only
-            approximately levels the columns, and it makes visual order
-            diverge from DOM order — a WCAG 2.4.3 focus-order problem whose
-            fix (`reading-flow`) is Chromium-only. See each row below for
-            which card is the one designed to absorb the slack.
-
-            On xs the grid is one column and panels stack in DOM order. */}
+            On xs the column wrappers become display: contents so every panel
+            stacks as a direct grid item in its `order`; on md they are the
+            two grid cells and orders preserve in-column order. */}
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            alignItems: 'start',
             gap: 2.25,
             mt: 2.25,
           }}
         >
-          {/* Row 1 — the worklist sets the height (it is the one panel that
-              grows with data) and the species chart fills to match. A chart is
-              the only panel that absorbs a few hundred px without looking
-              underfilled, so it is the worklist's partner; pairing the
-              worklist with a short utility card instead left ~600px of white
-              inside that card, which reads worse than the gap it replaced. */}
-          {activity === 'record' ? (
-            <RecordPanel
-              surveys={recentSurveys}
-              recordedCount={recordedCount}
-              resolveSurveyors={resolveSurveyors}
-              speciesType={speciesType}
-              recordLabel={
-                surveyType.allow_image_upload || surveyType.allow_audio_upload
-                  ? 'Record survey'
-                  : 'Log a sighting'
-              }
-              onRecord={recordNew}
-              onOpenSurvey={openSurvey}
-              onViewAll={() => navigate(`/groups/${typeId}/all`)}
-            />
-          ) : (
-            <SurveysPanel
-              slots={slots}
-              recordedThisWeek={recordedThisWeek(slots)}
-              resolveSurveyors={resolveSurveyors}
-              recordedCount={recordedCount}
-              greenIds={greenIds}
-              onAddSurvey={recordSlot}
-              onSignupSaved={handleSignupSaved}
-              onOpenSurvey={openSlotSurvey}
-              onViewAll={() => navigate(`/groups/${typeId}/all`)}
-              onRecordNew={recordNew}
-            />
-          )}
-          {singleSpecies ? (
-            <SingleSpeciesCountPanel surveyTypeId={surveyType.id} species={singleSpecies} fill />
-          ) : (
-            <SpeciesCountPanel
-              speciesTypes={surveyType.species_types.map((st) => st.name)}
-              surveyTypeId={surveyType.id}
-              fill
-            />
-          )}
-
-          {/* Row 2 — the map is the fixed one (400px), so it sets the row and
-              Files & data stretches to it, pinning its export to the foot so
-              the slack reads as a card footer. Only one panel per page spans
-              both columns; the rest stay paired. */}
-          <LocationsPanel locations={locations} devices={surveyType.devices} />
-          <FilesPanel
-            surveyTypeId={surveyType.id}
-            surveyTypeName={surveyType.name}
-            files={files}
-            loading={filesLoading}
-          />
-
-          {/* The full-width slot. A panel takes it when its content is
-              intrinsically wide — a media strip, twelve months of a season —
-              and no group has more than one of them. */}
-          {(surveyType.allow_image_upload || surveyType.allow_audio_upload) && (
-            <Box sx={{ minWidth: 0, gridColumn: { md: '1 / -1' } }}>
-              <RecentMediaPanel
-                kind={surveyType.allow_image_upload ? 'photos' : 'clips'}
-                surveyTypeId={surveyType.id}
-                onViewAll={() => navigate(`/groups/${typeId}/media`)}
-              />
+          {/* Left column */}
+          <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, minWidth: 0 }}>
+            <Box sx={{ order: 2, minWidth: 0 }}>
+              {activity === 'record' ? (
+                <RecordPanel
+                  surveys={recentSurveys}
+                  recordedCount={recordedCount}
+                  resolveSurveyors={resolveSurveyors}
+                  speciesType={speciesType}
+                  recordLabel={
+                    surveyType.allow_image_upload || surveyType.allow_audio_upload
+                      ? 'Record survey'
+                      : 'Log a sighting'
+                  }
+                  onRecord={recordNew}
+                  onOpenSurvey={openSurvey}
+                  onViewAll={() => navigate(`/groups/${typeId}/all`)}
+                />
+              ) : (
+                <SurveysPanel
+                  slots={slots}
+                  recordedThisWeek={recordedThisWeek(slots)}
+                  resolveSurveyors={resolveSurveyors}
+                  recordedCount={recordedCount}
+                  greenIds={greenIds}
+                  onAddSurvey={recordSlot}
+                  onSignupSaved={handleSignupSaved}
+                  onOpenSurvey={openSlotSurvey}
+                  onViewAll={() => navigate(`/groups/${typeId}/all`)}
+                  onRecordNew={recordNew}
+                />
+              )}
             </Box>
-          )}
+            <Box sx={{ order: 4, minWidth: 0 }}>
+              {singleSpecies ? (
+                <SingleSpeciesCountPanel surveyTypeId={surveyType.id} species={singleSpecies} />
+              ) : (
+                <SpeciesCountPanel speciesTypes={surveyType.species_types.map((st) => st.name)} surveyTypeId={surveyType.id} />
+              )}
+            </Box>
+            {(surveyType.allow_image_upload || surveyType.allow_audio_upload) && (
+              <Box sx={{ order: 5, minWidth: 0 }}>
+                <RecentMediaPanel
+                  kind={surveyType.allow_image_upload ? 'photos' : 'clips'}
+                  surveyTypeId={surveyType.id}
+                  onViewAll={() => navigate(`/groups/${typeId}/media`)}
+                />
+              </Box>
+            )}
+          </Box>
+
+          {/* Right column */}
+          <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, minWidth: 0 }}>
+            <Box sx={{ order: 1, minWidth: 0 }}>
+              <FilesPanel surveyTypeId={surveyType.id} files={files} loading={filesLoading} />
+            </Box>
+            <Box sx={{ order: 3, minWidth: 0 }}>
+              <LocationsPanel locations={locations} devices={surveyType.devices} />
+            </Box>
+            <Box sx={{ order: 7, minWidth: 0 }}>
+              <DataPanel surveyTypeId={surveyType.id} surveyTypeName={surveyType.name} />
+            </Box>
+          </Box>
 
           {/* Seasonal counts need repeat visits through a season to compare,
               so they belong to the scheduled groups: Bird, Butterfly,
               Dragonfly today. Single-species scheduled groups already get the
-              same chart from SingleSpeciesCountPanel, without a picker. */}
+              same chart from SingleSpeciesCountPanel, without a picker.
+              Twelve months of it read badly in half a column, so it spans the
+              full width — which is also what soaks up the columns' slack. */}
           {activity === 'worklist' && !singleSpecies && (
-            <Box sx={{ minWidth: 0, gridColumn: { md: '1 / -1' } }}>
+            <Box sx={{ order: 6, minWidth: 0, gridColumn: { md: '1 / -1' } }}>
               <SeasonalCountPanel
                 surveyTypeId={surveyType.id}
                 speciesTypes={surveyType.species_types.map((st) => st.name)}

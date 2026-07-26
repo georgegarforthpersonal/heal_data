@@ -39,11 +39,7 @@ interface CumulativeSpeciesChartProps {
   /** Scope the series to one survey type's surveys (e.g. a group's). */
   surveyTypeId?: number;
   color?: string;
-  /** A number of px, or '100%' to fill a parent of definite height. */
-  height?: number | `${number}%`;
-  /** Floor for a percentage height — without it a parent that resolves to 0
-   *  renders a 0×0 chart. */
-  minHeight?: number;
+  height?: number;
   emptyMessage?: string;
   /** Fires after each load with headline figures (for an external stat header). */
   onSummary?: (summary: CumulativeSummary) => void;
@@ -118,7 +114,6 @@ export default function CumulativeSpeciesChart({
   surveyTypeId,
   color = brandColors.main,
   height = 400,
-  minHeight,
   emptyMessage = 'No data available',
   onSummary,
 }: CumulativeSpeciesChartProps) {
@@ -163,7 +158,6 @@ export default function CumulativeSpeciesChart({
 
   const centeredSx = {
     height,
-    minHeight,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -196,7 +190,7 @@ export default function CumulativeSpeciesChart({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height} minHeight={minHeight}>
+    <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={prepared.data} margin={CHART_MARGIN}>
         {/* Hairline solid grid — dashed reads as "projection" when it's just a grid. */}
         <CartesianGrid vertical={false} stroke="#eceeec" />
