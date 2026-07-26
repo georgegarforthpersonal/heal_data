@@ -36,25 +36,58 @@ interface GroupCardProps {
 
 /**
  * One card figure. Same shape as the Species page's stat band — value over a
- * quiet sentence-case label — at card scale. Values WRAP rather than truncate:
- * a date or "None scheduled" needs two lines on a phone and a clipped stat is
- * worse than a tall one.
+ * quiet sentence-case label — at card scale. Values are counts, so they stay
+ * on one line.
  */
-function Stat({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography
-        sx={{
-          fontSize: 17,
-          fontWeight: 600,
-          lineHeight: 1.25,
-          color: valueColor ?? groupColors.textPrimary,
-        }}
+        sx={{ fontSize: 17, fontWeight: 600, lineHeight: 1.25, color: groupColors.textPrimary }}
+        noWrap
       >
         {value}
       </Typography>
-      <Typography sx={{ fontSize: 12.5, color: '#888', mt: 0.25 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 12.5, color: '#888', mt: 0.25 }} noWrap>
+        {label}
+      </Typography>
     </Box>
+  );
+}
+
+/**
+ * The card's closing line: what's next (brand green — the only actionable
+ * thing on the card) and what was last, at label size. ONE line, always —
+ * dates wrapping is what made the old third figure ugly, so the line
+ * truncates instead. Both clauses are optional and the line just shortens:
+ * unscheduled groups have no "Next", an empty diary is silent rather than
+ * dramatic, and a brand-new type says so plainly.
+ */
+function ScheduleLine({
+  nextSurvey,
+  lastSurveyDate,
+}: Pick<GroupCardProps, 'nextSurvey' | 'lastSurveyDate'>) {
+  // mt: auto floors the line; pt is the gap it keeps from the figures above.
+  const sx = { mt: 'auto', pt: 1.75, fontSize: 12.5, lineHeight: 1.4, color: groupColors.textMuted } as const;
+
+  if (!nextSurvey && !lastSurveyDate) {
+    return <Typography sx={sx} noWrap>No surveys recorded yet</Typography>;
+  }
+
+  return (
+    <Typography sx={sx} noWrap>
+      {nextSurvey && (
+        <Box component="span" sx={{ color: groupColors.brandDark, fontWeight: 500 }}>
+          {nextSurvey.due ? 'Due' : 'Next'} {nextSurvey.date}
+        </Box>
+      )}
+      {nextSurvey && lastSurveyDate && (
+        <Box component="span" sx={{ color: '#ccc', mx: 0.75 }}>
+          ·
+        </Box>
+      )}
+      {lastSurveyDate && `Last ${lastSurveyDate}`}
+    </Typography>
   );
 }
 
@@ -62,7 +95,8 @@ export default function GroupCard({
   surveyType,
   surveyCount,
   countStat,
-  dateStat,
+  nextSurvey,
+  lastSurveyDate,
   onOpen,
 }: GroupCardProps) {
   return (
@@ -82,10 +116,15 @@ export default function GroupCard({
     >
       <ButtonBase
         onClick={onOpen}
+        // A column so the schedule line can sit on the card's floor (mt: auto
+        // below): cards in a row are stretched to a common height, and footers
+        // that hang off differently-sized descriptions read as misaligned.
         sx={{
           width: '100%',
           height: '100%',
-          display: 'block',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
           textAlign: 'left',
           p: 2.5,
         }}
@@ -111,22 +150,15 @@ export default function GroupCard({
             so the card doesn't read as missing content. */}
         <Box sx={{ height: '1px', bgcolor: groupColors.divider, my: surveyType.description ? 2 : 1.5 }} />
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 1 }}>
+        {/* Two figures, sized to their content rather than stretched across
+            thirds — a pair of short numbers reads as a pair, not as a row with
+            a gap where a third used to be. */}
+        <Box sx={{ display: 'flex', gap: 4 }}>
           <Stat label="Surveys" value={String(surveyCount)} />
           <Stat label={countStat.label} value={String(countStat.value)} />
-          {/* An upcoming date is actionable (brand green); a past one is just history. */}
-          <Stat
-            label={dateStat.label}
-            value={dateStat.value ?? (dateStat.label === 'Next survey' ? 'None scheduled' : 'None yet')}
-            valueColor={
-              dateStat.value == null
-                ? '#888'
-                : dateStat.label === 'Next survey'
-                  ? groupColors.brand
-                  : undefined
-            }
-          />
         </Box>
+
+        <ScheduleLine nextSurvey={nextSurvey} lastSurveyDate={lastSurveyDate} />
       </ButtonBase>
     </Paper>
   );

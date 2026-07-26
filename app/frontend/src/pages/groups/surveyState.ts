@@ -56,9 +56,9 @@ export function formatRecordedDate(dateIso: string): string {
 }
 
 /**
- * Compact date labels for the group card stat, which truncates on phones:
- * the year is dropped when the date falls in the current year (the common
- * case for a next/last survey) and kept when it genuinely differs.
+ * Compact date labels for the group card's schedule line, which is capped at
+ * one line: the year is dropped when the date falls in the current year (the
+ * common case for a next/last survey) and kept when it genuinely differs.
  */
 export function formatSurveyDateShort(slot: ScheduledSurvey, today: string = todayIso()): string {
   const year = today.slice(0, 4);
@@ -77,12 +77,23 @@ export function formatSurveyDateShort(slot: ScheduledSurvey, today: string = tod
   return day.format('YYYY') === year ? day.format('ddd D MMM') : day.format('ddd D MMM YYYY');
 }
 
-/** Compact recorded-date label — same year-dropping rule as formatSurveyDateShort. */
-export function formatRecordedDateShort(dateIso: string, today: string = todayIso()): string {
+/**
+ * Compact recorded-date label — same year-dropping rule as
+ * formatSurveyDateShort. `weekday: false` drops the day name too, for the
+ * group card's schedule line: which Tuesday a past survey fell on is of no
+ * use to anyone, and those four characters are what keep the line unbroken
+ * on a phone.
+ */
+export function formatRecordedDateShort(
+  dateIso: string,
+  today: string = todayIso(),
+  { weekday = true }: { weekday?: boolean } = {},
+): string {
   const day = dayjs(dateIso);
+  const prefix = weekday ? 'ddd ' : '';
   return day.format('YYYY') === today.slice(0, 4)
-    ? day.format('ddd D MMM')
-    : day.format('ddd D MMM YYYY');
+    ? day.format(`${prefix}D MMM`)
+    : day.format(`${prefix}D MMM YYYY`);
 }
 
 /**
@@ -148,10 +159,21 @@ export function recordedThisWeek(slots: ScheduledSurvey[], today: string = today
     .sort(byWindowStart);
 }
 
-/** Soonest upcoming slot, or null if none scheduled. */
+/**
+ * The next survey still to be carried out: this week's if one is due (a slot
+ * whose window contains today hasn't happened yet, so it outranks anything
+ * later), otherwise the soonest upcoming one. Null when nothing is scheduled.
+ * Overdue slots are deliberately excluded — they're the group page's business,
+ * not a "next up" date.
+ */
 export function nextScheduledSurvey(slots: ScheduledSurvey[], today: string = todayIso()): ScheduledSurvey | null {
-  const upcoming = slots
-    .filter((s) => deriveSlotState(s, today) === 'upcoming')
+  const pending = slots
+    .filter((s) => {
+      const state = deriveSlotState(s, today);
+      return state === 'due-this-week' || state === 'upcoming';
+    })
+    // window_start ascending puts a due-this-week slot (started on or before
+    // today) ahead of every upcoming one for free.
     .sort(byWindowStart);
-  return upcoming[0] ?? null;
+  return pending[0] ?? null;
 }

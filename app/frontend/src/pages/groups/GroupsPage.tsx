@@ -14,7 +14,7 @@ import { Add } from '@mui/icons-material';
 import { usePermissions } from '../../context/AuthContext';
 import { surveyTypesAPI, surveysAPI, scheduledSurveysAPI, dashboardAPI, type SurveyTypeWithDetails } from '../../services/api';
 import { groupColors, GROUP_MAX_WIDTH } from './groupsTokens';
-import { formatRecordedDateShort, formatSurveyDateShort, nextScheduledSurvey } from './surveyState';
+import { deriveSlotState, formatRecordedDateShort, formatSurveyDateShort, nextScheduledSurvey } from './surveyState';
 import { groupPath, betaGroupNames, groupActivity, compareGroups } from './groupMeta';
 import { totalUniqueSpecies } from '../../components/dashboard/cumulativeSeries';
 import GroupCard from '../../components/groups/GroupCard';
@@ -24,7 +24,8 @@ interface CardData {
   surveyType: SurveyTypeWithDetails;
   surveyCount: number;
   countStat: { label: 'Species' | 'Sightings'; value: number };
-  dateStat: { label: 'Next survey' | 'Last survey'; value: string | null };
+  nextSurvey: { date: string; due: boolean } | null;
+  lastSurveyDate: string | null;
 }
 
 /**
@@ -64,11 +65,12 @@ export default function GroupsPage() {
           return;
         }
         // "Surveys" is the recorded total (matching the All surveys count);
-        // the middle stat is countStatFor's species-or-sightings count; the
-        // date stat is the soonest scheduled survey for worklist groups, or —
-        // for unscheduled ('record') groups, which never have slots — the most
-        // recently recorded one (the list is date-descending, so it rides
-        // along on the same limit-1 totals call).
+        // the second figure is countStatFor's species-or-sightings count. The
+        // footer's "last" is the most recently recorded survey — the list is
+        // date-descending, so it rides along on the same limit-1 totals call —
+        // and its "next" is the soonest slot still to be done, which only
+        // worklist groups can have (unscheduled ones never have slots, so
+        // there's no point asking for them).
         const loaded = await Promise.all(
           matched.map(async (t): Promise<CardData> => {
             const details = await surveyTypesAPI.getById(t.id);
@@ -80,14 +82,19 @@ export default function GroupsPage() {
             ]);
             const next = nextScheduledSurvey(slots);
             const last = totalPage.data[0] ?? null;
-            const dateStat: CardData['dateStat'] = scheduled
-              ? { label: 'Next survey', value: next ? formatSurveyDateShort(next) : null }
-              : { label: 'Last survey', value: last ? formatRecordedDateShort(last.date) : null };
             return {
               surveyType: details,
               surveyCount: totalPage.total,
               countStat,
-              dateStat,
+              nextSurvey: next
+                ? {
+                    date: formatSurveyDateShort(next),
+                    due: deriveSlotState(next) === 'due-this-week',
+                  }
+                : null,
+              lastSurveyDate: last
+                ? formatRecordedDateShort(last.date, undefined, { weekday: false })
+                : null,
             };
           }),
         );
@@ -155,7 +162,8 @@ export default function GroupsPage() {
                 surveyType={c.surveyType}
                 surveyCount={c.surveyCount}
                 countStat={c.countStat}
-                dateStat={c.dateStat}
+                nextSurvey={c.nextSurvey}
+                lastSurveyDate={c.lastSurveyDate}
                 onOpen={() => navigate(groupPath(c.surveyType))}
               />
             ))}

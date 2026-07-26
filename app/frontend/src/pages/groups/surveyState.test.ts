@@ -146,6 +146,11 @@ describe('formatSurveyDateShort / formatRecordedDateShort', () => {
     expect(formatRecordedDateShort('2026-07-21', TODAY)).toBe('Tue 21 Jul');
     expect(formatRecordedDateShort('2025-11-02', TODAY)).toBe('Sun 2 Nov 2025');
   });
+
+  it('drops the weekday on request, year rule unchanged', () => {
+    expect(formatRecordedDateShort('2026-07-21', TODAY, { weekday: false })).toBe('21 Jul');
+    expect(formatRecordedDateShort('2025-11-02', TODAY, { weekday: false })).toBe('2 Nov 2025');
+  });
 });
 
 describe('buildWorklist', () => {
@@ -215,7 +220,21 @@ describe('nextScheduledSurvey', () => {
     expect(nextScheduledSurvey(slots, TODAY)?.id).toBe(2);
   });
 
-  it('returns null when nothing is scheduled', () => {
+  it('prefers a slot due this week over a sooner-finishing upcoming one', () => {
+    const slots = [
+      slot({ id: 1, window_start: '2026-06-29', window_end: '2026-07-05' }),
+      slot({ id: 2, window_start: '2026-06-22', window_end: '2026-06-28' }), // due this week
+    ];
+    expect(nextScheduledSurvey(slots, TODAY)?.id).toBe(2);
+  });
+
+  it('returns null when only overdue slots remain', () => {
     expect(nextScheduledSurvey([slot({ id: 1, window_start: '2026-06-01' })], TODAY)).toBeNull();
+  });
+
+  it('ignores a fulfilled slot due this week', () => {
+    const done = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
+    const later = slot({ id: 2, window_start: '2026-07-06' });
+    expect(nextScheduledSurvey([done, later], TODAY)?.id).toBe(2);
   });
 });
