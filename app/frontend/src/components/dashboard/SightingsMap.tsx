@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Typography, Slider, Stack, CircularProgress, Alert, ToggleButtonGroup, ToggleButton, Tooltip, IconButton, Chip } from '@mui/material';
+import { Box, Button, Paper, Typography, Slider, Stack, CircularProgress, Alert, ToggleButtonGroup, ToggleButton, Tooltip, IconButton, Chip } from '@mui/material';
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
 import { LatLngBounds, LatLng, DivIcon } from 'leaflet';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import CheckIcon from '@mui/icons-material/Check';
 import { BarChart, Bar, ResponsiveContainer, XAxis } from 'recharts';
 import dayjs from 'dayjs';
 import 'leaflet/dist/leaflet.css';
@@ -152,82 +153,62 @@ function buildHistogramData(
 }
 
 /**
- * Clickable survey-type legend that doubles as a filter. Empty `selected` set
- * means no filter is applied — every chip renders in its filled state.
+ * A labelled row of filter chips.
+ *
+ * Resting state is OUTLINED, not filled: filled used to mean "no filter
+ * applied", which reads as "everything is selected" — a state, not an
+ * invitation, and it made the row look heavy. Now unselected = outline,
+ * selected = filled with a tick, so the affordance and the meaning agree.
+ * Breeding chips keep their colour dot in both states because that dot is
+ * also the map's colour key. No counts: they were computed from all
+ * sightings, so they contradicted the other filters the moment one was used.
  */
-function SurveyTypeFilterLegend({
-  surveyTypes,
+function FilterGroup<T extends string>({
+  label,
+  options,
   selected,
   onToggle,
 }: {
-  surveyTypes: { name: string }[];
-  selected: Set<string>;
-  onToggle: (name: string) => void;
+  label: string;
+  options: { key: T; label: string; colour?: string }[];
+  selected: Set<T>;
+  onToggle: (key: T) => void;
 }) {
-  const hasFilter = selected.size > 0;
   return (
-    <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
-      {surveyTypes.map((st) => {
-        const isActive = !hasFilter || selected.has(st.name);
-        return (
-          <Chip
-            key={st.name}
-            label={st.name}
-            size="small"
-            onClick={() => onToggle(st.name)}
-            variant={isActive ? 'filled' : 'outlined'}
-            sx={{
-              opacity: isActive ? 1 : 0.5,
-              cursor: 'pointer',
-            }}
-          />
-        );
-      })}
-    </Stack>
-  );
-}
-
-/**
- * Breeding-evidence colour key that doubles as a filter — the marker colours
- * need a key, and a key you can click is better than one you can't.
- */
-function BreedingCategoryLegend({
-  categories,
-  selected,
-  onToggle,
-}: {
-  categories: { category: MarkerCategory; count: number }[];
-  selected: Set<MarkerCategory>;
-  onToggle: (category: MarkerCategory) => void;
-}) {
-  const hasFilter = selected.size > 0;
-  return (
-    <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
-      {categories.map(({ category, count }) => {
-        const isActive = !hasFilter || selected.has(category);
-        return (
-          <Chip
-            key={category}
-            label={`${categoryLabel(category)} · ${count}`}
-            size="small"
-            onClick={() => onToggle(category)}
-            icon={
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  bgcolor: categoryColour(category),
-                  ml: '8px !important',
-                }}
-              />
-            }
-            variant={isActive ? 'filled' : 'outlined'}
-            sx={{ opacity: isActive ? 1 : 0.5, cursor: 'pointer' }}
-          />
-        );
-      })}
-    </Stack>
+    <Box>
+      <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.6 }}>{label}</Typography>
+      <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+        {options.map((option) => {
+          const isSelected = selected.has(option.key);
+          return (
+            <Chip
+              key={option.key}
+              label={option.label}
+              size="small"
+              clickable
+              onClick={() => onToggle(option.key)}
+              icon={
+                option.colour ? (
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: option.colour,
+                      ml: '8px !important',
+                    }}
+                  />
+                ) : isSelected ? (
+                  <CheckIcon />
+                ) : undefined
+              }
+              variant={isSelected ? 'filled' : 'outlined'}
+              sx={{ fontWeight: isSelected ? 600 : 400 }}
+            />
+          );
+        })}
+      </Stack>
+    </Box>
   );
 }
 
@@ -236,7 +217,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   // Map type state
-  const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
 
   // Calculate date range for the data
   const dateRange = useMemo(() => {
@@ -320,6 +301,12 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
       .filter((c) => counts.has(c))
       .map((c) => ({ category: c, count: counts.get(c)! }));
   }, [sightings, categoryOf]);
+
+  const filtersActive = selectedCategories.size > 0 || selectedSurveyTypes.size > 0;
+  const clearFilters = () => {
+    setSelectedCategories(new Set());
+    setSelectedSurveyTypes(new Set());
+  };
 
   const handleToggleCategory = (category: MarkerCategory) => {
     setSelectedCategories((prev) => {
@@ -535,21 +522,35 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               </Box>
             </Box>
 
-            {/* Colour key (breeding evidence) + survey-type filter */}
-            <Stack spacing={0.75} sx={{ pt: 0.5 }}>
+            {/* Filters, one labelled group per dimension. Breeding chips
+                double as the map's colour key, so their dots always show. */}
+            <Stack spacing={1.5} sx={{ pt: 1 }}>
               {categoriesPresent.length > 1 && (
-                <BreedingCategoryLegend
-                  categories={categoriesPresent}
+                <FilterGroup
+                  label="Breeding evidence"
+                  options={categoriesPresent.map(({ category }) => ({
+                    key: category,
+                    label: categoryLabel(category),
+                    colour: categoryColour(category),
+                  }))}
                   selected={selectedCategories}
                   onToggle={handleToggleCategory}
                 />
               )}
               {surveyTypes.length > 1 && (
-                <SurveyTypeFilterLegend
-                  surveyTypes={surveyTypes}
+                <FilterGroup
+                  label="Survey type"
+                  options={surveyTypes.map((st) => ({ key: st.name, label: st.name }))}
                   selected={selectedSurveyTypes}
                   onToggle={handleToggleSurveyType}
                 />
+              )}
+              {filtersActive && (
+                <Box>
+                  <Button size="small" onClick={clearFilters} sx={{ textTransform: 'none' }}>
+                    Clear filters
+                  </Button>
+                </Box>
               )}
             </Stack>
           </Stack>
@@ -570,17 +571,9 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Map View
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                Showing {filteredSightings.length} of {sightings.length} sightings
               </Typography>
-              {/* Legend / filter for single-date view */}
-              {surveyTypes.length > 1 && (
-                <SurveyTypeFilterLegend
-                  surveyTypes={surveyTypes}
-                  selected={selectedSurveyTypes}
-                  onToggle={handleToggleSurveyType}
-                />
-              )}
             </Box>
             <Stack direction="row" spacing={1} alignItems="center">
               <ToggleButtonGroup
@@ -603,6 +596,36 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               </ToggleButtonGroup>
             </Stack>
           </Box>
+
+          <Stack spacing={1.5} sx={{ pt: 1.5 }}>
+            {categoriesPresent.length > 1 && (
+              <FilterGroup
+                label="Breeding evidence"
+                options={categoriesPresent.map(({ category }) => ({
+                  key: category,
+                  label: categoryLabel(category),
+                  colour: categoryColour(category),
+                }))}
+                selected={selectedCategories}
+                onToggle={handleToggleCategory}
+              />
+            )}
+            {surveyTypes.length > 1 && (
+              <FilterGroup
+                label="Survey type"
+                options={surveyTypes.map((st) => ({ key: st.name, label: st.name }))}
+                selected={selectedSurveyTypes}
+                onToggle={handleToggleSurveyType}
+              />
+            )}
+            {filtersActive && (
+              <Box>
+                <Button size="small" onClick={clearFilters} sx={{ textTransform: 'none' }}>
+                  Clear filters
+                </Button>
+              </Box>
+            )}
+          </Stack>
         </Paper>
       )}
 

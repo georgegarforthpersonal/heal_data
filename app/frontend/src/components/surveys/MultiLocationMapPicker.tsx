@@ -162,7 +162,7 @@ export default function MultiLocationMapPicker({
   surveyLocationId,
   allowCoordinateEntry = false,
 }: MultiLocationMapPickerProps) {
-  const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
   const [coordInput, setCoordInput] = useState('');
   const [coordError, setCoordError] = useState<string | null>(null);
