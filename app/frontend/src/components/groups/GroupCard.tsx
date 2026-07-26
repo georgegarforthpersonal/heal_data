@@ -1,7 +1,11 @@
 /**
  * A type card on the Groups grid. The whole card is a button that opens the
- * group page. Shows the survey-type badge, name + sub-label, and a three-stat
- * row (surveys, species-or-sightings count, next/last survey).
+ * group page. Shows the survey-type badge, name + sub-label, a pair of figures
+ * (surveys, species-or-sightings count), and a one-line schedule footer.
+ *
+ * Dates live in the footer rather than in a third figure: a date is not a
+ * number, and at figure size in a third of a card it wrapped to two lines and
+ * turned an ordinary empty schedule into a bold "None scheduled".
  */
 import { Box, Paper, ButtonBase, Typography } from '@mui/material';
 import { ChevronRight } from '@mui/icons-material';
@@ -19,10 +23,14 @@ interface GroupCardProps {
    */
   countStat: { label: 'Species' | 'Sightings'; value: number };
   /**
-   * Third stat: the soonest scheduled survey for worklist groups, or the most
-   * recently recorded one for unscheduled groups. Null value = none yet.
+   * Footer, left half: the next survey still to be carried out, `due` when its
+   * window is the current one. Null for unscheduled groups, which never have
+   * slots, and for scheduled groups with an empty diary — an ordinary state,
+   * so the clause simply goes quiet rather than announcing itself.
    */
-  dateStat: { label: 'Next survey' | 'Last survey'; value: string | null };
+  nextSurvey: { date: string; due: boolean } | null;
+  /** Footer, right half: the most recently recorded survey. Null = none yet. */
+  lastSurveyDate: string | null;
   onOpen: () => void;
 }
 
@@ -58,16 +66,28 @@ export default function GroupCard({
   onOpen,
 }: GroupCardProps) {
   return (
-    <Paper sx={{ border: `1px solid ${groupColors.divider}`, borderRadius: '10px', boxShadow: 'none', overflow: 'hidden' }}>
+    // Grid rows stretch every card to the tallest one's height, so the hover
+    // shadow belongs on the Paper — on the (content-height) button it would
+    // paint a band across the card's unused bottom.
+    <Paper
+      sx={{
+        height: '100%',
+        border: `1px solid ${groupColors.divider}`,
+        borderRadius: '10px',
+        boxShadow: 'none',
+        overflow: 'hidden',
+        transition: 'box-shadow 120ms, border-color 120ms',
+        '&:hover': { boxShadow: '0 4px 14px rgba(0,0,0,0.08)' },
+      }}
+    >
       <ButtonBase
         onClick={onOpen}
         sx={{
           width: '100%',
+          height: '100%',
           display: 'block',
           textAlign: 'left',
           p: 2.5,
-          transition: 'box-shadow 120ms, border-color 120ms',
-          '&:hover': { boxShadow: '0 4px 14px rgba(0,0,0,0.08)' },
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
