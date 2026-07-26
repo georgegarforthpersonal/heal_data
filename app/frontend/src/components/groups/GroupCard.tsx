@@ -1,11 +1,13 @@
 /**
  * A type card on the Groups grid. The whole card is a button that opens the
- * group page. Shows the survey-type badge, name + sub-label, a pair of figures
- * (surveys, species-or-sightings count), and a one-line schedule footer.
+ * group page. Shows the survey-type badge, name + sub-label, and one stat row
+ * of up to four columns: surveys, species-or-sightings count, next survey,
+ * last survey.
  *
- * Dates live in the footer rather than in a third figure: a date is not a
- * number, and at figure size in a third of a card it wrapped to two lines and
- * turned an ordinary empty schedule into a bold "None scheduled".
+ * The dates share the row but not the figures' type size — set as figures they
+ * wrapped to two lines and turned an ordinary empty schedule into a bold
+ * "None scheduled". At date size all four fit one line across the card, and an
+ * absent date drops its column instead of announcing itself.
  */
 import { Box, Paper, ButtonBase, Typography } from '@mui/material';
 import { ChevronRight } from '@mui/icons-material';
@@ -23,27 +25,46 @@ interface GroupCardProps {
    */
   countStat: { label: 'Species' | 'Sightings'; value: number };
   /**
-   * Footer, left half: the next survey still to be carried out, `due` when its
+   * Third column: the next survey still to be carried out, `due` when its
    * window is the current one. Null for unscheduled groups, which never have
    * slots, and for scheduled groups with an empty diary — an ordinary state,
-   * so the clause simply goes quiet rather than announcing itself.
+   * so the column simply goes rather than announcing itself.
    */
   nextSurvey: { date: string; due: boolean } | null;
-  /** Footer, right half: the most recently recorded survey. Null = none yet. */
+  /** Fourth column: the most recently recorded survey. Null = none yet. */
   lastSurveyDate: string | null;
   onOpen: () => void;
 }
 
 /**
- * One card figure. Same shape as the Species page's stat band — value over a
- * quiet sentence-case label — at card scale. Values are counts, so they stay
- * on one line.
+ * One column of the stat row. Same shape as the Species page's stat band —
+ * value over a quiet sentence-case label — at card scale.
+ *
+ * A count is the headline size; a date is set smaller, because four figures'
+ * worth of date does not fit the width of a third of the grid, and because the
+ * counts should lead. Both share the label size, and the row bottom-aligns, so
+ * the labels sit on one baseline whatever the value above them.
  */
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  date,
+  color,
+}: {
+  label: string;
+  value: string;
+  date?: boolean;
+  color?: string;
+}) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography
-        sx={{ fontSize: 17, fontWeight: 600, lineHeight: 1.25, color: groupColors.textPrimary }}
+        sx={{
+          fontSize: date ? 13.5 : 17,
+          fontWeight: 600,
+          lineHeight: 1.25,
+          color: color ?? groupColors.textPrimary,
+        }}
         noWrap
       >
         {value}
@@ -52,42 +73,6 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </Typography>
     </Box>
-  );
-}
-
-/**
- * The card's closing line: what's next (brand green — the only actionable
- * thing on the card) and what was last, at label size. ONE line, always —
- * dates wrapping is what made the old third figure ugly, so the line
- * truncates instead. Both clauses are optional and the line just shortens:
- * unscheduled groups have no "Next", an empty diary is silent rather than
- * dramatic, and a brand-new type says so plainly.
- */
-function ScheduleLine({
-  nextSurvey,
-  lastSurveyDate,
-}: Pick<GroupCardProps, 'nextSurvey' | 'lastSurveyDate'>) {
-  // mt: auto floors the line; pt is the gap it keeps from the figures above.
-  const sx = { mt: 'auto', pt: 1.75, fontSize: 12.5, lineHeight: 1.4, color: groupColors.textMuted } as const;
-
-  if (!nextSurvey && !lastSurveyDate) {
-    return <Typography sx={sx} noWrap>No surveys recorded yet</Typography>;
-  }
-
-  return (
-    <Typography sx={sx} noWrap>
-      {nextSurvey && (
-        <Box component="span" sx={{ color: groupColors.brandDark, fontWeight: 500 }}>
-          {nextSurvey.due ? 'Due' : 'Next'} {nextSurvey.date}
-        </Box>
-      )}
-      {nextSurvey && lastSurveyDate && (
-        <Box component="span" sx={{ color: '#ccc', mx: 0.75 }}>
-          ·
-        </Box>
-      )}
-      {lastSurveyDate && `Last ${lastSurveyDate}`}
-    </Typography>
   );
 }
 
@@ -116,9 +101,11 @@ export default function GroupCard({
     >
       <ButtonBase
         onClick={onOpen}
-        // A column so the schedule line can sit on the card's floor (mt: auto
-        // below): cards in a row are stretched to a common height, and footers
-        // that hang off differently-sized descriptions read as misaligned.
+        // A column so the rule and the stat row can sit on the card's floor
+        // (mt: auto below): cards in a row are stretched to a common height,
+        // and stat rows hanging off differently-sized descriptions read as
+        // misaligned. The slack goes above the rule, where it passes for the
+        // padding around a section break.
         sx={{
           width: '100%',
           height: '100%',
@@ -148,17 +135,48 @@ export default function GroupCard({
 
         {/* Description-less headers carry less visual weight — tighten the gap
             so the card doesn't read as missing content. */}
-        <Box sx={{ height: '1px', bgcolor: groupColors.divider, my: surveyType.description ? 2 : 1.5 }} />
-
-        {/* Two figures, sized to their content rather than stretched across
-            thirds — a pair of short numbers reads as a pair, not as a row with
-            a gap where a third used to be. */}
-        <Box sx={{ display: 'flex', gap: 4 }}>
-          <Stat label="Surveys" value={String(surveyCount)} />
-          <Stat label={countStat.label} value={String(countStat.value)} />
+        <Box sx={{ mt: 'auto', pt: surveyType.description ? 2 : 1.5 }}>
+          <Box sx={{ height: '1px', bgcolor: groupColors.divider }} />
         </Box>
 
-        <ScheduleLine nextSurvey={nextSurvey} lastSurveyDate={lastSurveyDate} />
+        {/* Fixed columns, not content-sized ones: every card's Surveys /
+            Species / Next / Last land on the same four positions across the
+            grid, and a card missing a date keeps an empty cell rather than
+            sliding its remaining columns about. The date columns are wider —
+            equal quarters would starve them and pad the counts. Dates truncate
+            rather than wrap; a two-line date is what this row exists to avoid. */}
+        <Box
+          sx={{
+            mt: surveyType.description ? 2 : 1.5,
+            display: 'grid',
+            alignItems: 'flex-end',
+            columnGap: 1,
+            rowGap: 1.5,
+            // Four across need ~272px of column content, which a viewport
+            // under ~390px can't give: there the dates drop to a second row
+            // rather than truncate. Above it the fractions are proportional to
+            // what each column actually holds — "Sightings" and a
+            // "13 Nov 2025" need more room than a count does.
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            '@media (min-width:390px)': {
+              gridTemplateColumns: '1fr 1.15fr 2.1fr 1.75fr',
+            },
+          }}
+        >
+          <Stat label="Surveys" value={String(surveyCount)} />
+          <Stat label={countStat.label} value={String(countStat.value)} />
+          {nextSurvey ? (
+            <Stat
+              label={nextSurvey.due ? 'Due' : 'Next'}
+              value={nextSurvey.date}
+              date
+              color={groupColors.brandDark}
+            />
+          ) : (
+            <Box />
+          )}
+          {lastSurveyDate ? <Stat label="Last" value={lastSurveyDate} date /> : <Box />}
+        </Box>
       </ButtonBase>
     </Paper>
   );
