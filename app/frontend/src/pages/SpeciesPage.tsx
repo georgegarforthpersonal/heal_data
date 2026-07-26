@@ -1,8 +1,8 @@
 import { Box, Typography, Paper, MenuItem, Autocomplete, TextField, createFilterOptions } from '@mui/material';
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { dashboardAPI, locationsAPI, getOrgSlug } from '../services/api';
-import type { SpeciesWithCount, SpeciesSightingLocation, LocationWithBoundary } from '../services/api';
+import { dashboardAPI, getOrgSlug } from '../services/api';
+import type { SpeciesWithCount, SpeciesSightingLocation } from '../services/api';
 import SightingsMap from '../components/dashboard/SightingsMap';
 import CumulativeSpeciesChart from '../components/dashboard/CumulativeSpeciesChart';
 import SpeciesOccurrenceChart from '../components/dashboard/SpeciesOccurrenceChart';
@@ -74,8 +74,7 @@ export function SpeciesPage() {
   const [sightingsLoading, setSightingsLoading] = useState(false);
   const [sightingsError, setSightingsError] = useState<string | null>(null);
 
-  // Field boundaries + which species types actually have entries
-  const [locationsWithBoundaries, setLocationsWithBoundaries] = useState<LocationWithBoundary[]>([]);
+  // Which species types actually have entries
   const [availableSpeciesTypes, setAvailableSpeciesTypes] = useState<string[]>([]);
 
   // Fetch the species list (ranked) when the species type changes; auto-select the top.
@@ -114,14 +113,6 @@ export function SpeciesPage() {
       active = false;
     };
   }, [selectedSpeciesId, isCannwood]);
-
-  // Field boundaries (once)
-  useEffect(() => {
-    locationsAPI
-      .getAllWithBoundaries()
-      .then(setLocationsWithBoundaries)
-      .catch((err) => console.warn('Failed to load field boundaries:', err));
-  }, []);
 
   // Species types that actually have entries (once)
   useEffect(() => {
@@ -308,12 +299,13 @@ export function SpeciesPage() {
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
             Sighting locations
           </Typography>
+          {/* No locationsWithBoundaries: the field outlines competed with the
+              sightings themselves, which are the point of this map. */}
           {selectedSpeciesId ? (
             <SightingsMap
               sightings={sightingsData}
               loading={sightingsLoading}
               error={sightingsError}
-              locationsWithBoundaries={locationsWithBoundaries}
             />
           ) : (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'text.secondary' }}>

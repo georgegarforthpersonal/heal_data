@@ -22,6 +22,8 @@ interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
   loading?: boolean;
   error?: string | null;
+  /** Field outlines to draw under the markers. Omitted on the Species page —
+   * the boundaries competed with the sightings, which are the point. */
   locationsWithBoundaries?: LocationWithBoundary[];
 }
 
@@ -41,13 +43,22 @@ function FitBounds({ sightings }: { sightings: SpeciesSightingLocation[] }) {
   const map = useMap();
 
   useEffect(() => {
-    if (sightings.length > 0) {
-      const bounds = new LatLngBounds(
-        sightings.map(s => new LatLng(s.latitude, s.longitude))
-      );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-    }
-    return () => { stopMapAnimation(map); };
+    if (sightings.length === 0) return;
+    const bounds = new LatLngBounds(
+      sightings.map(s => new LatLng(s.latitude, s.longitude))
+    );
+    // Fit on the next frame, after invalidateSize: on mount the container
+    // hasn't been laid out yet, so fitting immediately computes the zoom for
+    // a stale (smaller) box — the map then opened on empty countryside with
+    // the sightings a speck in the middle.
+    const frame = requestAnimationFrame(() => {
+      map.invalidateSize();
+      map.fitBounds(bounds, { padding: [24, 24], maxZoom: 17, animate: false });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      stopMapAnimation(map);
+    };
   }, [sightings, map]);
 
   return null;
@@ -341,25 +352,16 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
 
   return (
     <Box>
-      {/* Date Range Filter with Histogram and Legend */}
+      {/* Filters sit directly on the section card — a bordered panel inside a
+          bordered card read as a box in a box, unlike every other section. */}
       {dateRange && dateRange.minTime !== dateRange.maxTime && (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            mb: 2,
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider'
-          }}
-        >
+        <Box sx={{ mb: 2 }}>
           <Stack spacing={1}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Date Range Filter
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+                {/* The slider and its dates say "date range"; a title saying so
+                    too just wrapped onto three lines on a phone. */}
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                   Showing {filteredSightings.length} of {sightings.length} sightings
                 </Typography>
               </Box>
@@ -460,7 +462,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               </Box>
             )}
           </Stack>
-        </Paper>
+        </Box>
       )}
 
       {/* Map Toggle for single-date datasets */}
@@ -556,7 +558,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
           </Tooltip>
         </Stack>
 
-        <Box sx={{ height: 500, width: '100%', ...fullscreenMapSx }}>
+        <Box sx={{ height: { xs: 320, sm: 520 }, width: '100%', ...fullscreenMapSx }}>
           <MapContainer
             center={defaultCenter}
             zoom={defaultZoom}

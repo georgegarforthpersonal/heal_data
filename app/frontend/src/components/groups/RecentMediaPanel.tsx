@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Box, Paper, Typography, CircularProgress, ButtonBase } from '@mui/material';
-import { ChevronRight, Pets } from '@mui/icons-material';
+import { ChevronRight } from '@mui/icons-material';
 import {
   imagesAPI,
   surveyTypesAPI,
@@ -198,20 +198,6 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
             '&:hover': { bgcolor: '#f9fbf9' },
           }}
         >
-          <Box
-            sx={{
-              width: 34,
-              height: 34,
-              borderRadius: '8px',
-              bgcolor: '#f1f3f1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Pets sx={{ fontSize: 18, color: groupColors.brandDark }} />
-          </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: groupColors.textPrimary }}>
               All species
