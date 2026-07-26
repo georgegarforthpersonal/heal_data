@@ -13,10 +13,11 @@ import { stopMapAnimation } from '../../utils/stopMapAnimation';
 import type { SpeciesSightingLocation, LocationWithBoundary } from '../../services/api';
 import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
-import { getSurveyTypeColorStyles } from '../SurveyTypeColors';
+import { surveysAPI } from '../../services/api';
+import type { BreedingCategory, BreedingStatusCode } from '../../services/api';
+import { CATEGORY_COLORS, CATEGORY_LABELS } from '../surveys/breedingConstants';
 import { brandColors } from '../../theme';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../config';
-import BreedingStatusFilter from './BreedingStatusFilter';
 
 interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
@@ -32,8 +33,8 @@ interface SightingCluster {
   longitude: number;
   sightings: SpeciesSightingLocation[];
   count: number;
-  surveyTypeColor: string | null;
-  surveyTypeName: string | null;
+  /** Most advanced breeding evidence at this spot — drives the marker colour. */
+  category: MarkerCategory;
 }
 
 /**
@@ -65,10 +66,32 @@ function FitBounds({ sightings }: { sightings: SpeciesSightingLocation[] }) {
 }
 
 /**
- * Get the marker colour for a survey type (uses the darker notion text shade)
+ * Marker colour encodes BREEDING EVIDENCE — the dimension a species map is
+ * actually asking about. Survey type stays as a filter. Colours are the ones
+ * surveyors already learn in the recording flow (breedingConstants), so the
+ * key is the same everywhere in the app.
  */
-function getMarkerColor(surveyTypeColor: string | null | undefined): string {
-  return getSurveyTypeColorStyles(surveyTypeColor).text;
+const NO_CODE = 'none' as const;
+type MarkerCategory = BreedingCategory | typeof NO_CODE;
+
+/** Strongest evidence last — a cluster takes its most advanced category. */
+const CATEGORY_RANK: MarkerCategory[] = [
+  NO_CODE,
+  'non_breeding',
+  'possible_breeder',
+  'probable_breeder',
+  'confirmed_breeder',
+];
+
+const NO_CODE_COLOR = '#9E9E9E';
+const NO_CODE_LABEL = 'No breeding code';
+
+function categoryColour(category: MarkerCategory): string {
+  return category === NO_CODE ? NO_CODE_COLOR : CATEGORY_COLORS[category];
+}
+
+function categoryLabel(category: MarkerCategory): string {
+  return category === NO_CODE ? NO_CODE_LABEL : CATEGORY_LABELS[category];
 }
 
 /**
@@ -106,7 +129,8 @@ function buildHistogramData(
   minTime: number,
   maxTime: number,
   bucketCount: number,
-): { time: number; [surveyType: string]: number }[] {
+  keyOf: (s: SpeciesSightingLocation) => string,
+): { time: number; [seriesKey: string]: number }[] {
   const range = maxTime - minTime;
   if (range === 0) return [];
 
@@ -120,7 +144,7 @@ function buildHistogramData(
   for (const s of sightings) {
     const time = new Date(s.survey_date).getTime();
     const idx = Math.min(Math.floor((time - minTime) / bucketSize), bucketCount - 1);
-    const key = s.survey_type_name || 'Unknown';
+    const key = keyOf(s);
     buckets[idx][key] = ((buckets[idx][key] as number) || 0) + 1;
   }
 
@@ -136,7 +160,7 @@ function SurveyTypeFilterLegend({
   selected,
   onToggle,
 }: {
-  surveyTypes: { name: string; color: string }[];
+  surveyTypes: { name: string }[];
   selected: Set<string>;
   onToggle: (name: string) => void;
 }) {
@@ -151,22 +175,55 @@ function SurveyTypeFilterLegend({
             label={st.name}
             size="small"
             onClick={() => onToggle(st.name)}
+            variant={isActive ? 'filled' : 'outlined'}
+            sx={{
+              opacity: isActive ? 1 : 0.5,
+              cursor: 'pointer',
+            }}
+          />
+        );
+      })}
+    </Stack>
+  );
+}
+
+/**
+ * Breeding-evidence colour key that doubles as a filter — the marker colours
+ * need a key, and a key you can click is better than one you can't.
+ */
+function BreedingCategoryLegend({
+  categories,
+  selected,
+  onToggle,
+}: {
+  categories: { category: MarkerCategory; count: number }[];
+  selected: Set<MarkerCategory>;
+  onToggle: (category: MarkerCategory) => void;
+}) {
+  const hasFilter = selected.size > 0;
+  return (
+    <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+      {categories.map(({ category, count }) => {
+        const isActive = !hasFilter || selected.has(category);
+        return (
+          <Chip
+            key={category}
+            label={`${categoryLabel(category)} · ${count}`}
+            size="small"
+            onClick={() => onToggle(category)}
             icon={
               <Box
                 sx={{
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  bgcolor: st.color,
+                  bgcolor: categoryColour(category),
                   ml: '8px !important',
                 }}
               />
             }
             variant={isActive ? 'filled' : 'outlined'}
-            sx={{
-              opacity: isActive ? 1 : 0.5,
-              cursor: 'pointer',
-            }}
+            sx={{ opacity: isActive ? 1 : 0.5, cursor: 'pointer' }}
           />
         );
       })}
@@ -210,14 +267,34 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
     }
   }, [dateRange]);
 
-  // Breeding status filter state — empty Set means "no filter applied"
-  const [selectedBreedingCodes, setSelectedBreedingCodes] = useState<Set<string>>(new Set());
+  // Breeding evidence: reference data maps a sighting's code to its category,
+  // which is what the marker colour encodes.
+  const [breedingCodes, setBreedingCodes] = useState<BreedingStatusCode[]>([]);
+  useEffect(() => {
+    let active = true;
+    surveysAPI
+      .getBreedingCodes()
+      .then((codes) => active && setBreedingCodes(codes))
+      .catch(() => active && setBreedingCodes([]));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const categoryOf = useMemo(() => {
+    const byCode = new Map(breedingCodes.map((c) => [c.code, c.category]));
+    return (s: SpeciesSightingLocation): MarkerCategory =>
+      (s.breeding_status_code && byCode.get(s.breeding_status_code)) || NO_CODE;
+  }, [breedingCodes]);
+
+  // Category filter state — empty Set means "no filter applied"
+  const [selectedCategories, setSelectedCategories] = useState<Set<MarkerCategory>>(new Set());
   // Survey type filter state — empty Set means "no filter applied"
   const [selectedSurveyTypes, setSelectedSurveyTypes] = useState<Set<string>>(new Set());
 
   // Reset filters when the underlying sightings change (e.g. species switch)
   useEffect(() => {
-    setSelectedBreedingCodes(new Set());
+    setSelectedCategories(new Set());
     setSelectedSurveyTypes(new Set());
   }, [sightings]);
 
@@ -230,35 +307,46 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
     });
   };
 
-  // Counts per available breeding code (only includes codes that appear at least once)
-  const breedingCounts = useMemo(() => {
-    const counts = new Map<string, number>();
+  // Categories present in the data, strongest evidence first — the colour key
+  // and the filter.
+  const categoriesPresent = useMemo(() => {
+    const counts = new Map<MarkerCategory, number>();
     for (const s of sightings) {
-      if (!s.breeding_status_code) continue;
-      counts.set(s.breeding_status_code, (counts.get(s.breeding_status_code) ?? 0) + 1);
+      const c = categoryOf(s);
+      counts.set(c, (counts.get(c) ?? 0) + 1);
     }
-    return counts;
-  }, [sightings]);
+    return [...CATEGORY_RANK]
+      .reverse()
+      .filter((c) => counts.has(c))
+      .map((c) => ({ category: c, count: counts.get(c)! }));
+  }, [sightings, categoryOf]);
+
+  const handleToggleCategory = (category: MarkerCategory) => {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
 
   // Filter sightings based on date range, breeding codes, and survey types
   const filteredSightings = useMemo(() => {
-    const breedingActive = selectedBreedingCodes.size > 0;
+    const categoryActive = selectedCategories.size > 0;
     const surveyActive = selectedSurveyTypes.size > 0;
     return sightings.filter(s => {
       if (dateRange) {
         const time = new Date(s.survey_date).getTime();
         if (time < dateFilterRange[0] || time > dateFilterRange[1]) return false;
       }
-      if (breedingActive) {
-        if (!s.breeding_status_code || !selectedBreedingCodes.has(s.breeding_status_code)) return false;
-      }
+      if (categoryActive && !selectedCategories.has(categoryOf(s))) return false;
       if (surveyActive) {
         const name = s.survey_type_name || 'Unknown';
         if (!selectedSurveyTypes.has(name)) return false;
       }
       return true;
     });
-  }, [sightings, dateFilterRange, dateRange, selectedBreedingCodes, selectedSurveyTypes]);
+  }, [sightings, dateFilterRange, dateRange, selectedCategories, selectedSurveyTypes, categoryOf]);
 
   // Cluster filtered sightings by location
   const clusters = useMemo((): SightingCluster[] => {
@@ -266,35 +354,36 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
 
     for (const s of filteredSightings) {
       const key = `${s.latitude.toFixed(6)},${s.longitude.toFixed(6)}`;
+      const category = categoryOf(s);
       const existing = map.get(key);
       if (existing) {
         existing.sightings.push(s);
         existing.count++;
+        // A spot with any confirmed breeding reads as confirmed.
+        if (CATEGORY_RANK.indexOf(category) > CATEGORY_RANK.indexOf(existing.category)) {
+          existing.category = category;
+        }
       } else {
         map.set(key, {
           latitude: s.latitude,
           longitude: s.longitude,
           sightings: [s],
           count: 1,
-          surveyTypeColor: s.survey_type_color,
-          surveyTypeName: s.survey_type_name,
+          category,
         });
       }
     }
 
     return Array.from(map.values());
-  }, [filteredSightings]);
+  }, [filteredSightings, categoryOf]);
 
   // Get unique survey types present in the data (for legend and histogram)
   const surveyTypes = useMemo(() => {
-    const typeMap = new Map<string, { name: string; color: string }>();
+    const typeMap = new Map<string, { name: string }>();
     for (const s of sightings) {
       const name = s.survey_type_name || 'Unknown';
       if (!typeMap.has(name)) {
-        typeMap.set(name, {
-          name,
-          color: getMarkerColor(s.survey_type_color),
-        });
+        typeMap.set(name, { name });
       }
     }
     return Array.from(typeMap.values());
@@ -303,8 +392,8 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
   // Build histogram data (uses ALL sightings, not filtered, so the histogram shows full density)
   const histogramData = useMemo(() => {
     if (!dateRange || dateRange.minTime === dateRange.maxTime) return [];
-    return buildHistogramData(sightings, dateRange.minTime, dateRange.maxTime, 30);
-  }, [sightings, dateRange]);
+    return buildHistogramData(sightings, dateRange.minTime, dateRange.maxTime, 30, (s) => categoryLabel(categoryOf(s)));
+  }, [sightings, dateRange, categoryOf]);
 
   // Handle date range change
   const handleDateRangeChange = (_event: Event, newValue: number | number[]) => {
@@ -367,11 +456,6 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               </Box>
 
               <Stack direction="row" spacing={1} alignItems="center">
-                <BreedingStatusFilter
-                  availableCounts={breedingCounts}
-                  selectedCodes={selectedBreedingCodes}
-                  onChange={setSelectedBreedingCodes}
-                />
                 <ToggleButtonGroup
                   value={mapType}
                   exclusive
@@ -401,12 +485,12 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={histogramData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }} barCategoryGap={1}>
                       <XAxis dataKey="time" hide />
-                      {surveyTypes.map((st) => (
+                      {categoriesPresent.map(({ category }) => (
                         <Bar
-                          key={st.name}
-                          dataKey={st.name}
+                          key={category}
+                          dataKey={categoryLabel(category)}
                           stackId="a"
-                          fill={st.color}
+                          fill={categoryColour(category)}
                           opacity={0.35}
                           isAnimationActive={false}
                         />
@@ -451,16 +535,23 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               </Box>
             </Box>
 
-            {/* Survey type legend / filter */}
-            {surveyTypes.length > 1 && (
-              <Box sx={{ pt: 0.5 }}>
+            {/* Colour key (breeding evidence) + survey-type filter */}
+            <Stack spacing={0.75} sx={{ pt: 0.5 }}>
+              {categoriesPresent.length > 1 && (
+                <BreedingCategoryLegend
+                  categories={categoriesPresent}
+                  selected={selectedCategories}
+                  onToggle={handleToggleCategory}
+                />
+              )}
+              {surveyTypes.length > 1 && (
                 <SurveyTypeFilterLegend
                   surveyTypes={surveyTypes}
                   selected={selectedSurveyTypes}
                   onToggle={handleToggleSurveyType}
                 />
-              </Box>
-            )}
+              )}
+            </Stack>
           </Stack>
         </Box>
       )}
@@ -492,11 +583,6 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               )}
             </Box>
             <Stack direction="row" spacing={1} alignItems="center">
-              <BreedingStatusFilter
-                availableCounts={breedingCounts}
-                selectedCodes={selectedBreedingCodes}
-                onChange={setSelectedBreedingCodes}
-              />
               <ToggleButtonGroup
                 value={mapType}
                 exclusive
@@ -584,7 +670,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
             )}
 
             {clusters.map((cluster) => {
-              const color = getMarkerColor(cluster.surveyTypeColor);
+              const color = categoryColour(cluster.category);
 
               if (cluster.count === 1) {
                 // Single sighting — simple CircleMarker
@@ -637,11 +723,10 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                 >
                   <Popup>
                     <Box sx={{ p: 1, maxHeight: 200, overflowY: 'auto' }}>
-                      {cluster.surveyTypeName && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                          {cluster.surveyTypeName}
-                        </Typography>
-                      )}
+                      {/* The colour's meaning, spelled out. */}
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                        {categoryLabel(cluster.category)}
+                      </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                         {cluster.count} sightings
                       </Typography>
