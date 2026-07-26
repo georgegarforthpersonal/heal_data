@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, ButtonBase, Autocomplete, TextField } from '@mui/material';
+import { Box, Typography, Paper, MenuItem, Autocomplete, TextField } from '@mui/material';
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { dashboardAPI, locationsAPI, getOrgSlug } from '../services/api';
@@ -8,7 +8,6 @@ import CumulativeSpeciesChart from '../components/dashboard/CumulativeSpeciesCha
 import SpeciesOccurrenceChart from '../components/dashboard/SpeciesOccurrenceChart';
 import SpeciesGroupIcon from '../components/dashboard/SpeciesGroupIcon';
 import { speciesTypes, getSpeciesDisplayName } from '../config';
-import { notionColors, brandColors } from '../theme';
 import { SPACING } from '../config/responsive';
 import { PageTitle } from '../components/layout/PageTitle';
 
@@ -147,53 +146,35 @@ export function SpeciesPage() {
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
       <PageTitle title="Species" />
 
-      {/* Group filter: ONE row above the content, scrolling sideways rather
-          than wrapping into a block of chips that ate the top of the page. */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1,
-          mb: 2.5,
-          overflowX: 'auto',
-          pb: 0.5,
-          mx: { xs: -1, sm: 0 },
-          px: { xs: 1, sm: 0 },
-          scrollbarWidth: 'none',
-          '&::-webkit-scrollbar': { display: 'none' },
+      {/* Group filter. A sideways-scrolling chip row hid its own overflow —
+          nothing said "there's more". A dropdown is the conventional,
+          self-evident control and keeps the badge artwork in its rows. */}
+      <TextField
+        select
+        size="small"
+        label="Species group"
+        value={availableSpeciesTypes.includes(selectedSpeciesTypes[0]) ? selectedSpeciesTypes[0] : ''}
+        onChange={(e) => handleToggle(e.target.value)}
+        sx={{ width: { xs: '100%', sm: 260 }, mb: 3 }}
+        SelectProps={{
+          renderValue: (value) => (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SpeciesGroupIcon type={value as string} size={20} />
+              {getSpeciesDisplayName(value as string)}
+            </Box>
+          ),
         }}
       >
         {speciesTypes
           .filter((type) => availableSpeciesTypes.includes(type))
           .sort((a, b) => getSpeciesDisplayName(a).localeCompare(getSpeciesDisplayName(b)))
-          .map((type) => {
-            const isSelected = selectedSpeciesTypes.includes(type);
-            return (
-              <ButtonBase
-                key={type}
-                onClick={() => handleToggle(type)}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  px: 1.25,
-                  py: 0.5,
-                  borderRadius: '18px',
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                  bgcolor: isSelected ? brandColors.main : notionColors.gray.background,
-                  color: isSelected ? '#fff' : 'text.primary',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  transition: 'all 0.15s',
-                  '&:hover': { bgcolor: isSelected ? brandColors.hover : '#DDD' },
-                }}
-              >
-                <SpeciesGroupIcon type={type} size={20} />
-                {getSpeciesDisplayName(type)}
-              </ButtonBase>
-            );
-          })}
-      </Box>
+          .map((type) => (
+            <MenuItem key={type} value={type} sx={{ gap: 1.25 }}>
+              <SpeciesGroupIcon type={type} size={22} />
+              {getSpeciesDisplayName(type)}
+            </MenuItem>
+          ))}
+      </TextField>
 
       {/* Headline figures — one card, hero figure first (four bordered boxes
           read as heavy chrome for four small numbers, and their uppercase

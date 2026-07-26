@@ -4,6 +4,7 @@ import {
   buildSeasonalSeries,
   MAX_SEASON_YEARS,
   MONTHLY_AGGREGATION_THRESHOLD,
+  seasonYears,
   shouldAggregateMonthly,
 } from './seasonalSeries';
 import type { SpeciesOccurrenceDataPoint } from '../../services/api';
@@ -120,5 +121,38 @@ describe('buildMonthlyPeakSeries', () => {
   it('keeps a surveyed zero-month as a zero, not a gap', () => {
     const series = buildMonthlyPeakSeries([point('2026-06-14', 0)])!;
     expect(series.rows[0]['2026']).toBe(0);
+  });
+});
+
+describe('seasonYears (leading empty years)', () => {
+  it('drops leading years with no sightings but keeps later zero years', () => {
+    const data = [
+      point('2023-06-01', 0),
+      point('2024-06-01', 5),
+      point('2025-06-01', 0),
+      point('2026-06-01', 2),
+    ];
+    expect(seasonYears(data).years).toEqual([2026, 2025, 2024]);
+  });
+
+  it('keeps every year when nothing was ever recorded', () => {
+    const data = [point('2025-06-01', 0), point('2026-06-01', 0)];
+    expect(seasonYears(data).years).toEqual([2026, 2025]);
+  });
+
+  it('applies the same rule through buildSeasonalSeries and buildMonthlyPeakSeries', () => {
+    const data = [
+      point('2023-06-01', 0),
+      point('2024-06-01', 5),
+      point('2026-06-02', 2),
+    ];
+    expect(buildSeasonalSeries(data)!.years).toEqual([2026, 2024]);
+    const dense = [
+      ...Array.from({ length: MONTHLY_AGGREGATION_THRESHOLD + 1 }, (_, i) =>
+        point(`2026-0${(i % 9) + 1}-0${(i % 8) + 1}`, 3),
+      ),
+      point('2023-06-01', 0),
+    ];
+    expect(buildMonthlyPeakSeries(dense)!.years).toEqual([2026]);
   });
 });

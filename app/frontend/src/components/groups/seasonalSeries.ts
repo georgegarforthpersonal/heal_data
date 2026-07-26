@@ -10,6 +10,26 @@ import type { SpeciesOccurrenceDataPoint } from '../../services/api';
 /** Fixed non-leap year used to place month/day on the shared x axis. */
 const REF_YEAR = 2001;
 
+/**
+ * The years a chart should show, most recent first, capped at
+ * MAX_SEASON_YEARS.
+ *
+ * Leading years in which the species was never actually seen are dropped —
+ * surveying started before the first record, and a flat zero line burns a
+ * colour and a legend entry to say "nothing here". Zero years AFTER the first
+ * record are kept: "we looked and found none" is a real result. If nothing
+ * was ever recorded, every year stays so the chart still shows the zero line.
+ */
+export function seasonYears(data: SpeciesOccurrenceDataPoint[]): { years: number[]; truncated: boolean } {
+  const yearOf = (d: SpeciesOccurrenceDataPoint) => Number(d.survey_date.slice(0, 4));
+  const allYears = Array.from(new Set(data.map(yearOf))).sort((a, b) => b - a);
+  const productive = data.filter((d) => d.occurrence_count > 0).map(yearOf);
+  const firstProductive = productive.length > 0 ? Math.min(...productive) : null;
+  const candidates = firstProductive == null ? allYears : allYears.filter((y) => y >= firstProductive);
+  const years = candidates.slice(0, MAX_SEASON_YEARS);
+  return { years, truncated: candidates.length > years.length };
+}
+
 /** Colour per year series, most recent year first (validated categorical set —
  * the brand green stays on the current season). */
 export const YEAR_SERIES_COLORS = ['#3D8B56', '#4E7CC7', '#C2703A', '#955FC0', '#99862A'] as const;
@@ -69,9 +89,7 @@ export function shouldAggregateMonthly(data: SpeciesOccurrenceDataPoint[]): bool
 export function buildMonthlyPeakSeries(data: SpeciesOccurrenceDataPoint[]): SeasonalSeries | null {
   if (data.length === 0) return null;
 
-  const allYears = Array.from(new Set(data.map((d) => Number(d.survey_date.slice(0, 4)))))
-    .sort((a, b) => b - a);
-  const years = allYears.slice(0, MAX_SEASON_YEARS);
+  const { years, truncated } = seasonYears(data);
   const shown = new Set(years);
 
   // One row per calendar month, placed mid-month on the shared axis.
@@ -87,6 +105,7 @@ export function buildMonthlyPeakSeries(data: SpeciesOccurrenceDataPoint[]): Seas
   }
 
   const rows = Array.from(byMonth.values()).sort((a, b) => a.x - b.x);
+  if (rows.length === 0) return null;
   const first = new Date(rows[0].x);
   const last = new Date(rows[rows.length - 1].x);
   const monthTicks: number[] = [];
@@ -101,7 +120,7 @@ export function buildMonthlyPeakSeries(data: SpeciesOccurrenceDataPoint[]): Seas
   return {
     rows,
     years,
-    truncated: allYears.length > years.length,
+    truncated,
     monthTicks,
     domain,
   };
@@ -110,9 +129,7 @@ export function buildMonthlyPeakSeries(data: SpeciesOccurrenceDataPoint[]): Seas
 export function buildSeasonalSeries(data: SpeciesOccurrenceDataPoint[]): SeasonalSeries | null {
   if (data.length === 0) return null;
 
-  const allYears = Array.from(new Set(data.map((d) => Number(d.survey_date.slice(0, 4)))))
-    .sort((a, b) => b - a);
-  const years = allYears.slice(0, MAX_SEASON_YEARS);
+  const { years, truncated } = seasonYears(data);
   const shown = new Set(years);
 
   // Two surveys of the same year on the same day merge into one point (sum).
@@ -127,6 +144,7 @@ export function buildSeasonalSeries(data: SpeciesOccurrenceDataPoint[]): Seasona
   }
 
   const rows = Array.from(byX.values()).sort((a, b) => a.x - b.x);
+  if (rows.length === 0) return null;
 
   // Month-start ticks from the first to the last surveyed month, and a domain
   // padded to whole months so the field season fills the chart.
@@ -144,7 +162,7 @@ export function buildSeasonalSeries(data: SpeciesOccurrenceDataPoint[]): Seasona
   return {
     rows,
     years,
-    truncated: allYears.length > years.length,
+    truncated,
     monthTicks,
     domain,
   };
