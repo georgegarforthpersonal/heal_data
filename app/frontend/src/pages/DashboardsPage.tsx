@@ -157,6 +157,7 @@ export function DashboardsPage() {
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
             {speciesTypes
               .filter((type) => availableSpeciesTypes.includes(type))
+              .sort((a, b) => getSpeciesDisplayName(a).localeCompare(getSpeciesDisplayName(b)))
               .map((type) => {
                 const isSelected = selectedSpeciesTypes.includes(type);
                 return (
