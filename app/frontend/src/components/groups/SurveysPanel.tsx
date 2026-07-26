@@ -1,7 +1,7 @@
 /**
  * The Surveys worklist panel, split into labelled sections ordered
- * chronologically top to bottom: "To record" (every overdue row, oldest first
- * — the actionable backlog is never hidden), "This week" (the current week's
+ * chronologically top to bottom: "To record" (the 3 oldest overdue rows, with
+ * the true backlog count in the section header), "This week" (the current week's
  * survey always has an anchor here — still due or already recorded, it never
  * vanishes), "Upcoming" (the next 3 scheduled rows), and an "All surveys"
  * door whose recorded/scheduled split says exactly what's behind it. To
@@ -73,8 +73,8 @@ export default function SurveysPanel({
   onRecordNew,
 }: SurveysPanelProps) {
   const { canEditSurveys } = usePermissions();
-  const { dueThisWeek, overdue, upcoming, upcomingTotal } = buildWorklist(slots);
-  const scheduledCount = overdue.length + dueThisWeek.length + upcomingTotal;
+  const { dueThisWeek, overdue, overdueTotal, upcoming, upcomingTotal } = buildWorklist(slots);
+  const scheduledCount = overdueTotal + dueThisWeek.length + upcomingTotal;
   const thisWeekCount = dueThisWeek.length + recordedThisWeek.length;
   const empty = thisWeekCount === 0 && overdue.length === 0 && upcoming.length === 0;
 
@@ -115,7 +115,11 @@ export default function SurveysPanel({
       )}
 
       {overdue.length > 0 && (
-        <SectionHeader label={`To record (${overdue.length})`} color={groupColors.amberText} />
+        <SectionHeader
+          label={`To record (${overdueTotal})`}
+          color={groupColors.amberText}
+          suffix={overdueTotal > overdue.length ? `showing oldest ${overdue.length}` : undefined}
+        />
       )}
       {overdue.map((s) => (
         <SurveyWorklistRow

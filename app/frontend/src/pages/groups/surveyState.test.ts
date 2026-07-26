@@ -158,7 +158,7 @@ describe('buildWorklist', () => {
     slot({ id: 1, window_start: '2026-06-21' }), // needs-survey
     slot({ id: 2, window_start: '2026-06-18' }), // needs-survey
     slot({ id: 3, window_start: '2026-06-10' }), // needs-survey
-    slot({ id: 4, window_start: '2026-06-05' }), // needs-survey (4th, still shown)
+    slot({ id: 4, window_start: '2026-06-05' }), // needs-survey (oldest)
     recordedSlot({ id: 5, window_start: '2026-06-15' }), // recorded (excluded)
     slot({ id: 10, window_start: '2026-06-08', status: 'cancelled' }), // cancelled (excluded)
     slot({ id: 6, window_start: '2026-06-27' }), // upcoming
@@ -167,9 +167,10 @@ describe('buildWorklist', () => {
     slot({ id: 9, window_start: '2026-07-19' }), // upcoming (4th, dropped)
   ];
 
-  it('never caps overdue, oldest first so the panel reads chronologically', () => {
-    const { overdue } = buildWorklist(slots, TODAY);
-    expect(overdue.map((s) => s.id)).toEqual([4, 3, 2, 1]);
+  it('caps overdue at 3 (oldest first) but reports the true total', () => {
+    const { overdue, overdueTotal } = buildWorklist(slots, TODAY);
+    expect(overdue.map((s) => s.id)).toEqual([4, 3, 2]);
+    expect(overdueTotal).toBe(4);
   });
 
   it('caps upcoming at 3 (soonest first) but reports the true total', () => {
