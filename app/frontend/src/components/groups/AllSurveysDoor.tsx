@@ -19,6 +19,9 @@ export default function AllSurveysDoor({ summary, onViewAll }: AllSurveysDoorPro
       onClick={onViewAll}
       sx={{
         width: '100%',
+        // Pins to the foot of a flex-column panel that has been stretched to
+        // its grid row; a no-op when the panel is at its natural height.
+        mt: 'auto',
         display: 'flex',
         alignItems: 'center',
         gap: 1.6,

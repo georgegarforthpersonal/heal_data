@@ -79,7 +79,9 @@ export default function SurveysPanel({
   const empty = thisWeekCount === 0 && overdue.length === 0 && upcoming.length === 0;
 
   return (
-    <Paper sx={groupCardSx}>
+    // Flex column with the All surveys door pinned to the foot, so when this
+    // card is the shorter one in its grid row the slack falls above the door.
+    <Paper sx={{ ...groupCardSx, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
         sx={{
           display: 'flex',

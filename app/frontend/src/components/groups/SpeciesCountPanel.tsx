@@ -17,6 +17,10 @@ interface SpeciesCountPanelProps {
   speciesTypes: string[];
   /** The group's survey type — counts only cover this type's surveys. */
   surveyTypeId: number;
+  /** Grow the chart to fill the card's grid row instead of sitting at 240px.
+   *  This is the panel that absorbs its row's slack, so the row never leaves
+   *  empty page background beside the taller card. */
+  fill?: boolean;
 }
 
 const headerCellSx = {
@@ -34,7 +38,7 @@ const listGridSx = {
   px: 2.25,
 } as const;
 
-export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: SpeciesCountPanelProps) {
+export default function SpeciesCountPanel({ speciesTypes, surveyTypeId, fill }: SpeciesCountPanelProps) {
   const [summary, setSummary] = useState<CumulativeSummary>({ total: 0, types: [] });
   const [view, setView] = useState<'chart' | 'list'>('chart');
   const [species, setSpecies] = useState<SpeciesWithCount[] | null>(null);
@@ -63,7 +67,12 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
   }, [view, species, summary.types, surveyTypeId]);
 
   return (
-    <Paper sx={groupCardSx}>
+    <Paper
+      sx={{
+        ...groupCardSx,
+        ...(fill && { height: '100%', display: 'flex', flexDirection: 'column' }),
+      }}
+    >
       <Box
         sx={{
           px: 2.25,
@@ -121,12 +130,22 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
 
       {/* The chart stays mounted (hidden) while the list is shown so its
           summary keeps feeding the headline count. */}
-      <Box sx={{ p: 2.25, display: view === 'chart' ? 'block' : 'none' }}>
+      {/* minHeight: 0 is what lets this flex child shrink below its content
+          size; without it the automatic minimum keeps the card taller than
+          its row and the fill does nothing. */}
+      <Box
+        sx={{
+          p: 2.25,
+          display: view === 'chart' ? 'block' : 'none',
+          ...(fill && { flex: 1, minHeight: 0 }),
+        }}
+      >
         <CumulativeSpeciesChart
           speciesTypes={speciesTypes}
           surveyTypeId={surveyTypeId}
           color={groupColors.brand}
-          height={240}
+          height={fill ? '100%' : 240}
+          minHeight={240}
           emptyMessage="No data yet"
           onSummary={setSummary}
         />

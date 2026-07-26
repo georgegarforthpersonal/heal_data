@@ -43,7 +43,9 @@ export default function RecordPanel({
   const { canEditSurveys } = usePermissions();
 
   return (
-    <Paper sx={groupCardSx}>
+    // Flex column so the All surveys door pins to the foot when the card is
+    // stretched to its grid row.
+    <Paper sx={{ ...groupCardSx, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
         sx={{
           display: 'flex',
