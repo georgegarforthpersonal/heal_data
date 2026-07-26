@@ -235,34 +235,12 @@ export default function CumulativeSpeciesChart({
             // solid green slab and hiding the curve inside it.
             fillOpacity={0.12}
             strokeWidth={2}
-            // A discovery curve is flat except where something new was found,
-            // so mark ONLY those dates: the events become visible instead of
-            // something you hunt for by dragging along the line.
-            dot={(props) => <DiscoveryDot {...props} colour={color} />}
-            activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
             isAnimationActive={false}
           />
         ))}
       </AreaChart>
     </ResponsiveContainer>
   );
-}
-
-/** A dot on dates where new species were recorded; nothing on flat stretches. */
-function DiscoveryDot({
-  cx,
-  cy,
-  payload,
-  colour,
-}: {
-  cx?: number;
-  cy?: number;
-  payload?: PreparedPoint;
-  colour: string;
-}) {
-  const isDiscovery = (payload?.newSpecies?.all?.length ?? 0) > 0;
-  if (!isDiscovery || cx == null || cy == null) return null;
-  return <circle cx={cx} cy={cy} r={4} fill={colour} stroke="#fff" strokeWidth={2} />;
 }
 
 interface TooltipProps {

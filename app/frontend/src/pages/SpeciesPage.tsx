@@ -23,31 +23,29 @@ function groupStats(speciesList: SpeciesWithCount[]) {
   const year = String(new Date().getFullYear());
   const individuals = speciesList.reduce((sum, s) => sum + s.total_count, 0);
   const newThisYear = speciesList.filter((s) => s.first_observed?.startsWith(year)).length;
-  return { species: speciesList.length, individuals, newThisYear };
-}
-
-/** The newest species in the group, newest first — the discovery curve's steps
- * as plain text, so the dates something new turned up can be read off the page
- * instead of hunted for by dragging along the line. */
-function newestSpecies(speciesList: SpeciesWithCount[], limit = 5) {
-  return speciesList
-    .filter((s) => s.first_observed)
-    .sort((a, b) => (b.first_observed ?? '').localeCompare(a.first_observed ?? ''))
-    .slice(0, limit);
+  const latest = speciesList.reduce<SpeciesWithCount | null>(
+    (best, s) =>
+      s.first_observed && (!best?.first_observed || s.first_observed > best.first_observed) ? s : best,
+    null,
+  );
+  return { species: speciesList.length, individuals, newThisYear, latest };
 }
 
 /**
  * One figure in the stats band — value over a quiet sentence-case label, the
  * same shape the group cards use. Every figure is the SAME size: a 40px hero
  * beside 24px siblings read as an accident rather than a hierarchy, and these
- * are peers. Labels wrap (uppercase no-wrap truncated on phones).
+ * four are peers. Labels wrap (uppercase no-wrap truncated on phones).
  */
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography sx={{ fontSize: 26, fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere' }}>
         {value}
       </Typography>
+      {sub && (
+        <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.25 }}>{sub}</Typography>
+      )}
       <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>{label}</Typography>
     </Box>
   );
@@ -171,8 +169,8 @@ export function SpeciesPage() {
           ))}
       </TextField>
 
-      {/* Headline figures — one card, hero figure first (bordered boxes per
-          figure read as heavy chrome for three small numbers, and their uppercase
+      {/* Headline figures — one card, hero figure first (four bordered boxes
+          read as heavy chrome for four small numbers, and their uppercase
           no-wrap labels truncated on phones). */}
       {(() => {
         const stats = groupStats(speciesList);
@@ -185,7 +183,7 @@ export function SpeciesPage() {
               border: '1px solid',
               borderColor: 'divider',
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3, 1fr)' },
+              gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1.2fr' },
               columnGap: { xs: 2, md: 3.5 },
               rowGap: 2.5,
               alignItems: 'start',
@@ -197,8 +195,15 @@ export function SpeciesPage() {
             />
             <Stat label="Individuals recorded" value={stats.individuals.toLocaleString()} />
             <Stat label="New this year" value={String(stats.newThisYear)} />
-            {/* No "latest addition" figure — the discovery chart's "Most
-                recent additions" strip says it, with four more. */}
+            <Stat
+              label="Latest addition"
+              value={stats.latest ? (stats.latest.name ?? stats.latest.scientific_name ?? '—') : '—'}
+              sub={
+                stats.latest?.first_observed
+                  ? dayjs(stats.latest.first_observed).format('D MMM YYYY')
+                  : undefined
+              }
+            />
           </Paper>
         );
       })()}
@@ -215,41 +220,6 @@ export function SpeciesPage() {
           height={280}
           emptyMessage="No data available for selected species groups"
         />
-        {(() => {
-          const newest = newestSpecies(speciesList);
-          if (newest.length === 0) return null;
-          return (
-            <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-              <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mb: 1 }}>
-                Most recent additions
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 2 } }}>
-                {newest.map((s) => (
-                  <Box
-                    key={s.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: 0.75,
-                      px: 1.25,
-                      py: 0.6,
-                      borderRadius: 1.5,
-                      bgcolor: 'action.hover',
-                      minWidth: 0,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: 13, fontWeight: 500 }} noWrap>
-                      {s.name ?? s.scientific_name ?? 'Unknown'}
-                    </Typography>
-                    <Typography sx={{ fontSize: 12, color: 'text.secondary', flexShrink: 0 }}>
-                      {dayjs(s.first_observed).format('D MMM YY')}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          );
-        })()}
       </Paper>
 
       <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, mt: 3, border: '1px solid', borderColor: 'divider' }}>
