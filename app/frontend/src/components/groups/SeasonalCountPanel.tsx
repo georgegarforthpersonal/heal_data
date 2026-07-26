@@ -31,7 +31,9 @@ interface SeasonalCountPanelProps {
   speciesTypes: string[];
 }
 
-const CHART_HEIGHT = 240;
+// Taller than the in-column charts: this panel spans the full page width, and
+// a 240px band stretched that wide flattens the season out of the shape.
+const CHART_HEIGHT = 300;
 
 /** Search by common OR scientific name (the input shows the common name). */
 const filterSpecies = createFilterOptions<SpeciesWithCount>({
