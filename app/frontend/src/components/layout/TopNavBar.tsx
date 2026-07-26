@@ -1,5 +1,5 @@
 import { AppBar, Toolbar, Box, IconButton, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { Assignment, BarChart, Settings, Menu as MenuIcon, Close, Logout } from '@mui/icons-material';
+import { Assignment, BarChart, Sensors, Settings, Menu as MenuIcon, Close, Logout } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth, usePermissions } from '../../context/AuthContext';
@@ -7,6 +7,7 @@ import { UserMenu } from './UserMenu';
 import { PoweredByCanopy } from './PoweredByCanopy';
 import canopyLogo from '../../assets/canopy-logo.svg';
 import { orgLogoUrl } from '../../config/orgBranding';
+import { getOrgSlug } from '../../services/api';
 import { orgHasGroups } from '../../pages/groups/groupMeta';
 
 /**
@@ -36,6 +37,8 @@ export function TopNavBar() {
   // flat list is retired); orgs without groups keep the flat list.
   const showGroups = orgHasGroups();
   const surveysHome = showGroups ? '/groups' : '/surveys';
+  // Only Cannwood runs GPS trackers today.
+  const hasTrackers = getOrgSlug() === 'cannwood';
 
   const navItems = [
     {
@@ -45,9 +48,19 @@ export function TopNavBar() {
     },
     {
       icon: BarChart,
-      label: 'Dashboards',
-      path: '/dashboards',
+      label: 'Species',
+      path: '/species',
     },
+    // Tracker positions — only orgs with trackers (Cannwood) see this.
+    ...(hasTrackers
+      ? [
+          {
+            icon: Sensors,
+            label: 'GPS tracking',
+            path: '/tracking',
+          },
+        ]
+      : []),
     // The Admin tab is hidden (not disabled) below admin access
     ...(canAccessAdmin
       ? [

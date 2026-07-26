@@ -23,7 +23,8 @@ import { ToastProvider } from './context/ToastContext';
 import { SurveysPage } from './pages/SurveysPage';
 import { SurveyDetailPage } from './pages/SurveyDetailPage';
 import { NewSurveyPage } from './pages/NewSurveyPage';
-import { DashboardsPage } from './pages/DashboardsPage';
+import { SpeciesPage } from './pages/SpeciesPage';
+import { TrackingPage } from './pages/TrackingPage';
 import { AdminPage } from './pages/AdminPage';
 import { NewCameraTrapSurveyPage } from './pages/NewCameraTrapSurveyPage';
 import { NewAudioSurveyPage } from './pages/NewAudioSurveyPage';
@@ -94,7 +95,10 @@ const router = createBrowserRouter([
           { path: '/teams/*', element: <LegacyTeamsRedirect /> },
 
           // Dashboard page
-          { path: '/dashboards', element: <DashboardsPage /> },
+          { path: '/species', element: <SpeciesPage /> },
+          { path: '/tracking', element: <TrackingPage /> },
+          // Old label, kept so existing links/bookmarks land correctly.
+          { path: '/dashboards', element: <Navigate to="/species" replace /> },
 
           // Admin page
           { path: '/admin', element: <AdminPage /> },
