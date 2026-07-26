@@ -32,22 +32,15 @@ function groupStats(speciesList: SpeciesWithCount[]) {
 }
 
 /**
- * One figure in the stats band. Labels are sentence case and WRAP — uppercase
- * no-wrap labels truncated on phones ("NEW SPECIES THIS ..."). `hero` marks
- * the single lead figure of the view.
+ * One figure in the stats band — value over a quiet sentence-case label, the
+ * same shape the group cards use. Every figure is the SAME size: a 40px hero
+ * beside 24px siblings read as an accident rather than a hierarchy, and these
+ * four are peers. Labels wrap (uppercase no-wrap truncated on phones).
  */
-function Stat({ label, value, sub, hero = false }: { label: string; value: string; sub?: string; hero?: boolean }) {
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <Box sx={{ minWidth: 0 }}>
-      <Typography
-        sx={{
-          fontSize: hero ? 40 : 24,
-          fontWeight: 600,
-          lineHeight: 1.1,
-          letterSpacing: hero ? -0.5 : 0,
-          overflowWrap: 'anywhere',
-        }}
-      >
+      <Typography sx={{ fontSize: 26, fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere' }}>
         {value}
       </Typography>
       {sub && (
@@ -199,18 +192,16 @@ export function SpeciesPage() {
               border: '1px solid',
               borderColor: 'divider',
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: 'auto 1px 1fr 1fr 1.2fr' },
+              gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1.2fr' },
               columnGap: { xs: 2, md: 3.5 },
               rowGap: 2.5,
               alignItems: 'start',
             }}
           >
             <Stat
-              hero
               label={`${getSpeciesDisplayName(selectedSpeciesTypes[0])} recorded`}
               value={String(stats.species)}
             />
-            <Box sx={{ display: { xs: 'none', md: 'block' }, alignSelf: 'stretch', bgcolor: 'divider' }} />
             <Stat label="Individuals recorded" value={stats.individuals.toLocaleString()} />
             <Stat label="New this year" value={String(stats.newThisYear)} />
             <Stat

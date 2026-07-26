@@ -26,16 +26,26 @@ interface GroupCardProps {
   onOpen: () => void;
 }
 
+/**
+ * One card figure. Same shape as the Species page's stat band — value over a
+ * quiet sentence-case label — at card scale. Values WRAP rather than truncate:
+ * a date or "None scheduled" needs two lines on a phone and a clipped stat is
+ * worse than a tall one.
+ */
 function Stat({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography
-        sx={{ fontSize: 13, fontWeight: 600, color: valueColor ?? groupColors.textPrimary }}
-        noWrap
+        sx={{
+          fontSize: 17,
+          fontWeight: 600,
+          lineHeight: 1.25,
+          color: valueColor ?? groupColors.textPrimary,
+        }}
       >
         {value}
       </Typography>
-      <Typography sx={{ fontSize: 11, color: '#888' }}>{label}</Typography>
+      <Typography sx={{ fontSize: 12.5, color: '#888', mt: 0.25 }}>{label}</Typography>
     </Box>
   );
 }
