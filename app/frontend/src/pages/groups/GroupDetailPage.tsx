@@ -37,6 +37,7 @@ import FilesPanel from '../../components/groups/FilesPanel';
 import LocationsPanel from '../../components/groups/LocationsPanel';
 import SpeciesCountPanel from '../../components/groups/SpeciesCountPanel';
 import SingleSpeciesCountPanel from '../../components/groups/SingleSpeciesCountPanel';
+import SeasonalCountPanel from '../../components/groups/SeasonalCountPanel';
 import DataPanel from '../../components/groups/DataPanel';
 
 export default function GroupDetailPage() {
@@ -272,7 +273,7 @@ export default function GroupDetailPage() {
               )}
             </Box>
             {(surveyType.allow_image_upload || surveyType.allow_audio_upload) && (
-              <Box sx={{ order: 5, minWidth: 0 }}>
+              <Box sx={{ order: 6, minWidth: 0 }}>
                 <RecentMediaPanel
                   kind={surveyType.allow_image_upload ? 'photos' : 'clips'}
                   surveyTypeId={surveyType.id}
@@ -290,7 +291,19 @@ export default function GroupDetailPage() {
             <Box sx={{ order: 3, minWidth: 0 }}>
               <LocationsPanel locations={locations} devices={surveyType.devices} />
             </Box>
-            <Box sx={{ order: 6, minWidth: 0 }}>
+            {/* Seasonal counts need repeat visits through a season to compare,
+                so they belong to the scheduled groups: Bird, Butterfly,
+                Dragonfly today. Single-species scheduled groups already get
+                the same chart from SingleSpeciesCountPanel, without a picker. */}
+            {activity === 'worklist' && !singleSpecies && (
+              <Box sx={{ order: 5, minWidth: 0 }}>
+                <SeasonalCountPanel
+                  surveyTypeId={surveyType.id}
+                  speciesTypes={surveyType.species_types.map((st) => st.name)}
+                />
+              </Box>
+            )}
+            <Box sx={{ order: 7, minWidth: 0 }}>
               <DataPanel surveyTypeId={surveyType.id} surveyTypeName={surveyType.name} />
             </Box>
           </Box>
