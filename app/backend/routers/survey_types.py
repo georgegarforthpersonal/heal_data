@@ -417,8 +417,8 @@ async def create_survey_type(
     for species_id in survey_type.species_ids:
         db.add(SurveyTypeSpeciesLink(survey_type_id=db_survey_type.id, species_id=species_id))
 
-    # Add device links
-    for device_id in survey_type.device_ids:
+    # Add device links (deduped — no unique constraint on the junction)
+    for device_id in dict.fromkeys(survey_type.device_ids):
         db.add(SurveyTypeDeviceLink(survey_type_id=db_survey_type.id, device_id=device_id))
 
     db.commit()
@@ -528,7 +528,7 @@ async def update_survey_type(
     if survey_type.device_ids is not None:
         _validate_device_ids(survey_type.device_ids, org, db)
         db.query(SurveyTypeDeviceLink).filter(SurveyTypeDeviceLink.survey_type_id == survey_type_id).delete()
-        for device_id in survey_type.device_ids:
+        for device_id in dict.fromkeys(survey_type.device_ids):
             db.add(SurveyTypeDeviceLink(survey_type_id=survey_type_id, device_id=device_id))
 
     db.commit()

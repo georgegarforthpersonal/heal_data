@@ -52,6 +52,36 @@ class TestGetSurveys:
         assert by_location_id[location.id]["location_name"] == "Long Meadow"
         assert by_location_id[None]["location_name"] is None
 
+    def test_get_surveys_sector_location_name_carries_parent(
+        self, client: TestClient, auth_headers: dict, create_survey
+    ):
+        """A sector location renders as "<route> - <sector>", matching the
+        single-survey endpoint."""
+        resp = client.post(
+            "/api/locations",
+            json={
+                "name": "Transect",
+                "location_type": "route",
+                "geometry": {"type": "LineString", "coordinates": [[-2.5, 51.0], [-2.4, 51.1]]},
+                "sectors": [
+                    {
+                        "name": "Woodland ride",
+                        "geometry": {"type": "LineString", "coordinates": [[-2.5, 51.0], [-2.45, 51.05]]},
+                    },
+                ],
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        locations = client.get("/api/locations", headers=auth_headers).json()
+        sector = next(loc for loc in locations if loc["name"] == "Woodland ride")
+        survey = create_survey(location_id=sector["id"])
+
+        response = client.get("/api/surveys", headers=auth_headers)
+        assert response.status_code == 200
+        row = next(s for s in response.json()["data"] if s["id"] == survey.id)
+        assert row["location_name"] == "Transect - Woodland ride"
+
     def test_get_surveys_pagination(
         self, client: TestClient, auth_headers: dict, create_survey, create_surveyor
     ):

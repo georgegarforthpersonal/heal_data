@@ -805,7 +805,7 @@ class SurveyTypeWithDetails(SurveyTypeRead):
 
 
 # ============================================================================
-# Survey Type File Models (reference files: methodology PDFs, recording forms)
+# Survey Type Recent Media Models (the group page's species gallery)
 # ============================================================================
 
 class RecentSpeciesPhoto(SQLModel):
@@ -835,6 +835,10 @@ class SurveyTypeRecentMedia(SQLModel):
     photos: List[RecentSpeciesPhoto] = Field(default_factory=list)
     clips: List[RecentSpeciesClip] = Field(default_factory=list)
 
+
+# ============================================================================
+# Survey Type File Models (reference files: methodology PDFs, recording forms)
+# ============================================================================
 
 class SurveyTypeFile(SQLModel, table=True):  # type: ignore[call-arg]
     """A reference file attached to a survey type, stored in R2."""

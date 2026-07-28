@@ -215,6 +215,61 @@ class TestCreateSurveyType:
         assert response.status_code == 400
         assert "device" in response.json()["detail"].lower()
 
+    def test_create_survey_type_rejects_other_org_device(
+        self, client: TestClient, auth_headers: dict, db_session, create_species_type
+    ):
+        """A real device belonging to another org is rejected like an unknown id."""
+        from models import Device, Organisation
+
+        other_org = Organisation(name="Other", slug="other", is_active=True)
+        db_session.add(other_org)
+        db_session.commit()
+        foreign_device = Device(
+            device_id="FOREIGN01",
+            name="Foreign Camera",
+            device_type=DeviceType.camera_trap,
+            organisation_id=other_org.id,
+            point_geometry="SRID=4326;POINT(-0.12 51.5)",
+        )
+        db_session.add(foreign_device)
+        db_session.commit()
+
+        species_type = create_species_type(name="mammal", display_name="Mammal")
+        response = client.post(
+            "/api/survey-types",
+            json={
+                "name": "Camera Trap",
+                "species_type_ids": [species_type.id],
+                "device_ids": [foreign_device.id],
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert "device" in response.json()["detail"].lower()
+
+    def test_survey_type_names_unique_per_org_not_globally(
+        self, client: TestClient, auth_headers: dict, db_session, create_survey_type
+    ):
+        """Two orgs can share a type name (stname01); the same org cannot."""
+        from models import Organisation, SurveyType
+
+        create_survey_type(name="Bird")
+        other_org = Organisation(name="Other", slug="other", is_active=True)
+        db_session.add(other_org)
+        db_session.commit()
+
+        # Same name in a different org is fine.
+        db_session.add(SurveyType(name="Bird", organisation_id=other_org.id))
+        db_session.commit()
+
+        # Same name in the same org is still a 400.
+        response = client.post(
+            "/api/survey-types",
+            json={"name": "Bird", "location_ids": [], "species_type_ids": []},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
     def test_update_replaces_device_allocation(
         self, client: TestClient, auth_headers: dict, create_survey_type, create_device
     ):
