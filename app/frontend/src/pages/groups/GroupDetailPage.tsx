@@ -1,7 +1,9 @@
 /**
  * Group detail: the single-screen overview for one survey type. Neutral hero
- * plus two balanced columns — Surveys + Species count (left); Files, Routes,
- * Data (right). The Surveys panel is the slot-driven worklist for scheduled
+ * plus two balanced columns — Surveys + Species count (left); Files, Routes
+ * (right). Data joins whichever column is shorter: the left one when the
+ * Seasonal counts chart occupies the right, the right one otherwise.
+ * The Surveys panel is the slot-driven worklist for scheduled
  * ('worklist') groups, or a record-CTA + recent-history panel for unscheduled
  * ('record') ones; media groups additionally get a recent photos/clips panel.
  * On mobile the panels stack in the order Files → Surveys → Routes →
@@ -196,6 +198,11 @@ export default function GroupDetailPage() {
   // gets the per-survey seasonal count panel instead of the diversity chart.
   const singleSpecies = surveyType.species.length === 1 ? surveyType.species[0] : null;
   const activity = groupActivity(surveyType.name);
+  // Seasonal counts need repeat visits through a season to compare, so they
+  // belong to the scheduled groups: Bird, Butterfly, Dragonfly today.
+  // Single-species scheduled groups already get the same chart from
+  // SingleSpeciesCountPanel, without a picker.
+  const hasSeasonal = activity === 'worklist' && !singleSpecies;
   const returnTo = { returnTo: { pathname: `/groups/${typeId}`, label: surveyType.name } };
   // Recording a slot creates a NEW survey linked to it, prefilled from the
   // slot on the new-survey form.
@@ -210,6 +217,12 @@ export default function GroupDetailPage() {
   // their wizard, plain types to the standard form with the type preselected.
   const recordNew = () => navigate(recordSurveyPath(surveyType), { state: returnTo });
   const openSurvey = (survey: Survey) => navigate(`/surveys/${survey.id}`, { state: returnTo });
+
+  const dataPanel = (
+    <Box sx={{ order: 7, minWidth: 0 }}>
+      <DataPanel surveyTypeId={surveyType.id} surveyTypeName={surveyType.name} />
+    </Box>
+  );
 
   return (
     <Box sx={{ bgcolor: groupColors.page, minHeight: '100%', px: { xs: 2, sm: 4 }, py: { xs: 2, sm: 3 } }}>
@@ -281,6 +294,10 @@ export default function GroupDetailPage() {
                 />
               </Box>
             )}
+            {/* The seasonal chart makes the right column the tall one, so Data
+                balances into the left column; on xs its order still stacks it
+                last either way. */}
+            {hasSeasonal && dataPanel}
           </Box>
 
           {/* Right column */}
@@ -291,11 +308,7 @@ export default function GroupDetailPage() {
             <Box sx={{ order: 3, minWidth: 0 }}>
               <LocationsPanel locations={locations} devices={surveyType.devices} />
             </Box>
-            {/* Seasonal counts need repeat visits through a season to compare,
-                so they belong to the scheduled groups: Bird, Butterfly,
-                Dragonfly today. Single-species scheduled groups already get
-                the same chart from SingleSpeciesCountPanel, without a picker. */}
-            {activity === 'worklist' && !singleSpecies && (
+            {hasSeasonal && (
               <Box sx={{ order: 5, minWidth: 0 }}>
                 <SeasonalCountPanel
                   surveyTypeId={surveyType.id}
@@ -303,9 +316,7 @@ export default function GroupDetailPage() {
                 />
               </Box>
             )}
-            <Box sx={{ order: 7, minWidth: 0 }}>
-              <DataPanel surveyTypeId={surveyType.id} surveyTypeName={surveyType.name} />
-            </Box>
+            {!hasSeasonal && dataPanel}
           </Box>
         </Box>
       </Box>
