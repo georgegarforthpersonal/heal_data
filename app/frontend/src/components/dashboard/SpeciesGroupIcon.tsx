@@ -7,10 +7,10 @@
  */
 import { Box } from '@mui/material';
 import { getSpeciesIcon } from '../../config/speciesTypes';
-import butterfly from '../../assets/canopy/butterfly.svg';
-import dragonfly from '../../assets/canopy/dragonfly.svg';
-import genericBird from '../../assets/canopy/generic-bird.svg';
-import reptileSnake from '../../assets/canopy/reptile-snake.svg';
+import butterfly from '../../assets/canopy/butterfly.png';
+import dragonfly from '../../assets/canopy/dragonfly.png';
+import genericBird from '../../assets/canopy/generic-bird.png';
+import reptileSnake from '../../assets/canopy/reptile-snake.png';
 
 /** Species-type name → Canopy badge, for the groups that have artwork. */
 const GROUP_BADGES: Record<string, string> = {

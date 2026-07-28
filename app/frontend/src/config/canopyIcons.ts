@@ -9,16 +9,16 @@
  * types without a registered slug fall back to the species-type glyph tile
  * (SpeciesIconTile), so a missing or unknown value degrades gracefully.
  */
-import adHoc from '../assets/canopy/ad-hoc.svg';
-import audio from '../assets/canopy/audio.svg';
-import butterfly from '../assets/canopy/butterfly.svg';
-import cameraTrap from '../assets/canopy/camera-trap.svg';
-import dragonfly from '../assets/canopy/dragonfly.svg';
-import genericBird from '../assets/canopy/generic-bird.svg';
-import marshFritillary from '../assets/canopy/marsh-fritillary.svg';
-import reptileSnake from '../assets/canopy/reptile-snake.svg';
-import turtleDove from '../assets/canopy/turtle-dove.svg';
-import wren from '../assets/canopy/wren.svg';
+import adHoc from '../assets/canopy/ad-hoc.png';
+import audio from '../assets/canopy/audio.png';
+import butterfly from '../assets/canopy/butterfly.png';
+import cameraTrap from '../assets/canopy/camera-trap.png';
+import dragonfly from '../assets/canopy/dragonfly.png';
+import genericBird from '../assets/canopy/generic-bird.png';
+import marshFritillary from '../assets/canopy/marsh-fritillary.png';
+import reptileSnake from '../assets/canopy/reptile-snake.png';
+import turtleDove from '../assets/canopy/turtle-dove.png';
+import wren from '../assets/canopy/wren.png';
 
 const CANOPY_ICONS: Record<string, string> = {
   'ad-hoc': adHoc,
@@ -38,5 +38,7 @@ export function canopyIconUrl(iconSlug: string | null | undefined): string | nul
   return (iconSlug && CANOPY_ICONS[iconSlug]) || null;
 }
 
-/** Registered slugs, for admin pickers and the icon seed script. */
+/** Registered slugs — for the (future) admin icon picker. The backend seed
+ * script keeps its own name→slug list; keep the two in step when adding
+ * badges (scripts/set_survey_type_icons.py). */
 export const canopyIconSlugs = Object.keys(CANOPY_ICONS);
