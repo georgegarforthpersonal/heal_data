@@ -1,7 +1,6 @@
 /**
- * The tinted icon tile used on space cards and the space hero. This is the ONLY
- * place the survey-type accent colour appears — everything else stays neutral or
- * brand green.
+ * The tinted icon tile used where a survey type has no badge artwork —
+ * a species glyph in a quiet tinted circle. Callers pass the tint.
  */
 import { Box } from '@mui/material';
 import { getSpeciesIcon } from '../../config/speciesTypes';

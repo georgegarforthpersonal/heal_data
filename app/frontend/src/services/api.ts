@@ -431,7 +431,6 @@ export interface Survey {
   survey_type_id: number | null;
   survey_type_name: string | null;
   survey_type_icon: string | null;
-  survey_type_color: string | null;
 }
 
 /**
@@ -645,7 +644,6 @@ export interface SpeciesSightingLocation {
   survey_type_id: number | null;
   survey_type_name: string | null;
   survey_type_icon: string | null;
-  survey_type_color: string | null;
 }
 
 // ============================================================================
@@ -689,7 +687,6 @@ export interface SurveyType {
   allow_sighting_device_selection: boolean;
   sighting_device_type: DeviceType | null;
   icon: string | null;
-  color: string | null;
   is_active: boolean;
 }
 
@@ -764,7 +761,6 @@ export interface SurveyTypeCreate {
   allow_sighting_device_selection: boolean;
   sighting_device_type?: DeviceType | null;
   icon?: string;
-  color?: string;
   schedule_cadence?: ScheduleCadence;
   location_ids: number[];
   species_type_ids: number[];
@@ -794,7 +790,6 @@ export interface SurveyTypeUpdate {
   allow_sighting_device_selection?: boolean;
   sighting_device_type?: DeviceType | null;
   icon?: string;
-  color?: string;
   schedule_cadence?: ScheduleCadence;
   is_active?: boolean;
   location_ids?: number[];

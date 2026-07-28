@@ -3,7 +3,6 @@
  * for its icon tile, the species type that drives its wildlife icon/charts,
  * and the name-slug URLs that make groups addressable as /groups/butterfly.
  */
-import { notionColors } from '../../theme';
 import { ORG_SLUG, surveyTypesAPI, type SurveyType, type SurveyTypeWithDetails } from '../../services/api';
 
 /**
@@ -18,28 +17,21 @@ export type GroupActivity = 'worklist' | 'record';
  * Survey types each organisation's Groups beta surfaces, matched
  * case-insensitively against the trimmed survey type name, each mapped to its
  * activity style. Organisations not listed here don't see the Groups tab (or
- * the Scheduled admin tab that feeds it). Cannwood's walking survey is being
- * renamed to "Bird" (data script), so its entry lists the old and new names
- * during the transition.
+ * the Scheduled admin tab that feeds it).
  */
 const BETA_GROUPS: Record<string, Record<string, GroupActivity>> = {
   // Heal's Groups cover every type with recorded surveys (expanded 23 Jul on
-  // George's ask). "Birders" was renamed "Bird" in the staging DB; both names
-  // stay listed until prod is renamed too, like the walking→bird transition.
+  // George's ask).
   heal: {
     butterfly: 'worklist',
     dragonfly: 'worklist',
     bird: 'worklist',
-    birders: 'worklist',
     jenny: 'record',
     'ad hoc': 'record',
   },
   cannwood: {
-    walking: 'worklist',
-    'walking survey': 'worklist',
     bird: 'worklist',
     'marsh fritillary': 'worklist',
-    turtledove: 'worklist',
     'turtle dove': 'worklist',
     'ad hoc': 'record',
     audio: 'record',
@@ -105,23 +97,6 @@ export function recordSurveyPath(
 /** Whether the given org (defaults to the current one) has the Groups beta. */
 export function orgHasGroups(orgSlug: string = ORG_SLUG): boolean {
   return betaGroupNames(orgSlug).length > 0;
-}
-
-export interface AccentColors {
-  bg: string;
-  fg: string;
-}
-
-// Default accent when a survey type has no notion colour set (butterfly pink).
-const DEFAULT_ACCENT: AccentColors = { bg: notionColors.pink.background, fg: notionColors.pink.text };
-
-/** Accent colours for a survey type's icon tile, from its notion colour key. */
-export function accentColors(surveyType: Pick<SurveyType, 'color'>): AccentColors {
-  const key = surveyType.color as keyof typeof notionColors | null;
-  if (key && key in notionColors) {
-    return { bg: notionColors[key].background, fg: notionColors[key].text };
-  }
-  return DEFAULT_ACCENT;
 }
 
 /**

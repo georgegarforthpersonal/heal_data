@@ -66,7 +66,6 @@ import LocationsDevicesManager from '../components/admin/LocationsDevicesManager
 import RecordsExportPanel from '../components/admin/RecordsExportPanel';
 import ScheduledSurveysPanel from '../components/admin/ScheduledSurveysPanel';
 import EntityCard from '../components/admin/EntityCard';
-import { SurveyTypeColorSelector, SurveyTypeChip } from '../components/SurveyTypeColors';
 import { brandColors } from '../theme';
 
 interface TabPanelProps {
@@ -180,7 +179,6 @@ export function AdminPage() {
   const [formAllowSightingDeviceSelection, setFormAllowSightingDeviceSelection] = useState(false);
   const [formSightingDeviceType, setFormSightingDeviceType] = useState<DeviceType | null>(null);
   const [formScheduleCadence, setFormScheduleCadence] = useState<ScheduleCadence>('date');
-  const [formColor, setFormColor] = useState<string | null>(null);
   const [formSelectedLocations, setFormSelectedLocations] = useState<Location[]>([]);
   const [formSelectedDevices, setFormSelectedDevices] = useState<Device[]>([]);
   const [formSelectedSpeciesTypes, setFormSelectedSpeciesTypes] = useState<SpeciesTypeRef[]>([]);
@@ -368,7 +366,6 @@ export function AdminPage() {
       setFormAllowSightingDeviceSelection(details.allow_sighting_device_selection);
       setFormSightingDeviceType(details.sighting_device_type);
       setFormScheduleCadence(details.schedule_cadence);
-      setFormColor(details.color);
       setFormSelectedLocations(details.locations);
       setFormSelectedDevices(details.devices);
       setFormSelectedSpeciesTypes(details.species_types);
@@ -396,7 +393,6 @@ export function AdminPage() {
     setFormAllowSightingDeviceSelection(false);
     setFormSightingDeviceType(null);
     setFormScheduleCadence('date');
-    setFormColor(null);
     setFormSelectedLocations([]);
     setFormSelectedDevices([]);
     setFormSelectedSpeciesTypes([]);
@@ -448,7 +444,6 @@ export function AdminPage() {
         allow_sighting_device_selection: formAllowSightingDeviceSelection,
         sighting_device_type: formAllowSightingDeviceSelection ? formSightingDeviceType : null,
         schedule_cadence: formScheduleCadence,
-        color: formColor || undefined,
         location_ids: formSelectedLocations.map((l) => l.id),
         device_ids: formSelectedDevices.map((d) => d.id),
         species_type_ids: formSelectedSpeciesTypes.map((st) => st.id),
@@ -780,7 +775,7 @@ export function AdminPage() {
                   key={surveyType.id}
                   ref={surveyTypeHighlight.rowRef(surveyType.id) as Ref<HTMLDivElement>}
                   sx={surveyTypeHighlight.rowSx(surveyType.id)}
-                  title={<SurveyTypeChip name={surveyType.name} color={surveyType.color} />}
+                  title={surveyType.name}
                   subtitle={
                     surveyType.description ? (
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
@@ -837,7 +832,9 @@ export function AdminPage() {
                       sx={[{ '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }, surveyTypeHighlight.rowSx(surveyType.id)]}
                     >
                       <TableCell>
-                        <SurveyTypeChip name={surveyType.name} color={surveyType.color} />
+                        <Typography variant="body2" fontWeight={600}>
+                          {surveyType.name}
+                        </Typography>
                         {surveyType.description && (
                           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                             {surveyType.description}
@@ -1042,9 +1039,6 @@ export function AdminPage() {
               slotProps={{ htmlInput: { maxLength: 100 } }}
               helperText={`${formDescription.length}/100 — shown on the group card`}
             />
-            <Box sx={{ mt: 1 }}>
-              <SurveyTypeColorSelector value={formColor} onChange={setFormColor} />
-            </Box>
           </FormSection>
           <FormSection title="Location & devices">
             <Box sx={{ mt: 1 }}>

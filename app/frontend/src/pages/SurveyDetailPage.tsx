@@ -12,7 +12,7 @@ import type { DraftSighting } from '../components/surveys/SightingsEditor';
 import { AudioClipPlayer } from '../components/audio/AudioClipPlayer';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSightingsGridConfig } from '../components/surveys/sightingsGridConfig';
-import { getSpeciesIcon } from '../config';
+import { getSpeciesIcon, getSpeciesDisplayName as speciesTypeDisplayName } from '../config';
 import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
 import { scopeBoundariesToLocations } from '../utils/scopeBoundaries';
@@ -1163,9 +1163,9 @@ export function SurveyDetailPage() {
                     // Sort groups alphabetically by type name
                     const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
 
-                    // Format type name for display
-                    const formatTypeName = (type: string) =>
-                      type.charAt(0).toUpperCase() + type.slice(1);
+                    // Group display names come from the central config, so
+                    // e.g. 'insect' reads "Other Invertebrates", not "Insect".
+                    const formatTypeName = speciesTypeDisplayName;
 
                     return sortedGroups.map(([type, groupSightings], groupIndex) => {
                       const SpeciesIcon = getSpeciesIcon(type);

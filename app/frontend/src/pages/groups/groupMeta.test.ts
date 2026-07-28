@@ -26,7 +26,6 @@ describe('betaGroupNames / orgHasGroups', () => {
       'butterfly',
       'dragonfly',
       'bird',
-      'birders',
       'jenny',
       'ad hoc',
     ]);
@@ -37,15 +36,11 @@ describe('betaGroupNames / orgHasGroups', () => {
     expect(groupActivity('Ad Hoc', 'heal')).toBe('record');
     expect(groupActivity('Jenny', 'heal')).toBe('record');
     expect(groupActivity('Bird', 'heal')).toBe('worklist');
-    expect(groupActivity('Birders', 'heal')).toBe('worklist');
   });
 
-  it('gives Cannwood bird (old and new type names), marsh fritillary and turtle dove', () => {
-    expect(betaGroupNames('cannwood')).toContain('walking');
-    expect(betaGroupNames('cannwood')).toContain('walking survey');
+  it('gives Cannwood bird, marsh fritillary and turtle dove', () => {
     expect(betaGroupNames('cannwood')).toContain('bird');
     expect(betaGroupNames('cannwood')).toContain('marsh fritillary');
-    expect(betaGroupNames('cannwood')).toContain('turtledove');
     expect(betaGroupNames('cannwood')).toContain('turtle dove');
     expect(orgHasGroups('cannwood')).toBe(true);
   });

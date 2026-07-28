@@ -14,7 +14,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import type { Species, BreedingStatusCode, BreedingCategory } from '../../services/api';
 import type { MapMarker } from './mapModeUtils';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
-import { getSpeciesIcon } from '../../config';
+import { getSpeciesIcon, getSpeciesDisplayName as speciesTypeDisplayName } from '../../config';
 import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
 
 interface MarkerPopupContentAddProps {
@@ -86,9 +86,8 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
     });
   }, [species]);
 
-  const formatCategoryName = (category: string): string => {
-    return category.charAt(0).toUpperCase() + category.slice(1);
-  };
+  // Central display names: 'insect' -> "Other Invertebrates" etc.
+  const formatCategoryName = speciesTypeDisplayName;
 
   if (mode === 'add') {
     return (

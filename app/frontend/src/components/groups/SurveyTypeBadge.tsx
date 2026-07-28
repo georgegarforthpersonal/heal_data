@@ -6,7 +6,7 @@
  */
 import { canopyIconUrl } from '../../config/canopyIcons';
 import type { SurveyTypeWithDetails } from '../../services/api';
-import { accentColors, primarySpeciesType } from '../../pages/groups/groupMeta';
+import { primarySpeciesType } from '../../pages/groups/groupMeta';
 import SpeciesIconTile from './SpeciesIconTile';
 
 interface SurveyTypeBadgeProps {
@@ -29,14 +29,15 @@ export default function SurveyTypeBadge({ surveyType, size, radius }: SurveyType
       />
     );
   }
-  const accent = accentColors(surveyType);
+  // Fixed canopy-green tint, matching SpeciesGroupIcon's fallback — the
+  // per-type accent colour was retired with the badge artwork.
   return (
     <SpeciesIconTile
       speciesType={primarySpeciesType(surveyType)}
       size={size}
       radius={radius}
-      bg={accent.bg}
-      fg={accent.fg}
+      bg="#E6EDE6"
+      fg="#3E6A45"
     />
   );
 }

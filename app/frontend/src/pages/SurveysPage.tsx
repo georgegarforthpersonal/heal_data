@@ -7,7 +7,6 @@ import { useToast } from '../context/ToastContext';
 import { useRowHighlight } from '../hooks';
 import { getSpeciesIcon, formatSpeciesCount } from '../config';
 import { PageTitle } from '../components/layout/PageTitle';
-import { SurveyTypeChip } from '../components/SurveyTypeColors';
 import { notionColors, tableSizing } from '../theme';
 import { useState, useEffect, useRef } from 'react';
 import { surveysAPI, surveyorsAPI, surveyTypesAPI } from '../services/api';
@@ -300,7 +299,7 @@ export function SurveysPage() {
               </MenuItem>
               {surveyTypes.map((type) => (
                 <MenuItem key={type.id} value={type.id}>
-                  <SurveyTypeChip name={type.name} color={type.color} size="small" />
+                  {type.name}
                 </MenuItem>
               ))}
             </Select>
@@ -417,11 +416,7 @@ export function SurveysPage() {
 
                   {/* Survey Type Column - always visible */}
                   <TableCell sx={{ py: tableSizing.row.py, px: tableSizing.row.px, fontSize: tableSizing.row.fontSize, color: 'text.secondary' }}>
-                    {survey.survey_type_name ? (
-                      <SurveyTypeChip name={survey.survey_type_name} color={survey.survey_type_color} size="small" />
-                    ) : (
-                      '—'
-                    )}
+                    {survey.survey_type_name ?? '—'}
                   </TableCell>
 
                   {/* Species Column - 3rd to hide (sm+) */}
