@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { ScheduledSurvey } from '../../services/api';
-import { deriveSlotState, buildWorklist, nextScheduledSurvey, formatWeekRange, recordedThisWeek } from './surveyState';
+import {
+  deriveSlotState,
+  buildWorklist,
+  nextScheduledSurvey,
+  formatWeekRange,
+  formatSurveyDateShort,
+  formatRecordedDateShort,
+  recordedThisWeek,
+} from './surveyState';
 
 const TODAY = '2026-06-25';
 
@@ -110,6 +118,41 @@ describe('formatWeekRange', () => {
   });
 });
 
+describe('formatSurveyDateShort / formatRecordedDateShort', () => {
+  it('drops the year from a current-year day slot', () => {
+    expect(formatSurveyDateShort(slot({ id: 1, window_start: '2026-07-27' }), TODAY)).toBe('Mon 27 Jul');
+  });
+
+  it('keeps the year on a different-year day slot', () => {
+    expect(formatSurveyDateShort(slot({ id: 1, window_start: '2027-01-04' }), TODAY)).toBe('Mon 4 Jan 2027');
+  });
+
+  it('drops the year from a current-year week window, same and cross month', () => {
+    expect(
+      formatSurveyDateShort(slot({ id: 1, window_start: '2026-07-01', window_end: '2026-07-07' }), TODAY),
+    ).toBe('1–7 Jul');
+    expect(
+      formatSurveyDateShort(slot({ id: 1, window_start: '2026-07-27', window_end: '2026-08-02' }), TODAY),
+    ).toBe('27 Jul – 2 Aug');
+  });
+
+  it('falls back to the full range when the window leaves the current year', () => {
+    expect(
+      formatSurveyDateShort(slot({ id: 1, window_start: '2026-12-28', window_end: '2027-01-03' }), TODAY),
+    ).toBe('28 Dec 2026 – 3 Jan 2027');
+  });
+
+  it('drops the year from a current-year recorded date and keeps it otherwise', () => {
+    expect(formatRecordedDateShort('2026-07-21', TODAY)).toBe('Tue 21 Jul');
+    expect(formatRecordedDateShort('2025-11-02', TODAY)).toBe('Sun 2 Nov 2025');
+  });
+
+  it('drops the weekday on request, and the day too once the year differs', () => {
+    expect(formatRecordedDateShort('2026-07-21', TODAY, { weekday: false })).toBe('21 Jul');
+    expect(formatRecordedDateShort('2025-11-02', TODAY, { weekday: false })).toBe('Nov 2025');
+  });
+});
+
 describe('buildWorklist', () => {
   const slots = [
     slot({ id: 1, window_start: '2026-06-21' }), // needs-survey
@@ -177,7 +220,21 @@ describe('nextScheduledSurvey', () => {
     expect(nextScheduledSurvey(slots, TODAY)?.id).toBe(2);
   });
 
-  it('returns null when nothing is scheduled', () => {
+  it('prefers a slot due this week over a sooner-finishing upcoming one', () => {
+    const slots = [
+      slot({ id: 1, window_start: '2026-06-29', window_end: '2026-07-05' }),
+      slot({ id: 2, window_start: '2026-06-22', window_end: '2026-06-28' }), // due this week
+    ];
+    expect(nextScheduledSurvey(slots, TODAY)?.id).toBe(2);
+  });
+
+  it('returns null when only overdue slots remain', () => {
     expect(nextScheduledSurvey([slot({ id: 1, window_start: '2026-06-01' })], TODAY)).toBeNull();
+  });
+
+  it('ignores a fulfilled slot due this week', () => {
+    const done = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
+    const later = slot({ id: 2, window_start: '2026-07-06' });
+    expect(nextScheduledSurvey([done, later], TODAY)?.id).toBe(2);
   });
 });

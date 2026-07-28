@@ -72,7 +72,7 @@ export default function LocationMapPicker({
   const [mapCenter, setMapCenter] = useState<LatLng>(
     latitude && longitude ? new LatLng(latitude, longitude) : new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1])
   );
-  const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   useEffect(() => {

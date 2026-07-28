@@ -1,28 +1,28 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Typography, Slider, Stack, CircularProgress, Alert, ToggleButtonGroup, ToggleButton, Tooltip, IconButton, Chip } from '@mui/material';
+import { Box, Button, Paper, Typography, Slider, Stack, CircularProgress, Alert, ToggleButtonGroup, ToggleButton, Tooltip, IconButton, Chip } from '@mui/material';
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
 import { LatLngBounds, LatLng, DivIcon } from 'leaflet';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteIcon from '@mui/icons-material/Satellite';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import CheckIcon from '@mui/icons-material/Check';
 import { BarChart, Bar, ResponsiveContainer, XAxis } from 'recharts';
 import dayjs from 'dayjs';
 import 'leaflet/dist/leaflet.css';
 import { stopMapAnimation } from '../../utils/stopMapAnimation';
-import type { SpeciesSightingLocation, LocationWithBoundary } from '../../services/api';
-import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
+import type { SpeciesSightingLocation } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
-import { getSurveyTypeColorStyles } from '../SurveyTypeColors';
+import { surveysAPI } from '../../services/api';
+import type { BreedingCategory, BreedingStatusCode } from '../../services/api';
+import { CATEGORY_COLORS, CATEGORY_LABELS } from '../surveys/breedingConstants';
 import { brandColors } from '../../theme';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../config';
-import BreedingStatusFilter from './BreedingStatusFilter';
 
 interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
   loading?: boolean;
   error?: string | null;
-  locationsWithBoundaries?: LocationWithBoundary[];
 }
 
 interface SightingCluster {
@@ -30,8 +30,8 @@ interface SightingCluster {
   longitude: number;
   sightings: SpeciesSightingLocation[];
   count: number;
-  surveyTypeColor: string | null;
-  surveyTypeName: string | null;
+  /** Most advanced breeding evidence at this spot — drives the marker colour. */
+  category: MarkerCategory;
 }
 
 /**
@@ -41,23 +41,54 @@ function FitBounds({ sightings }: { sightings: SpeciesSightingLocation[] }) {
   const map = useMap();
 
   useEffect(() => {
-    if (sightings.length > 0) {
-      const bounds = new LatLngBounds(
-        sightings.map(s => new LatLng(s.latitude, s.longitude))
-      );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-    }
-    return () => { stopMapAnimation(map); };
+    if (sightings.length === 0) return;
+    const bounds = new LatLngBounds(
+      sightings.map(s => new LatLng(s.latitude, s.longitude))
+    );
+    // Fit on the next frame, after invalidateSize: on mount the container
+    // hasn't been laid out yet, so fitting immediately computes the zoom for
+    // a stale (smaller) box — the map then opened on empty countryside with
+    // the sightings a speck in the middle.
+    const frame = requestAnimationFrame(() => {
+      map.invalidateSize();
+      map.fitBounds(bounds, { padding: [24, 24], maxZoom: 17, animate: false });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      stopMapAnimation(map);
+    };
   }, [sightings, map]);
 
   return null;
 }
 
 /**
- * Get the marker colour for a survey type (uses the darker notion text shade)
+ * Marker colour encodes BREEDING EVIDENCE — the dimension a species map is
+ * actually asking about. Survey type stays as a filter. Colours are the ones
+ * surveyors already learn in the recording flow (breedingConstants), so the
+ * key is the same everywhere in the app.
  */
-function getMarkerColor(surveyTypeColor: string | null | undefined): string {
-  return getSurveyTypeColorStyles(surveyTypeColor).text;
+const NO_CODE = 'none' as const;
+type MarkerCategory = BreedingCategory | typeof NO_CODE;
+
+/** Strongest evidence last — a cluster takes its most advanced category. */
+const CATEGORY_RANK: MarkerCategory[] = [
+  NO_CODE,
+  'non_breeding',
+  'possible_breeder',
+  'probable_breeder',
+  'confirmed_breeder',
+];
+
+const NO_CODE_COLOR = '#9E9E9E';
+const NO_CODE_LABEL = 'No breeding code';
+
+function categoryColour(category: MarkerCategory): string {
+  return category === NO_CODE ? NO_CODE_COLOR : CATEGORY_COLORS[category];
+}
+
+function categoryLabel(category: MarkerCategory): string {
+  return category === NO_CODE ? NO_CODE_LABEL : CATEGORY_LABELS[category];
 }
 
 /**
@@ -95,7 +126,8 @@ function buildHistogramData(
   minTime: number,
   maxTime: number,
   bucketCount: number,
-): { time: number; [surveyType: string]: number }[] {
+  keyOf: (s: SpeciesSightingLocation) => string,
+): { time: number; [seriesKey: string]: number }[] {
   const range = maxTime - minTime;
   if (range === 0) return [];
 
@@ -109,7 +141,7 @@ function buildHistogramData(
   for (const s of sightings) {
     const time = new Date(s.survey_date).getTime();
     const idx = Math.min(Math.floor((time - minTime) / bucketSize), bucketCount - 1);
-    const key = s.survey_type_name || 'Unknown';
+    const key = keyOf(s);
     buckets[idx][key] = ((buckets[idx][key] as number) || 0) + 1;
   }
 
@@ -117,58 +149,71 @@ function buildHistogramData(
 }
 
 /**
- * Clickable survey-type legend that doubles as a filter. Empty `selected` set
- * means no filter is applied — every chip renders in its filled state.
+ * A labelled row of filter chips.
+ *
+ * Resting state is OUTLINED, not filled: filled used to mean "no filter
+ * applied", which reads as "everything is selected" — a state, not an
+ * invitation, and it made the row look heavy. Now unselected = outline,
+ * selected = filled with a tick, so the affordance and the meaning agree.
+ * Breeding chips keep their colour dot in both states because that dot is
+ * also the map's colour key. No counts: they were computed from all
+ * sightings, so they contradicted the other filters the moment one was used.
  */
-function SurveyTypeFilterLegend({
-  surveyTypes,
+function FilterGroup<T extends string>({
+  label,
+  options,
   selected,
   onToggle,
 }: {
-  surveyTypes: { name: string; color: string }[];
-  selected: Set<string>;
-  onToggle: (name: string) => void;
+  label: string;
+  options: { key: T; label: string; colour?: string }[];
+  selected: Set<T>;
+  onToggle: (key: T) => void;
 }) {
-  const hasFilter = selected.size > 0;
   return (
-    <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
-      {surveyTypes.map((st) => {
-        const isActive = !hasFilter || selected.has(st.name);
-        return (
-          <Chip
-            key={st.name}
-            label={st.name}
-            size="small"
-            onClick={() => onToggle(st.name)}
-            icon={
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  bgcolor: st.color,
-                  ml: '8px !important',
-                }}
-              />
-            }
-            variant={isActive ? 'filled' : 'outlined'}
-            sx={{
-              opacity: isActive ? 1 : 0.5,
-              cursor: 'pointer',
-            }}
-          />
-        );
-      })}
-    </Stack>
+    <Box>
+      <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.6 }}>{label}</Typography>
+      <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+        {options.map((option) => {
+          const isSelected = selected.has(option.key);
+          return (
+            <Chip
+              key={option.key}
+              label={option.label}
+              size="small"
+              clickable
+              onClick={() => onToggle(option.key)}
+              icon={
+                option.colour ? (
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: option.colour,
+                      ml: '8px !important',
+                    }}
+                  />
+                ) : isSelected ? (
+                  <CheckIcon />
+                ) : undefined
+              }
+              variant={isSelected ? 'filled' : 'outlined'}
+              sx={{ fontWeight: isSelected ? 600 : 400 }}
+            />
+          );
+        })}
+      </Stack>
+    </Box>
   );
 }
 
-export default function SightingsMap({ sightings, loading, error, locationsWithBoundaries }: SightingsMapProps) {
+export default function SightingsMap({ sightings, loading, error }: SightingsMapProps) {
   // Fullscreen state
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
   // Map type state
-  const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
 
   // Calculate date range for the data
   const dateRange = useMemo(() => {
@@ -199,14 +244,34 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
     }
   }, [dateRange]);
 
-  // Breeding status filter state — empty Set means "no filter applied"
-  const [selectedBreedingCodes, setSelectedBreedingCodes] = useState<Set<string>>(new Set());
+  // Breeding evidence: reference data maps a sighting's code to its category,
+  // which is what the marker colour encodes.
+  const [breedingCodes, setBreedingCodes] = useState<BreedingStatusCode[]>([]);
+  useEffect(() => {
+    let active = true;
+    surveysAPI
+      .getBreedingCodes()
+      .then((codes) => active && setBreedingCodes(codes))
+      .catch(() => active && setBreedingCodes([]));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const categoryOf = useMemo(() => {
+    const byCode = new Map(breedingCodes.map((c) => [c.code, c.category]));
+    return (s: SpeciesSightingLocation): MarkerCategory =>
+      (s.breeding_status_code && byCode.get(s.breeding_status_code)) || NO_CODE;
+  }, [breedingCodes]);
+
+  // Category filter state — empty Set means "no filter applied"
+  const [selectedCategories, setSelectedCategories] = useState<Set<MarkerCategory>>(new Set());
   // Survey type filter state — empty Set means "no filter applied"
   const [selectedSurveyTypes, setSelectedSurveyTypes] = useState<Set<string>>(new Set());
 
   // Reset filters when the underlying sightings change (e.g. species switch)
   useEffect(() => {
-    setSelectedBreedingCodes(new Set());
+    setSelectedCategories(new Set());
     setSelectedSurveyTypes(new Set());
   }, [sightings]);
 
@@ -219,35 +284,48 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
     });
   };
 
-  // Counts per available breeding code (only includes codes that appear at least once)
-  const breedingCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const s of sightings) {
-      if (!s.breeding_status_code) continue;
-      counts.set(s.breeding_status_code, (counts.get(s.breeding_status_code) ?? 0) + 1);
-    }
-    return counts;
-  }, [sightings]);
+  // Categories present in the data, strongest evidence first — the colour key
+  // and the filter.
+  const categoriesPresent = useMemo(() => {
+    const present = new Set(sightings.map(categoryOf));
+    return [...CATEGORY_RANK]
+      .reverse()
+      .filter((c) => present.has(c))
+      .map((category) => ({ category }));
+  }, [sightings, categoryOf]);
+
+  const filtersActive = selectedCategories.size > 0 || selectedSurveyTypes.size > 0;
+  const clearFilters = () => {
+    setSelectedCategories(new Set());
+    setSelectedSurveyTypes(new Set());
+  };
+
+  const handleToggleCategory = (category: MarkerCategory) => {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
 
   // Filter sightings based on date range, breeding codes, and survey types
   const filteredSightings = useMemo(() => {
-    const breedingActive = selectedBreedingCodes.size > 0;
+    const categoryActive = selectedCategories.size > 0;
     const surveyActive = selectedSurveyTypes.size > 0;
     return sightings.filter(s => {
       if (dateRange) {
         const time = new Date(s.survey_date).getTime();
         if (time < dateFilterRange[0] || time > dateFilterRange[1]) return false;
       }
-      if (breedingActive) {
-        if (!s.breeding_status_code || !selectedBreedingCodes.has(s.breeding_status_code)) return false;
-      }
+      if (categoryActive && !selectedCategories.has(categoryOf(s))) return false;
       if (surveyActive) {
         const name = s.survey_type_name || 'Unknown';
         if (!selectedSurveyTypes.has(name)) return false;
       }
       return true;
     });
-  }, [sightings, dateFilterRange, dateRange, selectedBreedingCodes, selectedSurveyTypes]);
+  }, [sightings, dateFilterRange, dateRange, selectedCategories, selectedSurveyTypes, categoryOf]);
 
   // Cluster filtered sightings by location
   const clusters = useMemo((): SightingCluster[] => {
@@ -255,35 +333,36 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
 
     for (const s of filteredSightings) {
       const key = `${s.latitude.toFixed(6)},${s.longitude.toFixed(6)}`;
+      const category = categoryOf(s);
       const existing = map.get(key);
       if (existing) {
         existing.sightings.push(s);
         existing.count++;
+        // A spot with any confirmed breeding reads as confirmed.
+        if (CATEGORY_RANK.indexOf(category) > CATEGORY_RANK.indexOf(existing.category)) {
+          existing.category = category;
+        }
       } else {
         map.set(key, {
           latitude: s.latitude,
           longitude: s.longitude,
           sightings: [s],
           count: 1,
-          surveyTypeColor: s.survey_type_color,
-          surveyTypeName: s.survey_type_name,
+          category,
         });
       }
     }
 
     return Array.from(map.values());
-  }, [filteredSightings]);
+  }, [filteredSightings, categoryOf]);
 
   // Get unique survey types present in the data (for legend and histogram)
   const surveyTypes = useMemo(() => {
-    const typeMap = new Map<string, { name: string; color: string }>();
+    const typeMap = new Map<string, { name: string }>();
     for (const s of sightings) {
       const name = s.survey_type_name || 'Unknown';
       if (!typeMap.has(name)) {
-        typeMap.set(name, {
-          name,
-          color: getMarkerColor(s.survey_type_color),
-        });
+        typeMap.set(name, { name });
       }
     }
     return Array.from(typeMap.values());
@@ -292,8 +371,8 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
   // Build histogram data (uses ALL sightings, not filtered, so the histogram shows full density)
   const histogramData = useMemo(() => {
     if (!dateRange || dateRange.minTime === dateRange.maxTime) return [];
-    return buildHistogramData(sightings, dateRange.minTime, dateRange.maxTime, 30);
-  }, [sightings, dateRange]);
+    return buildHistogramData(sightings, dateRange.minTime, dateRange.maxTime, 30, (s) => categoryLabel(categoryOf(s)));
+  }, [sightings, dateRange, categoryOf]);
 
   // Handle date range change
   const handleDateRangeChange = (_event: Event, newValue: number | number[]) => {
@@ -341,35 +420,21 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
 
   return (
     <Box>
-      {/* Date Range Filter with Histogram and Legend */}
+      {/* Filters sit directly on the section card — a bordered panel inside a
+          bordered card read as a box in a box, unlike every other section. */}
       {dateRange && dateRange.minTime !== dateRange.maxTime && (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            mb: 2,
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider'
-          }}
-        >
+        <Box sx={{ mb: 2 }}>
           <Stack spacing={1}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Date Range Filter
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+                {/* The slider and its dates say "date range"; a title saying so
+                    too just wrapped onto three lines on a phone. */}
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                   Showing {filteredSightings.length} of {sightings.length} sightings
                 </Typography>
               </Box>
 
               <Stack direction="row" spacing={1} alignItems="center">
-                <BreedingStatusFilter
-                  availableCounts={breedingCounts}
-                  selectedCodes={selectedBreedingCodes}
-                  onChange={setSelectedBreedingCodes}
-                />
                 <ToggleButtonGroup
                   value={mapType}
                   exclusive
@@ -399,12 +464,12 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={histogramData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }} barCategoryGap={1}>
                       <XAxis dataKey="time" hide />
-                      {surveyTypes.map((st) => (
+                      {categoriesPresent.map(({ category }) => (
                         <Bar
-                          key={st.name}
-                          dataKey={st.name}
+                          key={category}
+                          dataKey={categoryLabel(category)}
                           stackId="a"
-                          fill={st.color}
+                          fill={categoryColour(category)}
                           opacity={0.35}
                           isAnimationActive={false}
                         />
@@ -449,18 +514,39 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               </Box>
             </Box>
 
-            {/* Survey type legend / filter */}
-            {surveyTypes.length > 1 && (
-              <Box sx={{ pt: 0.5 }}>
-                <SurveyTypeFilterLegend
-                  surveyTypes={surveyTypes}
+            {/* Filters, one labelled group per dimension. Breeding chips
+                double as the map's colour key, so their dots always show. */}
+            <Stack spacing={1.5} sx={{ pt: 1 }}>
+              {categoriesPresent.length > 1 && (
+                <FilterGroup
+                  label="Breeding evidence"
+                  options={categoriesPresent.map(({ category }) => ({
+                    key: category,
+                    label: categoryLabel(category),
+                    colour: categoryColour(category),
+                  }))}
+                  selected={selectedCategories}
+                  onToggle={handleToggleCategory}
+                />
+              )}
+              {surveyTypes.length > 1 && (
+                <FilterGroup
+                  label="Survey type"
+                  options={surveyTypes.map((st) => ({ key: st.name, label: st.name }))}
                   selected={selectedSurveyTypes}
                   onToggle={handleToggleSurveyType}
                 />
-              </Box>
-            )}
+              )}
+              {filtersActive && (
+                <Box>
+                  <Button size="small" onClick={clearFilters} sx={{ textTransform: 'none' }}>
+                    Clear filters
+                  </Button>
+                </Box>
+              )}
+            </Stack>
           </Stack>
-        </Paper>
+        </Box>
       )}
 
       {/* Map Toggle for single-date datasets */}
@@ -477,24 +563,11 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Map View
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                Showing {filteredSightings.length} of {sightings.length} sightings
               </Typography>
-              {/* Legend / filter for single-date view */}
-              {surveyTypes.length > 1 && (
-                <SurveyTypeFilterLegend
-                  surveyTypes={surveyTypes}
-                  selected={selectedSurveyTypes}
-                  onToggle={handleToggleSurveyType}
-                />
-              )}
             </Box>
             <Stack direction="row" spacing={1} alignItems="center">
-              <BreedingStatusFilter
-                availableCounts={breedingCounts}
-                selectedCodes={selectedBreedingCodes}
-                onChange={setSelectedBreedingCodes}
-              />
               <ToggleButtonGroup
                 value={mapType}
                 exclusive
@@ -515,6 +588,36 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
               </ToggleButtonGroup>
             </Stack>
           </Box>
+
+          <Stack spacing={1.5} sx={{ pt: 1.5 }}>
+            {categoriesPresent.length > 1 && (
+              <FilterGroup
+                label="Breeding evidence"
+                options={categoriesPresent.map(({ category }) => ({
+                  key: category,
+                  label: categoryLabel(category),
+                  colour: categoryColour(category),
+                }))}
+                selected={selectedCategories}
+                onToggle={handleToggleCategory}
+              />
+            )}
+            {surveyTypes.length > 1 && (
+              <FilterGroup
+                label="Survey type"
+                options={surveyTypes.map((st) => ({ key: st.name, label: st.name }))}
+                selected={selectedSurveyTypes}
+                onToggle={handleToggleSurveyType}
+              />
+            )}
+            {filtersActive && (
+              <Box>
+                <Button size="small" onClick={clearFilters} sx={{ textTransform: 'none' }}>
+                  Clear filters
+                </Button>
+              </Box>
+            )}
+          </Stack>
         </Paper>
       )}
 
@@ -556,7 +659,7 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
           </Tooltip>
         </Stack>
 
-        <Box sx={{ height: 500, width: '100%', ...fullscreenMapSx }}>
+        <Box sx={{ height: { xs: 320, sm: 520 }, width: '100%', ...fullscreenMapSx }}>
           <MapContainer
             center={defaultCenter}
             zoom={defaultZoom}
@@ -565,24 +668,19 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
             {mapType === 'satellite' ? (
               <TileLayer
                 key="satellite"
-                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                attribution='Tiles &copy; Esri'
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               />
             ) : (
               <TileLayer
                 key="street"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution='&copy; OpenStreetMap'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
             )}
 
-            {/* Field boundaries layer (rendered before markers so markers appear on top) */}
-            {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
-              <FieldBoundaryOverlay locations={locationsWithBoundaries} />
-            )}
-
             {clusters.map((cluster) => {
-              const color = getMarkerColor(cluster.surveyTypeColor);
+              const color = categoryColour(cluster.category);
 
               if (cluster.count === 1) {
                 // Single sighting — simple CircleMarker
@@ -635,11 +733,10 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                 >
                   <Popup>
                     <Box sx={{ p: 1, maxHeight: 200, overflowY: 'auto' }}>
-                      {cluster.surveyTypeName && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                          {cluster.surveyTypeName}
-                        </Typography>
-                      )}
+                      {/* The colour's meaning, spelled out. */}
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                        {categoryLabel(cluster.category)}
+                      </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                         {cluster.count} sightings
                       </Typography>

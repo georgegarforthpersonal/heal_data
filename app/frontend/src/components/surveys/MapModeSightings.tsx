@@ -149,7 +149,7 @@ export function MapModeSightings({
   devices = [],
   allowSightingDeviceSelection = false,
 }: MapModeSightingsProps) {
-  const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
   const [addPopupPosition, setAddPopupPosition] = useState<{ lat: number; lng: number } | null>(null);
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();

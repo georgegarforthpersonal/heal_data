@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
 import { AccessNotice } from '../components/auth/AccessNotice';
 import {
@@ -37,6 +37,7 @@ import type {
   Device,
 } from '../services/api';
 import { formatSurveyDate } from './groups/surveyState';
+import { readReturnTo, returnToHref } from '../utils/returnTo';
 import { SurveyFormFields, hasTimeValidationError } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -86,7 +87,11 @@ const fileKey = (f: File) => `${f.name}:${f.size}:${f.lastModified}`;
  */
 export function NewSurveyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  // Where Cancel goes and where the detail page's back button points after
+  // save — a group page when the record CTA got us here, else the surveys list.
+  const returnTo = readReturnTo(location);
   const { isLoading: authLoading } = useAuth();
   const { canEditSurveys } = usePermissions();
 
@@ -95,6 +100,12 @@ export function NewSurveyPage() {
   // and links the created survey to it.
   const scheduledSurveyIdParam = searchParams.get('scheduled_survey_id');
   const [recordingSlot, setRecordingSlot] = useState<ScheduledSurvey | null>(null);
+
+  // Group record flow: ?survey_type_id=N preselects the type (still
+  // changeable, unlike a slot's locked type). Media types never link here —
+  // their record CTAs go straight to the wizards — so they're ignored rather
+  // than re-dispatched.
+  const presetTypeIdParam = searchParams.get('survey_type_id');
 
   // ============================================================================
   // Form State - Survey Type
@@ -251,7 +262,15 @@ export function NewSurveyPage() {
           // /surveys/new?scheduled_survey_id=N and /surveys/new, so the
           // record-flow prefill must be unwound, not just skipped.
           setRecordingSlot(null);
-          setSelectedSurveyType(null);
+          const preset = presetTypeIdParam
+            ? surveyTypesData.find(
+                (t) =>
+                  t.id === Number(presetTypeIdParam) &&
+                  !t.allow_image_upload &&
+                  !t.allow_audio_upload,
+              ) ?? null
+            : null;
+          setSelectedSurveyType(preset);
           setDate(dayjs());
           setLocationId(null);
           autoLocationIdRef.current = null;
@@ -273,7 +292,7 @@ export function NewSurveyPage() {
     };
 
     fetchInitialData();
-  }, [scheduledSurveyIdParam]);
+  }, [scheduledSurveyIdParam, presetTypeIdParam]);
 
   // ============================================================================
   // Data Fetching - When Survey Type Changes
@@ -528,14 +547,12 @@ export function NewSurveyPage() {
         resume.surveyImagesUploaded = true;
       }
 
-      // Success - navigate to survey detail page or surveys list
+      // Success — land on the survey just recorded (the flat list and its
+      // ?created highlight are retired where Groups covers the org). The
+      // origin rides along so the detail page's back button returns there.
       saveCompleteRef.current = true;
       saveResumeRef.current = emptySaveResumeState();
-      if (allowImageUpload && pendingImageFiles.length > 0) {
-        navigate(`/surveys/${surveyId}`);
-      } else {
-        navigate(`/surveys?created=${surveyId}`);
-      }
+      navigate(`/surveys/${surveyId}`, { state: { returnTo } });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create survey';
       setError(
@@ -553,7 +570,7 @@ export function NewSurveyPage() {
   // ============================================================================
 
   const handleCancel = () => {
-    navigate('/surveys');
+    navigate(returnToHref(returnTo));
   };
 
   const handleSurveyTypeChange = (surveyType: SurveyType | null) => {

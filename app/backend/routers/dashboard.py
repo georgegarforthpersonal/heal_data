@@ -350,6 +350,26 @@ async def get_species_occurrences(
         date_filter_sql = build_date_filter_sql(start_date, end_date)
         survey_type_filter = "AND survey.survey_type_id = :survey_type_id" if survey_type_id is not None else ""
 
+        # Unscoped calls (the Species page) would otherwise emit a zero row for
+        # every survey of every type — surveys that could never have recorded
+        # this species. Restrict the base to surveys whose type covers the
+        # species' group, plus any survey that actually recorded it.
+        species_scope_filter = "" if survey_type_id is not None else """
+            AND (
+                EXISTS (
+                    SELECT 1
+                    FROM survey_type_species_type link
+                    JOIN species sp ON sp.species_type_id = link.species_type_id
+                    WHERE link.survey_type_id = survey.survey_type_id
+                      AND sp.id = :species_id
+                )
+                OR EXISTS (
+                    SELECT 1 FROM sighting recorded
+                    WHERE recorded.survey_id = survey.id AND recorded.species_id = :species_id
+                )
+            )
+        """
+
         # Query to get occurrences by survey - include ALL surveys
         # with 0 for no sightings
         query = text(f"""
@@ -361,6 +381,7 @@ async def get_species_occurrences(
             LEFT JOIN sighting ON survey.id = sighting.survey_id AND sighting.species_id = :species_id
             WHERE survey.organisation_id = :org_id
             {survey_type_filter}
+            {species_scope_filter}
             {date_filter_sql}
             GROUP BY survey.id, survey.date
             ORDER BY survey.date, survey.id

@@ -179,6 +179,43 @@ class TestSurveyTypeScoping:
         ]
 
 
+    def test_species_occurrences_unscoped_covers_only_relevant_types(
+        self, client: TestClient, auth_headers: dict, db_session,
+        create_species, create_survey, create_survey_type,
+    ):
+        """Without a survey_type_id, zero rows come only from surveys whose
+        type covers the species' group; surveys of unrelated types count only
+        when they actually recorded the species."""
+        from models import SpeciesType, SurveyTypeSpeciesTypeLink
+
+        butterfly_type = create_survey_type(name="Butterfly")
+        camera = create_survey_type(name="Camera Trap")
+        fritillary = create_species(name="Marsh Fritillary", species_type="butterfly")
+        butterfly_group = db_session.query(SpeciesType).filter(SpeciesType.name == "butterfly").one()
+        db_session.add(SurveyTypeSpeciesTypeLink(
+            survey_type_id=butterfly_type.id, species_type_id=butterfly_group.id,
+        ))
+        db_session.commit()
+
+        seen = create_survey(survey_date=date(2024, 5, 1), survey_type_id=butterfly_type.id)
+        none_seen = create_survey(survey_date=date(2024, 5, 8), survey_type_id=butterfly_type.id)
+        camera_seen = create_survey(survey_date=date(2024, 5, 2), survey_type_id=camera.id)
+        create_survey(survey_date=date(2024, 5, 3), survey_type_id=camera.id)  # excluded zero
+
+        _add_sighting(client, auth_headers, seen.id, fritillary.id, 4)
+        _add_sighting(client, auth_headers, camera_seen.id, fritillary.id, 2)
+
+        data = client.get(
+            f"/api/dashboard/species-occurrences?species_id={fritillary.id}",
+            headers=auth_headers,
+        ).json()["data"]
+        assert [(d["survey_id"], d["occurrence_count"]) for d in data] == [
+            (seen.id, 4),
+            (camera_seen.id, 2),
+            (none_seen.id, 0),
+        ]
+
+
 class TestSpeciesOccurrences:
     """Tests for GET /api/dashboard/species-occurrences"""
 

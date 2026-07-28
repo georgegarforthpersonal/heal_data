@@ -1,10 +1,12 @@
 /**
- * Cumulative unique-species area chart for a single species type.
+ * Cumulative unique-species area chart.
  *
- * Self-contained: fetches the all-time cumulative-species series, transforms it
- * onto a time-scale x-axis (year label in January, then Apr/Jul/Oct), and
- * renders a brand-coloured area. Shared by the Dashboards page and the Survey
- * Groups "Species recorded" panel — only the colour/height/chrome differ.
+ * Self-contained: fetches the all-time cumulative-species series (optionally
+ * filtered to a list of species types; unfiltered = everything the scoped
+ * surveys recorded), merges every type into ONE combined series (species sets
+ * are disjoint across types, so the sum is the distinct total), and renders a
+ * brand-coloured area on a time-scale x-axis. Shared by the Dashboards page
+ * and the Groups "Species count" panel — only the colour/height/chrome differ.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, CircularProgress, Paper, Typography } from '@mui/material';
@@ -22,14 +24,18 @@ import { dashboardAPI } from '../../services/api';
 import type { CumulativeSpeciesDataPoint } from '../../services/api';
 import { brandColors } from '../../theme';
 import { getSpeciesDisplayName } from '../../config';
+import { combineCumulative, totalUniqueSpecies, typesInSeries } from './cumulativeSeries';
 
 export interface CumulativeSummary {
   /** Total unique species recorded all-time. */
   total: number;
+  /** Species types actually present in the data (for per-type follow-ups). */
+  types: string[];
 }
 
 interface CumulativeSpeciesChartProps {
-  speciesType: string;
+  /** Species types to include; undefined or empty = everything recorded. */
+  speciesTypes?: string[];
   /** Scope the series to one survey type's surveys (e.g. a group's). */
   surveyTypeId?: number;
   color?: string;
@@ -103,15 +109,8 @@ function prepareChartData(data: CumulativeSpeciesDataPoint[]): {
   return { data: chartArray, types, customTicks };
 }
 
-function summarise(data: CumulativeSpeciesDataPoint[], speciesType: string): CumulativeSummary {
-  if (data.length === 0) return { total: 0 };
-  const forType = data.filter((d) => d.type === speciesType);
-  const total = forType.reduce((max, d) => Math.max(max, d.cumulative_count), 0);
-  return { total };
-}
-
 export default function CumulativeSpeciesChart({
-  speciesType,
+  speciesTypes,
   surveyTypeId,
   color = brandColors.main,
   height = 400,
@@ -126,20 +125,29 @@ export default function CumulativeSpeciesChart({
   const onSummaryRef = useRef(onSummary);
   onSummaryRef.current = onSummary;
 
+  // A stable key so an inline-array prop doesn't refire the effect each render.
+  const typesKey = (speciesTypes ?? []).join(',');
+
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
+    const filter = typesKey === '' ? undefined : typesKey.split(',');
     dashboardAPI
-      .getCumulativeSpecies([speciesType], surveyTypeId)
+      .getCumulativeSpecies(filter, surveyTypeId)
       .then((res) => {
         if (!active) return;
-        const series = res.data.filter((d) => d.type === speciesType);
-        setData(series);
-        onSummaryRef.current?.(summarise(series, speciesType));
+        setData(combineCumulative(res.data));
+        onSummaryRef.current?.({
+          total: totalUniqueSpecies(res.data),
+          types: typesInSeries(res.data),
+        });
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : 'Failed to load chart data');
+        if (!active) return;
+        setError(err instanceof Error ? err.message : 'Failed to load chart data');
+        // Don't leave a stale headline count sitting beside the error.
+        onSummaryRef.current?.({ total: 0, types: [] });
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -147,7 +155,7 @@ export default function CumulativeSpeciesChart({
     return () => {
       active = false;
     };
-  }, [speciesType, surveyTypeId]);
+  }, [typesKey, surveyTypeId]);
 
   const prepared = useMemo(() => prepareChartData(data), [data]);
 
@@ -187,7 +195,8 @@ export default function CumulativeSpeciesChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={prepared.data} margin={CHART_MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+        {/* Hairline solid grid — dashed reads as "projection" when it's just a grid. */}
+        <CartesianGrid vertical={false} stroke="#eceeec" />
         <XAxis
           dataKey="date"
           type="number"
@@ -197,10 +206,27 @@ export default function CumulativeSpeciesChart({
           tickFormatter={formatXAxisTick}
           tick={{ fontSize: 12, fill: '#666' }}
           tickLine={false}
-          axisLine={{ stroke: '#e0e0e0' }}
+          axisLine={{ stroke: '#eceeec' }}
         />
-        <YAxis hide />
-        <RechartsTooltip content={<CumulativeTooltip speciesType={speciesType} />} />
+        {/* The count is the point of a discovery curve — show the scale. */}
+        <YAxis
+          width={32}
+          allowDecimals={false}
+          tick={{ fontSize: 11, fill: '#666' }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <RechartsTooltip
+          content={
+            <CumulativeTooltip
+              noun={
+                speciesTypes?.length === 1
+                  ? getSpeciesDisplayName(speciesTypes[0]).toLowerCase()
+                  : 'species'
+              }
+            />
+          }
+        />
         {prepared.types.map((type) => (
           <Area
             key={type}
@@ -208,8 +234,13 @@ export default function CumulativeSpeciesChart({
             dataKey={type}
             stroke={color}
             fill={color}
-            fillOpacity={0.6}
+            // A wash, never a saturated block — the fill was reading as one
+            // solid green slab and hiding the curve inside it.
+            fillOpacity={0.12}
             strokeWidth={2}
+            // One survey date = one point = no visible path; show the dot so
+            // a young group's chart isn't blank.
+            dot={prepared.data.length === 1 ? { r: 3, fill: color } : false}
             isAnimationActive={false}
           />
         ))}
@@ -221,15 +252,17 @@ export default function CumulativeSpeciesChart({
 interface TooltipProps {
   active?: boolean;
   payload?: Array<{ payload: PreparedPoint }>;
-  speciesType: string;
+  /** "birds" for a single-type chart, "species" for a combined one. */
+  noun: string;
 }
 
-function CumulativeTooltip({ active, payload, speciesType }: TooltipProps) {
+function CumulativeTooltip({ active, payload, noun }: TooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
   const date = dayjs(point.dateStr).format('MMM DD, YYYY');
-  const newSpeciesList = point.newSpecies?.[speciesType] ?? [];
-  const count = (point[speciesType] as number) || 0;
+  // The chart plots the combined 'all' series regardless of the filter.
+  const newSpeciesList = point.newSpecies?.all ?? [];
+  const count = (point.all as number) || 0;
 
   return (
     <Paper elevation={3} sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', maxWidth: 300 }}>
@@ -237,7 +270,7 @@ function CumulativeTooltip({ active, payload, speciesType }: TooltipProps) {
         {date}
       </Typography>
       <Typography variant="body2" sx={{ mb: 1 }}>
-        Total: {count} {getSpeciesDisplayName(speciesType).toLowerCase()}
+        Total: {count} {noun}
       </Typography>
       {newSpeciesList.length > 0 ? (
         <>

@@ -234,7 +234,7 @@ export default function LocationDrawMap({
   onChange,
   referenceLocations,
 }: LocationDrawMapProps) {
-  const [mapType, setMapType] = useState<'street' | 'satellite'>('satellite');
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [nonce, setNonce] = useState(0);
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 

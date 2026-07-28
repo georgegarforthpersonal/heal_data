@@ -10,6 +10,26 @@ import type { SpeciesOccurrenceDataPoint } from '../../services/api';
 /** Fixed non-leap year used to place month/day on the shared x axis. */
 const REF_YEAR = 2001;
 
+/**
+ * The years a chart should show, most recent first, capped at
+ * MAX_SEASON_YEARS.
+ *
+ * Leading years in which the species was never actually seen are dropped —
+ * surveying started before the first record, and a flat zero line burns a
+ * colour and a legend entry to say "nothing here". Zero years AFTER the first
+ * record are kept: "we looked and found none" is a real result. If nothing
+ * was ever recorded, every year stays so the chart still shows the zero line.
+ */
+export function seasonYears(data: SpeciesOccurrenceDataPoint[]): { years: number[]; truncated: boolean } {
+  const yearOf = (d: SpeciesOccurrenceDataPoint) => Number(d.survey_date.slice(0, 4));
+  const allYears = Array.from(new Set(data.map(yearOf))).sort((a, b) => b - a);
+  const productive = data.filter((d) => d.occurrence_count > 0).map(yearOf);
+  const firstProductive = productive.length > 0 ? Math.min(...productive) : null;
+  const candidates = firstProductive == null ? allYears : allYears.filter((y) => y >= firstProductive);
+  const years = candidates.slice(0, MAX_SEASON_YEARS);
+  return { years, truncated: candidates.length > years.length };
+}
+
 /** Colour per year series, most recent year first (validated categorical set —
  * the brand green stays on the current season). */
 export const YEAR_SERIES_COLORS = ['#3D8B56', '#4E7CC7', '#C2703A', '#955FC0', '#99862A'] as const;
@@ -43,12 +63,77 @@ function refTimestamp(isoDate: string): { x: number; year: number } {
   return { x: new Date(REF_YEAR, m - 1, day).getTime(), year: y };
 }
 
+/**
+ * Aggregate to monthly peaks when any shown year has more surveys than this
+ * (~fortnightly coverage). Sparse seasonal programmes keep per-survey dots —
+ * with eight visits a season every dot is the data; with weekly surveys the
+ * raw counts are visit-to-visit noise and the seasonal shape drowns.
+ */
+export const MONTHLY_AGGREGATION_THRESHOLD = 16;
+
+export function shouldAggregateMonthly(data: SpeciesOccurrenceDataPoint[]): boolean {
+  // Only the years the chart will actually show count — a dense season the
+  // 5-year cap drops mustn't force sparse shown years into monthly mode.
+  const shown = new Set(seasonYears(data).years);
+  const perYear = new Map<number, number>();
+  for (const d of data) {
+    const year = Number(d.survey_date.slice(0, 4));
+    if (!shown.has(year)) continue;
+    perYear.set(year, (perYear.get(year) ?? 0) + 1);
+  }
+  return Array.from(perYear.values()).some((n) => n > MONTHLY_AGGREGATION_THRESHOLD);
+}
+
+/**
+ * Monthly-peak variant for densely surveyed species: one point per surveyed
+ * month per year — the highest single count that month (the bird-recording
+ * "peak count" convention, e.g. WeBS). A month with surveys but no
+ * individuals is an honest zero; a month with no surveys stays a gap.
+ */
+export function buildMonthlyPeakSeries(data: SpeciesOccurrenceDataPoint[]): SeasonalSeries | null {
+  if (data.length === 0) return null;
+
+  const { years, truncated } = seasonYears(data);
+  const shown = new Set(years);
+
+  // One row per calendar month, placed mid-month on the shared axis.
+  const byMonth = new Map<number, SeasonalRow>();
+  for (const point of data) {
+    const [y, m] = point.survey_date.split('-').map(Number);
+    if (!shown.has(y)) continue;
+    const x = new Date(REF_YEAR, m - 1, 15).getTime();
+    const row = byMonth.get(x) ?? { x };
+    const key = String(y);
+    row[key] = Math.max(row[key] ?? 0, point.occurrence_count);
+    byMonth.set(x, row);
+  }
+
+  const rows = Array.from(byMonth.values()).sort((a, b) => a.x - b.x);
+  if (rows.length === 0) return null;
+  const first = new Date(rows[0].x);
+  const last = new Date(rows[rows.length - 1].x);
+  const monthTicks: number[] = [];
+  for (let m = first.getMonth(); m <= last.getMonth(); m++) {
+    monthTicks.push(new Date(REF_YEAR, m, 1).getTime());
+  }
+  const domain: [number, number] = [
+    new Date(REF_YEAR, first.getMonth(), 1).getTime(),
+    new Date(REF_YEAR, last.getMonth() + 1, 0).getTime(),
+  ];
+
+  return {
+    rows,
+    years,
+    truncated,
+    monthTicks,
+    domain,
+  };
+}
+
 export function buildSeasonalSeries(data: SpeciesOccurrenceDataPoint[]): SeasonalSeries | null {
   if (data.length === 0) return null;
 
-  const allYears = Array.from(new Set(data.map((d) => Number(d.survey_date.slice(0, 4)))))
-    .sort((a, b) => b - a);
-  const years = allYears.slice(0, MAX_SEASON_YEARS);
+  const { years, truncated } = seasonYears(data);
   const shown = new Set(years);
 
   // Two surveys of the same year on the same day merge into one point (sum).
@@ -63,6 +148,7 @@ export function buildSeasonalSeries(data: SpeciesOccurrenceDataPoint[]): Seasona
   }
 
   const rows = Array.from(byX.values()).sort((a, b) => a.x - b.x);
+  if (rows.length === 0) return null;
 
   // Month-start ticks from the first to the last surveyed month, and a domain
   // padded to whole months so the field season fills the chart.
@@ -80,7 +166,7 @@ export function buildSeasonalSeries(data: SpeciesOccurrenceDataPoint[]): Seasona
   return {
     rows,
     years,
-    truncated: allYears.length > years.length,
+    truncated,
     monthTicks,
     domain,
   };

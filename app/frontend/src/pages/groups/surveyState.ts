@@ -50,6 +50,53 @@ export function formatSurveyDate(slot: ScheduledSurvey): string {
   return dayjs(slot.window_start).format('ddd D MMM YYYY');
 }
 
+/** Date label for a recorded survey row, e.g. "Sat 27 Jun 2026". */
+export function formatRecordedDate(dateIso: string): string {
+  return dayjs(dateIso).format('ddd D MMM YYYY');
+}
+
+/**
+ * Compact date labels for the group card's schedule line, which is capped at
+ * one line: the year is dropped when the date falls in the current year (the
+ * common case for a next/last survey) and kept when it genuinely differs.
+ */
+export function formatSurveyDateShort(slot: ScheduledSurvey, today: string = todayIso()): string {
+  const year = today.slice(0, 4);
+  if (hasWindow(slot)) {
+    const start = dayjs(slot.window_start);
+    const end = dayjs(slot.window_end);
+    if (start.format('YYYY') !== year || end.format('YYYY') !== year) {
+      return formatWeekRange(slot.window_start, slot.window_end);
+    }
+    if (start.isSame(end, 'month')) {
+      return `${start.format('D')}–${end.format('D')} ${end.format('MMM')}`;
+    }
+    return `${start.format('D MMM')} – ${end.format('D MMM')}`;
+  }
+  const day = dayjs(slot.window_start);
+  return day.format('YYYY') === year ? day.format('ddd D MMM') : day.format('ddd D MMM YYYY');
+}
+
+/**
+ * Compact recorded-date label — same year-dropping rule as
+ * formatSurveyDateShort. `weekday: false` is the group card's variant, and
+ * matches precision to recency: which Tuesday a past survey fell on is of no
+ * use to anyone, so the day name goes, and once the date is a year old the
+ * day-of-month goes with it ("Nov 2025") — that's what keeps the value the
+ * width of a card column instead of truncating.
+ */
+export function formatRecordedDateShort(
+  dateIso: string,
+  today: string = todayIso(),
+  { weekday = true }: { weekday?: boolean } = {},
+): string {
+  const day = dayjs(dateIso);
+  if (day.format('YYYY') === today.slice(0, 4)) {
+    return day.format(weekday ? 'ddd D MMM' : 'D MMM');
+  }
+  return day.format(weekday ? 'ddd D MMM YYYY' : 'MMM YYYY');
+}
+
 /**
  * Compact inclusive week-range label from two ISO dates, e.g.
  *   same month  → "1–7 Jun 2026"
@@ -113,10 +160,21 @@ export function recordedThisWeek(slots: ScheduledSurvey[], today: string = today
     .sort(byWindowStart);
 }
 
-/** Soonest upcoming slot, or null if none scheduled. */
+/**
+ * The next survey still to be carried out: this week's if one is due (a slot
+ * whose window contains today hasn't happened yet, so it outranks anything
+ * later), otherwise the soonest upcoming one. Null when nothing is scheduled.
+ * Overdue slots are deliberately excluded — they're the group page's business,
+ * not a "next up" date.
+ */
 export function nextScheduledSurvey(slots: ScheduledSurvey[], today: string = todayIso()): ScheduledSurvey | null {
-  const upcoming = slots
-    .filter((s) => deriveSlotState(s, today) === 'upcoming')
+  const pending = slots
+    .filter((s) => {
+      const state = deriveSlotState(s, today);
+      return state === 'due-this-week' || state === 'upcoming';
+    })
+    // window_start ascending puts a due-this-week slot (started on or before
+    // today) ahead of every upcoming one for free.
     .sort(byWindowStart);
-  return upcoming[0] ?? null;
+  return pending[0] ?? null;
 }
