@@ -6,13 +6,11 @@
  * worklist panel (recorded count only; nothing is ever scheduled).
  */
 import { Box, Paper, Typography, Button } from '@mui/material';
-import { Add, ChevronRight } from '@mui/icons-material';
+import { Add } from '@mui/icons-material';
 import type { Survey, Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
 import { groupCardSx, groupColors, recordButtonSx } from '../../pages/groups/groupsTokens';
-import { formatRecordedDate } from '../../pages/groups/surveyState';
-import SpeciesCountChips from './SpeciesCountChips';
-import SurveyorAvatars from './SurveyorAvatars';
+import RecentSurveyRows from './RecentSurveyRows';
 import AllSurveysDoor from './AllSurveysDoor';
 
 interface RecordPanelProps {
@@ -85,62 +83,12 @@ export default function RecordPanel({
               Recent
             </Typography>
           </Box>
-          {surveys.map((survey) => (
-            // Phones: rows stack uniformly — date + avatars + chevron line,
-            // chips wrapping from the left below (same rule as AllSurveysPage).
-            <Box
-              key={survey.id}
-              onClick={() => onOpenSurvey(survey)}
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'stretch', sm: 'center' },
-                gap: { xs: 1, sm: 1.6 },
-                px: 2.25,
-                py: 1.6,
-                borderTop: `1px solid ${groupColors.dividerInner}`,
-                cursor: 'pointer',
-                '&:hover': { bgcolor: groupColors.page },
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.6, minWidth: 0, flex: 1 }}>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
-                    {formatRecordedDate(survey.date)}
-                  </Typography>
-                  {survey.location_name && (
-                    <Typography sx={{ fontSize: 13, color: groupColors.textMuted, mt: 0.25 }} noWrap>
-                      {survey.location_name}
-                    </Typography>
-                  )}
-                </Box>
-                <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1, flexShrink: 0 }}>
-                  <SurveyorAvatars surveyors={resolveSurveyors(survey.surveyor_ids)} emptyLabel="" />
-                  <ChevronRight sx={{ fontSize: 18, color: groupColors.textMuted }} />
-                </Box>
-              </Box>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.6,
-                  minWidth: 0,
-                  justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-                  flexShrink: { xs: 1, sm: 0 },
-                }}
-              >
-                <SpeciesCountChips
-                  survey={survey}
-                  fallbackSpeciesType={speciesType}
-                  justify={{ xs: 'flex-start', sm: 'flex-end' }}
-                />
-                <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1.6, flexShrink: 0 }}>
-                  <SurveyorAvatars surveyors={resolveSurveyors(survey.surveyor_ids)} emptyLabel="" />
-                  <ChevronRight sx={{ fontSize: 18, color: groupColors.textMuted }} />
-                </Box>
-              </Box>
-            </Box>
-          ))}
+          <RecentSurveyRows
+            surveys={surveys}
+            resolveSurveyors={resolveSurveyors}
+            speciesType={speciesType}
+            onOpenSurvey={onOpenSurvey}
+          />
         </>
       )}
 

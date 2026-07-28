@@ -6,15 +6,18 @@
  * vanishes), "Upcoming" (the next 3 scheduled rows), and an "All surveys"
  * door whose recorded/scheduled split says exactly what's behind it. To
  * record and Upcoming hide when empty; This week hides only when the panel
- * has nothing at all to show.
+ * has nothing at all to show. An empty diary shows the last recorded
+ * surveys instead (same Recent section as the unscheduled panel) — the
+ * panel stays useful between seasons.
  */
 import { Box, Paper, Typography, Button } from '@mui/material';
 import { Add } from '@mui/icons-material';
-import type { ScheduledSurvey, Surveyor } from '../../services/api';
+import type { ScheduledSurvey, Survey, Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
 import { groupCardSx, groupColors, recordButtonSx } from '../../pages/groups/groupsTokens';
 import { buildWorklist } from '../../pages/groups/surveyState';
 import SurveyWorklistRow from './SurveyWorklistRow';
+import RecentSurveyRows from './RecentSurveyRows';
 import AllSurveysDoor from './AllSurveysDoor';
 
 interface SurveysPanelProps {
@@ -25,12 +28,18 @@ interface SurveysPanelProps {
   resolveSurveyors: (ids: number[]) => Surveyor[];
   /** Recorded surveys total — shown alongside the scheduled count on the door. */
   recordedCount: number;
+  /** Most recent recorded surveys, newest first — the empty-diary fallback. */
+  recentSurveys: Survey[];
+  /** Icon for the zero-sightings chip on the empty-diary fallback rows. */
+  speciesType: string;
   greenIds?: Set<number>;
   onAddSurvey: (slot: ScheduledSurvey) => void;
   /** Called after a one-click sign-up/withdraw with the new surveyor ids. */
   onSignupSaved: (slotId: number, surveyorIds: number[]) => void;
   /** Open a recorded slot's survey read-only. */
   onOpenSurvey: (slot: ScheduledSurvey) => void;
+  /** Open a recorded survey from the empty-diary fallback rows. */
+  onOpenRecorded: (survey: Survey) => void;
   onViewAll: () => void;
   /** Record a survey outside the schedule (extra visits — the backend still
    * auto-links it to an open slot when the date falls in its window). */
@@ -65,10 +74,13 @@ export default function SurveysPanel({
   recordedThisWeek,
   resolveSurveyors,
   recordedCount,
+  recentSurveys,
+  speciesType,
   greenIds,
   onAddSurvey,
   onSignupSaved,
   onOpenSurvey,
+  onOpenRecorded,
   onViewAll,
   onRecordNew,
 }: SurveysPanelProps) {
@@ -106,12 +118,27 @@ export default function SurveysPanel({
         )}
       </Box>
 
+      {/* Empty diary: say so, then fall back to the last recorded surveys —
+          the same Recent section the unscheduled panel leads with. */}
       {empty && (
-        <Box sx={{ px: 2.25, py: 3 }}>
-          <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
-            No surveys need recording and none are scheduled.
-          </Typography>
-        </Box>
+        <>
+          <Box sx={{ px: 2.25, py: recentSurveys.length > 0 ? 2 : 3 }}>
+            <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
+              No scheduled surveys.
+            </Typography>
+          </Box>
+          {recentSurveys.length > 0 && (
+            <>
+              <SectionHeader label="Recent" color={groupColors.textMuted} />
+              <RecentSurveyRows
+                surveys={recentSurveys}
+                resolveSurveyors={resolveSurveyors}
+                speciesType={speciesType}
+                onOpenSurvey={onOpenRecorded}
+              />
+            </>
+          )}
+        </>
       )}
 
       {overdue.length > 0 && (

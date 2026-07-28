@@ -269,10 +269,13 @@ export default function GroupDetailPage() {
                   recordedThisWeek={recordedThisWeek(slots)}
                   resolveSurveyors={resolveSurveyors}
                   recordedCount={recordedCount}
+                  recentSurveys={recentSurveys}
+                  speciesType={speciesType}
                   greenIds={greenIds}
                   onAddSurvey={recordSlot}
                   onSignupSaved={handleSignupSaved}
                   onOpenSurvey={openSlotSurvey}
+                  onOpenRecorded={openSurvey}
                   onViewAll={() => navigate(`/groups/${typeId}/all`)}
                   onRecordNew={recordNew}
                 />
