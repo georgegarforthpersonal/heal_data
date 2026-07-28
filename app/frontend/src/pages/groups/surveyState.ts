@@ -79,10 +79,11 @@ export function formatSurveyDateShort(slot: ScheduledSurvey, today: string = tod
 
 /**
  * Compact recorded-date label — same year-dropping rule as
- * formatSurveyDateShort. `weekday: false` drops the day name too, for the
- * group card's schedule line: which Tuesday a past survey fell on is of no
- * use to anyone, and those four characters are what keep the line unbroken
- * on a phone.
+ * formatSurveyDateShort. `weekday: false` is the group card's variant, and
+ * matches precision to recency: which Tuesday a past survey fell on is of no
+ * use to anyone, so the day name goes, and once the date is a year old the
+ * day-of-month goes with it ("Nov 2025") — that's what keeps the value the
+ * width of a card column instead of truncating.
  */
 export function formatRecordedDateShort(
   dateIso: string,
@@ -90,10 +91,10 @@ export function formatRecordedDateShort(
   { weekday = true }: { weekday?: boolean } = {},
 ): string {
   const day = dayjs(dateIso);
-  const prefix = weekday ? 'ddd ' : '';
-  return day.format('YYYY') === today.slice(0, 4)
-    ? day.format(`${prefix}D MMM`)
-    : day.format(`${prefix}D MMM YYYY`);
+  if (day.format('YYYY') === today.slice(0, 4)) {
+    return day.format(weekday ? 'ddd D MMM' : 'D MMM');
+  }
+  return day.format(weekday ? 'ddd D MMM YYYY' : 'MMM YYYY');
 }
 
 /**

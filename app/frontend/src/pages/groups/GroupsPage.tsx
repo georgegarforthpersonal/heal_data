@@ -12,10 +12,10 @@ import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Typography, CircularProgress } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import { usePermissions } from '../../context/AuthContext';
-import { surveyTypesAPI, surveysAPI, scheduledSurveysAPI, dashboardAPI, type SurveyTypeWithDetails } from '../../services/api';
+import { surveyTypesAPI, surveysAPI, dashboardAPI, type SurveyTypeWithDetails } from '../../services/api';
 import { groupColors, GROUP_MAX_WIDTH } from './groupsTokens';
-import { deriveSlotState, formatRecordedDateShort, formatSurveyDateShort, nextScheduledSurvey } from './surveyState';
-import { groupPath, betaGroupNames, groupActivity, compareGroups } from './groupMeta';
+import { formatRecordedDateShort } from './surveyState';
+import { groupPath, betaGroupNames, compareGroups } from './groupMeta';
 import { totalUniqueSpecies } from '../../components/dashboard/cumulativeSeries';
 import GroupCard from '../../components/groups/GroupCard';
 import { PageTitle } from '../../components/layout/PageTitle';
@@ -24,7 +24,6 @@ interface CardData {
   surveyType: SurveyTypeWithDetails;
   surveyCount: number;
   countStat: { label: 'Species' | 'Sightings'; value: number };
-  dueWindow: string | null;
   lastSurveyDate: string | null;
 }
 
@@ -68,28 +67,18 @@ export default function GroupsPage() {
         // the second figure is countStatFor's species-or-sightings count. The
         // footer's "last" is the most recently recorded survey — the list is
         // date-descending, so it rides along on the same limit-1 totals call.
-        // The Due pill needs the soonest slot still to be done, which only
-        // worklist groups can have (unscheduled ones never have slots, so
-        // there's no point asking for them).
         const loaded = await Promise.all(
           matched.map(async (t): Promise<CardData> => {
             const details = await surveyTypesAPI.getById(t.id);
-            const scheduled = groupActivity(t.name) === 'worklist';
-            const [totalPage, slots, countStat] = await Promise.all([
+            const [totalPage, countStat] = await Promise.all([
               surveysAPI.getAll({ survey_type_id: t.id, page: 1, limit: 1 }),
-              scheduled ? scheduledSurveysAPI.getAll({ survey_type_id: t.id }) : Promise.resolve([]),
               countStatFor(details),
             ]);
-            const next = nextScheduledSurvey(slots);
             const last = totalPage.data[0] ?? null;
             return {
               surveyType: details,
               surveyCount: totalPage.total,
               countStat,
-              dueWindow:
-                next && deriveSlotState(next) === 'due-this-week'
-                  ? formatSurveyDateShort(next)
-                  : null,
               lastSurveyDate: last
                 ? formatRecordedDateShort(last.date, undefined, { weekday: false })
                 : null,
@@ -160,7 +149,6 @@ export default function GroupsPage() {
                 surveyType={c.surveyType}
                 surveyCount={c.surveyCount}
                 countStat={c.countStat}
-                dueWindow={c.dueWindow}
                 lastSurveyDate={c.lastSurveyDate}
                 onOpen={() => navigate(groupPath(c.surveyType))}
               />

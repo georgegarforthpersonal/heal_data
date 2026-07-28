@@ -147,9 +147,9 @@ describe('formatSurveyDateShort / formatRecordedDateShort', () => {
     expect(formatRecordedDateShort('2025-11-02', TODAY)).toBe('Sun 2 Nov 2025');
   });
 
-  it('drops the weekday on request, year rule unchanged', () => {
+  it('drops the weekday on request, and the day too once the year differs', () => {
     expect(formatRecordedDateShort('2026-07-21', TODAY, { weekday: false })).toBe('21 Jul');
-    expect(formatRecordedDateShort('2025-11-02', TODAY, { weekday: false })).toBe('2 Nov 2025');
+    expect(formatRecordedDateShort('2025-11-02', TODAY, { weekday: false })).toBe('Nov 2025');
   });
 });
 
