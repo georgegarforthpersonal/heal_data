@@ -393,7 +393,6 @@ export function AdminPage() {
     setFormAllowSightingDeviceSelection(false);
     setFormSightingDeviceType(null);
     setFormScheduleCadence('date');
-    setFormColor(null);
     setFormSelectedLocations([]);
     setFormSelectedDevices([]);
     setFormSelectedSpeciesTypes([]);
