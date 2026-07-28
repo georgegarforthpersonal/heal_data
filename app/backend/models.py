@@ -714,8 +714,7 @@ class SurveyTypeBase(SQLModel):
         sa_column=sa.Column("sighting_device_type", sa.String(20), nullable=True),
         description="Device type used for sighting device selection (required when allow_sighting_device_selection is true)"
     )
-    icon: Optional[str] = Field(None, max_length=50, description="Lucide icon identifier (deprecated)")
-    color: Optional[str] = Field(None, max_length=20, description="Notion-style color key (e.g., 'blue', 'purple')")
+    icon: Optional[str] = Field(None, max_length=50, description="Canopy badge icon slug (see frontend canopyIcons registry)")
     schedule_cadence: ScheduleCadence = Field(
         default=ScheduleCadence.date,
         sa_column=sa.Column("schedule_cadence", sa.String(20), nullable=False, server_default="date"),

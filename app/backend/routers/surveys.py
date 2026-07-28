@@ -240,14 +240,12 @@ async def get_surveys(
 
         result = []
         for survey in surveys_query:
-            # Get survey type name, icon, and color if available
+            # Get survey type name and icon if available
             survey_type_name = None
             survey_type_icon = None
-            survey_type_color = None
             if survey.survey_type:
                 survey_type_name = survey.survey_type.name
                 survey_type_icon = survey.survey_type.icon
-                survey_type_color = survey.survey_type.color
 
             result.append({
                 "id": survey.id,
@@ -267,8 +265,7 @@ async def get_surveys(
                 "species_breakdown": species_breakdown_map.get(survey.id, []),
                 "survey_type_id": survey.survey_type_id,
                 "survey_type_name": survey_type_name,
-                "survey_type_icon": survey_type_icon,
-                "survey_type_color": survey_type_color
+                "survey_type_icon": survey_type_icon
             })
 
         return {

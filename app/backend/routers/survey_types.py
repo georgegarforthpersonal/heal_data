@@ -234,7 +234,6 @@ async def get_survey_type(
         allow_sighting_device_selection=survey_type.allow_sighting_device_selection,
         sighting_device_type=survey_type.sighting_device_type,
         icon=survey_type.icon,
-        color=survey_type.color,
         schedule_cadence=survey_type.schedule_cadence,
         is_active=survey_type.is_active,
         locations=[
@@ -396,7 +395,6 @@ async def create_survey_type(
         allow_sighting_device_selection=survey_type.allow_sighting_device_selection,
         sighting_device_type=survey_type.sighting_device_type,
         icon=survey_type.icon,
-        color=survey_type.color,
         schedule_cadence=survey_type.schedule_cadence,
         organisation_id=org.id
     )

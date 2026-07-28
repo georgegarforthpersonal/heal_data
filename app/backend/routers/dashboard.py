@@ -471,8 +471,7 @@ async def get_species_sightings(
                 bsc.description as breeding_status_description,
                 survey_type.id as survey_type_id,
                 survey_type.name as survey_type_name,
-                survey_type.icon as survey_type_icon,
-                survey_type.color as survey_type_color
+                survey_type.icon as survey_type_icon
             FROM sighting_individual si
             JOIN sighting ON si.sighting_id = sighting.id
             JOIN survey ON sighting.survey_id = survey.id
@@ -507,8 +506,7 @@ async def get_species_sightings(
                 "breeding_status_description": row.breeding_status_description,
                 "survey_type_id": row.survey_type_id,
                 "survey_type_name": row.survey_type_name,
-                "survey_type_icon": row.survey_type_icon,
-                "survey_type_color": row.survey_type_color
+                "survey_type_icon": row.survey_type_icon
             }
             for row in rows
             if row.latitude is not None and row.longitude is not None  # Double check lat/lng exist

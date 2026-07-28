@@ -3,7 +3,6 @@
  * for its icon tile, the species type that drives its wildlife icon/charts,
  * and the name-slug URLs that make groups addressable as /groups/butterfly.
  */
-import { notionColors } from '../../theme';
 import { ORG_SLUG, surveyTypesAPI, type SurveyType, type SurveyTypeWithDetails } from '../../services/api';
 
 /**
@@ -98,23 +97,6 @@ export function recordSurveyPath(
 /** Whether the given org (defaults to the current one) has the Groups beta. */
 export function orgHasGroups(orgSlug: string = ORG_SLUG): boolean {
   return betaGroupNames(orgSlug).length > 0;
-}
-
-export interface AccentColors {
-  bg: string;
-  fg: string;
-}
-
-// Default accent when a survey type has no notion colour set (butterfly pink).
-const DEFAULT_ACCENT: AccentColors = { bg: notionColors.pink.background, fg: notionColors.pink.text };
-
-/** Accent colours for a survey type's icon tile, from its notion colour key. */
-export function accentColors(surveyType: Pick<SurveyType, 'color'>): AccentColors {
-  const key = surveyType.color as keyof typeof notionColors | null;
-  if (key && key in notionColors) {
-    return { bg: notionColors[key].background, fg: notionColors[key].text };
-  }
-  return DEFAULT_ACCENT;
 }
 
 /**
