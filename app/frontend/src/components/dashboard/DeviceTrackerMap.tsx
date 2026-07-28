@@ -17,6 +17,7 @@ import {
   TableRow,
   TableCell,
   TableContainer,
+  Chip,
 } from '@mui/material';
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, AttributionControl, useMap, useMapEvents } from 'react-leaflet';
 import { DivIcon, LatLngBounds, LatLng, Map as LeafletMap } from 'leaflet';
@@ -32,6 +33,8 @@ import type { EcotopiaDevice, EcotopiaGpsFix } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../config';
 import { brandColors } from '../../theme';
+import { freshness } from './trackerFreshness';
+import type { Freshness } from './trackerFreshness';
 
 // Tracks always start from the programme start, not a rolling window. The GPS
 // endpoint takes a `days` count, so we convert this date to days at request time.
@@ -81,32 +84,44 @@ function groupByLocation(devices: EcotopiaDevice[], zoom: number, selectedId: st
 // Circular pin for a single device. When another tracker is selected the
 // unselected pins are dimmed + desaturated (focus + context); the selected pin
 // is emphasised with a larger size and a white ring.
+//
+// A tag that has gone quiet is drawn hollow — its colour moves to the ring and
+// the text, and the fill drops out. Staleness needs its own visual channel
+// because dimming already means "not the selected tracker".
 function badgeIcon(
   text: string,
   bg: string,
-  opts: { dimmed?: boolean; emphasized?: boolean } = {},
+  opts: { dimmed?: boolean; emphasized?: boolean; stale?: boolean } = {},
 ): DivIcon {
-  const { dimmed = false, emphasized = false } = opts;
+  const { dimmed = false, emphasized = false, stale = false } = opts;
   const size = emphasized ? 40 : 34;
   const fontSize = emphasized ? 13 : 11;
   const shadow = emphasized
     ? 'box-shadow:0 0 0 3px rgba(255,255,255,0.95),0 2px 6px rgba(0,0,0,0.4);'
     : 'box-shadow:0 1px 4px rgba(0,0,0,0.35);';
   const dim = dimmed ? 'filter:grayscale(100%);opacity:0.4;' : '';
+  const fill = stale
+    ? `background:#fff;border:2px solid ${bg};color:${bg};`
+    : `background:${bg};border:2px solid #fff;color:#fff;`;
   return new DivIcon({
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;line-height:1;${shadow}${dim}">${text}</div>`,
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;${fill}display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;line-height:1;${shadow}${dim}">${text}</div>`,
     className: '',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
 }
 
-// Pill-shaped icon for co-located groups — visually distinct from individual circular pins.
-function clusterIcon(count: number, dimmed = false): DivIcon {
+// Pill-shaped icon for co-located groups — visually distinct from individual
+// circular pins, and hollow on the same rule as badgeIcon when every tag in the
+// group has gone quiet.
+function clusterIcon(count: number, dimmed = false, stale = false): DivIcon {
   const w = 42, h = 28;
   const dim = dimmed ? 'filter:grayscale(100%);opacity:0.4;' : '';
+  const fill = stale
+    ? `background:#fff;border:2px solid ${brandColors.main};color:${brandColors.main};`
+    : `background:${brandColors.main};border:2px solid #fff;color:#fff;`;
   return new DivIcon({
-    html: `<div style="width:${w}px;height:${h}px;border-radius:6px;background:${brandColors.main};border:2px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,0.35);${dim}">${count}</div>`,
+    html: `<div style="width:${w}px;height:${h}px;border-radius:6px;${fill}display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,0.35);${dim}">${count}</div>`,
     className: '',
     iconSize: [w, h],
     iconAnchor: [w / 2, h / 2],
@@ -184,11 +199,13 @@ function TrackOverlay({ device, track, color }: { device: EcotopiaDevice; track:
 function TrackerTable({
   devices,
   colors,
+  freshnessById,
   selectedId,
   onSelect,
 }: {
   devices: EcotopiaDevice[];
   colors: Map<string, string>;
+  freshnessById: Map<string, Freshness | null>;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
@@ -231,6 +248,7 @@ function TrackerTable({
             <TableCell>Sex</TableCell>
             <TableCell>Ring</TableCell>
             <TableCell sx={{ whiteSpace: 'nowrap' }}>Last fix</TableCell>
+            <TableCell sx={{ whiteSpace: 'nowrap' }}>Status</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -272,6 +290,28 @@ function TrackerTable({
               </TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>
                 {d.gps_timestamp ? dayjs(d.gps_timestamp).format('D MMM HH:mm') : '—'}
+              </TableCell>
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                {(() => {
+                  const f = freshnessById.get(d.id);
+                  if (!f) return '—';
+                  if (f.level === 'current') {
+                    return (
+                      <Typography variant="caption" color="text.secondary">
+                        {f.label}
+                      </Typography>
+                    );
+                  }
+                  return (
+                    <Chip
+                      size="small"
+                      label={f.label}
+                      color={f.level === 'silent' ? 'error' : 'warning'}
+                      variant="outlined"
+                      sx={{ height: 20, fontSize: '0.6875rem', fontWeight: 600 }}
+                    />
+                  );
+                })()}
               </TableCell>
             </TableRow>
           ))}
@@ -371,6 +411,20 @@ export function DeviceTrackerMap() {
   const deviceColors = useMemo<Map<string, string>>(
     () => new Map(devices.map((d) => [d.id, d.track_colour ?? brandColors.main])),
     [devices],
+  );
+
+  // How long ago each tag last reported. A pin marks a tag's final known
+  // position, so without this a months-old fix looks exactly like a live bird.
+  const freshnessById = useMemo<Map<string, Freshness | null>>(
+    () => new Map(devices.map((d) => [d.id, freshness(d.gps_timestamp)])),
+    [devices],
+  );
+
+  const isStale = (id: string) => (freshnessById.get(id)?.level ?? 'current') !== 'current';
+
+  const quietCount = useMemo(
+    () => locatedDevices.filter((d) => (freshnessById.get(d.id)?.level ?? 'current') !== 'current').length,
+    [locatedDevices, freshnessById],
   );
 
   const fitPoints = useMemo<[number, number][]>(
@@ -483,15 +537,18 @@ export function DeviceTrackerMap() {
               if (group.devices.length === 1) {
                 const d = group.devices[0];
                 const isSel = d.id === selectedDeviceId;
+                const f = freshnessById.get(d.id);
                 const icon = badgeIcon(tagName(d), deviceColors.get(d.id) ?? brandColors.main, {
                   emphasized: isSel,
                   dimmed: hasSelection && !isSel,
+                  stale: isStale(d.id),
                 });
                 return (
                   <Marker
                     key={group.key}
                     position={[group.latitude, group.longitude]}
                     icon={icon}
+                    title={`${tagName(d)} — last fix ${d.gps_timestamp ? dayjs(d.gps_timestamp).format('D MMM HH:mm') : 'unknown'}${f && f.level !== 'current' ? `, ${f.label.toLowerCase()}` : ''}`}
                     zIndexOffset={isSel ? 1000 : 0}
                     eventHandlers={{ click: () => toggleSelect(d.id) }}
                   />
@@ -500,7 +557,11 @@ export function DeviceTrackerMap() {
               // The selected tracker is never in a cluster, so clusters dim whenever
               // one is selected. A cluster can't toggle a track unambiguously — tap it
               // to zoom in and split it into individually-clickable pins.
-              const icon = clusterIcon(group.devices.length, hasSelection);
+              const icon = clusterIcon(
+                group.devices.length,
+                hasSelection,
+                group.devices.every((d) => isStale(d.id)),
+              );
               return (
                 <Marker
                   key={group.key}
@@ -524,7 +585,20 @@ export function DeviceTrackerMap() {
         </Box>
       </Paper>
 
-      <TrackerTable devices={locatedDevices} colors={deviceColors} selectedId={selectedDeviceId} onSelect={selectFromRow} />
+      {quietCount > 0 && (
+        <Alert severity="warning" sx={{ mt: 2, py: 0.25 }}>
+          {quietCount === 1 ? '1 tag has' : `${quietCount} tags have`} stopped reporting. Hollow pins
+          mark a tag&apos;s last known position, not a live one.
+        </Alert>
+      )}
+
+      <TrackerTable
+        devices={locatedDevices}
+        colors={deviceColors}
+        freshnessById={freshnessById}
+        selectedId={selectedDeviceId}
+        onSelect={selectFromRow}
+      />
     </Box>
   );
 }
