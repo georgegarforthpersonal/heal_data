@@ -110,7 +110,9 @@ export default function GroupMediaPage() {
     );
   }
 
-  const isPhotos = photos.length > 0 || clips.length === 0;
+  // The type's config decides the mode — inferring it from whichever list
+  // happens to be non-empty would call an empty audio group a photo gallery.
+  const isPhotos = surveyType.allow_image_upload;
   const total = isPhotos ? photos.length : clips.length;
   const viewerImages: ImageViewerItem[] = [];
   const viewerIndexOf = photos.map((p) => {

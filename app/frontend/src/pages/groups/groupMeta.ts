@@ -59,7 +59,8 @@ export function betaGroupNames(orgSlug: string = ORG_SLUG): string[] {
 
 /**
  * The activity style for a survey type's group page. Unlisted names default
- * to 'worklist' (they can't be reached — only beta names get group pages).
+ * to 'worklist' (resolveGroupTypeId refuses them, so they can't be reached —
+ * only beta names get group pages).
  */
 export function groupActivity(name: string, orgSlug: string = ORG_SLUG): GroupActivity {
   return BETA_GROUPS[orgSlug]?.[name.trim().toLowerCase()] ?? 'worklist';
@@ -149,12 +150,19 @@ export function groupPath(surveyType: Pick<SurveyType, 'id' | 'name'>): string {
 /**
  * Resolve a /groups/:typeId route param — a name slug or a numeric id (old
  * links keep working) — to the survey type id, or null when nothing matches.
- * Slugs are matched against the full survey type list; if two names ever
- * slugify identically the first wins, and the numeric URL stays canonical.
+ * Only beta group types resolve: a hand-typed /groups/moth (or any group URL
+ * in a non-beta org) is a not-found, keeping the pages behind the same gate
+ * as the grid. If two names ever slugify identically the first wins, and the
+ * numeric URL stays canonical.
  */
 export async function resolveGroupTypeId(param: string): Promise<number | null> {
-  if (/^\d+$/.test(param)) return Number(param);
-  const slug = param.toLowerCase();
+  const beta = new Set(betaGroupNames());
+  const isBeta = (t: SurveyType) => beta.has(t.name.trim().toLowerCase());
   const types = await surveyTypesAPI.getAll();
-  return types.find((t) => groupSlug(t.name) === slug)?.id ?? null;
+  if (/^\d+$/.test(param)) {
+    const match = types.find((t) => t.id === Number(param));
+    return match && isBeta(match) ? match.id : null;
+  }
+  const slug = param.toLowerCase();
+  return types.find((t) => isBeta(t) && groupSlug(t.name) === slug)?.id ?? null;
 }

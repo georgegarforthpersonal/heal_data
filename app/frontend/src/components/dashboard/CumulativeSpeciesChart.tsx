@@ -144,7 +144,10 @@ export default function CumulativeSpeciesChart({
         });
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : 'Failed to load chart data');
+        if (!active) return;
+        setError(err instanceof Error ? err.message : 'Failed to load chart data');
+        // Don't leave a stale headline count sitting beside the error.
+        onSummaryRef.current?.({ total: 0, types: [] });
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -235,6 +238,9 @@ export default function CumulativeSpeciesChart({
             // solid green slab and hiding the curve inside it.
             fillOpacity={0.12}
             strokeWidth={2}
+            // One survey date = one point = no visible path; show the dot so
+            // a young group's chart isn't blank.
+            dot={prepared.data.length === 1 ? { r: 3, fill: color } : false}
             isAnimationActive={false}
           />
         ))}

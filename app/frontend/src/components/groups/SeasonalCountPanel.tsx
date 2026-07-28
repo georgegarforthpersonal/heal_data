@@ -50,6 +50,7 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
   const typesKey = speciesTypes.join(',');
   useEffect(() => {
     let active = true;
+    setError(false);
     if (typesKey === '') {
       setSpecies([]);
       return;
@@ -70,6 +71,7 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
   useEffect(() => {
     if (selectedId == null) return;
     let active = true;
+    setError(false);
     setData(null);
     dashboardAPI
       .getSpeciesOccurrences(selectedId, undefined, undefined, surveyTypeId)

@@ -1373,9 +1373,6 @@ export const surveyTypesAPI = {
   },
 
   /**
-   * Get a specific survey type by ID with full details
-   */
-  /**
    * Latest camera trap photo and audio clip per species across all of the
    * type's surveys, most recent first (the group page's species gallery).
    */
@@ -1383,6 +1380,9 @@ export const surveyTypesAPI = {
     return fetchAPI(`/survey-types/${id}/recent-media`);
   },
 
+  /**
+   * Get a specific survey type by ID with full details
+   */
   getById: (id: number): Promise<SurveyTypeWithDetails> => {
     return fetchAPI(`/survey-types/${id}`);
   },

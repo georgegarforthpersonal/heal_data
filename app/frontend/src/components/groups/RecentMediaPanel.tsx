@@ -21,8 +21,8 @@ import { groupCardSx, groupColors } from '../../pages/groups/groupsTokens';
 import { formatRecordedDateShort } from '../../pages/groups/surveyState';
 
 /** Species shown on the panel before the "All species" door takes over. */
-export const PHOTO_PANEL_CAP = 8;
-export const CLIP_PANEL_CAP = 6;
+const PHOTO_PANEL_CAP = 8;
+const CLIP_PANEL_CAP = 6;
 
 interface RecentMediaPanelProps {
   kind: 'photos' | 'clips';

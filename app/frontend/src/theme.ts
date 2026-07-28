@@ -91,7 +91,7 @@ export const tableSizing = {
   },
 } as const;
 
-// Brand theme - uses organisation-specific colors
+// Brand theme — the one Canopy palette, for every organisation
 export const theme: Theme = createTheme({
   palette: {
     primary: {

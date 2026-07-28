@@ -77,20 +77,27 @@ export function SpeciesPage() {
   // Which species types actually have entries
   const [availableSpeciesTypes, setAvailableSpeciesTypes] = useState<string[]>([]);
 
-  // Fetch the species list (ranked) when the species type changes; auto-select the top.
+  // Fetch the species list (ranked) when the species type changes; auto-select
+  // the top. Guarded so a slow earlier group can't overwrite a fast later one.
   useEffect(() => {
+    let active = true;
     const fetchSpecies = async () => {
       try {
         const species = await dashboardAPI.getSpeciesByCount(selectedSpeciesTypes[0]);
+        if (!active) return;
         setSpeciesList(species);
         setSelectedSpeciesId(species.length > 0 ? species[0].id : null);
       } catch (err) {
+        if (!active) return;
         console.error('Failed to fetch species list:', err);
         setSpeciesList([]);
         setSelectedSpeciesId(null);
       }
     };
     fetchSpecies();
+    return () => {
+      active = false;
+    };
   }, [selectedSpeciesTypes]);
 
   // Fetch all-time sightings for the selected species (for the map).
@@ -158,8 +165,14 @@ export function SpeciesPage() {
           ),
         }}
       >
-        {speciesTypes
-          .filter((type) => availableSpeciesTypes.includes(type))
+        {/* Union, not intersection: any type the data reports but the config
+            doesn't know (e.g. old slugs before the taxonomy-collapse script
+            runs on this DB) still gets a row via the display-name fallback —
+            better a plain label than thousands of unreachable records. */}
+        {[
+          ...speciesTypes.filter((type) => availableSpeciesTypes.includes(type)),
+          ...availableSpeciesTypes.filter((type) => !speciesTypes.includes(type)),
+        ]
           .sort((a, b) => getSpeciesDisplayName(a).localeCompare(getSpeciesDisplayName(b)))
           .map((type) => (
             <MenuItem key={type} value={type} sx={{ gap: 1.25 }}>

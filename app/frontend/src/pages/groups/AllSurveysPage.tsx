@@ -103,9 +103,14 @@ export default function AllSurveysPage() {
           setNotFound(true);
           return;
         }
-        const [details, slotList, page, surveyorList] = await Promise.all([
-          surveyTypesAPI.getById(surveyTypeId),
-          scheduledSurveysAPI.getAll({ survey_type_id: surveyTypeId }),
+        const details = await surveyTypesAPI.getById(surveyTypeId);
+        if (!active) return;
+        // Unscheduled ('record') groups never have slots — don't ask for them.
+        const worklist = groupActivity(details.name) === 'worklist';
+        const [slotList, page, surveyorList] = await Promise.all([
+          worklist
+            ? scheduledSurveysAPI.getAll({ survey_type_id: surveyTypeId })
+            : Promise.resolve([]),
           surveysAPI.getAll({ survey_type_id: surveyTypeId, page: 1, limit: PAGE_SIZE }),
           surveyorsAPI.getAll(),
         ]);
@@ -168,7 +173,9 @@ export default function AllSurveysPage() {
     try {
       const nextPage = Math.floor(surveys.length / PAGE_SIZE) + 1;
       const page = await surveysAPI.getAll({ survey_type_id: surveyType.id, page: nextPage, limit: PAGE_SIZE });
-      setSurveys((prev) => [...prev, ...page.data]);
+      // A survey recorded between page fetches shifts the offsets — drop any
+      // row the list already has rather than render duplicate keys.
+      setSurveys((prev) => [...prev, ...page.data.filter((s) => !prev.some((p) => p.id === s.id))]);
       setTotal(page.total);
     } catch {
       toast.error('Failed to load more surveys');
@@ -181,7 +188,7 @@ export default function AllSurveysPage() {
     state: {
       returnTo: {
         pathname: `/groups/${typeId}/all`,
-        label: surveyType?.name ?? 'All surveys',
+        label: surveyType.name,
       },
     },
   };
@@ -215,7 +222,7 @@ export default function AllSurveysPage() {
         <GroupBreadcrumb
           crumbs={[
             { label: 'Surveys', to: '/groups' },
-            { label: surveyType?.name ?? 'Survey type', to: `/groups/${typeId}` },
+            { label: surveyType.name, to: `/groups/${typeId}` },
             { label: 'All surveys' },
           ]}
         />
@@ -225,7 +232,7 @@ export default function AllSurveysPage() {
         </Typography>
         <Typography sx={{ fontSize: 13.5, color: '#888', mb: 2 }}>
           {/* Unscheduled ('record') groups never have slots — no point saying "0 scheduled". */}
-          {surveyType?.name ?? ''} · {total} recorded
+          {surveyType.name} · {total} recorded
           {groupActivity(surveyType.name) === 'worklist' ? ` · ${scheduledCount} scheduled` : ''}, most recent first
         </Typography>
 

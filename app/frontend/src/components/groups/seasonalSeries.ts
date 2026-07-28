@@ -72,9 +72,13 @@ function refTimestamp(isoDate: string): { x: number; year: number } {
 export const MONTHLY_AGGREGATION_THRESHOLD = 16;
 
 export function shouldAggregateMonthly(data: SpeciesOccurrenceDataPoint[]): boolean {
-  const perYear = new Map<string, number>();
+  // Only the years the chart will actually show count — a dense season the
+  // 5-year cap drops mustn't force sparse shown years into monthly mode.
+  const shown = new Set(seasonYears(data).years);
+  const perYear = new Map<number, number>();
   for (const d of data) {
-    const year = d.survey_date.slice(0, 4);
+    const year = Number(d.survey_date.slice(0, 4));
+    if (!shown.has(year)) continue;
     perYear.set(year, (perYear.get(year) ?? 0) + 1);
   }
   return Array.from(perYear.values()).some((n) => n > MONTHLY_AGGREGATION_THRESHOLD);

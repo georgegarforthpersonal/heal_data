@@ -103,7 +103,8 @@ distinction is always recoverable from taxonomy if you later want to re-split.
 
 ---
 
-## Data migration (Alembic; run on staging, then prod)
+## Data migration (shipped as `scripts/refactor_species_types.py`, not Alembic;
+## run on staging — applied 24 Jul 2026 — then prod after merge)
 
 1. Insert `bee` and `plant` into `species_type`.
 2. Reclassify `bee-wasp-ant`: `UPDATE species SET species_type_id = <bee>`
@@ -155,8 +156,8 @@ distinction is always recoverable from taxonomy if you later want to re-split.
 
 ## Rollout order
 
-1. Land the bee-genus classifier + Alembic migration; run on **staging**,
-   eyeball the Bees group and the Other-invertebrates totals.
+1. Land the bee-genus classifier + data script; run on **staging**,
+   eyeball the Bees group and the Other-invertebrates totals. (Done 24 Jul 2026.)
 2. Ship the frontend config rekey + Plant icon in the same PR (config must match
    the new slugs or icons fall back).
-3. After merge, run the migration on **prod**.
+3. After merge, run the script on **prod** (`./run prod refactor_species_types.py --no-dry-run`).

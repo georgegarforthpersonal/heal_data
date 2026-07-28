@@ -11,8 +11,7 @@ import { BarChart, Bar, ResponsiveContainer, XAxis } from 'recharts';
 import dayjs from 'dayjs';
 import 'leaflet/dist/leaflet.css';
 import { stopMapAnimation } from '../../utils/stopMapAnimation';
-import type { SpeciesSightingLocation, LocationWithBoundary } from '../../services/api';
-import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
+import type { SpeciesSightingLocation } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { surveysAPI } from '../../services/api';
 import type { BreedingCategory, BreedingStatusCode } from '../../services/api';
@@ -24,9 +23,6 @@ interface SightingsMapProps {
   sightings: SpeciesSightingLocation[];
   loading?: boolean;
   error?: string | null;
-  /** Field outlines to draw under the markers. Omitted on the Species page —
-   * the boundaries competed with the sightings, which are the point. */
-  locationsWithBoundaries?: LocationWithBoundary[];
 }
 
 interface SightingCluster {
@@ -212,7 +208,7 @@ function FilterGroup<T extends string>({
   );
 }
 
-export default function SightingsMap({ sightings, loading, error, locationsWithBoundaries }: SightingsMapProps) {
+export default function SightingsMap({ sightings, loading, error }: SightingsMapProps) {
   // Fullscreen state
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
@@ -291,15 +287,11 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
   // Categories present in the data, strongest evidence first — the colour key
   // and the filter.
   const categoriesPresent = useMemo(() => {
-    const counts = new Map<MarkerCategory, number>();
-    for (const s of sightings) {
-      const c = categoryOf(s);
-      counts.set(c, (counts.get(c) ?? 0) + 1);
-    }
+    const present = new Set(sightings.map(categoryOf));
     return [...CATEGORY_RANK]
       .reverse()
-      .filter((c) => counts.has(c))
-      .map((c) => ({ category: c, count: counts.get(c)! }));
+      .filter((c) => present.has(c))
+      .map((category) => ({ category }));
   }, [sightings, categoryOf]);
 
   const filtersActive = selectedCategories.size > 0 || selectedSurveyTypes.size > 0;
@@ -672,7 +664,6 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
             center={defaultCenter}
             zoom={defaultZoom}
             style={{ height: '100%', width: '100%' }}
-            attributionControl={false}
           >
             {mapType === 'satellite' ? (
               <TileLayer
@@ -686,11 +677,6 @@ export default function SightingsMap({ sightings, loading, error, locationsWithB
                 attribution='&copy; OpenStreetMap'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-            )}
-
-            {/* Field boundaries layer (rendered before markers so markers appear on top) */}
-            {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
-              <FieldBoundaryOverlay locations={locationsWithBoundaries} />
             )}
 
             {clusters.map((cluster) => {

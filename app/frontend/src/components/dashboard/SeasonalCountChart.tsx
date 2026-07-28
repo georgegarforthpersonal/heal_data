@@ -44,12 +44,6 @@ export default function SeasonalCountChart({
   const monthly = shouldAggregateMonthly(data);
   const series = monthly ? buildMonthlyPeakSeries(data) : buildSeasonalSeries(data);
 
-  // series.years is most-recent-first so the brand green lands on the current
-  // season. Colour therefore binds to the YEAR, not to render order — lines,
-  // legend and tooltip all read chronologically without repainting anything.
-  const colourOf = (year: number) => YEAR_SERIES_COLORS[series ? series.years.indexOf(year) : 0];
-  const chronological = series ? [...series.years].sort((a, b) => a - b) : [];
-
   if (!series) {
     return (
       <Box sx={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -57,6 +51,12 @@ export default function SeasonalCountChart({
       </Box>
     );
   }
+
+  // series.years is most-recent-first so the brand green lands on the current
+  // season. Colour therefore binds to the YEAR, not to render order — lines,
+  // legend and tooltip all read chronologically without repainting anything.
+  const colourOf = (year: number) => YEAR_SERIES_COLORS[series.years.indexOf(year)];
+  const chronological = [...series.years].sort((a, b) => a - b);
 
   return (
     <>
@@ -88,7 +88,11 @@ export default function SeasonalCountChart({
               dataKey={String(year)}
               stroke={colourOf(year)}
               strokeWidth={2}
-              connectNulls
+              // Per-survey rows are keyed by exact date, so every other
+              // year's visit punches a hole in this year's series — those
+              // holes must connect. Monthly rows align across years: there a
+              // null IS "no surveys that month" and stays a visible gap.
+              connectNulls={!monthly}
               // 2px surface ring keeps dots legible where year-lines overlap.
               dot={{ r: 4, fill: colourOf(year), stroke: '#fff', strokeWidth: 2 }}
               activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}

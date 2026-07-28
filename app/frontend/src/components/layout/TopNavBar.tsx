@@ -14,7 +14,8 @@ import { orgHasGroups } from '../../pages/groups/groupMeta';
  * TopNavBar - Main navigation bar with logo and navigation icons
  *
  * Features:
- * - Logo on far left (clickable, goes to /surveys)
+ * - Logo on far left (clickable, goes to the surveys home — /groups for
+ *   groups orgs, /surveys otherwise)
  * - Navigation icons with tooltips (desktop/tablet)
  * - Hamburger menu on mobile that opens drawer
  * - Active state indication
@@ -220,7 +221,7 @@ export function TopNavBar() {
       >
         <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* Drawer Header: the workspace-header moment — the org's mark and
-              name; Canopy credits itself in the footer lockup below, matching
+              name, with Canopy crediting itself in the caption line, matching
               the auth card. */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <Box

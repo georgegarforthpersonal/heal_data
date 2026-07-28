@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
 import { AccessNotice } from '../components/auth/AccessNotice';
 import {
@@ -37,6 +37,7 @@ import type {
   Device,
 } from '../services/api';
 import { formatSurveyDate } from './groups/surveyState';
+import { readReturnTo, returnToHref } from '../utils/returnTo';
 import { SurveyFormFields, hasTimeValidationError } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -86,7 +87,11 @@ const fileKey = (f: File) => `${f.name}:${f.size}:${f.lastModified}`;
  */
 export function NewSurveyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  // Where Cancel goes and where the detail page's back button points after
+  // save — a group page when the record CTA got us here, else the surveys list.
+  const returnTo = readReturnTo(location);
   const { isLoading: authLoading } = useAuth();
   const { canEditSurveys } = usePermissions();
 
@@ -543,10 +548,11 @@ export function NewSurveyPage() {
       }
 
       // Success — land on the survey just recorded (the flat list and its
-      // ?created highlight are retired where Groups covers the org).
+      // ?created highlight are retired where Groups covers the org). The
+      // origin rides along so the detail page's back button returns there.
       saveCompleteRef.current = true;
       saveResumeRef.current = emptySaveResumeState();
-      navigate(`/surveys/${surveyId}`);
+      navigate(`/surveys/${surveyId}`, { state: { returnTo } });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create survey';
       setError(
@@ -564,7 +570,7 @@ export function NewSurveyPage() {
   // ============================================================================
 
   const handleCancel = () => {
-    navigate('/surveys');
+    navigate(returnToHref(returnTo));
   };
 
   const handleSurveyTypeChange = (surveyType: SurveyType | null) => {
