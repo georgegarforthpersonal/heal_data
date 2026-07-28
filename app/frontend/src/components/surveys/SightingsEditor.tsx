@@ -9,7 +9,7 @@ import { LocationModal } from './LocationModal';
 import { MapModeSightings } from './MapModeSightings';
 import ViewModeToggle from '../ViewModeToggle';
 import { getSightingsGridConfig } from './sightingsGridConfig';
-import { getSpeciesIcon } from '../../config';
+import { getSpeciesIcon, getSpeciesDisplayName as speciesTypeDisplayName } from '../../config';
 import { useResponsive } from '../../hooks/useResponsive';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 
@@ -147,10 +147,9 @@ export function SightingsEditor({
   // hidden and every sighting is that species.
   const singleSpecies = species.length === 1 ? species[0] : null;
 
-  // Format category name for display
-  const formatCategoryName = (category: string): string => {
-    return category.charAt(0).toUpperCase() + category.slice(1);
-  };
+  // Group headers use the central display names ('insect' -> "Other
+  // Invertebrates"), matching every other species-type surface.
+  const formatCategoryName = speciesTypeDisplayName;
 
   // Modal handlers (for mobile)
   const handleAddClick = () => {

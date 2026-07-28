@@ -3,7 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, A
 import { Close, PhotoCamera, CloudUpload } from '@mui/icons-material';
 import type { Species, BreedingStatusCode, LocationWithBoundary, Location, Device } from '../../services/api';
 import { imagesAPI, locationDisplayName } from '../../services/api';
-import { getSpeciesIcon } from '../../config';
+import { getSpeciesIcon, getSpeciesDisplayName as speciesTypeDisplayName } from '../../config';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 
 export interface SightingData {
@@ -147,10 +147,8 @@ export function AddSightingModal({
     return nameA.localeCompare(nameB);
   });
 
-  // Format category name for display
-  const formatCategoryName = (category: string): string => {
-    return category.charAt(0).toUpperCase() + category.slice(1);
-  };
+  // Central display names: 'insect' -> "Other Invertebrates" etc.
+  const formatCategoryName = speciesTypeDisplayName;
 
   const handleSave = () => {
     if (selectedSpeciesId) {
