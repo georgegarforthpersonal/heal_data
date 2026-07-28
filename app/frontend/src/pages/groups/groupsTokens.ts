@@ -11,6 +11,7 @@ export const groupColors = {
   brand: brandColors.main,
   brandDark: brandColors.dark,
   brandHover: brandColors.hover,
+  brandTint: brandColors.tint,
 
   page: '#fafafa',
   paper: '#ffffff',

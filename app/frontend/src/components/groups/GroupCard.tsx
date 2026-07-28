@@ -1,13 +1,15 @@
 /**
  * A type card on the Groups grid. The whole card is a button that opens the
  * group page. Shows the survey-type badge, name + sub-label, and one stat row
- * of up to four columns: surveys, species-or-sightings count, last survey,
- * next survey.
+ * of three columns — surveys, species-or-sightings count, last survey — the
+ * same three on every card, so the grid scans as one table. The schedule's
+ * only appearance is the Due pill in the header, and only while a survey is
+ * actually due: upcoming-but-not-due dates are diary detail that belongs on
+ * the group page.
  *
- * The dates share the row but not the figures' type size — set as figures they
- * wrapped to two lines and turned an ordinary empty schedule into a bold
- * "None scheduled". At date size all four fit one line across the card, and an
- * absent date drops its column instead of announcing itself.
+ * The date shares the row but not the figures' type size — set as a figure it
+ * wrapped to two lines. At date size it fits, and an absent date leaves its
+ * cell empty instead of announcing itself.
  */
 import { Box, Paper, ButtonBase, Typography } from '@mui/material';
 import { ChevronRight } from '@mui/icons-material';
@@ -25,12 +27,12 @@ interface GroupCardProps {
    */
   countStat: { label: 'Species' | 'Sightings'; value: number };
   /**
-   * Fourth column: the next survey still to be carried out, `due` when its
-   * window is the current one. Null for unscheduled groups, which never have
-   * slots, and for scheduled groups with an empty diary — an ordinary state,
-   * so the column simply goes rather than announcing itself.
+   * The next slot's window label, set only while that window is the current
+   * one — i.e. a survey is due right now. Null for unscheduled groups, empty
+   * diaries, and slots that are merely upcoming; the pill only ever calls for
+   * action, so its absence is the ordinary state and needs no placeholder.
    */
-  nextSurvey: { date: string; due: boolean } | null;
+  dueWindow: string | null;
   /** Third column: the most recently recorded survey. Null = none yet. */
   lastSurveyDate: string | null;
   onOpen: () => void;
@@ -45,17 +47,7 @@ interface GroupCardProps {
  * counts should lead. Both share the label size, and the row bottom-aligns, so
  * the labels sit on one baseline whatever the value above them.
  */
-function Stat({
-  label,
-  value,
-  date,
-  color,
-}: {
-  label: string;
-  value: string;
-  date?: boolean;
-  color?: string;
-}) {
+function Stat({ label, value, date }: { label: string; value: string; date?: boolean }) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography
@@ -63,7 +55,7 @@ function Stat({
           fontSize: date ? 13.5 : 17,
           fontWeight: 600,
           lineHeight: 1.25,
-          color: color ?? groupColors.textPrimary,
+          color: groupColors.textPrimary,
         }}
         noWrap
       >
@@ -80,7 +72,7 @@ export default function GroupCard({
   surveyType,
   surveyCount,
   countStat,
-  nextSurvey,
+  dueWindow,
   lastSurveyDate,
   onOpen,
 }: GroupCardProps) {
@@ -129,6 +121,24 @@ export default function GroupCard({
                 {surveyType.description}
               </Typography>
             )}
+            {dueWindow && (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  mt: 0.75,
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: '999px',
+                  bgcolor: groupColors.brandTint,
+                  color: groupColors.brandDark,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Due {dueWindow}
+              </Box>
+            )}
           </Box>
           <ChevronRight sx={{ color: '#bbb' }} />
         </Box>
@@ -140,13 +150,11 @@ export default function GroupCard({
         </Box>
 
         {/* Fixed columns, not content-sized ones: every card's Surveys /
-            Species / Last / Next land on the same four positions across the
-            grid, and a card missing a date keeps an empty cell rather than
-            sliding its remaining columns about. The date columns are wider —
-            equal quarters would starve them and pad the counts. Dates truncate
-            rather than wrap; a two-line date is what this row exists to avoid.
-            The row reads left to right in time: counts, then what happened,
-            then what's coming. */}
+            Species / Last land on the same three positions across the grid,
+            and a card missing its date keeps an empty cell rather than
+            sliding columns about. The date column is wider — equal thirds
+            would starve it and pad the counts. Dates truncate rather than
+            wrap; a two-line date is what this row exists to avoid. */}
         <Box
           sx={{
             mt: surveyType.description ? 2 : 1.5,
@@ -154,30 +162,19 @@ export default function GroupCard({
             alignItems: 'flex-end',
             columnGap: 1,
             rowGap: 1.5,
-            // Four across need ~272px of column content, which a viewport
-            // under ~390px can't give: there the dates drop to a second row
-            // rather than truncate. Above it the fractions are proportional to
-            // what each column actually holds — "Sightings" and a
-            // "13 Nov 2025" need more room than a count does.
+            // The fractions are proportional to what each column actually
+            // holds — "Sightings" and a "13 Nov 2025" need more room than a
+            // count does. Viewports under ~390px can't fit all three across:
+            // there the date drops to a second row rather than truncate.
             gridTemplateColumns: 'repeat(2, 1fr)',
             '@media (min-width:390px)': {
-              gridTemplateColumns: '1fr 1.15fr 1.75fr 2.1fr',
+              gridTemplateColumns: '1fr 1.15fr 1.9fr',
             },
           }}
         >
           <Stat label="Surveys" value={String(surveyCount)} />
           <Stat label={countStat.label} value={String(countStat.value)} />
           {lastSurveyDate ? <Stat label="Last" value={lastSurveyDate} date /> : <Box />}
-          {nextSurvey ? (
-            <Stat
-              label={nextSurvey.due ? 'Due' : 'Next'}
-              value={nextSurvey.date}
-              date
-              color={groupColors.brandDark}
-            />
-          ) : (
-            <Box />
-          )}
         </Box>
       </ButtonBase>
     </Paper>

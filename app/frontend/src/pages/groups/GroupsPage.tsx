@@ -24,7 +24,7 @@ interface CardData {
   surveyType: SurveyTypeWithDetails;
   surveyCount: number;
   countStat: { label: 'Species' | 'Sightings'; value: number };
-  nextSurvey: { date: string; due: boolean } | null;
+  dueWindow: string | null;
   lastSurveyDate: string | null;
 }
 
@@ -67,8 +67,8 @@ export default function GroupsPage() {
         // "Surveys" is the recorded total (matching the All surveys count);
         // the second figure is countStatFor's species-or-sightings count. The
         // footer's "last" is the most recently recorded survey — the list is
-        // date-descending, so it rides along on the same limit-1 totals call —
-        // and its "next" is the soonest slot still to be done, which only
+        // date-descending, so it rides along on the same limit-1 totals call.
+        // The Due pill needs the soonest slot still to be done, which only
         // worklist groups can have (unscheduled ones never have slots, so
         // there's no point asking for them).
         const loaded = await Promise.all(
@@ -86,12 +86,10 @@ export default function GroupsPage() {
               surveyType: details,
               surveyCount: totalPage.total,
               countStat,
-              nextSurvey: next
-                ? {
-                    date: formatSurveyDateShort(next),
-                    due: deriveSlotState(next) === 'due-this-week',
-                  }
-                : null,
+              dueWindow:
+                next && deriveSlotState(next) === 'due-this-week'
+                  ? formatSurveyDateShort(next)
+                  : null,
               lastSurveyDate: last
                 ? formatRecordedDateShort(last.date, undefined, { weekday: false })
                 : null,
@@ -162,7 +160,7 @@ export default function GroupsPage() {
                 surveyType={c.surveyType}
                 surveyCount={c.surveyCount}
                 countStat={c.countStat}
-                nextSurvey={c.nextSurvey}
+                dueWindow={c.dueWindow}
                 lastSurveyDate={c.lastSurveyDate}
                 onOpen={() => navigate(groupPath(c.surveyType))}
               />
