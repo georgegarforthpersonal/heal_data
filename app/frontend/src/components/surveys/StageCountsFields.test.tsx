@@ -130,21 +130,14 @@ describe('StageCountsFields disclosure', () => {
     expect(header()).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('says it is optional while nothing positive is recorded', () => {
+  it('treats recorded zeros like nothing recorded — still collapsed', () => {
     render(<Harness initial={{ larvae: 0, exuviae: 0 }} />);
     expect(header()).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('Optional — breeding evidence')).toBeInTheDocument();
   });
 
   it('starts open when a sighting already has evidence, so an edit hides nothing', () => {
     render(<Harness initial={{ ovipositing_females: 2 }} />);
     expect(header()).toHaveAttribute('aria-expanded', 'true');
-  });
-
-  it('summarises the positive counts while closed', () => {
-    render(<Harness initial={{ ovipositing_females: 2, larvae: 1 }} />);
-    fireEvent.click(header()); // starts open; close it
-    expect(screen.getByText(/2 ovipositing females, 1 larva/i)).toBeInTheDocument();
   });
 
   it('opens on tap and closes again', () => {

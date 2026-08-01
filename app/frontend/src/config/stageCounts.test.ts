@@ -1,10 +1,9 @@
 /**
- * Tests for BDS life stage / behaviour counts and the derived breeding tier.
+ * Tests for BDS life stage / behaviour counts.
  */
 
 import { describe, it, expect } from 'vitest';
 import {
-  deriveBreedingTier,
   hasPositiveStageCounts,
   hasStageCounts,
   pickStageCounts,
@@ -194,66 +193,3 @@ describe('hasStageCounts', () => {
   });
 });
 
-describe('deriveBreedingTier', () => {
-  it('returns null when nothing has been recorded', () => {
-    expect(deriveBreedingTier({}, null)).toBeNull();
-    expect(deriveBreedingTier(null, 0)).toBeNull();
-  });
-
-  it('confirms breeding on exuviae — the only absolute proof', () => {
-    const tier = deriveBreedingTier({ exuviae: 1 }, 0);
-    expect(tier?.label).toBe('Breeding confirmed');
-    expect(tier?.category).toBe('confirmed_breeder');
-  });
-
-  it('ranks exuviae above every other evidence type', () => {
-    const tier = deriveBreedingTier(
-      { exuviae: 1, larvae: 9, ovipositing_females: 3, copulating_pairs: 5 },
-      20,
-    );
-    expect(tier?.category).toBe('confirmed_breeder');
-  });
-
-  it('treats larvae, ovipositing females and emerging adults as probable', () => {
-    expect(deriveBreedingTier({ larvae: 3 }, 0)?.category).toBe('probable_breeder');
-    expect(deriveBreedingTier({ ovipositing_females: 1 }, 0)?.category).toBe('probable_breeder');
-    expect(deriveBreedingTier({ emerging_adults: 2 }, 0)?.category).toBe('probable_breeder');
-  });
-
-  it('names all the evidence that produced a probable verdict', () => {
-    const tier = deriveBreedingTier({ larvae: 3, ovipositing_females: 1 }, 0);
-    expect(tier?.evidence).toContain('larvae');
-    expect(tier?.evidence).toContain('ovipositing females');
-  });
-
-  it('ranks probable evidence above copulating pairs', () => {
-    const tier = deriveBreedingTier({ larvae: 1, copulating_pairs: 4 }, 10);
-    expect(tier?.category).toBe('probable_breeder');
-  });
-
-  it('treats copulating pairs alone as possible breeding', () => {
-    const tier = deriveBreedingTier({ copulating_pairs: 2 }, 6);
-    expect(tier?.label).toBe('Breeding possible');
-    expect(tier?.category).toBe('possible_breeder');
-  });
-
-  it('falls back to adults present when only a count was recorded', () => {
-    const tier = deriveBreedingTier({}, 12);
-    expect(tier?.label).toBe('Adults present');
-    expect(tier?.category).toBe('non_breeding');
-  });
-
-  it('does not promote a recorded zero to breeding evidence', () => {
-    const tier = deriveBreedingTier(
-      { exuviae: 0, larvae: 0, ovipositing_females: 0, copulating_pairs: 0 },
-      4,
-    );
-    expect(tier?.label).toBe('Adults present');
-  });
-
-  it('reports adults present when counts were zeroed but no adults seen', () => {
-    // Searched and found nothing: still a meaningful record, not null.
-    const tier = deriveBreedingTier({ exuviae: 0 }, 0);
-    expect(tier?.label).toBe('Adults present');
-  });
-});

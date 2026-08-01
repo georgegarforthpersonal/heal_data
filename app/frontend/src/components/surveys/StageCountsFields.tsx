@@ -19,13 +19,12 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Alert, Box, ButtonBase, Chip, Collapse, Stack, Typography } from '@mui/material';
+import { Alert, Box, ButtonBase, Collapse, Stack, Typography } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 import {
   MAX_STAGE_COUNT,
   STAGE_COUNT_FIELDS,
-  deriveBreedingTier,
   stageCountCap,
   stageCountErrors,
   summariseStageCounts,
@@ -33,13 +32,12 @@ import {
   type StageCounts,
 } from '../../config/stageCounts';
 import { notionColors } from '../../theme';
-import { CATEGORY_COLORS, CATEGORY_TEXT_COLOR } from './breedingConstants';
 import NumberStepper from './NumberStepper';
 
 interface StageCountsFieldsProps {
   value: StageCounts;
   onChange: (key: StageCountKey, next: number | null) => void;
-  /** The sighting's Count field, used to derive the tier and cross-check totals. */
+  /** The sighting's Count field, used to cross-check totals (pairs ×2 etc.). */
   adultTotal?: number | null;
   disabled?: boolean;
 }
@@ -50,9 +48,7 @@ export default function StageCountsFields({
   adultTotal,
   disabled = false,
 }: StageCountsFieldsProps) {
-  const tier = deriveBreedingTier(value, adultTotal);
   const errors = stageCountErrors(value, adultTotal);
-  const summary = summariseStageCounts(value);
 
   const [expanded, setExpanded] = useState(() => summariseStageCounts(value) !== null);
 
@@ -80,30 +76,10 @@ export default function StageCountsFields({
           '&:hover': { bgcolor: 'action.hover' },
         }}
       >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle2">Life stage &amp; behaviour</Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: summary ? 'text.secondary' : 'text.disabled', display: 'block' }}
-          >
-            {summary ?? 'Optional — breeding evidence'}
-          </Typography>
-        </Box>
+        {/* Title and chevron only — the counts below speak for themselves,
+            so no summary line and no derived breeding-tier verdict. */}
+        <Typography variant="subtitle2">Life stage &amp; behaviour</Typography>
         <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
-          {/* "Adults present" is derived from the count alone, so it would sit
-              on every record saying nothing. Only show a tier that reports
-              actual breeding evidence. */}
-          {tier && tier.category !== 'non_breeding' && (
-            <Chip
-              size="small"
-              label={tier.label}
-              sx={{
-                bgcolor: CATEGORY_COLORS[tier.category],
-                color: CATEGORY_TEXT_COLOR,
-                fontWeight: 600,
-              }}
-            />
-          )}
           <ExpandMoreIcon
             sx={{
               transition: 'transform .2s',

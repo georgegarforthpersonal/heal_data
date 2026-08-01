@@ -8,16 +8,14 @@
  *
  * This is deliberately shaped differently from the BTO breeding codes used for
  * birds. BTO asks the recorder to classify each individual with an evidence
- * code; BDS asks for raw counts and derives the proof-of-breeding tier from
- * them, and is explicit that the criteria "should not replace the recording of
- * raw data". So we store the counts and compute the tier (deriveBreedingTier).
+ * code; BDS asks for raw counts — and the raw counts are all we show; no
+ * derived proof-of-breeding verdict (cut on George's ask, Aug 2026).
  *
  * Sources:
  *   BDS Odonata Recording Form (9/11/22)
  *   BDS Proof of Breeding Criteria v4 (20/11/21)
  */
 
-import type { BreedingCategory } from '../services/api';
 
 /** The five BDS count columns beyond the adult total. */
 export interface StageCounts {
@@ -194,71 +192,6 @@ export function summariseStageCounts(counts: StageCounts | null | undefined): st
     .join(', ');
 }
 
-export interface BreedingTier {
-  label: string;
-  /** Reuses the BTO category vocabulary so tier colours stay consistent app-wide. */
-  category: BreedingCategory;
-  /** Which counts produced this verdict, for an explanatory tooltip. */
-  evidence: string;
-}
-
-const positive = (value: number | null | undefined): boolean =>
-  typeof value === 'number' && value > 0;
-
-/**
- * Derive the BDS proof-of-breeding tier from the recorded counts.
- *
- * Per BDS Proof of Breeding Criteria v4:
- *   Successful breeding — Confirmed: exuvia present (absolute proof).
- *   Successful breeding — Probable: larva, ovipositing female, or teneral.
- *   Possible breeding:              pair copulating.
- *   Adults present:                 none of the above.
- *
- * Returns null when nothing at all has been recorded, so callers can show
- * nothing rather than a misleading "Adults present".
- */
-export function deriveBreedingTier(
-  counts: StageCounts | null | undefined,
-  adultTotal?: number | null,
-): BreedingTier | null {
-  const c = counts ?? {};
-
-  if (positive(c.exuviae)) {
-    return {
-      label: 'Breeding confirmed',
-      category: 'confirmed_breeder',
-      evidence: 'Exuviae present — proof a specimen completed its life cycle here.',
-    };
-  }
-
-  const probable = [
-    positive(c.larvae) ? 'larvae' : null,
-    positive(c.ovipositing_females) ? 'ovipositing females' : null,
-    positive(c.emerging_adults) ? 'emerging adults' : null,
-  ].filter(Boolean) as string[];
-  if (probable.length > 0) {
-    return {
-      label: 'Breeding probable',
-      category: 'probable_breeder',
-      evidence: `Recorded ${probable.join(', ')} at a suitable water body.`,
-    };
-  }
-
-  if (positive(c.copulating_pairs)) {
-    return {
-      label: 'Breeding possible',
-      category: 'possible_breeder',
-      evidence: 'Copulating pairs seen.',
-    };
-  }
-
-  if (positive(adultTotal) || hasStageCounts(c)) {
-    return {
-      label: 'Adults present',
-      category: 'non_breeding',
-      evidence: 'No breeding evidence recorded.',
-    };
-  }
-
-  return null;
-}
+// The derived BDS proof-of-breeding tier ("Breeding possible/probable/
+// confirmed") was cut on George's ask, 1 Aug 2026 — the raw counts are the
+// record; no derived verdict is shown anywhere.

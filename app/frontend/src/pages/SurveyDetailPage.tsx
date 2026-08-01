@@ -1294,10 +1294,7 @@ export function SurveyDetailPage() {
                                 visible in the entry widget and the export. */}
                             {hasPositiveStageCounts(pickStageCounts(sighting)) && (
                               <Box sx={{ px: 1.5, pb: 1.5 }}>
-                                <StageCountsSummary
-                                  counts={pickStageCounts(sighting)}
-                                  adultTotal={sighting.count}
-                                />
+                                <StageCountsSummary counts={pickStageCounts(sighting)} />
                               </Box>
                             )}
 
