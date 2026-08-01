@@ -2,17 +2,18 @@
  * A single row in the Surveys panel's Scheduled list. The date — a single day
  * or a week range, with the year — is the identifier and heads the row; there
  * is no calendar tile or icon (a week has no single day to pin one to). The
- * middle carries the location and status, never a title.
+ * middle carries the location and a status chip ("Overdue" amber, "Due this
+ * week" blue — siblings, styled alike), never a title.
  *
- * Actions by state: overdue rows record only (the week has passed, surveyors
- * are captured on the record form); due-this-week rows both sign up and record
- * (people join surveys later in the current week) and carry a "Due this week"
- * chip so the current week stands out inside the single chronological list;
- * upcoming rows sign up only. Recorded surveys don't appear here at all —
- * they live in the panel's Recent rows.
+ * Actions by state: overdue rows keep their own Record button — the panel
+ * header's Record survey can't fulfil a past week unless the user knows to
+ * backdate, so the row carries the slot context (right week, right location,
+ * explicit link). Due-this-week and upcoming rows sign up only; the header
+ * button covers recording the current week (its date auto-links). Recorded
+ * surveys don't appear here at all — they live in the panel's Recent rows.
  */
 import { Box, Button, Typography } from '@mui/material';
-import { Add, WarningAmberRounded } from '@mui/icons-material';
+import { Add } from '@mui/icons-material';
 import type { ScheduledSurvey, Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
 import SelfSignupButton from './SelfSignupButton';
@@ -88,15 +89,9 @@ export default function SurveyWorklistRow({
               {slot.location_name}
             </Typography>
           )}
-          {needsSurvey && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-              <WarningAmberRounded sx={{ fontSize: 15, color: groupColors.amberText }} />
-              <Typography sx={{ fontSize: 13.5, color: groupColors.amberText }}>
-                Overdue — no survey recorded
-              </Typography>
-            </Box>
-          )}
-          {dueThisWeek && (
+          {/* Overdue and Due this week are sibling states, so their chips
+              share a shape and differ only in colour. */}
+          {(needsSurvey || dueThisWeek) && (
             <Box
               sx={{
                 display: 'inline-block',
@@ -104,13 +99,13 @@ export default function SurveyWorklistRow({
                 px: 1,
                 py: 0.3,
                 borderRadius: '6px',
-                bgcolor: '#DCE8F2',
-                color: '#2C5F8A',
+                bgcolor: needsSurvey ? '#FBF3DB' : '#DCE8F2',
+                color: needsSurvey ? groupColors.amberMonth : '#2C5F8A',
                 fontSize: 12,
                 fontWeight: 600,
               }}
             >
-              Due this week
+              {needsSurvey ? 'Overdue' : 'Due this week'}
             </Box>
           )}
         </Box>
@@ -126,25 +121,6 @@ export default function SurveyWorklistRow({
 
       {needsSurvey ? (
         recordButton
-      ) : dueThisWeek ? (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            flexWrap: 'wrap',
-            gap: 1,
-            flexShrink: 0,
-          }}
-        >
-          {surveyors.length > 0 && (
-            <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
-              <SurveyorAvatars surveyors={surveyors} greenIds={greenIds} emptyLabel="" />
-            </Box>
-          )}
-          {assignButton}
-          {recordButton}
-        </Box>
       ) : (
         <Box
           sx={{

@@ -44,7 +44,7 @@ const STATUS_STYLES: Record<SlotState, { label: string; color: string; bg: strin
   recorded: { label: 'Recorded', color: '#2E6B42', bg: '#DBEDDB' },
   upcoming: { label: 'Upcoming', color: '#454648', bg: '#EBECED' },
   'due-this-week': { label: 'Due this week', color: '#2C5F8A', bg: '#DCE8F2' },
-  'needs-survey': { label: 'Needs survey', color: groupColors.amberMonth, bg: '#FBF3DB' },
+  'needs-survey': { label: 'Overdue', color: groupColors.amberMonth, bg: '#FBF3DB' },
   cancelled: { label: 'Cancelled', color: '#888888', bg: '#EBECED' },
 };
 
