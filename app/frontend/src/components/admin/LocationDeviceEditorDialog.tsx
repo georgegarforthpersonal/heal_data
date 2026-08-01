@@ -45,7 +45,7 @@ import type {
   DeviceUpdate,
 } from '../../services/api';
 import { geometryLengthM, type GeoJsonGeometry, type Position } from '../../utils/geometry';
-import { parseCoordinateInput } from '../../utils/coords';
+import { parseCoordinateInput, parseCoordinateList } from '../../utils/coords';
 import { splitLine } from '../../utils/sectorGeometry';
 import { DEVICE_TYPE_LABELS } from '../../utils/deviceIcon';
 import { brandColors } from '../../theme';
@@ -115,6 +115,9 @@ export default function LocationDeviceEditorDialog({
   // Typed coordinate entry for points (lat/lng or OS grid ref).
   const [coordInput, setCoordInput] = useState('');
   const [coordError, setCoordError] = useState<string | null>(null);
+  // Pasted coordinate list, for building a route or area in one go.
+  const [coordListInput, setCoordListInput] = useState('');
+  const [coordListErrors, setCoordListErrors] = useState<string[]>([]);
   // Bumped when coordinates are typed in, so the map reloads the new point.
   const [placeNonce, setPlaceNonce] = useState(0);
 
@@ -134,6 +137,8 @@ export default function LocationDeviceEditorDialog({
     setSaving(false);
     setCoordInput('');
     setCoordError(null);
+    setCoordListInput('');
+    setCoordListErrors([]);
     setKind(mode === 'edit' ? editKind ?? 'location' : 'location');
 
     if (location) {
@@ -197,6 +202,8 @@ export default function LocationDeviceEditorDialog({
     setSectorIds([]);
     setCoordInput('');
     setCoordError(null);
+    setCoordListInput('');
+    setCoordListErrors([]);
   };
 
   // Place (or move) the point from typed coordinates: a lat/lng pair or an OS
@@ -211,6 +218,48 @@ export default function LocationDeviceEditorDialog({
     setPlaceNonce((n) => n + 1);
     setCoordInput('');
     setCoordError(null);
+  };
+
+  /**
+   * Build a route or area from a pasted list of coordinates, in the order
+   * given. Replaces any existing shape; the result stays fully editable on the
+   * map, so a list is a starting point rather than a commitment.
+   */
+  const handleBuildFromList = () => {
+    const result = parseCoordinateList(coordListInput);
+    if (!result.ok) {
+      setCoordListErrors(result.errors);
+      return;
+    }
+
+    const positions: Position[] = result.points.map((p) => [p.lng, p.lat]);
+    const minimum = locationType === 'area' ? 3 : 2;
+    if (positions.length < minimum) {
+      setCoordListErrors([
+        `A ${locationType} needs at least ${minimum} coordinates; ${positions.length} given.`,
+      ]);
+      return;
+    }
+
+    if (locationType === 'area') {
+      // GeoJSON polygon rings must close; do it for them rather than making
+      // them repeat the first coordinate at the end.
+      const [first] = positions;
+      const last = positions[positions.length - 1];
+      const ring =
+        first[0] === last[0] && first[1] === last[1] ? positions : [...positions, first];
+      setGeometry({ type: 'Polygon', coordinates: [ring] });
+    } else {
+      setGeometry({ type: 'LineString', coordinates: positions });
+    }
+
+    // A pasted list replaces the shape, so any sector dividers (fractions of
+    // the old line) no longer mean anything.
+    setSectorDividers([]);
+    setSectorNames([]);
+    setSectorIds([]);
+    setPlaceNonce((n) => n + 1);
+    setCoordListErrors([]);
   };
 
   const handleGeometryChange = (next: GeoJsonGeometry | null) => {
@@ -446,6 +495,57 @@ export default function LocationDeviceEditorDialog({
                         Place
                       </Button>
                     </Stack>
+                  )}
+
+                  {(locationType === 'route' || locationType === 'area') && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Build from a list of coordinates
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mb: 1, display: 'block' }}
+                      >
+                        One per line, in the order they are walked. OS grid references or decimal
+                        latitude, longitude. A list index and any notes after the coordinate are
+                        ignored, so you can paste straight from a survey document. This replaces
+                        the current shape, which stays editable on the map afterwards.
+                      </Typography>
+                      <TextField
+                        multiline
+                        minRows={4}
+                        fullWidth
+                        size="small"
+                        placeholder={'1. ST734400 – Start from the office\n2. ST734399\n3. ST733399'}
+                        value={coordListInput}
+                        onChange={(e) => {
+                          setCoordListInput(e.target.value);
+                          setCoordListErrors([]);
+                        }}
+                        error={coordListErrors.length > 0}
+                        disabled={saving}
+                        sx={{ mb: 1 }}
+                      />
+                      {coordListErrors.length > 0 && (
+                        <Alert severity="error" sx={{ mb: 1 }}>
+                          {coordListErrors.map((message) => (
+                            <Typography key={message} variant="body2">
+                              {message}
+                            </Typography>
+                          ))}
+                        </Alert>
+                      )}
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleBuildFromList}
+                        disabled={saving || !coordListInput.trim()}
+                        sx={{ textTransform: 'none', fontWeight: 600 }}
+                      >
+                        {locationType === 'area' ? 'Build area' : 'Build route'}
+                      </Button>
+                    </Box>
                   )}
                 </>
               )}

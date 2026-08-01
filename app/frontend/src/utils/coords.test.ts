@@ -3,7 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseLatLng, parseGridRef, parseCoordinateInput } from './coords';
+import {
+  parseLatLng,
+  parseGridRef,
+  parseCoordinateInput,
+  parseCoordinateList,
+} from './coords';
 
 describe('parseLatLng', () => {
   it('parses comma-and-space separated coordinates', () => {
@@ -173,5 +178,81 @@ describe('parseCoordinateInput', () => {
     const result = parseCoordinateInput('ST 734 4001');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain('even number of digits');
+  });
+});
+
+describe('parseCoordinateList', () => {
+  it('reads one coordinate per line', () => {
+    const result = parseCoordinateList('ST734400\nST734399\nST733399');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.points).toHaveLength(3);
+      expect(result.points[0].lat).toBeCloseTo(51.15908, 4);
+      expect(result.points[2].lng).toBeCloseTo(-2.382461, 4);
+    }
+  });
+
+  it('keeps the order given, which is the walking order of the route', () => {
+    const result = parseCoordinateList('ST733399\nST734400');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.points.map((p) => p.source)).toEqual(['ST733399', 'ST734400']);
+    }
+  });
+
+  it('reads lines pasted straight out of the survey document', () => {
+    // Verbatim from "Heal Somerset - DRAGONFLY survey route v2.pdf".
+    const pasted = [
+      '1: ST734400 – Start from the office, cross the road and pass through the gate.',
+      '2. ST734399 – Continue along mown path, head up and into next field.',
+      '3. ST733399 – Cross stream, check banks and into field next to railway line.',
+    ].join('\n');
+
+    const result = parseCoordinateList(pasted);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.points.map((p) => p.source)).toEqual(['ST734400', 'ST734399', 'ST733399']);
+    }
+  });
+
+  it('skips blank lines', () => {
+    const result = parseCoordinateList('ST734400\n\n   \nST734399\n');
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.points).toHaveLength(2);
+  });
+
+  it('accepts decimal coordinates and a mix of both formats', () => {
+    const result = parseCoordinateList('51.15908, -2.381038\nST734399');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.points).toHaveLength(2);
+      expect(result.points[0].lat).toBeCloseTo(51.15908, 4);
+    }
+  });
+
+  it('accepts spaced grid references within a list', () => {
+    const result = parseCoordinateList('ST 734 400\nST 733 399');
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.points).toHaveLength(2);
+  });
+
+  it('reports every bad line at once, with its line number', () => {
+    const result = parseCoordinateList('ST734400\nnot a coordinate\nST733399\nZZ999999');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toHaveLength(2);
+      expect(result.errors[0]).toContain('Line 2');
+      expect(result.errors[1]).toContain('Line 4');
+    }
+  });
+
+  it('rejects an empty list', () => {
+    expect(parseCoordinateList('').ok).toBe(false);
+    expect(parseCoordinateList('\n  \n').ok).toBe(false);
+  });
+
+  it('does not mistake prose for a coordinate', () => {
+    const result = parseCoordinateList('Start from the office and cross the road');
+    expect(result.ok).toBe(false);
   });
 });

@@ -219,3 +219,70 @@ export function parseCoordinateInput(input: string): ParseCoordinateResult {
   }
   return { ...result, kind: 'latlng' };
 }
+
+export interface ParsedCoordinatePoint {
+  lat: number;
+  lng: number;
+  /** The text the coordinate was read from, for showing back to the user. */
+  source: string;
+}
+
+export type ParseCoordinateListResult =
+  | { ok: true; points: ParsedCoordinatePoint[] }
+  | { ok: false; errors: string[] };
+
+/** The coordinate at the start of a string, or undefined if there isn't one. */
+function leadingCoordinate(text: string): string | undefined {
+  return text.match(LEADING_GRID_REF)?.[1] ?? text.match(LEADING_LAT_LNG)?.[1];
+}
+
+// A leading list index: "1.", "2:", "3 -" and so on.
+const LIST_INDEX = /^\s*\d{1,3}\s*[.):-]\s*/;
+// The coordinate at the start of a line, ignoring any prose after it. Grid refs
+// end at the first non-digit; lat/lng pairs at the end of the second number.
+const LEADING_GRID_REF = /^([A-Za-z]{2}\s*\d[\d\s]*)/;
+const LEADING_LAT_LNG = /^([+-]?\d{1,3}(?:\.\d+)?(?:\s*,\s*|\s+)[+-]?\d{1,3}(?:\.\d+)?)/;
+
+/**
+ * Parse a whole list of coordinates, one per line, into ordered points.
+ *
+ * Tolerant of text pasted straight out of a survey document: an optional list
+ * index is stripped and any prose following the coordinate is ignored, so
+ * "1: ST734400 - Start from the office, cross the road" reads as ST734400.
+ * Blank lines are skipped. Either supported format may be used, and they may
+ * be mixed.
+ *
+ * Returns every bad line at once rather than stopping at the first, so a long
+ * paste can be fixed in one pass.
+ */
+export function parseCoordinateList(input: string): ParseCoordinateListResult {
+  const points: ParsedCoordinatePoint[] = [];
+  const errors: string[] = [];
+
+  input.split(/\r?\n/).forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    if (!line) return;
+
+    // Try the line as it stands before stripping any list index: a decimal
+    // latitude like "51.15908, -2.3" itself begins "51.", which would
+    // otherwise be mistaken for the index "51.".
+    const token = leadingCoordinate(line) ?? leadingCoordinate(line.replace(LIST_INDEX, '').trim());
+    if (!token) {
+      errors.push(`Line ${index + 1}: could not read a coordinate from "${line}"`);
+      return;
+    }
+
+    const parsed = parseCoordinateInput(token.trim());
+    if (!parsed.ok) {
+      errors.push(`Line ${index + 1}: ${parsed.error}`);
+      return;
+    }
+    points.push({ lat: parsed.lat, lng: parsed.lng, source: token.trim() });
+  });
+
+  if (errors.length > 0) return { ok: false, errors };
+  if (points.length === 0) {
+    return { ok: false, errors: ['Enter at least one coordinate, one per line.'] };
+  }
+  return { ok: true, points };
+}
