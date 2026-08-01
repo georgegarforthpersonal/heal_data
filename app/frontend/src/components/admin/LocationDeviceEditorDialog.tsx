@@ -45,6 +45,7 @@ import type {
   DeviceUpdate,
 } from '../../services/api';
 import { geometryLengthM, type GeoJsonGeometry, type Position } from '../../utils/geometry';
+import { parseCoordinateInput } from '../../utils/coords';
 import { splitLine } from '../../utils/sectorGeometry';
 import { DEVICE_TYPE_LABELS } from '../../utils/deviceIcon';
 import { brandColors } from '../../theme';
@@ -111,6 +112,11 @@ export default function LocationDeviceEditorDialog({
   const [sectorDividers, setSectorDividers] = useState<number[]>([]);
   const [sectorNames, setSectorNames] = useState<string[]>([]);
   const [sectorIds, setSectorIds] = useState<(number | undefined)[]>([]);
+  // Typed coordinate entry for points (lat/lng or OS grid ref).
+  const [coordInput, setCoordInput] = useState('');
+  const [coordError, setCoordError] = useState<string | null>(null);
+  // Bumped when coordinates are typed in, so the map reloads the new point.
+  const [placeNonce, setPlaceNonce] = useState(0);
 
   // Device form
   const [deviceName, setDeviceName] = useState('');
@@ -126,6 +132,8 @@ export default function LocationDeviceEditorDialog({
     if (!open) return;
     setError(null);
     setSaving(false);
+    setCoordInput('');
+    setCoordError(null);
     setKind(mode === 'edit' ? editKind ?? 'location' : 'location');
 
     if (location) {
@@ -187,6 +195,22 @@ export default function LocationDeviceEditorDialog({
     setSectorDividers([]);
     setSectorNames([]);
     setSectorIds([]);
+    setCoordInput('');
+    setCoordError(null);
+  };
+
+  // Place (or move) the point from typed coordinates: a lat/lng pair or an OS
+  // grid reference. Remounts the map controller so it loads and frames it.
+  const handlePlaceTyped = () => {
+    const result = parseCoordinateInput(coordInput);
+    if (!result.ok) {
+      setCoordError(result.error);
+      return;
+    }
+    setGeometry({ type: 'Point', coordinates: [result.lng, result.lat] });
+    setPlaceNonce((n) => n + 1);
+    setCoordInput('');
+    setCoordError(null);
   };
 
   const handleGeometryChange = (next: GeoJsonGeometry | null) => {
@@ -385,7 +409,44 @@ export default function LocationDeviceEditorDialog({
                     value={geometry}
                     onChange={handleGeometryChange}
                     referenceLocations={locationReferenceForMap}
+                    remountKey={placeNonce}
                   />
+                  {locationType === 'point' && (
+                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label={geometry ? 'Move to coordinates' : 'Set by coordinates'}
+                        placeholder="e.g. ST 734 400 or 51.12345, -2.34567"
+                        InputLabelProps={{ shrink: true }}
+                        value={coordInput}
+                        onChange={(e) => {
+                          setCoordInput(e.target.value);
+                          setCoordError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handlePlaceTyped();
+                          }
+                        }}
+                        error={!!coordError}
+                        helperText={
+                          coordError || 'OS grid reference or decimal latitude, longitude (WGS84)'
+                        }
+                        disabled={saving}
+                      />
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={handlePlaceTyped}
+                        disabled={saving || !coordInput.trim()}
+                        sx={{ textTransform: 'none', fontWeight: 600, mt: '5px' }}
+                      >
+                        Place
+                      </Button>
+                    </Stack>
+                  )}
                 </>
               )}
 

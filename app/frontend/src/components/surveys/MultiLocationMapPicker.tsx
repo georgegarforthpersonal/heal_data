@@ -27,7 +27,7 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
 import { stopMapAnimation } from '../../utils/stopMapAnimation';
-import { parseLatLng } from '../../utils/coords';
+import { parseCoordinateInput } from '../../utils/coords';
 
 import type { BreedingStatusCode, BreedingCategory, LocationWithBoundary } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
@@ -204,7 +204,7 @@ export default function MultiLocationMapPicker({
 
   // Add a location from the typed coordinate input
   const handleAddTyped = useCallback(() => {
-    const result = parseLatLng(coordInput);
+    const result = parseCoordinateInput(coordInput);
     if (!result.ok) {
       setCoordError(result.error);
       return;
@@ -434,7 +434,7 @@ export default function MultiLocationMapPicker({
           size="small"
           fullWidth
           label="Add by coordinates"
-          placeholder="e.g. 51.12345, -2.34567"
+          placeholder="e.g. 51.12345, -2.34567 or ST 734 400"
           InputLabelProps={{ shrink: true }}
           value={coordInput}
           onChange={(e) => {
@@ -448,7 +448,7 @@ export default function MultiLocationMapPicker({
             }
           }}
           error={!!coordError}
-          helperText={coordError || 'Decimal latitude, longitude (WGS84)'}
+          helperText={coordError || 'Decimal latitude, longitude (WGS84) or an OS grid reference'}
           disabled={disabled || isAtMax}
         />
         <Button

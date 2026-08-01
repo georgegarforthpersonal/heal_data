@@ -225,6 +225,11 @@ interface LocationDrawMapProps {
   onChange: (geometry: GeoJsonGeometry | null) => void;
   /** Other locations shown faintly for context and snapping. */
   referenceLocations?: LocationWithBoundary[];
+  /**
+   * Bump to remount the drawing controller after setting `value` from outside
+   * the map (e.g. typed coordinates), so the new shape is loaded and framed.
+   */
+  remountKey?: number;
 }
 
 export default function LocationDrawMap({
@@ -233,6 +238,7 @@ export default function LocationDrawMap({
   value,
   onChange,
   referenceLocations,
+  remountKey = 0,
 }: LocationDrawMapProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [nonce, setNonce] = useState(0);
@@ -240,7 +246,7 @@ export default function LocationDrawMap({
 
   // Remount the geoman controller whenever the type or colour changes or the
   // user clears, so the drawing style always matches the current selection.
-  const drawKey = `${locationType}-${color ?? 'default'}-${nonce}`;
+  const drawKey = `${locationType}-${color ?? 'default'}-${nonce}-${remountKey}`;
 
   const handleClear = () => {
     onChange(null);
