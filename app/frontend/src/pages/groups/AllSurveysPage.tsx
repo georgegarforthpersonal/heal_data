@@ -331,7 +331,9 @@ export default function AllSurveysPage() {
                           : formatRecordedDate(row.survey.date)}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.4, minWidth: 0 }}>
-                        <StatusChip state={state} />
+                        {/* Every Past row is recorded, so only schedule rows
+                            need a status chip. */}
+                        {row.kind === 'slot' && <StatusChip state={state} />}
                         {locationName && (
                           <Typography sx={{ fontSize: 13, color: groupColors.textMuted }} noWrap>
                             {locationName}
