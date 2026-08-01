@@ -2,16 +2,17 @@
  * The Surveys worklist panel, two groups mirroring the All surveys page's
  * Past | Scheduled vocabulary:
  *
- * "Scheduled" is one chronological list, soonest first — overdue rows land
- * naturally on top (amber row + chip carry the urgency; no separate section),
- * this week's row next (a "Due this week" chip marks it), then the next 3
- * upcoming rows. The header's Record survey button is the only way to record:
- * the survey's date decides which week it fulfils, so rows carry sign-up
- * only. "Recent" is the last recorded surveys with their species counts —
- * past results are always visible on the page, never only behind a door. A
- * recorded this-week survey simply appears as the newest Recent row, so the
- * current week never vanishes from the panel. The "Past surveys" door at the
- * foot leads to the full history.
+ * The needs-attention rows — overdue weeks (amber) and this week's survey
+ * (blue "Due this week" chip) — sit on top with no section header: their
+ * chips are their labels, and a header's "next N" wording would misdescribe
+ * them. "Scheduled" below them counts only genuinely-upcoming weeks, so its
+ * "showing next 3" is literally true. The header's Record survey button is
+ * the only way to record: the survey's date decides which week it fulfils,
+ * so rows carry sign-up only. "Recent" is the last 3 recorded surveys with
+ * their species counts — past results are always visible on the page, never
+ * only behind a door. A recorded this-week survey simply appears as the
+ * newest Recent row, so the current week never vanishes from the panel. The
+ * "Past surveys" door at the foot leads to the full history.
  */
 import { Box, Paper, Typography, Button } from '@mui/material';
 import { Add } from '@mui/icons-material';
@@ -81,13 +82,11 @@ export default function SurveysPanel({
 }: SurveysPanelProps) {
   const { canEditSurveys } = usePermissions();
   const { dueThisWeek, overdue, upcoming, upcomingTotal } = buildWorklist(slots);
-  const scheduledTotal = overdue.length + dueThisWeek.length + upcomingTotal;
-  // Chronological, soonest first: overdue windows precede this week's, which
-  // precedes the upcoming ones — concatenation IS the sort.
-  const scheduled: { slot: ScheduledSurvey; state: 'needs-survey' | 'due-this-week' | 'upcoming' }[] = [
+  // Chronological, soonest first: overdue windows precede this week's —
+  // concatenation IS the sort.
+  const attention: { slot: ScheduledSurvey; state: 'needs-survey' | 'due-this-week' }[] = [
     ...overdue.map((slot) => ({ slot, state: 'needs-survey' as const })),
     ...dueThisWeek.map((slot) => ({ slot, state: 'due-this-week' as const })),
-    ...upcoming.map((slot) => ({ slot, state: 'upcoming' as const })),
   ];
   const recent = recentSurveys.slice(0, 3);
 
@@ -119,7 +118,20 @@ export default function SurveysPanel({
         )}
       </Box>
 
-      {scheduled.length === 0 ? (
+      {/* Needs attention: overdue weeks, then this week's survey. No header —
+          each row's chip is its label. */}
+      {attention.map(({ slot, state }) => (
+        <SurveyWorklistRow
+          key={slot.id}
+          slot={slot}
+          state={state}
+          surveyors={resolveSurveyors(slot.surveyor_ids)}
+          greenIds={greenIds}
+          onSignupSaved={onSignupSaved}
+        />
+      ))}
+
+      {attention.length === 0 && upcomingTotal === 0 ? (
         // Empty diary: say so — the Recent rows below still carry the panel
         // between seasons.
         <Box sx={{ px: 2.25, py: recent.length > 0 ? 2 : 3 }}>
@@ -128,23 +140,25 @@ export default function SurveysPanel({
           </Typography>
         </Box>
       ) : (
-        <>
-          <SectionHeader
-            label={`Scheduled (${scheduledTotal})`}
-            color={groupColors.brandDark}
-            suffix={scheduledTotal > scheduled.length ? `showing next ${scheduled.length}` : undefined}
-          />
-          {scheduled.map(({ slot, state }) => (
-            <SurveyWorklistRow
-              key={slot.id}
-              slot={slot}
-              state={state}
-              surveyors={resolveSurveyors(slot.surveyor_ids)}
-              greenIds={greenIds}
-              onSignupSaved={onSignupSaved}
+        upcomingTotal > 0 && (
+          <>
+            <SectionHeader
+              label={`Scheduled (${upcomingTotal})`}
+              color={groupColors.brandDark}
+              suffix={upcomingTotal > upcoming.length ? `showing next ${upcoming.length}` : undefined}
             />
-          ))}
-        </>
+            {upcoming.map((slot) => (
+              <SurveyWorklistRow
+                key={slot.id}
+                slot={slot}
+                state="upcoming"
+                surveyors={resolveSurveyors(slot.surveyor_ids)}
+                greenIds={greenIds}
+                onSignupSaved={onSignupSaved}
+              />
+            ))}
+          </>
+        )
       )}
 
       {/* The last recorded surveys, results on show — the scent trail to the
