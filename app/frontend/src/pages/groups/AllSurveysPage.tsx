@@ -261,7 +261,7 @@ export default function AllSurveysPage() {
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <FilterChip label={`Past (${total})`} active={filter === 'past'} onClick={() => setFilter('past')} />
             <FilterChip
-              label={`Schedule (${schedule.length})`}
+              label={`Scheduled (${schedule.length})`}
               active={filter === 'schedule'}
               onClick={() => setFilter('schedule')}
             />
