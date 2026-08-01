@@ -194,6 +194,131 @@ class TestRecordsExportBySurveyType:
         assert len(_read_rows(response)) == 2
 
 
+class TestRecordsRowsBySurveyType:
+    """Tests for GET /api/export/records/by-survey-type/{id}/rows"""
+
+    def test_returns_records_as_json(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        db_session: Session,
+        create_survey_type,
+        create_survey,
+        create_species,
+        create_location,
+    ):
+        survey_type = create_survey_type(name="Butterfly Transect")
+        location = create_location(name="North Meadow")
+        species = create_species(name="Peacock", scientific_name="Aglais io")
+        survey = create_survey(
+            survey_date=date(2026, 6, 1),
+            survey_type_id=survey_type.id,
+            location_id=location.id,
+        )
+        _make_sighting(db_session, survey.id, species.id, count=3)
+
+        response = client.get(
+            f"/api/export/records/by-survey-type/{survey_type.id}/rows",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        records = response.json()
+        assert records == [
+            {
+                "common_name": "Peacock",
+                "scientific_name": "Aglais io",
+                "count": 3,
+                "date": "2026-06-01",
+                "location": "North Meadow",
+            }
+        ]
+
+    def test_orders_most_recent_first(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        db_session: Session,
+        create_survey_type,
+        create_survey,
+        create_species,
+    ):
+        survey_type = create_survey_type()
+        species = create_species()
+        early = create_survey(survey_date=date(2026, 5, 1), survey_type_id=survey_type.id)
+        late = create_survey(survey_date=date(2026, 7, 1), survey_type_id=survey_type.id)
+        _make_sighting(db_session, early.id, species.id, count=1)
+        _make_sighting(db_session, late.id, species.id, count=2)
+
+        response = client.get(
+            f"/api/export/records/by-survey-type/{survey_type.id}/rows",
+            headers=auth_headers,
+        )
+
+        assert [r["date"] for r in response.json()] == ["2026-07-01", "2026-05-01"]
+
+    def test_only_includes_matching_survey_type(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        db_session: Session,
+        create_survey_type,
+        create_survey,
+        create_species,
+    ):
+        wanted = create_survey_type(name="Wanted")
+        other = create_survey_type(name="Other")
+        species = create_species()
+        wanted_survey = create_survey(survey_type_id=wanted.id)
+        other_survey = create_survey(survey_type_id=other.id)
+        _make_sighting(db_session, wanted_survey.id, species.id, count=5)
+        _make_sighting(db_session, other_survey.id, species.id, count=9)
+
+        response = client.get(
+            f"/api/export/records/by-survey-type/{wanted.id}/rows",
+            headers=auth_headers,
+        )
+
+        records = response.json()
+        assert len(records) == 1
+        assert records[0]["count"] == 5
+
+    def test_unknown_survey_type_returns_404(
+        self, client: TestClient, auth_headers: dict
+    ):
+        response = client.get(
+            "/api/export/records/by-survey-type/999999/rows", headers=auth_headers
+        )
+        assert response.status_code == 404
+
+    def test_requires_authentication(self, client: TestClient):
+        response = client.get("/api/export/records/by-survey-type/1/rows")
+        assert response.status_code == 401
+
+    def test_viewer_role_can_view(
+        self,
+        client: TestClient,
+        login_as,
+        db_session: Session,
+        create_survey_type,
+        create_survey,
+        create_species,
+    ):
+        """The records view is read-only, so any signed-in account may use it."""
+        survey_type = create_survey_type()
+        species = create_species()
+        survey = create_survey(survey_type_id=survey_type.id)
+        _make_sighting(db_session, survey.id, species.id)
+        headers, _ = login_as()  # defaults to viewer
+
+        response = client.get(
+            f"/api/export/records/by-survey-type/{survey_type.id}/rows", headers=headers
+        )
+
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+
+
 class TestRecordsExportBySpeciesType:
     """Tests for GET /api/export/records/by-species-type/{id}"""
 

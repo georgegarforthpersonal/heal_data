@@ -1621,6 +1621,15 @@ const downloadExportFile = async (endpoint: string, fallbackFilename: string): P
   URL.revokeObjectURL(url);
 };
 
+/** One flat sighting record, as rendered by the in-app records table. */
+export interface SightingRecord {
+  common_name: string;
+  scientific_name: string | null;
+  count: number;
+  date: string;
+  location: string | null;
+}
+
 export const exportAPI = {
   /**
    * Download organisation data as a SQLite database file.
@@ -1641,6 +1650,13 @@ export const exportAPI = {
    */
   getSpeciesTypesWithRecords: (): Promise<SpeciesTypeRef[]> => {
     return fetchAPI('/export/records/species-types');
+  },
+
+  /**
+   * List sighting records for a survey type, most recent first.
+   */
+  getRecordsBySurveyType: (surveyTypeId: number): Promise<SightingRecord[]> => {
+    return fetchAPI(`/export/records/by-survey-type/${surveyTypeId}/rows`);
   },
 
   /**

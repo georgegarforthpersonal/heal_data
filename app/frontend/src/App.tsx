@@ -32,6 +32,7 @@ import GroupsPage from './pages/groups/GroupsPage';
 import GroupDetailPage from './pages/groups/GroupDetailPage';
 import AllSurveysPage from './pages/groups/AllSurveysPage';
 import GroupMediaPage from './pages/groups/GroupMediaPage';
+import GroupRecordsPage from './pages/groups/GroupRecordsPage';
 import { orgHasGroups } from './pages/groups/groupMeta';
 
 // Set dayjs to use UK locale globally (dd/mm/yyyy format)
@@ -92,6 +93,7 @@ const router = createBrowserRouter([
           { path: '/groups/:typeId', element: <GroupDetailPage /> },
           { path: '/groups/:typeId/all', element: <AllSurveysPage /> },
           { path: '/groups/:typeId/media', element: <GroupMediaPage /> },
+          { path: '/groups/:typeId/records', element: <GroupRecordsPage /> },
           { path: '/teams/*', element: <LegacyTeamsRedirect /> },
 
           // Dashboard page

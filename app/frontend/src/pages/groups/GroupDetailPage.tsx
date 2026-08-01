@@ -220,7 +220,10 @@ export default function GroupDetailPage() {
 
   const dataPanel = (
     <Box sx={{ order: 7, minWidth: 0 }}>
-      <DataPanel surveyTypeId={surveyType.id} surveyTypeName={surveyType.name} />
+      <DataPanel
+        surveyTypeName={surveyType.name}
+        onOpen={() => navigate(`/groups/${typeId}/records`)}
+      />
     </Box>
   );
 

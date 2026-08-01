@@ -24,7 +24,7 @@ from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy import text, func
-from sqlmodel import col
+from sqlmodel import SQLModel, col
 
 from database.connection import get_db
 from dependencies import get_current_organisation
@@ -413,6 +413,58 @@ async def list_species_types_with_records(
         .order_by(SpeciesType.display_name)
         .all()
     )
+
+
+class RecordRead(SQLModel):
+    """One flat sighting record, as rendered by the in-app records table.
+
+    Mirrors the xlsx export columns (RECORD_HEADERS) so the view and the
+    download always show the same data.
+    """
+
+    common_name: str
+    scientific_name: Optional[str] = None
+    count: int
+    date: date
+    location: Optional[str] = None
+
+
+@router.get("/records/by-survey-type/{survey_type_id}/rows", response_model=List[RecordRead])
+async def list_records_by_survey_type(
+    survey_type_id: int,
+    db: Session = Depends(get_db),
+    org: Organisation = Depends(get_current_organisation),
+    _principal: Principal = Depends(require_user),
+) -> List[RecordRead]:
+    """All sighting records from surveys of a given survey type, as JSON.
+
+    The in-app counterpart of the xlsx export below — same rows, but ordered
+    most-recent-first for viewing.
+    """
+    survey_type = (
+        db.query(SurveyType)
+        .filter(SurveyType.id == survey_type_id, SurveyType.organisation_id == org.id)
+        .first()
+    )
+    if not survey_type:
+        raise HTTPException(status_code=404, detail="Survey type not found")
+
+    rows = (
+        _records_query(db, org.id)
+        .filter(Survey.survey_type_id == survey_type_id)
+        .order_by(col(Survey.date).desc(), Species.name)
+        .all()
+    )
+    return [
+        RecordRead(
+            common_name=common_name or "",
+            scientific_name=scientific_name,
+            count=count,
+            date=survey_date,
+            location=location_name,
+        )
+        for common_name, scientific_name, count, survey_date, location_name in rows
+    ]
 
 
 @router.get("/records/by-survey-type/{survey_type_id}")
