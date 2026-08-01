@@ -1,24 +1,21 @@
 /**
  * A single row in the Surveys panel's Scheduled list. The date — a single day
- * or a week range, with the year — is the identifier and heads the row; there
- * is no calendar tile or icon (a week has no single day to pin one to). The
- * middle carries the location and a status chip ("Overdue" amber, "Due this
- * week" blue — siblings, styled alike), never a title.
+ * or a week range, with the year — is the identifier and heads the row, with
+ * the status chip beside it ("Overdue" amber, "Due this week" blue — siblings,
+ * styled alike); the second line is the location. Never a title, never a
+ * calendar tile (a week has no single day to pin one to).
  *
- * Actions by state: overdue rows keep their own Record button — the panel
- * header's Record survey can't fulfil a past week unless the user knows to
- * backdate, so the row carries the slot context (right week, right location,
- * explicit link). Due-this-week and upcoming rows sign up only; the header
- * button covers recording the current week (its date auto-links). Recorded
- * surveys don't appear here at all — they live in the panel's Recent rows.
+ * No row records a survey: the panel header's Record survey button is the one
+ * way in, and the survey's date decides which week it fulfils (the backend
+ * links by window). Due-this-week and upcoming rows carry the one-click
+ * sign-up; overdue rows are information only. Recorded surveys don't appear
+ * here at all — they live in the panel's Recent rows.
  */
-import { Box, Button, Typography } from '@mui/material';
-import { Add } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
 import type { ScheduledSurvey, Surveyor } from '../../services/api';
-import { usePermissions } from '../../context/AuthContext';
 import SelfSignupButton from './SelfSignupButton';
 import SurveyorAvatars from './SurveyorAvatars';
-import { recordButtonSx, groupColors } from '../../pages/groups/groupsTokens';
+import { groupColors } from '../../pages/groups/groupsTokens';
 import { formatSurveyDate } from '../../pages/groups/surveyState';
 
 interface SurveyWorklistRowProps {
@@ -27,8 +24,6 @@ interface SurveyWorklistRowProps {
   surveyors: Surveyor[];
   /** Surveyor ids assigned this session — rendered green. */
   greenIds?: Set<number>;
-  /** Start recording a survey for this slot. */
-  onAddSurvey: (slot: ScheduledSurvey) => void;
   /** Called after a one-click sign-up/withdraw with the new surveyor ids. */
   onSignupSaved: (slotId: number, surveyorIds: number[]) => void;
 }
@@ -38,33 +33,13 @@ export default function SurveyWorklistRow({
   state,
   surveyors,
   greenIds,
-  onAddSurvey,
   onSignupSaved,
 }: SurveyWorklistRowProps) {
   const needsSurvey = state === 'needs-survey';
   const dueThisWeek = state === 'due-this-week';
-  // Rows that carry the sign-up toggle (with or without Record survey) crush
-  // the date on phones, so they stack: date + avatars line, actions line.
+  // Rows carrying the sign-up toggle crush the date on phones, so they stack:
+  // date + avatars line, sign-up line. Overdue rows have no actions at all.
   const stacked = !needsSurvey;
-  // Recording a survey needs editor access; the button is hidden below that.
-  // Sign up is the same one-click self toggle for every role — putting other
-  // people on a survey is done on the survey itself, not here.
-  const { canEditSurveys } = usePermissions();
-
-  const recordButton = canEditSurveys ? (
-    <Button
-      variant="contained"
-      startIcon={<Add sx={{ fontSize: 18 }} />}
-      onClick={() => onAddSurvey(slot)}
-      sx={recordButtonSx}
-    >
-      Record survey
-    </Button>
-  ) : null;
-
-  const assignButton = (
-    <SelfSignupButton slot={slot} assigned={surveyors} onSaved={onSignupSaved} />
-  );
 
   return (
     <Box
@@ -81,37 +56,39 @@ export default function SurveyWorklistRow({
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
-            {formatSurveyDate(slot)}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
+              {formatSurveyDate(slot)}
+            </Typography>
+            {/* Overdue and Due this week are sibling states, so their chips
+                share a shape and differ only in colour. */}
+            {(needsSurvey || dueThisWeek) && (
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.3,
+                  borderRadius: '6px',
+                  bgcolor: needsSurvey ? '#FBF3DB' : '#DCE8F2',
+                  color: needsSurvey ? groupColors.amberMonth : '#2C5F8A',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {needsSurvey ? 'Overdue' : 'Due this week'}
+              </Box>
+            )}
+          </Box>
           {slot.location_name && (
             <Typography sx={{ fontSize: 13, color: groupColors.textMuted, mt: 0.25 }} noWrap>
               {slot.location_name}
             </Typography>
           )}
-          {/* Overdue and Due this week are sibling states, so their chips
-              share a shape and differ only in colour. */}
-          {(needsSurvey || dueThisWeek) && (
-            <Box
-              sx={{
-                display: 'inline-block',
-                mt: 0.5,
-                px: 1,
-                py: 0.3,
-                borderRadius: '6px',
-                bgcolor: needsSurvey ? '#FBF3DB' : '#DCE8F2',
-                color: needsSurvey ? groupColors.amberMonth : '#2C5F8A',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {needsSurvey ? 'Overdue' : 'Due this week'}
-            </Box>
-          )}
         </Box>
         {/* On the stacked phone layout the date line's top-right slot always
             carries who's going — avatars, or "No surveyors yet" when empty;
-            the buttons line below is actions only. */}
+            the sign-up line below is actions only. */}
         {stacked && (
           <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexShrink: 0 }}>
             <SurveyorAvatars surveyors={surveyors} greenIds={greenIds} />
@@ -119,9 +96,7 @@ export default function SurveyWorklistRow({
         )}
       </Box>
 
-      {needsSurvey ? (
-        recordButton
-      ) : (
+      {stacked && (
         <Box
           sx={{
             display: 'flex',
@@ -135,7 +110,7 @@ export default function SurveyWorklistRow({
           <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
             <SurveyorAvatars surveyors={surveyors} greenIds={greenIds} />
           </Box>
-          {assignButton}
+          <SelfSignupButton slot={slot} assigned={surveyors} onSaved={onSignupSaved} />
         </Box>
       )}
     </Box>

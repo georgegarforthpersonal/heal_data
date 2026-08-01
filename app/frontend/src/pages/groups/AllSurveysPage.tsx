@@ -15,7 +15,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Box, ButtonBase, Paper, Typography, Button, CircularProgress } from '@mui/material';
-import { Add } from '@mui/icons-material';
 import {
   ApiError,
   surveyTypesAPI,
@@ -27,11 +26,10 @@ import {
   type ScheduledSurvey,
   type Surveyor,
 } from '../../services/api';
-import { recordButtonSx, groupCardSx, groupColors } from './groupsTokens';
+import { groupCardSx, groupColors } from './groupsTokens';
 import { groupActivity, primarySpeciesType, resolveGroupTypeId } from './groupMeta';
 import { deriveSlotState, formatRecordedDate, formatSurveyDate, scheduleSlots, type SlotState } from './surveyState';
 import { useSignupSaved, useSurveyorLookup } from '../../hooks';
-import { usePermissions } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import GroupBreadcrumb from '../../components/groups/GroupBreadcrumb';
 import SelfSignupButton from '../../components/groups/SelfSignupButton';
@@ -111,7 +109,6 @@ export default function AllSurveysPage() {
   // group page's worklist already shows the near-term schedule.
   const [filter, setFilter] = useState<'past' | 'schedule'>('past');
   const toast = useToast();
-  const { canEditSurveys } = usePermissions();
 
   useEffect(() => {
     if (!typeId) {
@@ -222,10 +219,6 @@ export default function AllSurveysPage() {
   // Open a recorded survey, telling it to return here (the group's survey
   // history) rather than the main surveys list after editing/deleting.
   const openSurvey = (surveyId: number) => navigate(`/surveys/${surveyId}`, returnTo);
-  // Recording a slot creates a NEW survey linked to it, prefilled on the
-  // new-survey form.
-  const recordSlot = (slot: ScheduledSurvey) =>
-    navigate(`/surveys/new?scheduled_survey_id=${slot.id}`, returnTo);
 
   // Slots with linked surveys are represented by those recorded surveys
   // under Past (whatever the slot's status — a cancelled-then-recorded week
@@ -289,19 +282,6 @@ export default function AllSurveysPage() {
               // stack too, chips starting from the left — uniformly, so light
               // and chip-heavy rows read the same (mixed alignment looked odd).
               const stacked = state === 'due-this-week' || state === 'upcoming' || row.kind === 'survey';
-              const recordButton = row.kind === 'slot' && (
-                <Button
-                  variant="contained"
-                  startIcon={<Add sx={{ fontSize: 18 }} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    recordSlot(row.slot);
-                  }}
-                  sx={recordButtonSx}
-                >
-                  Record survey
-                </Button>
-              );
               return (
                 <Box
                   key={`${row.kind}-${row.kind === 'survey' ? row.survey.id : row.slot.id}`}
@@ -381,9 +361,9 @@ export default function AllSurveysPage() {
                   )}
 
                   {/* Sign-up is open for future weeks and the current week alike —
-                      the same one-click self toggle for every role. The record
-                      button rides in the same cell so stacked rows keep every
-                      action on one wrappable line. */}
+                      the same one-click self toggle for every role. Recording
+                      happens only through the group page's header button; the
+                      survey's date decides which week it fulfils. */}
                   {row.kind === 'slot' && (state === 'upcoming' || state === 'due-this-week') && (
                     <Box
                       sx={{
@@ -400,11 +380,8 @@ export default function AllSurveysPage() {
                         <SurveyorAvatars surveyors={assigned} greenIds={greenIds} />
                       </Box>
                       <SelfSignupButton slot={row.slot} assigned={assigned} onSaved={handleSignupSaved} />
-                      {state === 'due-this-week' && canEditSurveys && recordButton}
                     </Box>
                   )}
-
-                  {state === 'needs-survey' && canEditSurveys && recordButton}
                 </Box>
               );
             })

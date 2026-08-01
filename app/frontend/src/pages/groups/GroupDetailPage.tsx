@@ -202,10 +202,6 @@ export default function GroupDetailPage() {
   // SingleSpeciesCountPanel, without a picker.
   const hasSeasonal = activity === 'worklist' && !singleSpecies;
   const returnTo = { returnTo: { pathname: `/groups/${typeId}`, label: surveyType.name } };
-  // Recording a slot creates a NEW survey linked to it, prefilled from the
-  // slot on the new-survey form.
-  const recordSlot = (slot: ScheduledSurvey) =>
-    navigate(`/surveys/new?scheduled_survey_id=${slot.id}`, { state: returnTo });
   // Unscheduled groups record without a slot: media types jump straight to
   // their wizard, plain types to the standard form with the type preselected.
   const recordNew = () => navigate(recordSurveyPath(surveyType), { state: returnTo });
@@ -264,7 +260,6 @@ export default function GroupDetailPage() {
                   recentSurveys={recentSurveys}
                   speciesType={speciesType}
                   greenIds={greenIds}
-                  onAddSurvey={recordSlot}
                   onSignupSaved={handleSignupSaved}
                   onOpenRecorded={openSurvey}
                   onViewAll={() => navigate(`/groups/${typeId}/all`)}

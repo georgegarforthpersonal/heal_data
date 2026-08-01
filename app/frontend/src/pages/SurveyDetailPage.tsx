@@ -120,9 +120,9 @@ export function SurveyDetailPage() {
   // Defaults to the main surveys list when reached via a deep link.
   const returnTo = readReturnTo(location);
 
-  // Every survey row is a recorded event; recording a scheduled slot happens
-  // on the new-survey form (?scheduled_survey_id=N), so this page only views
-  // and edits.
+  // Every survey row is a recorded event; recording happens on the
+  // new-survey form (the survey's date links it to its scheduled week), so
+  // this page only views and edits.
   const startInEditMode = searchParams.get('edit') === 'true';
   const [isEditMode, setIsEditMode] = useState(startInEditMode);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');

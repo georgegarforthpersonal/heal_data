@@ -3,13 +3,15 @@
  * Past | Scheduled vocabulary:
  *
  * "Scheduled" is one chronological list, soonest first — overdue rows land
- * naturally on top (amber + Record button carry the urgency; no separate
- * section), this week's row next (a "Due this week" chip marks it), then the
- * next 3 upcoming rows. "Recent" is the last recorded surveys with their
- * species counts — past results are always visible on the page, never only
- * behind a door. A recorded this-week survey simply appears as the newest
- * Recent row, so the current week never vanishes from the panel. The "Past
- * surveys" door at the foot leads to the full history.
+ * naturally on top (amber row + chip carry the urgency; no separate section),
+ * this week's row next (a "Due this week" chip marks it), then the next 3
+ * upcoming rows. The header's Record survey button is the only way to record:
+ * the survey's date decides which week it fulfils, so rows carry sign-up
+ * only. "Recent" is the last recorded surveys with their species counts —
+ * past results are always visible on the page, never only behind a door. A
+ * recorded this-week survey simply appears as the newest Recent row, so the
+ * current week never vanishes from the panel. The "Past surveys" door at the
+ * foot leads to the full history.
  */
 import { Box, Paper, Typography, Button } from '@mui/material';
 import { Add } from '@mui/icons-material';
@@ -32,7 +34,6 @@ interface SurveysPanelProps {
   /** Icon for the zero-sightings chip on the Recent rows. */
   speciesType: string;
   greenIds?: Set<number>;
-  onAddSurvey: (slot: ScheduledSurvey) => void;
   /** Called after a one-click sign-up/withdraw with the new surveyor ids. */
   onSignupSaved: (slotId: number, surveyorIds: number[]) => void;
   /** Open a recorded survey from the Recent rows. */
@@ -73,7 +74,6 @@ export default function SurveysPanel({
   recentSurveys,
   speciesType,
   greenIds,
-  onAddSurvey,
   onSignupSaved,
   onOpenRecorded,
   onViewAll,
@@ -141,7 +141,6 @@ export default function SurveysPanel({
               state={state}
               surveyors={resolveSurveyors(slot.surveyor_ids)}
               greenIds={greenIds}
-              onAddSurvey={onAddSurvey}
               onSignupSaved={onSignupSaved}
             />
           ))}
