@@ -45,7 +45,6 @@ import type {
   DeviceUpdate,
 } from '../../services/api';
 import { geometryLengthM, type GeoJsonGeometry, type Position } from '../../utils/geometry';
-import { parseCoordinateInput } from '../../utils/coords';
 import { splitLine } from '../../utils/sectorGeometry';
 import { DEVICE_TYPE_LABELS } from '../../utils/deviceIcon';
 import { brandColors } from '../../theme';
@@ -56,7 +55,7 @@ import LocationColorSelector from './LocationColorSelector';
 import SectorEditor from './SectorEditor';
 import LocationMapPicker from '../surveys/LocationMapPicker';
 import CoordinatePointsEditor from './CoordinatePointsEditor';
-import type { CoordinateFormat } from '../surveys/CoordinateEntry';
+import CoordinateEntry, { type CoordinateFormat } from '../surveys/CoordinateEntry';
 
 export type EditorKind = 'location' | 'device';
 
@@ -115,9 +114,6 @@ export default function LocationDeviceEditorDialog({
   const [sectorDividers, setSectorDividers] = useState<number[]>([]);
   const [sectorNames, setSectorNames] = useState<string[]>([]);
   const [sectorIds, setSectorIds] = useState<(number | undefined)[]>([]);
-  // Typed coordinate entry for points (lat/lng or OS grid ref).
-  const [coordInput, setCoordInput] = useState('');
-  const [coordError, setCoordError] = useState<string | null>(null);
   // Which coordinate format the structured entry is showing; remembered
   // across points so a whole route is entered one way.
   const [coordFormat, setCoordFormat] = useState<CoordinateFormat>('gridref');
@@ -138,8 +134,6 @@ export default function LocationDeviceEditorDialog({
     if (!open) return;
     setError(null);
     setSaving(false);
-    setCoordInput('');
-    setCoordError(null);
     setKind(mode === 'edit' ? editKind ?? 'location' : 'location');
 
     if (location) {
@@ -201,22 +195,12 @@ export default function LocationDeviceEditorDialog({
     setSectorDividers([]);
     setSectorNames([]);
     setSectorIds([]);
-    setCoordInput('');
-    setCoordError(null);
   };
 
-  // Place (or move) the point from typed coordinates: a lat/lng pair or an OS
-  // grid reference. Remounts the map controller so it loads and frames it.
-  const handlePlaceTyped = () => {
-    const result = parseCoordinateInput(coordInput);
-    if (!result.ok) {
-      setCoordError(result.error);
-      return;
-    }
-    setGeometry({ type: 'Point', coordinates: [result.lng, result.lat] });
+  /** Set (or move) a point location from the structured coordinate entry. */
+  const handlePlacePoint = (lat: number, lng: number) => {
+    setGeometry({ type: 'Point', coordinates: [lng, lat] });
     setPlaceNonce((n) => n + 1);
-    setCoordInput('');
-    setCoordError(null);
   };
 
   /**
@@ -280,12 +264,6 @@ export default function LocationDeviceEditorDialog({
     setSectorDividers(nextDividers);
     setSectorNames(nextNames);
   };
-
-  // Don't show the location being edited as a faint reference on its own map.
-  const locationReferenceForMap = useMemo(
-    () => referenceLocations.filter((l) => l.id !== location?.id),
-    [referenceLocations, location?.id],
-  );
 
   const handleSaveLocation = async () => {
     if (!name.trim()) {
@@ -455,44 +433,18 @@ export default function LocationDeviceEditorDialog({
                     color={color}
                     value={geometry}
                     onChange={handleGeometryChange}
-                    referenceLocations={locationReferenceForMap}
                     remountKey={placeNonce}
                   />
                   {locationType === 'point' && (
-                    <Stack direction="row" spacing={1} alignItems="flex-start">
-                      <TextField
-                        size="small"
-                        fullWidth
-                        label={geometry ? 'Move to coordinates' : 'Set by coordinates'}
-                        placeholder="e.g. ST 734 400 or 51.12345, -2.34567"
-                        InputLabelProps={{ shrink: true }}
-                        value={coordInput}
-                        onChange={(e) => {
-                          setCoordInput(e.target.value);
-                          setCoordError(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handlePlaceTyped();
-                          }
-                        }}
-                        error={!!coordError}
-                        helperText={
-                          coordError || 'OS grid reference or decimal latitude, longitude (WGS84)'
-                        }
-                        disabled={saving}
-                      />
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={handlePlaceTyped}
-                        disabled={saving || !coordInput.trim()}
-                        sx={{ textTransform: 'none', fontWeight: 600, mt: '5px' }}
-                      >
-                        Place
-                      </Button>
-                    </Stack>
+                    <CoordinateEntry
+                      format={coordFormat}
+                      onFormatChange={setCoordFormat}
+                      onAdd={handlePlacePoint}
+                      nearLat={DEFAULT_MAP_CENTER[0]}
+                      nearLng={DEFAULT_MAP_CENTER[1]}
+                      addLabel={geometry ? 'Move point' : 'Set point'}
+                      disabled={saving}
+                    />
                   )}
 
                   {(locationType === 'route' || locationType === 'area') && (

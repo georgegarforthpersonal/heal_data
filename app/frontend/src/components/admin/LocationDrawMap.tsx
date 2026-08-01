@@ -8,7 +8,7 @@
 
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import { Box, Paper, Stack, IconButton, Tooltip, Chip, Button } from '@mui/material';
+import { Box, Paper, Stack, IconButton, Tooltip, Button, Typography } from '@mui/material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import LayersIcon from '@mui/icons-material/Layers';
@@ -30,8 +30,7 @@ import {
   type GeoJsonGeometry,
   type Position,
 } from '../../utils/geometry';
-import type { LocationType, LocationWithBoundary } from '../../services/api';
-import FieldBoundaryOverlay from '../surveys/FieldBoundaryOverlay';
+import type { LocationType } from '../../services/api';
 
 /** Drawable location types (everything except 'none' and 'sector'). */
 export type DrawableLocationType = Exclude<LocationType, 'none' | 'sector'>;
@@ -151,7 +150,12 @@ function GeomanController({ locationType, color, value, onChange }: GeomanContro
         map.setView(toLatLng(value.coordinates as Position), 16);
       }
     } else {
-      map.pm.enableDraw(PM_SHAPE[locationType], { snappable: true, snapDistance: 20 });
+      map.pm.enableDraw(PM_SHAPE[locationType], {
+        snappable: true,
+        snapDistance: 20,
+        // The instruction lives under the map; no floating hint over it.
+        tooltips: false,
+      });
     }
 
     // Backspace/Delete removes the last vertex while a line/area is being
@@ -223,8 +227,6 @@ interface LocationDrawMapProps {
   color?: string | null;
   value: GeoJsonGeometry | null;
   onChange: (geometry: GeoJsonGeometry | null) => void;
-  /** Other locations shown faintly for context and snapping. */
-  referenceLocations?: LocationWithBoundary[];
   /**
    * Bump to remount the drawing controller after setting `value` from outside
    * the map (e.g. typed coordinates), so the new shape is loaded and framed.
@@ -237,7 +239,6 @@ export default function LocationDrawMap({
   color = null,
   value,
   onChange,
-  referenceLocations,
   remountKey = 0,
 }: LocationDrawMapProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
@@ -285,10 +286,11 @@ export default function LocationDrawMap({
     : instruction;
 
   return (
+    <Box>
     <Paper
       elevation={2}
       className="fullscreen-map-container"
-      sx={{ mb: 1, overflow: 'hidden', position: 'relative', ...fullscreenContainerSx }}
+      sx={{ overflow: 'hidden', position: 'relative', ...fullscreenContainerSx }}
     >
       {/* Top-right controls */}
       <Stack
@@ -316,25 +318,14 @@ export default function LocationDrawMap({
         </Tooltip>
       </Stack>
 
-      {/* Top-left: instruction / measurement + clear.
-          Offset past the Leaflet zoom control (top-left) so they don't overlap. */}
+      {/* Only Clear floats over the map; the instruction sits beneath it so the
+          map keeps its full height on a phone. */}
       <Stack
         direction="row"
         spacing={1}
         alignItems="center"
-        sx={{ position: 'absolute', top: 10, left: 52, right: 96, zIndex: 1000 }}
+        sx={{ position: 'absolute', top: 10, left: 52, zIndex: 1000 }}
       >
-        <Chip
-          size="small"
-          label={chipLabel}
-          sx={{
-            bgcolor: 'white',
-            boxShadow: 2,
-            maxWidth: 360,
-            height: 'auto',
-            '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5, lineHeight: 1.3 },
-          }}
-        />
         {value && (
           <Button
             size="small"
@@ -365,12 +356,17 @@ export default function LocationDrawMap({
             />
           )}
           <MapResizeHandler isFullscreen={isFullscreen} />
-          {referenceLocations && referenceLocations.length > 0 && (
-            <FieldBoundaryOverlay locations={referenceLocations} />
-          )}
           <GeomanController key={drawKey} locationType={locationType} color={color} value={value} onChange={onChange} />
         </MapContainer>
       </Box>
     </Paper>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: 'block', mt: 0.75, mb: 1 }}
+      >
+        {chipLabel}
+      </Typography>
+    </Box>
   );
 }

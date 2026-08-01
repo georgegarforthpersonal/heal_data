@@ -73,8 +73,18 @@ export default function CoordinatePointsEditor({
         The shape stays editable on the map afterwards.
       </Typography>
 
+      <CoordinateEntry
+        format={format}
+        onFormatChange={onFormatChange}
+        onAdd={addPoint}
+        nearLat={seedLat}
+        nearLng={seedLng}
+        addLabel={points.length === 0 ? 'Add first point' : 'Add point'}
+        disabled={disabled}
+      />
+
       {points.length > 0 && (
-        <Stack spacing={0.5} sx={{ mb: 1.5 }}>
+        <Stack spacing={0.5} sx={{ mt: 1.5 }}>
           {points.map(([lng, lat], index) => {
             const gridRef = latLngToGridRef(lat, lng)?.ref;
             return (
@@ -144,16 +154,6 @@ export default function CoordinatePointsEditor({
           })}
         </Stack>
       )}
-
-      <CoordinateEntry
-        format={format}
-        onFormatChange={onFormatChange}
-        onAdd={addPoint}
-        nearLat={seedLat}
-        nearLng={seedLng}
-        addLabel={points.length === 0 ? 'Add first point' : 'Add point'}
-        disabled={disabled}
-      />
 
       {points.length > 0 && points.length < minimum && (
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
