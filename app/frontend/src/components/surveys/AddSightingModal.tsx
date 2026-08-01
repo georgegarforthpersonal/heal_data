@@ -467,17 +467,6 @@ export function AddSightingModal({
             />
           )}
 
-          {/* Life stage & behaviour matrix (BDS Odonata form) */}
-          {showStageCounts && (
-            <StageCountsFields
-              value={stageCounts}
-              adultTotal={count}
-              onChange={(key: StageCountKey, next) =>
-                setStageCounts((prev) => ({ ...prev, [key]: next }))
-              }
-            />
-          )}
-
           {/* Device Dropdown - when device selection is on */}
           {allowSightingDeviceSelection && (
             <Autocomplete
@@ -539,6 +528,17 @@ export function AddSightingModal({
                   }
                 }
               }}
+            />
+          )}
+
+          {/* Life stage & behaviour matrix (BDS Odonata form) */}
+          {showStageCounts && (
+            <StageCountsFields
+              value={stageCounts}
+              adultTotal={count}
+              onChange={(key: StageCountKey, next) =>
+                setStageCounts((prev) => ({ ...prev, [key]: next }))
+              }
             />
           )}
 
