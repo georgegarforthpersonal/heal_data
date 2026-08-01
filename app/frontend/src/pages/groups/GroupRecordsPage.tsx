@@ -55,6 +55,9 @@ export default function GroupRecordsPage() {
       return;
     }
     let active = true;
+    // Route param changes re-render in place — don't carry one group's
+    // "Show more" depth into the next group's table.
+    setVisible(PAGE_SIZE);
     (async () => {
       try {
         // The route param is a name slug (or a legacy numeric id) — resolve it
