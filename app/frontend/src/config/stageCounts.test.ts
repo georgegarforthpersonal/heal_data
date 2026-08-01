@@ -8,6 +8,7 @@ import {
   hasStageCounts,
   pickStageCounts,
   recordsStageCounts,
+  stageCountWarnings,
   STAGE_COUNT_FIELDS,
   STAGE_COUNT_KEYS,
 } from './stageCounts';
@@ -39,6 +40,57 @@ describe('STAGE_COUNT_FIELDS', () => {
   it('states the one-pair-counts-as-one convention where it is entered', () => {
     const pairs = STAGE_COUNT_FIELDS.find((f) => f.key === 'copulating_pairs');
     expect(pairs?.helper).toMatch(/one pair counts as 1/i);
+  });
+
+  it('gives every category a distinct colour, never as the only cue', () => {
+    const colours = STAGE_COUNT_FIELDS.map((f) => f.color);
+    expect(new Set(colours).size).toBe(colours.length);
+    // WCAG 1.4.1: a text label always accompanies the colour.
+    expect(STAGE_COUNT_FIELDS.every((f) => f.label.trim().length > 0)).toBe(true);
+  });
+});
+
+describe('stageCountWarnings', () => {
+  it('flags an adult total smaller than the pairs imply', () => {
+    // The case from the reported screenshot: 5 adults, 4 copulating pairs.
+    const warnings = stageCountWarnings({ copulating_pairs: 4 }, 5);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('at least 8 adults');
+  });
+
+  it('accepts a total exactly equal to twice the pairs', () => {
+    expect(stageCountWarnings({ copulating_pairs: 4 }, 8)).toEqual([]);
+  });
+
+  it('flags more ovipositing females than adults', () => {
+    const warnings = stageCountWarnings({ ovipositing_females: 6 }, 2);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('ovipositing');
+  });
+
+  it('can report both inconsistencies at once', () => {
+    expect(stageCountWarnings({ copulating_pairs: 3, ovipositing_females: 9 }, 4)).toHaveLength(2);
+  });
+
+  it('says nothing about larvae, exuviae or emerging adults', () => {
+    // None of these are adults, so they carry no relationship to the total.
+    expect(
+      stageCountWarnings({ larvae: 90, exuviae: 120, emerging_adults: 40 }, 1),
+    ).toEqual([]);
+  });
+
+  it('stays quiet when there is nothing to compare', () => {
+    expect(stageCountWarnings({ copulating_pairs: 4 }, null)).toEqual([]);
+    expect(stageCountWarnings({ copulating_pairs: 4 }, undefined)).toEqual([]);
+    expect(stageCountWarnings(null, 5)).toEqual([]);
+  });
+
+  it('does not warn on recorded zeros', () => {
+    expect(stageCountWarnings({ copulating_pairs: 0, ovipositing_females: 0 }, 0)).toEqual([]);
+  });
+
+  it('uses singular wording for one pair', () => {
+    expect(stageCountWarnings({ copulating_pairs: 1 }, 1)[0]).toContain('1 copulating pair ');
   });
 });
 

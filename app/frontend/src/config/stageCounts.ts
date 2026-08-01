@@ -35,6 +35,11 @@ export interface StageCountField {
   label: string;
   /** Shown under the input; keeps the recording convention at the point of entry. */
   helper?: string;
+  /**
+   * Category identity only — never magnitude, and never the sole cue (WCAG
+   * 1.4.1): every chip also carries its text label. Keys into `notionColors`.
+   */
+  color: 'purple' | 'pink' | 'blue' | 'green' | 'orange';
 }
 
 /** In BDS recording-form order. */
@@ -43,12 +48,26 @@ export const STAGE_COUNT_FIELDS: readonly StageCountField[] = [
     key: 'copulating_pairs',
     label: 'Copulating pairs',
     helper: 'In tandem or the wheel. One pair counts as 1.',
+    color: 'purple',
   },
-  { key: 'ovipositing_females', label: 'Ovipositing females' },
-  { key: 'larvae', label: 'Larvae' },
-  { key: 'exuviae', label: 'Exuviae', helper: 'Cast larval skins — proof of successful breeding.' },
-  { key: 'emerging_adults', label: 'Emerging adults', helper: 'Newly emerged (teneral) adults.' },
+  { key: 'ovipositing_females', label: 'Ovipositing females', color: 'pink' },
+  { key: 'larvae', label: 'Larvae', color: 'blue' },
+  {
+    key: 'exuviae',
+    label: 'Exuviae',
+    helper: 'Cast larval skins — proof of successful breeding.',
+    color: 'green',
+  },
+  {
+    key: 'emerging_adults',
+    label: 'Emerging adults',
+    helper: 'Newly emerged (teneral) adults.',
+    color: 'orange',
+  },
 ] as const;
+
+/** Reject fat-fingered repeats; no dragonfly count needs five digits. */
+export const MAX_STAGE_COUNT = 9999;
 
 export const STAGE_COUNT_KEYS: readonly StageCountKey[] = STAGE_COUNT_FIELDS.map((f) => f.key);
 
@@ -82,6 +101,45 @@ export function pickStageCounts(source: StageCounts | null | undefined): StageCo
 export function hasStageCounts(counts: StageCounts | null | undefined): boolean {
   if (!counts) return false;
   return STAGE_COUNT_KEYS.some((key) => counts[key] !== null && counts[key] !== undefined);
+}
+
+/**
+ * Cross-field consistency warnings.
+ *
+ * These are soft: they never block a save. eBird's model — flag an implausible
+ * record, ask for detail, still accept it — is the right one for field data,
+ * because a wall makes surveyors enter a wrong number to get past it.
+ *
+ * Only arithmetic that is true by definition is checked. A copulating pair is
+ * two adults and an ovipositing female is one adult, so the adult total (which
+ * we ask to include them) cannot be smaller. Larvae, exuviae and emerging
+ * adults are not adults, so they carry no such relationship.
+ */
+export function stageCountWarnings(
+  counts: StageCounts | null | undefined,
+  adultTotal: number | null | undefined,
+): string[] {
+  const c = counts ?? {};
+  const warnings: string[] = [];
+  if (typeof adultTotal !== 'number') return warnings;
+
+  const pairs = c.copulating_pairs;
+  if (typeof pairs === 'number' && pairs > 0 && adultTotal < pairs * 2) {
+    warnings.push(
+      `${pairs} copulating pair${pairs === 1 ? '' : 's'} means at least ${pairs * 2} adults, ` +
+        `but Adults (total) is ${adultTotal}. Check the total includes paired individuals.`,
+    );
+  }
+
+  const ovipositing = c.ovipositing_females;
+  if (typeof ovipositing === 'number' && ovipositing > 0 && adultTotal < ovipositing) {
+    warnings.push(
+      `${ovipositing} ovipositing female${ovipositing === 1 ? '' : 's'} recorded, ` +
+        `but Adults (total) is only ${adultTotal}.`,
+    );
+  }
+
+  return warnings;
 }
 
 export interface BreedingTier {
