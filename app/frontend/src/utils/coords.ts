@@ -220,69 +220,162 @@ export function parseCoordinateInput(input: string): ParseCoordinateResult {
   return { ...result, kind: 'latlng' };
 }
 
-export interface ParsedCoordinatePoint {
-  lat: number;
-  lng: number;
-  /** The text the coordinate was read from, for showing back to the user. */
-  source: string;
+
+/** Geodetic WGS84 -> OSGB36 lat/lon (radians), the inverse of osgb36ToWgs84. */
+function wgs84ToOsgb36(latDeg: number, lngDeg: number): { lat: number; lon: number } {
+  const a2 = 6378137.0;
+  const b2 = 6356752.3142;
+  const e22 = 1 - (b2 * b2) / (a2 * a2);
+  const lat = latDeg * DEG;
+  const lon = lngDeg * DEG;
+  const sinLat = Math.sin(lat);
+  const cosLat = Math.cos(lat);
+  const nu = a2 / Math.sqrt(1 - e22 * sinLat * sinLat);
+  const x = nu * cosLat * Math.cos(lon);
+  const y = nu * cosLat * Math.sin(lon);
+  const z = nu * (1 - e22) * sinLat;
+
+  // Published WGS84 -> OSGB36 Helmert parameters
+  const tx = -446.448;
+  const ty = 125.157;
+  const tz = -542.06;
+  const s1 = 1 + 20.4894e-6;
+  const rx = -0.1502 * ARCSEC;
+  const ry = -0.247 * ARCSEC;
+  const rz = -0.8421 * ARCSEC;
+  const x2 = tx + x * s1 - y * rz + z * ry;
+  const y2 = ty + x * rz + y * s1 - z * rx;
+  const z2 = tz - x * ry + y * rx + z * s1;
+
+  const a1 = 6377563.396;
+  const b1 = 6356256.909;
+  const e21 = 1 - (b1 * b1) / (a1 * a1);
+  const p = Math.sqrt(x2 * x2 + y2 * y2);
+  let outLat = Math.atan2(z2, p * (1 - e21));
+  for (let i = 0; i < 10; i++) {
+    const s = Math.sin(outLat);
+    const nu1 = a1 / Math.sqrt(1 - e21 * s * s);
+    outLat = Math.atan2(z2 + e21 * nu1 * s, p);
+  }
+  return { lat: outLat, lon: Math.atan2(y2, x2) };
 }
 
-export type ParseCoordinateListResult =
-  | { ok: true; points: ParsedCoordinatePoint[] }
-  | { ok: false; errors: string[] };
+/** Forward Transverse Mercator: OSGB36 lat/lon (radians) -> National Grid E/N. */
+function osgb36ToOsGrid(lat: number, lon: number): { easting: number; northing: number } {
+  const a = 6377563.396;
+  const b = 6356256.909;
+  const F0 = 0.9996012717;
+  const lat0 = 49 * DEG;
+  const lon0 = -2 * DEG;
+  const N0 = -100000;
+  const E0 = 400000;
+  const e2 = 1 - (b * b) / (a * a);
+  const n = (a - b) / (a + b);
+  const n2 = n * n;
+  const n3 = n2 * n;
 
-/** The coordinate at the start of a string, or undefined if there isn't one. */
-function leadingCoordinate(text: string): string | undefined {
-  return text.match(LEADING_GRID_REF)?.[1] ?? text.match(LEADING_LAT_LNG)?.[1];
+  const sinLat = Math.sin(lat);
+  const cosLat = Math.cos(lat);
+  const tanLat = Math.tan(lat);
+  const nu = (a * F0) / Math.sqrt(1 - e2 * sinLat * sinLat);
+  const rho = (a * F0 * (1 - e2)) / Math.pow(1 - e2 * sinLat * sinLat, 1.5);
+  const eta2 = nu / rho - 1;
+
+  const Ma = (1 + n + (5 / 4) * n2 + (5 / 4) * n3) * (lat - lat0);
+  const Mb = (3 * n + 3 * n2 + (21 / 8) * n3) * Math.sin(lat - lat0) * Math.cos(lat + lat0);
+  const Mc = ((15 / 8) * n2 + (15 / 8) * n3) * Math.sin(2 * (lat - lat0)) * Math.cos(2 * (lat + lat0));
+  const Md = (35 / 24) * n3 * Math.sin(3 * (lat - lat0)) * Math.cos(3 * (lat + lat0));
+  const M = b * F0 * (Ma - Mb + Mc - Md);
+
+  const t2 = tanLat * tanLat;
+  const t4 = t2 * t2;
+  const c3 = cosLat * cosLat * cosLat;
+  const c5 = c3 * cosLat * cosLat;
+
+  const I = M + N0;
+  const II = (nu / 2) * sinLat * cosLat;
+  const III = (nu / 24) * sinLat * c3 * (5 - t2 + 9 * eta2);
+  const IIIA = (nu / 720) * sinLat * c5 * (61 - 58 * t2 + t4);
+  const IV = nu * cosLat;
+  const V = (nu / 6) * c3 * (nu / rho - t2);
+  const VI = (nu / 120) * c5 * (5 - 18 * t2 + t4 + 14 * eta2 - 58 * t2 * eta2);
+
+  const dl = lon - lon0;
+  const dl2 = dl * dl;
+  return {
+    northing: I + II * dl2 + III * dl2 * dl2 + IIIA * dl2 * dl2 * dl2,
+    easting: E0 + IV * dl + V * dl2 * dl + VI * dl2 * dl2 * dl,
+  };
 }
 
-// A leading list index: "1.", "2:", "3 -" and so on.
-const LIST_INDEX = /^\s*\d{1,3}\s*[.):-]\s*/;
-// The coordinate at the start of a line, ignoring any prose after it. Grid refs
-// end at the first non-digit; lat/lng pairs at the end of the second number.
-const LEADING_GRID_REF = /^([A-Za-z]{2}\s*\d[\d\s]*)/;
-const LEADING_LAT_LNG = /^([+-]?\d{1,3}(?:\.\d+)?(?:\s*,\s*|\s+)[+-]?\d{1,3}(?:\.\d+)?)/;
+const GRID_LETTERS = 'ABCDEFGHJKLMNOPQRSTUVWXYZ';
+
+export interface GridRefParts {
+  /** Two-letter 100 km square, e.g. "ST". */
+  square: string;
+  /** Easting figures within the square, zero-padded to `digits / 2`. */
+  easting: string;
+  /** Northing figures within the square. */
+  northing: string;
+  /** The whole reference, e.g. "ST734400". */
+  ref: string;
+}
 
 /**
- * Parse a whole list of coordinates, one per line, into ordered points.
- *
- * Tolerant of text pasted straight out of a survey document: an optional list
- * index is stripped and any prose following the coordinate is ignored, so
- * "1: ST734400 - Start from the office, cross the road" reads as ST734400.
- * Blank lines are skipped. Either supported format may be used, and they may
- * be mixed.
- *
- * Returns every bad line at once rather than stopping at the first, so a long
- * paste can be fixed in one pass.
+ * Convert WGS84 degrees to an OS grid reference, or null outside the National
+ * Grid. `digits` is the total figure count (6 = 100 m precision).
  */
-export function parseCoordinateList(input: string): ParseCoordinateListResult {
-  const points: ParsedCoordinatePoint[] = [];
-  const errors: string[] = [];
+export function latLngToGridRef(
+  lat: number,
+  lng: number,
+  digits: 4 | 6 | 8 | 10 = 6,
+): GridRefParts | null {
+  const osgb = wgs84ToOsgb36(lat, lng);
+  const { easting, northing } = osgb36ToOsGrid(osgb.lat, osgb.lon);
+  if (!Number.isFinite(easting) || !Number.isFinite(northing)) return null;
 
-  input.split(/\r?\n/).forEach((rawLine, index) => {
-    const line = rawLine.trim();
-    if (!line) return;
+  const e100 = Math.floor(easting / 100000);
+  const n100 = Math.floor(northing / 100000);
+  if (e100 < 0 || e100 > 6 || n100 < 0 || n100 > 12) return null;
 
-    // Try the line as it stands before stripping any list index: a decimal
-    // latitude like "51.15908, -2.3" itself begins "51.", which would
-    // otherwise be mistaken for the index "51.".
-    const token = leadingCoordinate(line) ?? leadingCoordinate(line.replace(LIST_INDEX, '').trim());
-    if (!token) {
-      errors.push(`Line ${index + 1}: could not read a coordinate from "${line}"`);
-      return;
-    }
+  // Inverse of the letter-pair decoding in parseGridRef.
+  const i1 = (19 - n100) - ((19 - n100) % 5) + Math.floor((e100 + 10) / 5);
+  const i2 = ((19 - n100) * 5) % 25 + (e100 % 5);
+  const square = GRID_LETTERS[i1] + GRID_LETTERS[i2];
 
-    const parsed = parseCoordinateInput(token.trim());
-    if (!parsed.ok) {
-      errors.push(`Line ${index + 1}: ${parsed.error}`);
-      return;
-    }
-    points.push({ lat: parsed.lat, lng: parsed.lng, source: token.trim() });
-  });
+  const half = digits / 2;
+  const div = Math.pow(10, 5 - half);
+  const eStr = String(Math.floor((easting % 100000) / div)).padStart(half, '0');
+  const nStr = String(Math.floor((northing % 100000) / div)).padStart(half, '0');
+  return { square, easting: eStr, northing: nStr, ref: `${square}${eStr}${nStr}` };
+}
 
-  if (errors.length > 0) return { ok: false, errors };
-  if (points.length === 0) {
-    return { ok: false, errors: ['Enter at least one coordinate, one per line.'] };
+/**
+ * Resolve the three grid-reference fields of the structured editor.
+ *
+ * Kept separate from parseGridRef so the UI can say which box is wrong rather
+ * than rejecting one opaque string.
+ */
+export function resolveGridRefParts(
+  square: string,
+  easting: string,
+  northing: string,
+): ParseCoordinateResult {
+  const sq = square.trim().toUpperCase();
+  const e = easting.trim();
+  const n = northing.trim();
+
+  if (!sq) return { ok: false, error: 'Enter the two-letter grid square, e.g. ST' };
+  if (!/^[A-Z]{2}$/.test(sq)) return { ok: false, error: 'The grid square is two letters, e.g. ST' };
+  if (!e || !n) return { ok: false, error: 'Enter both easting and northing figures' };
+  if (!/^\d{1,5}$/.test(e) || !/^\d{1,5}$/.test(n)) {
+    return { ok: false, error: 'Easting and northing must be digits only' };
   }
-  return { ok: true, points };
+  if (e.length !== n.length) {
+    return {
+      ok: false,
+      error: `Easting and northing need the same number of digits (${e.length} vs ${n.length})`,
+    };
+  }
+  return parseGridRef(`${sq}${e}${n}`);
 }

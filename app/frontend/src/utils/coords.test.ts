@@ -7,7 +7,8 @@ import {
   parseLatLng,
   parseGridRef,
   parseCoordinateInput,
-  parseCoordinateList,
+  latLngToGridRef,
+  resolveGridRefParts,
 } from './coords';
 
 describe('parseLatLng', () => {
@@ -181,78 +182,90 @@ describe('parseCoordinateInput', () => {
   });
 });
 
-describe('parseCoordinateList', () => {
-  it('reads one coordinate per line', () => {
-    const result = parseCoordinateList('ST734400\nST734399\nST733399');
+describe('latLngToGridRef', () => {
+  it('round-trips the Heal dragonfly stops back to their printed references', () => {
+    // Same fixtures parseGridRef converts the other way, so a break in either
+    // direction shows up here.
+    expect(latLngToGridRef(51.15908, -2.381038)?.ref).toBe('ST734400');
+    expect(latLngToGridRef(51.158176, -2.382461)?.ref).toBe('ST733399');
+    expect(latLngToGridRef(51.153712, -2.372415)?.ref).toBe('ST740394');
+    expect(latLngToGridRef(51.159983, -2.379615)?.ref).toBe('ST735401');
+  });
+
+  it('splits the reference into the parts the entry fields use', () => {
+    expect(latLngToGridRef(51.15908, -2.381038)).toMatchObject({
+      square: 'ST',
+      easting: '734',
+      northing: '400',
+    });
+  });
+
+  it('honours the requested precision', () => {
+    expect(latLngToGridRef(51.15908, -2.381038, 4)?.ref).toBe('ST7340');
+    // ST734400 denotes a 100 m square and parses to its centre (E 373450,
+    // N 140050), so at 10 m precision that centre reads as 7345 / 4005.
+    expect(latLngToGridRef(51.15908, -2.381038, 8)?.ref).toBe('ST73454005');
+  });
+
+  it('zero-pads figures so the digit count always matches the precision', () => {
+    const parts = latLngToGridRef(51.15908, -2.381038, 8);
+    expect(parts?.easting).toHaveLength(4);
+    expect(parts?.northing).toHaveLength(4);
+  });
+
+  it('returns null outside the National Grid', () => {
+    expect(latLngToGridRef(48.85, 2.35)).toBeNull(); // Paris
+    expect(latLngToGridRef(-33.87, 151.21)).toBeNull(); // Sydney
+  });
+
+  it('survives a full round trip through parseGridRef', () => {
+    const parsed = parseGridRef('SU 123 456');
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(latLngToGridRef(parsed.lat, parsed.lng)?.ref).toBe('SU123456');
+  });
+});
+
+describe('resolveGridRefParts', () => {
+  it('resolves the three fields to WGS84', () => {
+    const result = resolveGridRefParts('ST', '734', '400');
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.points).toHaveLength(3);
-      expect(result.points[0].lat).toBeCloseTo(51.15908, 4);
-      expect(result.points[2].lng).toBeCloseTo(-2.382461, 4);
+      expect(result.lat).toBeCloseTo(51.15908, 4);
+      expect(result.lng).toBeCloseTo(-2.381038, 4);
     }
   });
 
-  it('keeps the order given, which is the walking order of the route', () => {
-    const result = parseCoordinateList('ST733399\nST734400');
+  it('accepts a lowercase square and surrounding spaces', () => {
+    const result = resolveGridRefParts(' st ', ' 734 ', ' 400 ');
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.points.map((p) => p.source)).toEqual(['ST733399', 'ST734400']);
-    }
   });
 
-  it('reads lines pasted straight out of the survey document', () => {
-    // Verbatim from "Heal Somerset - DRAGONFLY survey route v2.pdf".
-    const pasted = [
-      '1: ST734400 – Start from the office, cross the road and pass through the gate.',
-      '2. ST734399 – Continue along mown path, head up and into next field.',
-      '3. ST733399 – Cross stream, check banks and into field next to railway line.',
-    ].join('\n');
+  it('names the empty field rather than rejecting the whole entry', () => {
+    const noSquare = resolveGridRefParts('', '734', '400');
+    expect(noSquare.ok).toBe(false);
+    if (!noSquare.ok) expect(noSquare.error).toMatch(/two-letter grid square/i);
 
-    const result = parseCoordinateList(pasted);
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.points.map((p) => p.source)).toEqual(['ST734400', 'ST734399', 'ST733399']);
-    }
+    const noFigures = resolveGridRefParts('ST', '', '');
+    expect(noFigures.ok).toBe(false);
+    if (!noFigures.ok) expect(noFigures.error).toMatch(/easting and northing/i);
   });
 
-  it('skips blank lines', () => {
-    const result = parseCoordinateList('ST734400\n\n   \nST734399\n');
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.points).toHaveLength(2);
-  });
-
-  it('accepts decimal coordinates and a mix of both formats', () => {
-    const result = parseCoordinateList('51.15908, -2.381038\nST734399');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.points).toHaveLength(2);
-      expect(result.points[0].lat).toBeCloseTo(51.15908, 4);
-    }
-  });
-
-  it('accepts spaced grid references within a list', () => {
-    const result = parseCoordinateList('ST 734 400\nST 733 399');
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.points).toHaveLength(2);
-  });
-
-  it('reports every bad line at once, with its line number', () => {
-    const result = parseCoordinateList('ST734400\nnot a coordinate\nST733399\nZZ999999');
+  it('rejects a mismatched number of figures, saying which counts differ', () => {
+    const result = resolveGridRefParts('ST', '7345', '400');
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.errors).toHaveLength(2);
-      expect(result.errors[0]).toContain('Line 2');
-      expect(result.errors[1]).toContain('Line 4');
-    }
+    if (!result.ok) expect(result.error).toContain('4 vs 3');
   });
 
-  it('rejects an empty list', () => {
-    expect(parseCoordinateList('').ok).toBe(false);
-    expect(parseCoordinateList('\n  \n').ok).toBe(false);
+  it('rejects a one-letter square', () => {
+    expect(resolveGridRefParts('S', '734', '400').ok).toBe(false);
   });
 
-  it('does not mistake prose for a coordinate', () => {
-    const result = parseCoordinateList('Start from the office and cross the road');
-    expect(result.ok).toBe(false);
+  it('rejects non-digits in the figures', () => {
+    expect(resolveGridRefParts('ST', '7a4', '400').ok).toBe(false);
+  });
+
+  it('still applies the square validation from parseGridRef', () => {
+    expect(resolveGridRefParts('SI', '734', '400').ok).toBe(false); // I unused
+    expect(resolveGridRefParts('AA', '123', '456').ok).toBe(false); // off-grid
   });
 });
