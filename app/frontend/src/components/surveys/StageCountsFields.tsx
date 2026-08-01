@@ -28,13 +28,14 @@
  * quietly degrades the dataset.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
   ButtonBase,
   Chip,
+  Collapse,
   IconButton,
   Stack,
   TextField,
@@ -44,6 +45,7 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RemoveIcon from '@mui/icons-material/Remove';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
@@ -55,6 +57,7 @@ import {
   deriveBreedingTier,
   stageCountCap,
   stageCountErrors,
+  summariseStageCounts,
   type StageCountKey,
   type StageCounts,
 } from '../../config/stageCounts';
@@ -88,6 +91,18 @@ export default function StageCountsFields({
   const [mode, setMode] = useState<'tally' | 'type'>('tally');
   const tier = deriveBreedingTier(value, adultTotal);
   const errors = stageCountErrors(value, adultTotal);
+  const summary = summariseStageCounts(value);
+
+  // Collapsed by default: most records are an adult count and nothing else, so
+  // the five breeding-evidence columns shouldn't outweigh the total. Anything
+  // already recorded opens the panel, so an edit never hides existing data.
+  const [expanded, setExpanded] = useState(() => summariseStageCounts(value) !== null);
+
+  // An error blocks saving, so never leave one folded away out of sight. This
+  // is reachable by lowering the adult total after counts were entered.
+  useEffect(() => {
+    if (errors.length > 0) setExpanded(true);
+  }, [errors.length]);
 
   /** The most this field may count up to: its adult-total cap, else the sanity max. */
   const limitFor = (key: StageCountKey): number => {
@@ -124,39 +139,87 @@ export default function StageCountsFields({
 
   return (
     <Box>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: 0.5, gap: 1, flexWrap: 'wrap' }}
+      <ButtonBase
+        onClick={() => setExpanded((open) => !open)}
+        aria-expanded={expanded}
+        aria-controls="stage-counts-panel"
+        sx={{
+          width: '100%',
+          minHeight: 48,
+          px: 1,
+          py: 1,
+          borderRadius: 1.5,
+          justifyContent: 'space-between',
+          textAlign: 'left',
+          gap: 1,
+          '&:hover': { bgcolor: 'action.hover' },
+        }}
       >
-        <Typography variant="subtitle2" sx={{ minWidth: 0 }}>
-          Life stage &amp; behaviour
-        </Typography>
-        <ToggleButtonGroup
-          value={mode}
-          exclusive
-          size="small"
-          onChange={(_, next) => next && setMode(next)}
-          disabled={disabled}
-          sx={{ flexShrink: 0 }}
-        >
-          <ToggleButton value="tally" sx={{ gap: 0.5, textTransform: 'none' }}>
-            <TouchAppIcon fontSize="small" />
-            Tap
-          </ToggleButton>
-          <ToggleButton value="type" sx={{ gap: 0.5, textTransform: 'none' }}>
-            <KeyboardIcon fontSize="small" />
-            Type
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Stack>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle2">Life stage &amp; behaviour</Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: summary ? 'text.secondary' : 'text.disabled', display: 'block' }}
+          >
+            {summary ?? 'Optional — breeding evidence'}
+          </Typography>
+        </Box>
+        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
+          {/* "Adults present" is derived from the count alone, so it would sit
+              on every record saying nothing. Only show a tier that reports
+              actual breeding evidence. */}
+          {tier && tier.category !== 'non_breeding' && (
+            <Chip
+              size="small"
+              label={tier.label}
+              sx={{
+                bgcolor: CATEGORY_COLORS[tier.category],
+                color: 'white',
+                fontWeight: 600,
+              }}
+            />
+          )}
+          <ExpandMoreIcon
+            sx={{
+              transition: 'transform .2s',
+              transform: expanded ? 'rotate(180deg)' : 'none',
+              color: 'action.active',
+            }}
+          />
+        </Stack>
+      </ButtonBase>
 
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
-        {mode === 'tally'
-          ? 'British Dragonfly Society columns. + (or tapping the card) counts up; − steps back down, then to not recorded.'
-          : 'British Dragonfly Society columns. Leave blank if not recorded; enter 0 if you looked and saw none.'}
-      </Typography>
+      <Collapse in={expanded} id="stage-counts-panel">
+        <Box sx={{ pt: 1 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ mb: 0.5, gap: 1, flexWrap: 'wrap' }}
+        >
+          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 0, flex: 1 }}>
+            {mode === 'tally'
+              ? 'British Dragonfly Society columns. + (or tapping the card) counts up; − steps back down, then to not recorded.'
+              : 'British Dragonfly Society columns. Leave blank if not recorded; enter 0 if you looked and saw none.'}
+          </Typography>
+          <ToggleButtonGroup
+            value={mode}
+            exclusive
+            size="small"
+            onChange={(_, next) => next && setMode(next)}
+            disabled={disabled}
+            sx={{ flexShrink: 0 }}
+          >
+            <ToggleButton value="tally" sx={{ gap: 0.5, textTransform: 'none' }}>
+              <TouchAppIcon fontSize="small" />
+              Tap
+            </ToggleButton>
+            <ToggleButton value="type" sx={{ gap: 0.5, textTransform: 'none' }}>
+              <KeyboardIcon fontSize="small" />
+              Type
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
 
       {mode === 'tally' ? (
         <Stack spacing={1}>
@@ -339,6 +402,8 @@ export default function StageCountsFields({
           </Button>
         )}
       </Stack>
+        </Box>
+      </Collapse>
 
       {errors.length > 0 && (
         // Hard: these states are impossible by definition, and the parent
@@ -352,20 +417,6 @@ export default function StageCountsFields({
         </Alert>
       )}
 
-      {tier && (
-        <Tooltip title={tier.evidence}>
-          <Chip
-            size="small"
-            label={tier.label}
-            sx={{
-              mt: 1.5,
-              bgcolor: CATEGORY_COLORS[tier.category],
-              color: 'white',
-              fontWeight: 600,
-            }}
-          />
-        </Tooltip>
-      )}
     </Box>
   );
 }

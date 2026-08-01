@@ -159,6 +159,28 @@ export function stageCountErrors(
   return errors;
 }
 
+/**
+ * One line describing what has been recorded, for the collapsed panel header.
+ *
+ * Distinguishes the three states that matter: nothing recorded, recorded as
+ * all-absent, and actual observations. Returns null when nothing is recorded
+ * so the caller can render its own muted placeholder.
+ */
+export function summariseStageCounts(counts: StageCounts | null | undefined): string | null {
+  const c = counts ?? {};
+  const seen = STAGE_COUNT_FIELDS.filter((f) => {
+    const value = c[f.key];
+    return typeof value === 'number' && value > 0;
+  });
+
+  if (seen.length > 0) {
+    return seen
+      .map((f) => `${c[f.key]} ${f.label.toLowerCase()}`)
+      .join(', ');
+  }
+  return hasStageCounts(c) ? 'None seen' : null;
+}
+
 export interface BreedingTier {
   label: string;
   /** Reuses the BTO category vocabulary so tier colours stay consistent app-wide. */

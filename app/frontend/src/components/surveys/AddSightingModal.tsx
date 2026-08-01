@@ -13,6 +13,7 @@ import {
 } from '../../config/stageCounts';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
 import StageCountsFields from './StageCountsFields';
+import NumberStepper from './NumberStepper';
 
 export interface SightingData extends StageCounts {
   species_id: number | null;
@@ -404,32 +405,40 @@ export function AddSightingModal({
           </Box>
           )}
 
-          {/* Count Input */}
-          <TextField
-            label={showStageCounts ? 'Adults (total) *' : 'Count *'}
-            autoFocus={!!singleSpecies}
-            type="number"
-            value={count || ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              setCount(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
-            }}
-            onBlur={() => {
-              if (count < 1) setCount(1);
-            }}
-            inputProps={{ min: 1 }}
-            fullWidth
-            helperText={
-              showStageCounts
-                ? 'All adults seen, including those in a copulating pair.'
-                : undefined
-            }
-            sx={{
-              '& .MuiInputBase-input': {
-                fontSize: '16px',
-              }
-            }}
-          />
+          {/* Count Input. Dragonfly recording is a tally, and this is the field
+              used on every record, so it gets the stepper — the breeding
+              evidence below it is the occasional part. */}
+          {showStageCounts ? (
+            <NumberStepper
+              label="Adults (total) *"
+              value={count}
+              onChange={setCount}
+              min={1}
+              helperText="All adults seen, including those in a copulating pair."
+              autoFocus={!!singleSpecies}
+            />
+          ) : (
+            <TextField
+              label="Count *"
+              autoFocus={!!singleSpecies}
+              type="number"
+              value={count || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCount(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
+              }}
+              onBlur={() => {
+                if (count < 1) setCount(1);
+              }}
+              inputProps={{ min: 1 }}
+              fullWidth
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: '16px',
+                }
+              }}
+            />
+          )}
 
           {/* Life stage & behaviour matrix (BDS Odonata form) */}
           {showStageCounts && (
