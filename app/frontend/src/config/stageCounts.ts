@@ -33,6 +33,8 @@ export type StageCountKey = keyof StageCounts;
 export interface StageCountField {
   key: StageCountKey;
   label: string;
+  /** Singular form for summary lines ("1 copulating pair", "1 larva"). */
+  singular: string;
   /** Shown under the input; keeps the recording convention at the point of entry. */
   helper?: string;
   /**
@@ -47,20 +49,23 @@ export const STAGE_COUNT_FIELDS: readonly StageCountField[] = [
   {
     key: 'copulating_pairs',
     label: 'Copulating pairs',
+    singular: 'copulating pair',
     helper: 'In tandem or the wheel. One pair counts as 1.',
     color: 'purple',
   },
-  { key: 'ovipositing_females', label: 'Ovipositing females', color: 'pink' },
-  { key: 'larvae', label: 'Larvae', color: 'blue' },
+  { key: 'ovipositing_females', label: 'Ovipositing females', singular: 'ovipositing female', color: 'pink' },
+  { key: 'larvae', label: 'Larvae', singular: 'larva', color: 'blue' },
   {
     key: 'exuviae',
     label: 'Exuviae',
+    singular: 'exuvia',
     helper: 'Cast larval skins — proof of successful breeding.',
     color: 'green',
   },
   {
     key: 'emerging_adults',
     label: 'Emerging adults',
+    singular: 'emerging adult',
     helper: 'Newly emerged (teneral) adults.',
     color: 'orange',
   },
@@ -101,6 +106,17 @@ export function pickStageCounts(source: StageCounts | null | undefined): StageCo
 export function hasStageCounts(counts: StageCounts | null | undefined): boolean {
   if (!counts) return false;
   return STAGE_COUNT_KEYS.some((key) => counts[key] !== null && counts[key] !== undefined);
+}
+
+/**
+ * True when any stage count is above zero. With positive breeding evidence a
+ * record stands on its own even at 0 adults — a visit can find only exuviae
+ * or larvae, and BDS wants that recorded honestly rather than padded with a
+ * phantom adult.
+ */
+export function hasPositiveStageCounts(counts: StageCounts | null | undefined): boolean {
+  if (!counts) return false;
+  return STAGE_COUNT_KEYS.some((key) => (counts[key] ?? 0) > 0);
 }
 
 /**
@@ -175,7 +191,7 @@ export function summariseStageCounts(counts: StageCounts | null | undefined): st
 
   if (seen.length > 0) {
     return seen
-      .map((f) => `${c[f.key]} ${f.label.toLowerCase()}`)
+      .map((f) => `${c[f.key]} ${c[f.key] === 1 ? f.singular : f.label.toLowerCase()}`)
       .join(', ');
   }
   return hasStageCounts(c) ? 'None seen' : null;

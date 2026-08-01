@@ -9,8 +9,9 @@ import { LocationModal } from './LocationModal';
 import { MapModeSightings } from './MapModeSightings';
 import ViewModeToggle from '../ViewModeToggle';
 import { getSightingsGridConfig } from './sightingsGridConfig';
-import { pickStageCounts, recordsStageCounts, type StageCounts } from '../../config/stageCounts';
+import { hasPositiveStageCounts, pickStageCounts, recordsStageCounts, type StageCounts } from '../../config/stageCounts';
 import StageCountsFields from './StageCountsFields';
+import StageCountsSummary from './StageCountsSummary';
 import { getSpeciesIcon } from '../../config';
 import { useResponsive } from '../../hooks/useResponsive';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
@@ -182,6 +183,8 @@ export function SightingsEditor({
               location_id: sightingData.location_id,
               device_id: sightingData.device_id,
               notes: sightingData.notes,
+              // All five keys, nulls included, so cleared counts clear here too.
+              ...pickStageCounts(sightingData),
               pendingPhotos: sightingData.pendingPhotos,
               existingImageIds: sightingData.existingImageIds,
               removedImageIds: sightingData.removedImageIds,
@@ -200,6 +203,7 @@ export function SightingsEditor({
           location_id: sightingData.location_id,
           device_id: sightingData.device_id,
           notes: sightingData.notes,
+          ...pickStageCounts(sightingData),
           pendingPhotos: sightingData.pendingPhotos,
         },
       ]);
@@ -428,6 +432,9 @@ export function SightingsEditor({
               {validSightings.map((sighting) => {
                 const SpeciesIcon = getSpeciesIcon(getSpeciesType(sighting.species_id));
                 const speciesName = getSpeciesDisplayName(sighting.species_id);
+                // For BDS taxa the count IS "Adults (total)" — echo the
+                // modal's vocabulary so the card confirms what was entered.
+                const stageCountSpecies = recordsStageCounts(getSpeciesType(sighting.species_id));
 
                 return (
                   <Card
@@ -476,7 +483,7 @@ export function SightingsEditor({
                           </Typography>
                           <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
                             <Chip
-                              label={`Count: ${sighting.count}`}
+                              label={stageCountSpecies ? `Adults: ${sighting.count}` : `Count: ${sighting.count}`}
                               size="small"
                               sx={{
                                 height: 24,
@@ -547,6 +554,11 @@ export function SightingsEditor({
                               />
                             )}
                           </Stack>
+                          {stageCountSpecies && (
+                            <Box sx={{ mt: 0.5 }}>
+                              <StageCountsSummary counts={pickStageCounts(sighting)} adultTotal={sighting.count} />
+                            </Box>
+                          )}
                         </Box>
 
                         <Stack direction="row" spacing={0.5}>
@@ -583,7 +595,7 @@ export function SightingsEditor({
               }}
             >
               <Typography variant="body2" color="text.secondary">
-                No sightings added yet. Click "Add Sighting" to get started.
+                No sightings added yet. Tap "Add" to record your first sighting.
               </Typography>
             </Box>
           )}
@@ -604,6 +616,7 @@ export function SightingsEditor({
                   location_id: editingSighting.location_id,
                   device_id: editingSighting.device_id,
                   notes: editingSighting.notes,
+                  ...pickStageCounts(editingSighting),
                   pendingPhotos: editingSighting.pendingPhotos,
                   existingImageIds: editingSighting.existingImageIds,
                   removedImageIds: editingSighting.removedImageIds,
@@ -948,7 +961,12 @@ export function SightingsEditor({
                     updateSighting(sighting.tempId, 'count', val === '' ? 0 : Math.max(0, parseInt(val) || 0));
                   }}
                   onBlur={() => {
-                    if (sighting.count < 1) {
+                    // 0 adults stands when positive breeding evidence carries
+                    // the row (exuviae-only visits are real BDS records).
+                    const zeroAllowed =
+                      recordsStageCounts(getSpeciesType(sighting.species_id)) &&
+                      hasPositiveStageCounts(pickStageCounts(sighting));
+                    if (sighting.count < 1 && !zeroAllowed) {
                       updateSighting(sighting.tempId, 'count', 1);
                     }
                   }}

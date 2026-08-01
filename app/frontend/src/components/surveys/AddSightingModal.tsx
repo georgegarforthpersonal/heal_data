@@ -5,6 +5,7 @@ import type { Species, BreedingStatusCode, LocationWithBoundary, Location, Devic
 import { imagesAPI, locationDisplayName } from '../../services/api';
 import { getSpeciesIcon } from '../../config';
 import {
+  hasPositiveStageCounts,
   pickStageCounts,
   recordsStageCounts,
   stageCountErrors,
@@ -122,11 +123,18 @@ export function AddSightingModal({
     return sp?.type === 'bird';
   }, [selectedSpeciesId, species]);
 
-  // Dragonflies use the BDS stage/behaviour count matrix instead of per-individual codes
+  // Dragonflies use the BDS stage/behaviour count matrix instead of
+  // per-individual codes. When every offered species records the matrix (a
+  // dragonfly-only survey type), the form opens in that shape rather than
+  // morphing after the species is picked.
+  const allSpeciesRecordStageCounts = useMemo(
+    () => species.length > 0 && species.every((sp) => recordsStageCounts(sp.type)),
+    [species],
+  );
   const showStageCounts = useMemo(() => {
     const sp = species.find((s) => s.id === selectedSpeciesId);
-    return recordsStageCounts(sp?.type);
-  }, [selectedSpeciesId, species]);
+    return sp ? recordsStageCounts(sp.type) : allSpeciesRecordStageCounts;
+  }, [selectedSpeciesId, species, allSpeciesRecordStageCounts]);
 
   // Update local state when initialData changes (for edit mode)
   useEffect(() => {
@@ -148,6 +156,9 @@ export function AddSightingModal({
       setSelectedLocationId(null);
       setSelectedDeviceId(null);
       setNotes('');
+      // Without this, counts tapped in then cancelled resurface on the next
+      // add — phantom breeding evidence against whatever species comes next.
+      setStageCounts(pickStageCounts(null));
       setPendingPhotos([]);
       setExistingImageIds([]);
       setRemovedImageIds([]);
@@ -173,7 +184,9 @@ export function AddSightingModal({
     if (selectedSpeciesId) {
       onSave({
         species_id: selectedSpeciesId,
-        count: Math.max(1, count),
+        // Zero adults is a legitimate BDS record when breeding evidence
+        // (exuviae, larvae…) carries the sighting; otherwise floor at 1.
+        count: showStageCounts ? count : Math.max(1, count),
         individuals: individuals.length > 0 ? individuals : undefined,
         location_id: locationAtSightingLevel ? selectedLocationId : undefined,
         device_id: allowSightingDeviceSelection ? selectedDeviceId : undefined,
@@ -192,7 +205,7 @@ export function AddSightingModal({
       setSelectedLocationId(null);
       setSelectedDeviceId(null);
       setNotes('');
-      setStageCounts({});
+      setStageCounts(pickStageCounts(null));
       setPendingPhotos([]);
       setExistingImageIds([]);
       setRemovedImageIds([]);
@@ -201,13 +214,14 @@ export function AddSightingModal({
   };
 
   const handleCancel = () => {
-    // Reset form
+    // Reset form (?? not ||: an existing zero-adult record must stay 0)
     setSelectedSpeciesId(initialData?.species_id || defaultSpeciesId);
-    setCount(initialData?.count || 1);
+    setCount(initialData?.count ?? 1);
     setIndividuals(initialData?.individuals || []);
     setSelectedLocationId(initialData?.location_id || null);
     setSelectedDeviceId(initialData?.device_id || null);
     setNotes(initialData?.notes || '');
+    setStageCounts(pickStageCounts(initialData));
     setPendingPhotos(initialData?.pendingPhotos || []);
     setExistingImageIds(initialData?.existingImageIds || []);
     setRemovedImageIds(initialData?.removedImageIds || []);
@@ -264,8 +278,13 @@ export function AddSightingModal({
   const selectedLocation = locations.find(l => l.id === selectedLocationId);
   const selectedDevice = devices.find(d => d.id === selectedDeviceId);
   // Require location / device when their respective mode is on; stage counts
-  // must not contradict the adult total (the widget shows why).
-  const canSave = selectedSpeciesId !== null && count > 0 &&
+  // must not contradict the adult total (the widget shows why). A stage-count
+  // sighting may have 0 adults, but only when positive breeding evidence
+  // carries the record — 0 adults and nothing else is not a sighting.
+  const countOk = showStageCounts
+    ? count > 0 || hasPositiveStageCounts(stageCounts)
+    : count > 0;
+  const canSave = selectedSpeciesId !== null && countOk &&
     (!locationAtSightingLevel || selectedLocationId !== null) &&
     (!allowSightingDeviceSelection || selectedDeviceId !== null) &&
     (!showStageCounts || stageCountErrors(stageCounts, count).length === 0);
@@ -294,7 +313,7 @@ export function AddSightingModal({
         }}
       >
         <Typography variant="h6" fontWeight={600}>
-          {mode === 'add' ? 'Add Sighting' : 'Edit Sighting'}
+          {mode === 'add' ? 'Add sighting' : 'Edit sighting'}
         </Typography>
         <IconButton onClick={handleCancel} edge="end">
           <Close />
@@ -357,8 +376,12 @@ export function AddSightingModal({
                 );
               }}
               getOptionLabel={(option) => {
+                // Parenthesised so the closed input reads "Common Darter
+                // (Sympetrum striolatum)", not an unpunctuated run-on.
                 if (option.name) {
-                  return `${option.name} ${option.scientific_name || ''}`.trim();
+                  return option.scientific_name
+                    ? `${option.name} (${option.scientific_name})`
+                    : option.name;
                 }
                 return option.scientific_name || '';
               }}
@@ -413,8 +436,12 @@ export function AddSightingModal({
               label="Adults (total) *"
               value={count}
               onChange={setCount}
-              min={1}
-              helperText="All adults seen, including those in a copulating pair."
+              min={0}
+              helperText={
+                count === 0 && !hasPositiveStageCounts(stageCounts)
+                  ? 'Zero adults is fine when breeding evidence below is recorded — add some to save.'
+                  : 'All adults seen, including those in a copulating pair.'
+              }
               autoFocus={!!singleSpecies}
             />
           ) : (

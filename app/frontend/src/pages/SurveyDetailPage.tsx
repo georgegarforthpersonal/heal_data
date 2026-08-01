@@ -13,7 +13,8 @@ import { AudioClipPlayer } from '../components/audio/AudioClipPlayer';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSightingsGridConfig } from '../components/surveys/sightingsGridConfig';
 import { getSpeciesIcon } from '../config';
-import { pickStageCounts } from '../config/stageCounts';
+import { hasPositiveStageCounts, hasStageCounts, pickStageCounts } from '../config/stageCounts';
+import StageCountsSummary from '../components/surveys/StageCountsSummary';
 import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
 import { scopeBoundariesToLocations } from '../utils/scopeBoundaries';
@@ -431,9 +432,10 @@ export function SurveyDetailPage() {
       errors.surveyors = 'At least one surveyor is required';
     }
 
-    // If location at sighting level, check that each sighting has a location
+    // If location at sighting level, check that each sighting has a location.
+    // A zero-adult row still counts when positive breeding evidence carries it.
     const validSightings = editDraftSightings.filter(
-      (s) => s.species_id !== null && s.count > 0
+      (s) => s.species_id !== null && (s.count > 0 || hasPositiveStageCounts(pickStageCounts(s)))
     );
     if (allowSightingDeviceSelection) {
       const sightingsWithoutDevice = validSightings.filter((s) => !s.device_id);
@@ -515,9 +517,10 @@ export function SurveyDetailPage() {
       await surveysAPI.update(Number(id), surveyData);
 
       // Step 2: Handle sightings changes
-      // Get valid sightings (non-empty rows)
+      // Get valid sightings (non-empty rows; zero-adult rows stand when
+      // positive breeding evidence carries them)
       const validSightings = workingDraft.filter(
-        (s) => s.species_id !== null && s.count > 0
+        (s) => s.species_id !== null && (s.count > 0 || hasPositiveStageCounts(pickStageCounts(s)))
       );
 
       // Identify which sightings to delete (existing sightings not in the new list)
@@ -830,7 +833,7 @@ export function SurveyDetailPage() {
                       Saving...
                     </>
                   ) : (
-                    'Save Survey'
+                    'Save survey'
                   )}
                 </Button>
               </Stack>
@@ -1285,6 +1288,18 @@ export function SurveyDetailPage() {
                               </Typography>
 
                             </Box>
+
+                            {/* BDS breeding evidence — tier + counts, full width
+                                like notes. Without this the evidence is only
+                                visible in the entry widget and the export. */}
+                            {hasStageCounts(pickStageCounts(sighting)) && (
+                              <Box sx={{ px: 1.5, pb: 1.5 }}>
+                                <StageCountsSummary
+                                  counts={pickStageCounts(sighting)}
+                                  adultTotal={sighting.count}
+                                />
+                              </Box>
+                            )}
 
                             {/* Notes — full-width line, clamped with tap-to-expand */}
                             {allowSightingNotes && sighting.notes && String(sighting.notes).trim() !== '' && (

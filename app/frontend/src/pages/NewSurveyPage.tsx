@@ -14,7 +14,7 @@ import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-mater
 import { Dayjs } from 'dayjs';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
-import { pickStageCounts, stageCountErrors } from '../config/stageCounts';
+import { hasPositiveStageCounts, pickStageCounts, stageCountErrors } from '../config/stageCounts';
 import { AccessNotice } from '../components/auth/AccessNotice';
 import {
   surveysAPI,
@@ -326,9 +326,10 @@ export function NewSurveyPage() {
       errors.surveyors = 'At least one surveyor is required';
     }
 
-    // If location at sighting level, check that each sighting has a location
+    // If location at sighting level, check that each sighting has a location.
+    // A zero-adult row still counts when positive breeding evidence carries it.
     const validSightings = draftSightings.filter(
-      (s) => s.species_id !== null && s.count > 0
+      (s) => s.species_id !== null && (s.count > 0 || hasPositiveStageCounts(pickStageCounts(s)))
     );
     if (selectedSurveyType?.allow_sighting_device_selection) {
       const sightingsWithoutDevice = validSightings.filter((s) => !s.device_id);
@@ -436,7 +437,7 @@ export function NewSurveyPage() {
       }
 
       const validSightings = draftSightings.filter(
-        (s) => s.species_id !== null && s.count > 0
+        (s) => s.species_id !== null && (s.count > 0 || hasPositiveStageCounts(pickStageCounts(s)))
       );
 
       // Resume a previous failed attempt only if the save inputs are
@@ -654,7 +655,7 @@ export function NewSurveyPage() {
                   Saving...
                 </>
               ) : (
-                'Save Survey'
+                'Save survey'
               )}
             </Button>
           </Stack>

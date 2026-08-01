@@ -237,7 +237,7 @@ describe('StageCountsFields disclosure', () => {
   it('summarises what was recorded while closed', () => {
     render(<Harness initial={{ ovipositing_females: 2, larvae: 1 }} />);
     fireEvent.click(header()); // starts open; close it
-    expect(screen.getByText(/2 ovipositing females, 1 larvae/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 ovipositing females, 1 larva/i)).toBeInTheDocument();
   });
 
   it('distinguishes a searched-and-absent record from an unrecorded one', () => {

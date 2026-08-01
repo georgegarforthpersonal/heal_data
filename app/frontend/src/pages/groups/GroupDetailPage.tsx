@@ -291,7 +291,11 @@ export default function GroupDetailPage() {
 
           {/* Right column */}
           <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, flex: 1, minWidth: 0 }}>
-            <Box sx={{ order: 1, minWidth: 0 }}>
+            {/* An empty Files panel must not own the first phone screenful —
+                sink it below the working panels on xs. Desktop keeps its slot
+                (the two-column layout has room), and while loading it holds
+                position rather than jumping when the fetch resolves. */}
+            <Box sx={{ order: { xs: !filesLoading && files.length === 0 ? 6 : 1, md: 1 }, minWidth: 0 }}>
               <FilesPanel surveyTypeId={surveyType.id} files={files} loading={filesLoading} />
             </Box>
             <Box sx={{ order: 3, minWidth: 0 }}>

@@ -5,11 +5,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   deriveBreedingTier,
+  hasPositiveStageCounts,
   hasStageCounts,
   pickStageCounts,
   recordsStageCounts,
   stageCountCap,
   stageCountErrors,
+  summariseStageCounts,
   STAGE_COUNT_FIELDS,
   STAGE_COUNT_KEYS,
 } from './stageCounts';
@@ -149,6 +151,34 @@ describe('pickStageCounts', () => {
       exuviae: null,
       emerging_adults: null,
     });
+  });
+});
+
+describe('hasPositiveStageCounts', () => {
+  it('needs a value above zero, not just a recorded zero', () => {
+    expect(hasPositiveStageCounts({ larvae: 0, exuviae: 0 })).toBe(false);
+    expect(hasPositiveStageCounts({ larvae: 0, exuviae: 1 })).toBe(true);
+  });
+
+  it('is false for nothing recorded', () => {
+    expect(hasPositiveStageCounts({})).toBe(false);
+    expect(hasPositiveStageCounts(null)).toBe(false);
+  });
+});
+
+describe('summariseStageCounts', () => {
+  it('uses singular forms at one, plural otherwise', () => {
+    expect(summariseStageCounts({ ovipositing_females: 1 })).toBe('1 ovipositing female');
+    expect(summariseStageCounts({ larvae: 1 })).toBe('1 larva');
+    expect(summariseStageCounts({ exuviae: 1 })).toBe('1 exuvia');
+    expect(summariseStageCounts({ copulating_pairs: 2, ovipositing_females: 3 })).toBe(
+      '2 copulating pairs, 3 ovipositing females',
+    );
+  });
+
+  it('distinguishes all-absent from nothing recorded', () => {
+    expect(summariseStageCounts({ larvae: 0 })).toBe('None seen');
+    expect(summariseStageCounts({})).toBeNull();
   });
 });
 

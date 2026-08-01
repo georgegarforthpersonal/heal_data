@@ -63,7 +63,7 @@ import {
 } from '../../config/stageCounts';
 import { notionColors } from '../../theme';
 import { tick } from '../../utils/haptics';
-import { CATEGORY_COLORS } from './breedingConstants';
+import { CATEGORY_COLORS, CATEGORY_TEXT_COLOR } from './breedingConstants';
 
 /**
  * Comfortably above Material's 48dp floor and Hoober's 46px bottom-of-screen
@@ -174,7 +174,7 @@ export default function StageCountsFields({
               label={tier.label}
               sx={{
                 bgcolor: CATEGORY_COLORS[tier.category],
-                color: 'white',
+                color: CATEGORY_TEXT_COLOR,
                 fontWeight: 600,
               }}
             />

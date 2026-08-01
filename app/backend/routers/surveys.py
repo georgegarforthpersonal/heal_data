@@ -949,6 +949,21 @@ async def update_sighting(
     update_data = sighting.model_dump(exclude_unset=True)
     image_ids = update_data.pop("image_ids", None)
 
+    # SightingUpdate is partial, so the zero-count rule is checked against the
+    # merged row: 0 adults must leave some positive stage count behind. Checked
+    # before mutating the ORM row so a rejection can't leave dirty state.
+    merged = {
+        field: update_data.get(field, getattr(db_sighting, field))
+        for field in ("count", *STAGE_COUNT_FIELDS)
+    }
+    if (merged["count"] or 0) == 0 and not any(
+        (merged[field] or 0) > 0 for field in STAGE_COUNT_FIELDS
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="count must be positive unless a stage count (larvae, exuviae, …) is recorded above zero",
+        )
+
     for field, value in update_data.items():
         setattr(db_sighting, field, value)
 

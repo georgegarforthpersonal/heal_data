@@ -32,7 +32,7 @@ import { parseCoordinateInput } from '../../utils/coords';
 import type { BreedingStatusCode, BreedingCategory, LocationWithBoundary } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { DEFAULT_MAP_CENTER } from '../../config';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
+import { CATEGORY_COLORS, CATEGORY_LABELS, CATEGORY_TEXT_COLOR } from './breedingConstants';
 import { boundaryLatLngs } from './mapModeUtils';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
@@ -285,8 +285,12 @@ export default function MultiLocationMapPicker({
     return 'Click on the map to add more locations.';
   };
 
-  // Get progress text
+  // Get progress text. Before the first pin the fraction reads as robot talk
+  // ("0 of 1 across 0 locations"), so start with an invitation instead.
   const getProgressText = () => {
+    if (locations.length === 0) {
+      return 'none pinned yet — tap the map to add one';
+    }
     if (maxCount === undefined) {
       return `${totalCount} individual${totalCount === 1 ? '' : 's'} across ${locations.length} location${locations.length === 1 ? '' : 's'}`;
     }
@@ -544,7 +548,7 @@ export default function MultiLocationMapPicker({
                               size="small"
                               sx={{
                                 bgcolor: CATEGORY_COLORS[code.category],
-                                color: 'white',
+                                color: CATEGORY_TEXT_COLOR,
                                 fontWeight: 600,
                                 height: 20,
                                 minWidth: 28,
@@ -567,7 +571,7 @@ export default function MultiLocationMapPicker({
                             key={`header-${category}`}
                             sx={{
                               bgcolor: CATEGORY_COLORS[category],
-                              color: 'white',
+                              color: CATEGORY_TEXT_COLOR,
                               fontWeight: 600,
                               lineHeight: '32px',
                             }}
@@ -583,7 +587,7 @@ export default function MultiLocationMapPicker({
                                     size="small"
                                     sx={{
                                       bgcolor: CATEGORY_COLORS[category],
-                                      color: 'white',
+                                      color: CATEGORY_TEXT_COLOR,
                                       fontWeight: 600,
                                       height: 20,
                                       minWidth: 28,

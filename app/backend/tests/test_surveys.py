@@ -408,6 +408,76 @@ class TestSurveySightings:
         )
         assert response.status_code == 422
 
+    def test_zero_count_allowed_with_breeding_evidence(
+        self, client: TestClient, auth_headers: dict,
+        create_survey, create_surveyor, create_species
+    ):
+        """An exuviae-only visit has 0 adults and is a legitimate BDS record."""
+        surveyor = create_surveyor()
+        survey = create_survey(surveyor_ids=[surveyor.id])
+        species = create_species(name="Golden-ringed Dragonfly")
+
+        response = client.post(
+            f"/api/surveys/{survey.id}/sightings",
+            json={"species_id": species.id, "count": 0, "exuviae": 3},
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+        assert response.json()["count"] == 0
+        assert response.json()["exuviae"] == 3
+
+    def test_zero_count_without_evidence_rejected(
+        self, client: TestClient, auth_headers: dict,
+        create_survey, create_surveyor, create_species
+    ):
+        """0 adults and no positive stage count is not a sighting of anything."""
+        surveyor = create_surveyor()
+        survey = create_survey(surveyor_ids=[surveyor.id])
+        species = create_species(name="Golden-ringed Dragonfly")
+
+        for payload in (
+            {"species_id": species.id, "count": 0},
+            # Recorded zeros ("looked, saw none") don't carry a record either.
+            {"species_id": species.id, "count": 0, "larvae": 0, "exuviae": 0},
+        ):
+            response = client.post(
+                f"/api/surveys/{survey.id}/sightings",
+                json=payload,
+                headers=auth_headers,
+            )
+            assert response.status_code == 422
+
+    def test_update_cannot_strand_zero_count_without_evidence(
+        self, client: TestClient, auth_headers: dict,
+        create_survey, create_surveyor, create_species
+    ):
+        """The zero-count rule holds against the merged row on partial update."""
+        surveyor = create_surveyor()
+        survey = create_survey(surveyor_ids=[surveyor.id])
+        species = create_species(name="Golden-ringed Dragonfly")
+
+        created = client.post(
+            f"/api/surveys/{survey.id}/sightings",
+            json={"species_id": species.id, "count": 0, "exuviae": 3},
+            headers=auth_headers,
+        ).json()
+
+        # Clearing the evidence that carries a zero-count record is an error…
+        response = client.put(
+            f"/api/surveys/{survey.id}/sightings/{created['id']}",
+            json={"exuviae": None},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+        # …but lowering the count while evidence remains is fine.
+        response = client.put(
+            f"/api/surveys/{survey.id}/sightings/{created['id']}",
+            json={"exuviae": 1},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
     def test_update_sighting_returns_notes(
         self, client: TestClient, auth_headers: dict,
         create_survey, create_surveyor, create_species
