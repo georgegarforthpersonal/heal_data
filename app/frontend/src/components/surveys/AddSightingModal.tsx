@@ -7,6 +7,7 @@ import { getSpeciesIcon } from '../../config';
 import {
   pickStageCounts,
   recordsStageCounts,
+  stageCountErrors,
   type StageCountKey,
   type StageCounts,
 } from '../../config/stageCounts';
@@ -261,10 +262,12 @@ export function AddSightingModal({
   const selectedSpecies = species.find(s => s.id === selectedSpeciesId);
   const selectedLocation = locations.find(l => l.id === selectedLocationId);
   const selectedDevice = devices.find(d => d.id === selectedDeviceId);
-  // Require location / device when their respective mode is on
+  // Require location / device when their respective mode is on; stage counts
+  // must not contradict the adult total (the widget shows why).
   const canSave = selectedSpeciesId !== null && count > 0 &&
     (!locationAtSightingLevel || selectedLocationId !== null) &&
-    (!allowSightingDeviceSelection || selectedDeviceId !== null);
+    (!allowSightingDeviceSelection || selectedDeviceId !== null) &&
+    (!showStageCounts || stageCountErrors(stageCounts, count).length === 0);
 
   return (
     <Dialog

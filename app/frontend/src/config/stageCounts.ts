@@ -104,42 +104,59 @@ export function hasStageCounts(counts: StageCounts | null | undefined): boolean 
 }
 
 /**
- * Cross-field consistency warnings.
- *
- * These are soft: they never block a save. eBird's model — flag an implausible
- * record, ask for detail, still accept it — is the right one for field data,
- * because a wall makes surveyors enter a wrong number to get past it.
- *
- * Only arithmetic that is true by definition is checked. A copulating pair is
- * two adults and an ovipositing female is one adult, so the adult total (which
- * we ask to include them) cannot be smaller. Larvae, exuviae and emerging
- * adults are not adults, so they carry no such relationship.
+ * The hard cap a count field inherits from the adult total, or null when the
+ * field is unbounded or the total isn't known. Only arithmetic that is true
+ * by definition caps anything: a copulating pair is two adults and an
+ * ovipositing female is one adult, and Adults (total) is asked to include
+ * both. Larvae, exuviae and emerging adults are not adults, so they carry no
+ * such relationship — anything merely implausible (90 larvae) stays
+ * unchecked, per the eBird flag-don't-block philosophy.
  */
-export function stageCountWarnings(
+export function stageCountCap(
+  key: StageCountKey,
+  adultTotal: number | null | undefined,
+): { max: number; reason: string } | null {
+  if (typeof adultTotal !== 'number') return null;
+  if (key === 'copulating_pairs') {
+    return {
+      max: Math.floor(adultTotal / 2),
+      reason: `a pair is 2 adults and Adults (total) is ${adultTotal}`,
+    };
+  }
+  if (key === 'ovipositing_females') {
+    return {
+      max: adultTotal,
+      reason: `an ovipositing female is 1 adult and Adults (total) is ${adultTotal}`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Cross-field errors: a recorded count above its cap. These BLOCK saving —
+ * the arithmetic is impossible by definition, and each message says which
+ * field to fix, so the wall points at the correction rather than inviting a
+ * made-up number. (Tally mode can't even reach this state — the + stops at
+ * the cap — so it only arises from typed entry or lowering the total after
+ * counts were recorded.)
+ */
+export function stageCountErrors(
   counts: StageCounts | null | undefined,
   adultTotal: number | null | undefined,
 ): string[] {
   const c = counts ?? {};
-  const warnings: string[] = [];
-  if (typeof adultTotal !== 'number') return warnings;
-
-  const pairs = c.copulating_pairs;
-  if (typeof pairs === 'number' && pairs > 0 && adultTotal < pairs * 2) {
-    warnings.push(
-      `${pairs} copulating pair${pairs === 1 ? '' : 's'} means at least ${pairs * 2} adults, ` +
-        `but Adults (total) is ${adultTotal}. Check the total includes paired individuals.`,
-    );
+  const errors: string[] = [];
+  for (const field of STAGE_COUNT_FIELDS) {
+    const cap = stageCountCap(field.key, adultTotal);
+    const recorded = c[field.key];
+    if (cap && typeof recorded === 'number' && recorded > cap.max) {
+      errors.push(
+        `${field.label} can't be ${recorded}: ${cap.reason}. ` +
+          `Lower it, or raise Adults (total) if you saw more.`,
+      );
+    }
   }
-
-  const ovipositing = c.ovipositing_females;
-  if (typeof ovipositing === 'number' && ovipositing > 0 && adultTotal < ovipositing) {
-    warnings.push(
-      `${ovipositing} ovipositing female${ovipositing === 1 ? '' : 's'} recorded, ` +
-        `but Adults (total) is only ${adultTotal}.`,
-    );
-  }
-
-  return warnings;
+  return errors;
 }
 
 export interface BreedingTier {

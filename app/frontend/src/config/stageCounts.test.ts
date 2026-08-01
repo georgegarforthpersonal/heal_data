@@ -8,7 +8,8 @@ import {
   hasStageCounts,
   pickStageCounts,
   recordsStageCounts,
-  stageCountWarnings,
+  stageCountCap,
+  stageCountErrors,
   STAGE_COUNT_FIELDS,
   STAGE_COUNT_KEYS,
 } from './stageCounts';
@@ -50,47 +51,66 @@ describe('STAGE_COUNT_FIELDS', () => {
   });
 });
 
-describe('stageCountWarnings', () => {
-  it('flags an adult total smaller than the pairs imply', () => {
-    // The case from the reported screenshot: 5 adults, 4 copulating pairs.
-    const warnings = stageCountWarnings({ copulating_pairs: 4 }, 5);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('at least 8 adults');
+describe('stageCountCap', () => {
+  it('caps pairs at half the adult total, rounded down', () => {
+    expect(stageCountCap('copulating_pairs', 5)?.max).toBe(2);
+    expect(stageCountCap('copulating_pairs', 1)?.max).toBe(0);
+  });
+
+  it('caps ovipositing females at the adult total', () => {
+    expect(stageCountCap('ovipositing_females', 3)?.max).toBe(3);
+  });
+
+  it('leaves non-adult stages uncapped', () => {
+    expect(stageCountCap('larvae', 1)).toBeNull();
+    expect(stageCountCap('exuviae', 1)).toBeNull();
+    expect(stageCountCap('emerging_adults', 1)).toBeNull();
+  });
+
+  it('has no cap without a known adult total', () => {
+    expect(stageCountCap('copulating_pairs', null)).toBeNull();
+    expect(stageCountCap('ovipositing_females', undefined)).toBeNull();
+  });
+});
+
+describe('stageCountErrors', () => {
+  it('rejects an adult total smaller than the pairs imply', () => {
+    // The original screenshot case: 5 adults, 4 copulating pairs.
+    const errors = stageCountErrors({ copulating_pairs: 4 }, 5);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Copulating pairs can't be 4");
+    expect(errors[0]).toContain('raise Adults (total)');
   });
 
   it('accepts a total exactly equal to twice the pairs', () => {
-    expect(stageCountWarnings({ copulating_pairs: 4 }, 8)).toEqual([]);
+    expect(stageCountErrors({ copulating_pairs: 4 }, 8)).toEqual([]);
   });
 
-  it('flags more ovipositing females than adults', () => {
-    const warnings = stageCountWarnings({ ovipositing_females: 6 }, 2);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('ovipositing');
+  it('rejects more ovipositing females than adults', () => {
+    const errors = stageCountErrors({ ovipositing_females: 2 }, 1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Ovipositing females can't be 2");
   });
 
-  it('can report both inconsistencies at once', () => {
-    expect(stageCountWarnings({ copulating_pairs: 3, ovipositing_females: 9 }, 4)).toHaveLength(2);
+  it('can report both violations at once', () => {
+    expect(stageCountErrors({ copulating_pairs: 3, ovipositing_females: 9 }, 4)).toHaveLength(2);
   });
 
   it('says nothing about larvae, exuviae or emerging adults', () => {
     // None of these are adults, so they carry no relationship to the total.
     expect(
-      stageCountWarnings({ larvae: 90, exuviae: 120, emerging_adults: 40 }, 1),
+      stageCountErrors({ larvae: 90, exuviae: 120, emerging_adults: 40 }, 1),
     ).toEqual([]);
   });
 
   it('stays quiet when there is nothing to compare', () => {
-    expect(stageCountWarnings({ copulating_pairs: 4 }, null)).toEqual([]);
-    expect(stageCountWarnings({ copulating_pairs: 4 }, undefined)).toEqual([]);
-    expect(stageCountWarnings(null, 5)).toEqual([]);
+    expect(stageCountErrors({ copulating_pairs: 4 }, null)).toEqual([]);
+    expect(stageCountErrors({ copulating_pairs: 4 }, undefined)).toEqual([]);
+    expect(stageCountErrors(null, 5)).toEqual([]);
   });
 
-  it('does not warn on recorded zeros', () => {
-    expect(stageCountWarnings({ copulating_pairs: 0, ovipositing_females: 0 }, 0)).toEqual([]);
-  });
-
-  it('uses singular wording for one pair', () => {
-    expect(stageCountWarnings({ copulating_pairs: 1 }, 1)[0]).toContain('1 copulating pair ');
+  it('does not flag recorded zeros', () => {
+    expect(stageCountErrors({ copulating_pairs: 0, ovipositing_females: 0 }, 0)).toEqual([]);
   });
 });
 

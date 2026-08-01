@@ -114,17 +114,36 @@ describe('StageCountsFields tally mode', () => {
 });
 
 describe('StageCountsFields validation', () => {
-  it('warns when the adult total contradicts the pairs, without blocking', () => {
-    render(<Harness adultTotal={5} />);
-    tapTimes('Copulating pairs', 4);
-
-    const alert = screen.getByRole('alert');
-    expect(within(alert).getByText(/at least 8 adults/i)).toBeInTheDocument();
-    // The value is still recorded — the warning is advisory only.
-    expect(valueOf('Copulating pairs')).toBe('4');
+  it('adds one via the + button', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: /Add one to Larvae/i }));
+    expect(valueOf('Larvae')).toBe('1');
   });
 
-  it('shows no warning once the totals are consistent', () => {
+  it('stops counting at the cap the adult total implies, and says why', () => {
+    render(<Harness adultTotal={5} />);
+    tapTimes('Copulating pairs', 4);
+    // floor(5 / 2) = 2: the third and fourth taps are refused.
+    expect(valueOf('Copulating pairs')).toBe('2');
+    expect(screen.getByRole('button', { name: /Add one to Copulating pairs/i })).toBeDisabled();
+    expect(screen.getByText(/Capped at 2/i)).toBeInTheDocument();
+  });
+
+  it('a single adult cannot be a pair: + is dead from the start, with the reason', () => {
+    render(<Harness adultTotal={1} />);
+    tapTimes('Copulating pairs', 1);
+    expect(valueOf('Copulating pairs')).toBe('—');
+    expect(screen.getByText(/Capped at 0/i)).toBeInTheDocument();
+  });
+
+  it('renders a blocking error when a recorded count exceeds its cap', () => {
+    // Reachable by lowering the adult total after counts were entered.
+    render(<Harness initial={{ ovipositing_females: 2 }} adultTotal={1} />);
+    const alert = screen.getByRole('alert');
+    expect(within(alert).getByText(/can't be 2/i)).toBeInTheDocument();
+  });
+
+  it('shows no error when the totals are consistent', () => {
     render(<Harness adultTotal={8} />);
     tapTimes('Copulating pairs', 4);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

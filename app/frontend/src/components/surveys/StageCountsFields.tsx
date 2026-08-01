@@ -8,6 +8,16 @@
  * six focus/keyboard/dismiss cycles per species, with the keyboard covering
  * the fields you hadn't filled in yet.
  *
+ * Each row carries explicit − and + buttons — the visible affordance that
+ * numbers go up and down (a bare tappable card looked static). The card
+ * itself still increments too: it is the 64px glove-friendly target, the
+ * buttons are the legibility.
+ *
+ * Counts bounded by the adult total (pairs ×2, ovipositing ×1 — see
+ * stageCountCap) stop hard at their cap: + disables and the row says why.
+ * Typed entry can still exceed a cap (or the total may be lowered later), so
+ * over-cap values render as errors and the parent blocks saving.
+ *
  * Tap-to-increment alone is slow for large values, so "Type" flips the whole
  * panel to numeric inputs rather than hiding that escape hatch behind a
  * long-press (long-press on mobile web fights text selection and the context
@@ -33,6 +43,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
@@ -42,7 +53,8 @@ import {
   STAGE_COUNT_FIELDS,
   STAGE_COUNT_KEYS,
   deriveBreedingTier,
-  stageCountWarnings,
+  stageCountCap,
+  stageCountErrors,
   type StageCountKey,
   type StageCounts,
 } from '../../config/stageCounts';
@@ -75,12 +87,19 @@ export default function StageCountsFields({
 }: StageCountsFieldsProps) {
   const [mode, setMode] = useState<'tally' | 'type'>('tally');
   const tier = deriveBreedingTier(value, adultTotal);
-  const warnings = stageCountWarnings(value, adultTotal);
+  const errors = stageCountErrors(value, adultTotal);
+
+  /** The most this field may count up to: its adult-total cap, else the sanity max. */
+  const limitFor = (key: StageCountKey): number => {
+    const cap = stageCountCap(key, adultTotal);
+    return cap ? Math.min(cap.max, MAX_STAGE_COUNT) : MAX_STAGE_COUNT;
+  };
 
   const increment = (key: StageCountKey) => {
     const current = value[key];
-    const next = Math.min((typeof current === 'number' ? current : 0) + 1, MAX_STAGE_COUNT);
-    onChange(key, next);
+    const base = typeof current === 'number' ? current : 0;
+    if (base >= limitFor(key)) return;
+    onChange(key, base + 1);
     tick();
   };
 
@@ -135,7 +154,7 @@ export default function StageCountsFields({
 
       <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
         {mode === 'tally'
-          ? 'British Dragonfly Society columns. Tap a card to count up; − steps back down, then to not recorded.'
+          ? 'British Dragonfly Society columns. + (or tapping the card) counts up; − steps back down, then to not recorded.'
           : 'British Dragonfly Society columns. Leave blank if not recorded; enter 0 if you looked and saw none.'}
       </Typography>
 
@@ -146,121 +165,155 @@ export default function StageCountsFields({
             const isSet = typeof current === 'number';
             const isCounting = isSet && current > 0;
             const palette = notionColors[field.color];
+            const cap = stageCountCap(field.key, adultTotal);
+            // At the cap: + goes quiet and the row says why, so a dead button
+            // is never a mystery. cap.max can be 0 (e.g. 1 adult can't be a
+            // pair), which caps an untouched row too.
+            const atCap = cap !== null && (isSet ? current : 0) >= cap.max;
 
             return (
-              <Stack
-                key={field.key}
-                direction="row"
-                spacing={1}
-                alignItems="stretch"
-                sx={{ width: '100%' }}
-              >
-                <Tooltip title={field.helper ?? ''} enterDelay={700}>
-                  <ButtonBase
-                    onClick={() => increment(field.key)}
-                    disabled={disabled}
-                    aria-label={`${field.label}: ${isSet ? current : 'not recorded'}. Tap to add one.`}
+              <Box key={field.key}>
+                <Stack direction="row" spacing={1} alignItems="stretch" sx={{ width: '100%' }}>
+                  <Tooltip title={field.helper ?? ''} enterDelay={700}>
+                    <ButtonBase
+                      onClick={() => increment(field.key)}
+                      disabled={disabled}
+                      aria-label={`${field.label}: ${isSet ? current : 'not recorded'}. Tap to add one.`}
+                      sx={{
+                        flex: 1,
+                        // Without this a long label sets a min-content floor and
+                        // pushes the − button off the edge on narrow screens.
+                        minWidth: 0,
+                        minHeight: CHIP_MIN_HEIGHT,
+                        px: 2,
+                        py: 1,
+                        borderRadius: 1.5,
+                        border: '2px solid',
+                        // Border carries the category colour so the cue clears
+                        // 3:1 against the page even when the fill is pale.
+                        borderColor: isCounting ? palette.text : 'divider',
+                        bgcolor: isCounting ? palette.background : 'transparent',
+                        justifyContent: 'space-between',
+                        textAlign: 'left',
+                        transition: 'background-color .15s, border-color .15s',
+                        '&:active': { transform: 'scale(0.99)' },
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: isCounting ? palette.text : 'text.primary',
+                          minWidth: 0,
+                          pr: 1,
+                        }}
+                      >
+                        {field.label}
+                      </Typography>
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '1.5rem',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          minWidth: 40,
+                          textAlign: 'right',
+                          color: isCounting
+                            ? palette.text
+                            : isSet
+                              ? 'text.primary'
+                              : 'text.disabled',
+                        }}
+                      >
+                        {isSet ? current : NOT_RECORDED}
+                      </Typography>
+                    </ButtonBase>
+                  </Tooltip>
+                  <IconButton
+                    onClick={() => decrement(field.key)}
+                    disabled={disabled || !isSet}
+                    aria-label={`Subtract one from ${field.label}`}
                     sx={{
-                      flex: 1,
-                      // Without this a long label sets a min-content floor and
-                      // pushes the − button off the edge on narrow screens.
-                      minWidth: 0,
-                      minHeight: CHIP_MIN_HEIGHT,
-                      px: 2,
-                      py: 1,
+                      width: 48,
+                      flexShrink: 0,
+                      alignSelf: 'stretch',
+                      // Rounded rect, not the default circle: a stretched
+                      // circular IconButton renders as an ellipse next to the card.
                       borderRadius: 1.5,
-                      border: '2px solid',
-                      // Border carries the category colour so the cue clears
-                      // 3:1 against the page even when the fill is pale.
-                      borderColor: isCounting ? palette.text : 'divider',
-                      bgcolor: isCounting ? palette.background : 'transparent',
-                      justifyContent: 'space-between',
-                      textAlign: 'left',
-                      transition: 'background-color .15s, border-color .15s',
-                      '&:active': { transform: 'scale(0.99)' },
+                      border: '1px solid',
+                      borderColor: 'divider',
                     }}
                   >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        color: isCounting ? palette.text : 'text.primary',
-                        minWidth: 0,
-                        pr: 1,
-                      }}
-                    >
-                      {field.label}
-                    </Typography>
-                    <Typography
-                      component="span"
-                      sx={{
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        minWidth: 40,
-                        textAlign: 'right',
-                        color: isCounting
-                          ? palette.text
-                          : isSet
-                            ? 'text.primary'
-                            : 'text.disabled',
-                      }}
-                    >
-                      {isSet ? current : NOT_RECORDED}
-                    </Typography>
-                  </ButtonBase>
-                </Tooltip>
-                <IconButton
-                  onClick={() => decrement(field.key)}
-                  disabled={disabled || !isSet}
-                  aria-label={`Subtract one from ${field.label}`}
-                  sx={{
-                    width: 48,
-                    flexShrink: 0,
-                    alignSelf: 'stretch',
-                    // Rounded rect, not the default circle: a stretched
-                    // circular IconButton renders as an ellipse next to the card.
-                    borderRadius: 1.5,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <RemoveIcon fontSize="small" />
-                </IconButton>
-              </Stack>
+                    <RemoveIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => increment(field.key)}
+                    disabled={disabled || atCap}
+                    aria-label={`Add one to ${field.label}`}
+                    sx={{
+                      width: 48,
+                      flexShrink: 0,
+                      alignSelf: 'stretch',
+                      borderRadius: 1.5,
+                      border: '1px solid',
+                      // The + carries the category colour once counting — the
+                      // visible "this is how numbers go up" affordance.
+                      borderColor: isCounting ? palette.text : 'divider',
+                      color: isCounting ? palette.text : undefined,
+                      bgcolor: isCounting ? palette.background : 'transparent',
+                    }}
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+                {atCap && !disabled && (
+                  <Typography
+                    variant="caption"
+                    sx={{ display: 'block', mt: 0.5, ml: 0.5, color: 'text.secondary' }}
+                  >
+                    Capped at {cap.max}: {cap.reason}. Raise the total to record more.
+                  </Typography>
+                )}
+              </Box>
             );
           })}
         </Stack>
       ) : (
         <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1.5 }}>
-          {STAGE_COUNT_FIELDS.map((field) => (
-            <TextField
-              key={field.key}
-              size="small"
-              label={field.label}
-              value={value[field.key] ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value.trim();
-                if (raw === '') {
-                  onChange(field.key, null);
-                  return;
-                }
-                // type=text + inputmode: type=number silently drops letters,
-                // ignores maxlength and changes on scroll (GOV.UK's findings).
-                if (!/^\d{1,4}$/.test(raw)) return;
-                onChange(field.key, Math.min(parseInt(raw, 10), MAX_STAGE_COUNT));
-              }}
-              disabled={disabled}
-              inputProps={{
-                inputMode: 'numeric',
-                pattern: '[0-9]*',
-                enterKeyHint: 'done',
-                'aria-label': field.label,
-              }}
-              helperText={field.helper}
-              sx={{ width: { xs: '100%', sm: 190 } }}
-            />
-          ))}
+          {STAGE_COUNT_FIELDS.map((field) => {
+            const cap = stageCountCap(field.key, adultTotal);
+            const typed = value[field.key];
+            const overCap = cap !== null && typeof typed === 'number' && typed > cap.max;
+            return (
+              <TextField
+                key={field.key}
+                size="small"
+                label={field.label}
+                value={typed ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (raw === '') {
+                    onChange(field.key, null);
+                    return;
+                  }
+                  // type=text + inputmode: type=number silently drops letters,
+                  // ignores maxlength and changes on scroll (GOV.UK's findings).
+                  if (!/^\d{1,4}$/.test(raw)) return;
+                  onChange(field.key, Math.min(parseInt(raw, 10), MAX_STAGE_COUNT));
+                }}
+                disabled={disabled}
+                error={overCap}
+                inputProps={{
+                  inputMode: 'numeric',
+                  pattern: '[0-9]*',
+                  enterKeyHint: 'done',
+                  'aria-label': field.label,
+                }}
+                helperText={overCap ? `Max ${cap.max}: ${cap.reason}.` : field.helper}
+                sx={{ width: { xs: '100%', sm: 190 } }}
+              />
+            );
+          })}
         </Stack>
       )}
 
@@ -287,13 +340,13 @@ export default function StageCountsFields({
         )}
       </Stack>
 
-      {warnings.length > 0 && (
-        // Soft on purpose: the record still saves. A block here would push
-        // surveyors into entering a wrong number to get past it.
-        <Alert severity="warning" sx={{ mt: 1.5 }}>
-          {warnings.map((warning) => (
-            <Typography key={warning} variant="body2">
-              {warning}
+      {errors.length > 0 && (
+        // Hard: these states are impossible by definition, and the parent
+        // blocks saving while any remain. Each message points at the fix.
+        <Alert severity="error" sx={{ mt: 1.5 }}>
+          {errors.map((error) => (
+            <Typography key={error} variant="body2">
+              {error}
             </Typography>
           ))}
         </Alert>

@@ -14,7 +14,7 @@ import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-mater
 import { Dayjs } from 'dayjs';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
-import { pickStageCounts } from '../config/stageCounts';
+import { pickStageCounts, stageCountErrors } from '../config/stageCounts';
 import { AccessNotice } from '../components/auth/AccessNotice';
 import {
   surveysAPI,
@@ -339,6 +339,15 @@ export function NewSurveyPage() {
       const sightingsWithoutLocation = validSightings.filter((s) => !s.location_id);
       if (sightingsWithoutLocation.length > 0) {
         errors.sightings = 'Each sighting must have a location selected';
+      }
+    }
+
+    // Stage counts contradicting the adult total are impossible by definition
+    // (only dragonfly sightings carry them; everything else has none).
+    if (!errors.sightings) {
+      const stageErrs = validSightings.flatMap((s) => stageCountErrors(pickStageCounts(s), s.count));
+      if (stageErrs.length > 0) {
+        errors.sightings = stageErrs[0];
       }
     }
 
