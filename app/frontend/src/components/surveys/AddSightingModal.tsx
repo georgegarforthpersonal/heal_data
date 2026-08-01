@@ -502,9 +502,11 @@ export function AddSightingModal({
               onChange={setCount}
               min={0}
               helperText={
+                // Only the zero state explains itself (it blocks saving until
+                // some evidence below is positive); no always-on caption.
                 count === 0 && !hasPositiveStageCounts(stageCounts)
                   ? 'Zero adults is fine when breeding evidence below is recorded — add some to save.'
-                  : 'All adults seen, including those in a copulating pair.'
+                  : undefined
               }
               autoFocus={!!singleSpecies}
             />
