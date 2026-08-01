@@ -60,7 +60,8 @@ export default function ScheduleSurveyDialog({
   const [locationId, setLocationId] = useState<number | ''>('');
   const [startDate, setStartDate] = useState<string>(todayIso());
   const [frequency, setFrequency] = useState<Frequency>('weekly');
-  const [occurrences, setOccurrences] = useState<number>(4);
+  // Holds '' while the user has cleared the field mid-edit; clamped on blur.
+  const [occurrences, setOccurrences] = useState<number | ''>(4);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +117,7 @@ export default function ScheduleSurveyDialog({
   const weekEndIso = (startIso: string) => dayjs(startIso).add(6, 'day').format('YYYY-MM-DD');
 
   const dates = useMemo(
-    () => generateDates(startDate, frequency, occurrences),
+    () => generateDates(startDate, frequency, occurrences === '' ? 0 : occurrences),
     [startDate, frequency, occurrences],
   );
 
@@ -236,7 +237,15 @@ export default function ScheduleSurveyDialog({
             label="Occurrences"
             type="number"
             value={frequency === 'once' ? 1 : occurrences}
-            onChange={(e) => setOccurrences(Math.max(1, Math.min(52, Number(e.target.value))))}
+            onChange={(e) => {
+              // Allow the field to be emptied while typing a new value;
+              // Number('') is 0, which would otherwise snap straight back to 1.
+              const raw = e.target.value;
+              setOccurrences(raw === '' ? '' : Math.max(1, Math.min(52, Number(raw))));
+            }}
+            onBlur={() => {
+              if (occurrences === '') setOccurrences(1);
+            }}
             inputProps={{ min: 1, max: 52 }}
             disabled={saving || frequency === 'once'}
             fullWidth
