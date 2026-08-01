@@ -603,7 +603,6 @@ export function NewSurveyPage() {
   const showStartEndTime = selectedSurveyType?.allow_start_end_time ?? false;
   const showSunPercentage = selectedSurveyType?.allow_sun_percentage ?? false;
   const showTemperature = selectedSurveyType?.allow_temperature ?? false;
-  const showDescription = selectedSurveyType?.allow_show_description && selectedSurveyType?.description;
 
   // Determine if save button should be disabled
   const saveDisabled =
@@ -700,12 +699,6 @@ export function NewSurveyPage() {
         />
       </Paper>
 
-      {/* Survey Type Description Banner */}
-      {showDescription && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {selectedSurveyType!.description}
-        </Alert>
-      )}
 
       {/* Survey Details Card - Only show when survey type is selected */}
       {selectedSurveyType && (

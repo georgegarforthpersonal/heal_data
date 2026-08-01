@@ -414,7 +414,6 @@ export function SurveyDetailPage() {
   const showStartEndTime = surveyType?.allow_start_end_time ?? false;
   const showSunPercentage = surveyType?.allow_sun_percentage ?? false;
   const showTemperature = surveyType?.allow_temperature ?? false;
-  const showDescription = surveyType?.allow_show_description && surveyType?.description;
 
 
   // ============================================================================
@@ -878,12 +877,6 @@ export function SurveyDetailPage() {
         </Alert>
       )}
 
-      {/* Survey Type Description Banner */}
-      {showDescription && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {surveyType!.description}
-        </Alert>
-      )}
 
         {/* Survey Metadata Card */}
         <Paper
