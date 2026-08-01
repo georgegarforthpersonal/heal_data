@@ -531,6 +531,12 @@ export interface Sighting {
   notes?: string | null; // Optional notes for this sighting
   image_ids?: number[]; // Linked camera trap image IDs
   audio_clips?: SightingAudioClip[]; // Linked audio detection clips
+  // BDS life stage / behaviour counts; null = not recorded (see config/stageCounts)
+  copulating_pairs?: number | null;
+  ovipositing_females?: number | null;
+  larvae?: number | null;
+  exuviae?: number | null;
+  emerging_adults?: number | null;
 }
 
 /**
@@ -586,6 +592,12 @@ export interface SightingCreateRequest {
   notes?: string | null; // Optional notes for this sighting
   image_ids?: number[]; // Camera trap image IDs to link
   audio_detections?: AudioDetectionCreateRequest[]; // Bird detections to link
+  // BDS life stage / behaviour counts; omit or null when not recorded
+  copulating_pairs?: number | null;
+  ovipositing_females?: number | null;
+  larvae?: number | null;
+  exuviae?: number | null;
+  emerging_adults?: number | null;
 }
 
 /**

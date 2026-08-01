@@ -29,6 +29,7 @@ from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate,
     ScheduledSurvey,
     Sighting, SightingCreate, SightingUpdate, SightingWithDetails,
+    STAGE_COUNT_FIELDS,
     Species, SpeciesType, Location, SurveySurveyor,
     SurveyType,
     BreedingStatusCode, BreedingStatusCodeRead,
@@ -615,6 +616,11 @@ async def get_survey_sightings(
         Sighting.device_id,
         Sighting.count,
         Sighting.notes,
+        Sighting.copulating_pairs,
+        Sighting.ovipositing_females,
+        Sighting.larvae,
+        Sighting.exuviae,
+        Sighting.emerging_adults,
         Species.name.label('species_name'),  # type: ignore[union-attr]
         Species.scientific_name.label('species_scientific_name'),  # type: ignore[union-attr]
         location_name_expr,
@@ -669,6 +675,7 @@ async def get_survey_sightings(
             "device_id": row.device_id,
             "count": row.count,
             "notes": row.notes,
+            **{field: getattr(row, field) for field in STAGE_COUNT_FIELDS},
             "species_name": row.species_name,
             "species_scientific_name": row.species_scientific_name,
             "individuals": [
@@ -770,6 +777,7 @@ async def create_sighting(
         location_id=sighting.location_id,
         device_id=sighting.device_id,
         notes=sighting.notes,
+        **{field: getattr(sighting, field) for field in STAGE_COUNT_FIELDS},
     )
 
     db.add(db_sighting)
@@ -881,6 +889,7 @@ async def create_sighting(
         "device_id": db_sighting.device_id,
         "count": db_sighting.count,
         "notes": db_sighting.notes,
+        **{field: getattr(db_sighting, field) for field in STAGE_COUNT_FIELDS},
         "species_name": species.name if species else None,
         "species_scientific_name": species.scientific_name if species else None,
         "individuals": [
@@ -1006,6 +1015,7 @@ async def update_sighting(
         "device_id": db_sighting.device_id,
         "count": db_sighting.count,
         "notes": db_sighting.notes,
+        **{field: getattr(db_sighting, field) for field in STAGE_COUNT_FIELDS},
         "species_name": species.name if species else None,
         "species_scientific_name": species.scientific_name if species else None,
         "image_ids": result_image_ids,

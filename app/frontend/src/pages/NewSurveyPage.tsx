@@ -14,6 +14,7 @@ import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-mater
 import { Dayjs } from 'dayjs';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
+import { pickStageCounts } from '../config/stageCounts';
 import { AccessNotice } from '../components/auth/AccessNotice';
 import {
   surveysAPI,
@@ -480,6 +481,7 @@ export function NewSurveyPage() {
               location_id: locationAtSightingLevel ? sighting.location_id : undefined,
               device_id: allowSightingDeviceSelection ? sighting.device_id : undefined,
               notes: sighting.notes,
+              ...pickStageCounts(sighting),
               // Include individual locations with count and breeding status codes
               individuals: sighting.individuals?.map((ind) => ({
                 latitude: ind.latitude,

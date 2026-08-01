@@ -4,9 +4,16 @@ import { Close, PhotoCamera, CloudUpload } from '@mui/icons-material';
 import type { Species, BreedingStatusCode, LocationWithBoundary, Location, Device } from '../../services/api';
 import { imagesAPI, locationDisplayName } from '../../services/api';
 import { getSpeciesIcon } from '../../config';
+import {
+  pickStageCounts,
+  recordsStageCounts,
+  type StageCountKey,
+  type StageCounts,
+} from '../../config/stageCounts';
 import MultiLocationMapPicker, { type DraftIndividualLocation } from './MultiLocationMapPicker';
+import StageCountsFields from './StageCountsFields';
 
-export interface SightingData {
+export interface SightingData extends StageCounts {
   species_id: number | null;
   count: number;
   individuals?: DraftIndividualLocation[];
@@ -83,6 +90,7 @@ export function AddSightingModal({
     initialData?.device_id || null
   );
   const [notes, setNotes] = useState<string>(initialData?.notes || '');
+  const [stageCounts, setStageCounts] = useState<StageCounts>(() => pickStageCounts(initialData));
   const [pendingPhotos, setPendingPhotos] = useState<File[]>(initialData?.pendingPhotos || []);
   const [existingImageIds, setExistingImageIds] = useState<number[]>(initialData?.existingImageIds || []);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>(initialData?.removedImageIds || []);
@@ -112,6 +120,12 @@ export function AddSightingModal({
     return sp?.type === 'bird';
   }, [selectedSpeciesId, species]);
 
+  // Dragonflies use the BDS stage/behaviour count matrix instead of per-individual codes
+  const showStageCounts = useMemo(() => {
+    const sp = species.find((s) => s.id === selectedSpeciesId);
+    return recordsStageCounts(sp?.type);
+  }, [selectedSpeciesId, species]);
+
   // Update local state when initialData changes (for edit mode)
   useEffect(() => {
     if (initialData) {
@@ -121,6 +135,7 @@ export function AddSightingModal({
       setSelectedLocationId(initialData.location_id || null);
       setSelectedDeviceId(initialData.device_id || null);
       setNotes(initialData.notes || '');
+      setStageCounts(pickStageCounts(initialData));
       setPendingPhotos(initialData.pendingPhotos || []);
       setExistingImageIds(initialData.existingImageIds || []);
       setRemovedImageIds(initialData.removedImageIds || []);
@@ -161,6 +176,9 @@ export function AddSightingModal({
         location_id: locationAtSightingLevel ? selectedLocationId : undefined,
         device_id: allowSightingDeviceSelection ? selectedDeviceId : undefined,
         notes: notes.trim() || null,
+        // Only persist the matrix for species types that record it, so a species
+        // swap after typing can't leave orphaned counts behind.
+        ...(showStageCounts ? stageCounts : pickStageCounts(null)),
         pendingPhotos: pendingPhotos.length > 0 ? pendingPhotos : undefined,
         existingImageIds: existingImageIds.length > 0 ? existingImageIds : undefined,
         removedImageIds: removedImageIds.length > 0 ? removedImageIds : undefined,
@@ -172,6 +190,7 @@ export function AddSightingModal({
       setSelectedLocationId(null);
       setSelectedDeviceId(null);
       setNotes('');
+      setStageCounts({});
       setPendingPhotos([]);
       setExistingImageIds([]);
       setRemovedImageIds([]);
@@ -384,7 +403,7 @@ export function AddSightingModal({
 
           {/* Count Input */}
           <TextField
-            label="Count *"
+            label={showStageCounts ? 'Adults (total) *' : 'Count *'}
             autoFocus={!!singleSpecies}
             type="number"
             value={count || ''}
@@ -397,12 +416,28 @@ export function AddSightingModal({
             }}
             inputProps={{ min: 1 }}
             fullWidth
+            helperText={
+              showStageCounts
+                ? 'All adults seen, including those in a copulating pair.'
+                : undefined
+            }
             sx={{
               '& .MuiInputBase-input': {
                 fontSize: '16px',
               }
             }}
           />
+
+          {/* Life stage & behaviour matrix (BDS Odonata form) */}
+          {showStageCounts && (
+            <StageCountsFields
+              value={stageCounts}
+              adultTotal={count}
+              onChange={(key: StageCountKey, next) =>
+                setStageCounts((prev) => ({ ...prev, [key]: next }))
+              }
+            />
+          )}
 
           {/* Device Dropdown - when device selection is on */}
           {allowSightingDeviceSelection && (

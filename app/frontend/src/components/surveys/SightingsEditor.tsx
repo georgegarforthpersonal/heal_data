@@ -9,6 +9,8 @@ import { LocationModal } from './LocationModal';
 import { MapModeSightings } from './MapModeSightings';
 import ViewModeToggle from '../ViewModeToggle';
 import { getSightingsGridConfig } from './sightingsGridConfig';
+import { pickStageCounts, recordsStageCounts, type StageCounts } from '../../config/stageCounts';
+import StageCountsFields from './StageCountsFields';
 import { getSpeciesIcon } from '../../config';
 import { useResponsive } from '../../hooks/useResponsive';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
@@ -60,7 +62,7 @@ function PendingPhotoThumbnail({ file }: { file: File }) {
   );
 }
 
-export interface DraftSighting {
+export interface DraftSighting extends StageCounts {
   tempId: string;
   species_id: number | null;
   count: number;
@@ -226,9 +228,16 @@ export function SightingsEditor({
     const isLastRow = sightings[sightings.length - 1].tempId === tempId;
     const shouldAutoAdd = field === 'species_id' && value !== null && isLastRow;
 
-    const updatedSightings = sightings.map((s) =>
-      s.tempId === tempId ? { ...s, [field]: value } : s
-    );
+    const updatedSightings = sightings.map((s) => {
+      if (s.tempId !== tempId) return s;
+      const next = { ...s, [field]: value };
+      // Changing to a species that isn't recorded with the BDS matrix must not
+      // leave counts behind from the species that was selected before.
+      if (field === 'species_id' && !recordsStageCounts(getSpeciesType(value))) {
+        return { ...next, ...pickStageCounts(null) };
+      }
+      return next;
+    });
 
     if (shouldAutoAdd) {
       onSightingsChange([
@@ -1023,6 +1032,17 @@ export function SightingsEditor({
                     <Delete sx={{ fontSize: 20 }} />
                   </IconButton>
                 </Box>
+
+                {/* Life stage & behaviour matrix, full width beneath the row */}
+                {recordsStageCounts(getSpeciesType(sighting.species_id)) && (
+                  <Box sx={{ px: 1.5, pb: 2 }}>
+                    <StageCountsFields
+                      value={sighting}
+                      adultTotal={sighting.count}
+                      onChange={(key, next) => updateSighting(sighting.tempId, key, next)}
+                    />
+                  </Box>
+                )}
 
                 {/* Photo preview strip */}
                 {allowSightingPhotoUpload && (activeExistingIds.length > 0 || (sighting.pendingPhotos?.length || 0) > 0) && (

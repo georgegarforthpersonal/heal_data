@@ -13,6 +13,7 @@ import { AudioClipPlayer } from '../components/audio/AudioClipPlayer';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSightingsGridConfig } from '../components/surveys/sightingsGridConfig';
 import { getSpeciesIcon } from '../config';
+import { pickStageCounts } from '../config/stageCounts';
 import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
 import { scopeBoundariesToLocations } from '../utils/scopeBoundaries';
@@ -253,6 +254,8 @@ export function SurveyDetailPage() {
       device_id: sighting.device_id,
       // Include notes for this sighting
       notes: sighting.notes,
+      // Include BDS life stage / behaviour counts
+      ...pickStageCounts(sighting),
       // Include individuals if present (from SightingWithIndividuals)
       individuals: sighting.individuals?.map((ind: any) => ({
         ...ind,
@@ -586,6 +589,7 @@ export function SurveyDetailPage() {
             location_id: locationAtSightingLevel ? sighting.location_id : undefined,
             device_id: allowSightingDeviceSelection ? sighting.device_id : undefined,
             notes: sighting.notes,
+            ...pickStageCounts(sighting),
             image_ids: finalImageIds,
           });
 
@@ -668,6 +672,7 @@ export function SurveyDetailPage() {
             location_id: locationAtSightingLevel ? sighting.location_id : undefined,
             device_id: allowSightingDeviceSelection ? sighting.device_id : undefined,
             notes: sighting.notes,
+            ...pickStageCounts(sighting),
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
               longitude: ind.longitude,

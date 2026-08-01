@@ -1048,6 +1048,24 @@ class SightingBase(SQLModel):
     """Base sighting fields"""
     species_id: int = Field(gt=0, foreign_key="species.id", description="Species ID")
     count: int = Field(gt=0, description="Number of individuals sighted")
+    # BDS Odonata form columns; `count` above is its "Adults (total)". None
+    # means not recorded, which is distinct from 0 ("looked, saw none").
+    copulating_pairs: Optional[int] = Field(None, ge=0, description="Copulating/tandem pairs (1 pair = 1)")
+    ovipositing_females: Optional[int] = Field(None, ge=0, description="Ovipositing females")
+    larvae: Optional[int] = Field(None, ge=0, description="Larvae")
+    exuviae: Optional[int] = Field(None, ge=0, description="Exuviae (cast larval skins)")
+    emerging_adults: Optional[int] = Field(None, ge=0, description="Emerging/teneral adults")
+
+
+#: The BDS stage/behaviour count columns, in recording-form order. `count`
+#: (adults total) is deliberately excluded — it is required, these are not.
+STAGE_COUNT_FIELDS = (
+    "copulating_pairs",
+    "ovipositing_females",
+    "larvae",
+    "exuviae",
+    "emerging_adults",
+)
 
 
 class Sighting(SightingBase, table=True):  # type: ignore[call-arg]
@@ -1084,6 +1102,12 @@ class SightingUpdate(SQLModel):
     device_id: Optional[int] = Field(None, description="Device ID (for sighting-level device selection)")
     notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     image_ids: Optional[List[int]] = Field(None, description="Camera trap image IDs to link via junction table")
+    # Stage/behaviour counts; sent explicitly as null to clear one.
+    copulating_pairs: Optional[int] = Field(None, ge=0)
+    ovipositing_females: Optional[int] = Field(None, ge=0)
+    larvae: Optional[int] = Field(None, ge=0)
+    exuviae: Optional[int] = Field(None, ge=0)
+    emerging_adults: Optional[int] = Field(None, ge=0)
 
 
 class SightingRead(SightingBase):

@@ -39,6 +39,7 @@ from models import (
     SurveyTypeRead,
     SpeciesType,
     SpeciesTypeRead,
+    STAGE_COUNT_FIELDS,
 )
 
 logger = logging.getLogger(__name__)
@@ -288,6 +289,10 @@ XLSX_MEDIA_TYPE = (
 )
 RECORD_HEADERS = ["common_name", "species_name", "count", "date", "location"]
 
+#: BDS life stage / behaviour columns, appended only when the exported rows
+#: actually carry them, so a bird or bat sheet keeps its original five columns.
+STAGE_COUNT_HEADERS = list(STAGE_COUNT_FIELDS)
+
 
 def _safe_filename_part(name: str) -> str:
     """Sanitise a name for use in a download filename."""
@@ -295,7 +300,8 @@ def _safe_filename_part(name: str) -> str:
 
 
 def _records_query(db: Session, org_id: Optional[int]) -> Any:
-    """Base query yielding (common_name, species_name, count, date, location).
+    """Base query yielding (common_name, species_name, count, date, location)
+    followed by the BDS stage/behaviour counts.
 
     Location prefers the sighting's own location, falling back to the survey's.
     Scoped to a single organisation via the parent survey.
@@ -309,6 +315,7 @@ def _records_query(db: Session, org_id: Optional[int]) -> Any:
             Sighting.count,
             Survey.date,
             func.coalesce(sighting_location.name, survey_location.name),
+            *(getattr(Sighting, field) for field in STAGE_COUNT_FIELDS),
         )
         .join(Survey, Sighting.survey_id == Survey.id)
         .join(Species, Sighting.species_id == Species.id)
@@ -319,19 +326,38 @@ def _records_query(db: Session, org_id: Optional[int]) -> Any:
 
 
 def _records_to_xlsx(rows: list[Any]) -> bytes:
-    """Build an .xlsx workbook from record rows and return its bytes."""
+    """Build an .xlsx workbook from record rows and return its bytes.
+
+    The stage/behaviour columns are included only when at least one row has
+    recorded one, so exports for taxa that don't use the BDS matrix keep the
+    original five columns rather than gaining five empty ones.
+    """
+    base_width = len(RECORD_HEADERS)
+    include_stages = any(
+        any(value is not None for value in row[base_width:base_width + len(STAGE_COUNT_HEADERS)])
+        for row in rows
+    )
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Records"
-    ws.append(RECORD_HEADERS)
-    for common_name, species_name, count, survey_date, location_name in rows:
-        ws.append([
+    ws.append(RECORD_HEADERS + (STAGE_COUNT_HEADERS if include_stages else []))
+    for row in rows:
+        common_name, species_name, count, survey_date, location_name = row[:base_width]
+        record = [
             common_name or "",
             species_name or "",
             count,
             survey_date,  # openpyxl renders date objects with a date format
             location_name or "",
-        ])
+        ]
+        if include_stages:
+            # Blank rather than 0 for "not recorded", matching the app's NULL.
+            record.extend(
+                "" if value is None else value
+                for value in row[base_width:base_width + len(STAGE_COUNT_HEADERS)]
+            )
+        ws.append(record)
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
