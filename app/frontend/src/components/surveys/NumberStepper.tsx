@@ -29,8 +29,6 @@ interface NumberStepperProps {
   size?: 'medium' | 'small';
   /** 'top' stacks the label above; 'start' puts it beside, stepper right. */
   labelPlacement?: 'top' | 'start';
-  /** Colour applied to the label and a non-zero value, as a category cue. */
-  accentColor?: string;
 }
 
 /** Clears Material's 48dp touch-target floor at medium; small stays tappable. */
@@ -50,11 +48,9 @@ export default function NumberStepper({
   autoFocus = false,
   size = 'medium',
   labelPlacement = 'top',
-  accentColor,
 }: NumberStepperProps) {
   const clamp = (next: number) => Math.min(Math.max(next, min), max);
   const dims = SIZES[size];
-  const accented = accentColor && value > 0;
 
   const control = (
     <Box
@@ -105,7 +101,6 @@ export default function NumberStepper({
             textAlign: 'center',
             fontSize: dims.font,
             fontWeight: 700,
-            ...(accented ? { color: accentColor } : {}),
           },
         }}
         sx={{
@@ -134,12 +129,7 @@ export default function NumberStepper({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Typography
             variant="body2"
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              fontWeight: 600,
-              color: accented ? accentColor : 'text.primary',
-            }}
+            sx={{ flex: 1, minWidth: 0, fontWeight: 600, color: 'text.primary' }}
           >
             {label}
           </Typography>

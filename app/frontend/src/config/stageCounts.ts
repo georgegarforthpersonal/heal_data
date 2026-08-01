@@ -35,11 +35,6 @@ export interface StageCountField {
   singular: string;
   /** Shown under the input; keeps the recording convention at the point of entry. */
   helper?: string;
-  /**
-   * Category identity only — never magnitude, and never the sole cue (WCAG
-   * 1.4.1): every chip also carries its text label. Keys into `notionColors`.
-   */
-  color: 'purple' | 'pink' | 'blue' | 'green' | 'orange';
 }
 
 /** In BDS recording-form order. */
@@ -49,23 +44,20 @@ export const STAGE_COUNT_FIELDS: readonly StageCountField[] = [
     label: 'Copulating pairs',
     singular: 'copulating pair',
     helper: 'In tandem or the wheel. One pair counts as 1.',
-    color: 'purple',
   },
-  { key: 'ovipositing_females', label: 'Ovipositing females', singular: 'ovipositing female', color: 'pink' },
-  { key: 'larvae', label: 'Larvae', singular: 'larva', color: 'blue' },
+  { key: 'ovipositing_females', label: 'Ovipositing females', singular: 'ovipositing female' },
+  { key: 'larvae', label: 'Larvae', singular: 'larva' },
   {
     key: 'exuviae',
     label: 'Exuviae',
     singular: 'exuvia',
     helper: 'Cast larval skins — proof of successful breeding.',
-    color: 'green',
   },
   {
     key: 'emerging_adults',
     label: 'Emerging adults',
     singular: 'emerging adult',
     helper: 'Newly emerged (teneral) adults.',
-    color: 'orange',
   },
 ] as const;
 

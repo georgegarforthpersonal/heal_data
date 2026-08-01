@@ -43,13 +43,6 @@ describe('STAGE_COUNT_FIELDS', () => {
     const pairs = STAGE_COUNT_FIELDS.find((f) => f.key === 'copulating_pairs');
     expect(pairs?.helper).toMatch(/one pair counts as 1/i);
   });
-
-  it('gives every category a distinct colour, never as the only cue', () => {
-    const colours = STAGE_COUNT_FIELDS.map((f) => f.color);
-    expect(new Set(colours).size).toBe(colours.length);
-    // WCAG 1.4.1: a text label always accompanies the colour.
-    expect(STAGE_COUNT_FIELDS.every((f) => f.label.trim().length > 0)).toBe(true);
-  });
 });
 
 describe('stageCountCap', () => {

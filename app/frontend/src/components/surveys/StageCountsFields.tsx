@@ -37,7 +37,6 @@ import {
   type StageCountKey,
   type StageCounts,
 } from '../../config/stageCounts';
-import { notionColors } from '../../theme';
 import NumberStepper from './NumberStepper';
 
 interface StageCountsFieldsProps {
@@ -85,7 +84,6 @@ export default function StageCountsFields({
             size="small"
             labelPlacement="start"
             disabled={disabled}
-            accentColor={notionColors[field.color].text}
             helperText={atCap && !disabled ? `Capped at ${cap.max}: ${cap.reason}.` : undefined}
           />
         );
