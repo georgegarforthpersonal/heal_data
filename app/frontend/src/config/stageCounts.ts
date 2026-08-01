@@ -176,11 +176,10 @@ export function stageCountErrors(
 }
 
 /**
- * One line describing what has been recorded, for the collapsed panel header.
- *
- * Distinguishes the three states that matter: nothing recorded, recorded as
- * all-absent, and actual observations. Returns null when nothing is recorded
- * so the caller can render its own muted placeholder.
+ * One line listing the positive counts, for the collapsed panel header and
+ * read-only summaries. Returns null when nothing positive was recorded — the
+ * UI treats zero and unrecorded as the same thing (George's call, Aug 2026),
+ * so an all-zero record has nothing to say.
  */
 export function summariseStageCounts(counts: StageCounts | null | undefined): string | null {
   const c = counts ?? {};
@@ -189,12 +188,10 @@ export function summariseStageCounts(counts: StageCounts | null | undefined): st
     return typeof value === 'number' && value > 0;
   });
 
-  if (seen.length > 0) {
-    return seen
-      .map((f) => `${c[f.key]} ${c[f.key] === 1 ? f.singular : f.label.toLowerCase()}`)
-      .join(', ');
-  }
-  return hasStageCounts(c) ? 'None seen' : null;
+  if (seen.length === 0) return null;
+  return seen
+    .map((f) => `${c[f.key]} ${c[f.key] === 1 ? f.singular : f.label.toLowerCase()}`)
+    .join(', ');
 }
 
 export interface BreedingTier {

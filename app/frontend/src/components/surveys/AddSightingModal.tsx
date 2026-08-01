@@ -312,7 +312,7 @@ export function AddSightingModal({
           mb: 2,
         }}
       >
-        <Typography variant="h6" fontWeight={600}>
+        <Typography component="span" variant="h6" fontWeight={600}>
           {mode === 'add' ? 'Add sighting' : 'Edit sighting'}
         </Typography>
         <IconButton onClick={handleCancel} edge="end">

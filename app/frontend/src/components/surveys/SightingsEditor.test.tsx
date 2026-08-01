@@ -58,12 +58,12 @@ const expandStagePanel = () => {
 };
 
 describe('mobile modal stage-count handoff', () => {
-  it('keeps counts tapped in the modal when the sighting is added', () => {
+  it('keeps counts stepped in the modal when the sighting is added', () => {
     render(<Harness />);
     openAddModal();
     expandStagePanel();
 
-    fireEvent.click(dialog().getByRole('button', { name: /^Ovipositing females:/ }));
+    fireEvent.click(dialog().getByRole('button', { name: 'Add one to Ovipositing females' }));
     fireEvent.click(dialog().getByRole('button', { name: 'Add' }));
 
     // The card confirms what was recorded — summary line and Adults wording.
@@ -93,19 +93,21 @@ describe('mobile modal stage-count handoff', () => {
     const editIcon = document.querySelector('[data-testid="EditIcon"]');
     expect(editIcon).not.toBeNull();
     fireEvent.click(editIcon!);
-    expect(dialog().getByRole('button', { name: /^Copulating pairs: 2/ })).toBeInTheDocument();
+    expect(dialog().getByRole('textbox', { name: 'Copulating pairs' })).toHaveValue('2');
   });
 
   it('does not resurrect counts from a cancelled sighting', () => {
     render(<Harness />);
     openAddModal();
     expandStagePanel();
-    fireEvent.click(dialog().getByRole('button', { name: /^Larvae:/ }));
-    expect(dialog().getByRole('button', { name: /^Larvae: 1/ })).toBeInTheDocument();
+    fireEvent.click(dialog().getByRole('button', { name: 'Add one to Larvae' }));
+    expect(dialog().getByRole('textbox', { name: 'Larvae' })).toHaveValue('1');
 
     fireEvent.click(dialog().getByRole('button', { name: 'Cancel' }));
     openAddModal();
     expandStagePanel();
-    expect(dialog().getByRole('button', { name: /^Larvae: not recorded/ })).toBeInTheDocument();
+    // Back at the resting zero (empty input, placeholder 0) — the cancelled
+    // larva is gone.
+    expect(dialog().getByRole('textbox', { name: 'Larvae' })).toHaveValue('');
   });
 });

@@ -176,8 +176,8 @@ describe('summariseStageCounts', () => {
     );
   });
 
-  it('distinguishes all-absent from nothing recorded', () => {
-    expect(summariseStageCounts({ larvae: 0 })).toBe('None seen');
+  it('has nothing to say for zeros or nothing recorded — they read the same', () => {
+    expect(summariseStageCounts({ larvae: 0 })).toBeNull();
     expect(summariseStageCounts({})).toBeNull();
   });
 });

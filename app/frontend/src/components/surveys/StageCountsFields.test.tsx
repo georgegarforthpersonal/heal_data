@@ -1,14 +1,15 @@
 /**
- * Interaction tests for the tally-mode stage count controls.
+ * Interaction tests for the compact stage-count steppers.
  *
- * These cover the behaviour that is easy to get subtly wrong: the null / 0 /
- * N distinction, stepping back down through zero to not-recorded, and the
- * bulk "none seen" action.
+ * Every count defaults to 0 — the UI treats "not recorded" and "saw none" as
+ * the same thing — so these cover stepping, typed entry, the adult-total caps
+ * (both the hard stop and the stranded over-cap error), and the disclosure
+ * behaviour that keeps the panel out of the way until there is evidence.
  */
 
 import { useState } from 'react';
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 import StageCountsFields from './StageCountsFields';
 import type { StageCountKey, StageCounts } from '../../config/stageCounts';
@@ -31,20 +32,18 @@ function Harness({
   );
 }
 
-/** The increment target for a category, found via its accessible name. */
-const chip = (label: string) => screen.getByRole('button', { name: new RegExp(`^${label}:`) });
+const plusFor = (label: string) =>
+  screen.getByRole('button', { name: new RegExp(`Add one to ${label}`, 'i') });
 
 const minusFor = (label: string) =>
   screen.getByRole('button', { name: new RegExp(`Subtract one from ${label}`, 'i') });
 
-const valueOf = (label: string) => (chip(label).textContent ?? '').replace(label, '').trim();
+const inputFor = (label: string) => screen.getByRole('textbox', { name: label });
 
-const tapTimes = (label: string, times: number) => {
-  for (let i = 0; i < times; i++) fireEvent.click(chip(label));
-};
+const header = () => screen.getByRole('button', { name: /Life stage/i });
 
 /**
- * The panel is collapsed unless something is already recorded, so render it
+ * The panel is collapsed unless something positive is recorded, so render it
  * open: these tests are about the controls inside.
  */
 const renderPanel = (props: Parameters<typeof Harness>[0] = {}) => {
@@ -54,219 +53,105 @@ const renderPanel = (props: Parameters<typeof Harness>[0] = {}) => {
   return result;
 };
 
-describe('StageCountsFields tally mode', () => {
-  it('starts every category as not recorded, not zero', () => {
+describe('StageCountsFields steppers', () => {
+  it('shows every category resting at zero — no not-recorded state', () => {
     renderPanel();
-    expect(valueOf('Larvae')).toBe('—');
-    expect(valueOf('Exuviae')).toBe('—');
+    // value||'' keeps the input emptyable while typing; the placeholder 0 is
+    // the resting display, so the stored value is what we assert on.
+    expect(inputFor('Larvae')).toHaveValue('');
+    expect(inputFor('Larvae')).toHaveAttribute('placeholder', '0');
   });
 
-  it('counts up one per tap', () => {
-    renderPanel();
-    tapTimes('Copulating pairs', 1);
-    expect(valueOf('Copulating pairs')).toBe('1');
-    tapTimes('Copulating pairs', 2);
-    expect(valueOf('Copulating pairs')).toBe('3');
-  });
-
-  it('leaves the other categories untouched while counting one', () => {
-    renderPanel();
-    tapTimes('Larvae', 1);
-    expect(valueOf('Larvae')).toBe('1');
-    expect(valueOf('Exuviae')).toBe('—');
-  });
-
-  it('steps back down to zero, then to not recorded', () => {
-    renderPanel({ initial: { exuviae: 2 } });
-
-    fireEvent.click(minusFor('Exuviae'));
-    expect(valueOf('Exuviae')).toBe('1');
-
-    fireEvent.click(minusFor('Exuviae'));
-    // Zero is a real observation ("looked, saw none"), not an empty state.
-    expect(valueOf('Exuviae')).toBe('0');
-
-    fireEvent.click(minusFor('Exuviae'));
-    expect(valueOf('Exuviae')).toBe('—');
-  });
-
-  it('disables subtract while a category is unrecorded', () => {
-    renderPanel();
+  it('steps up and back down, never below zero', () => {
+    renderPanel({ adultTotal: 10 });
+    fireEvent.click(plusFor('Larvae'));
+    fireEvent.click(plusFor('Larvae'));
+    expect(inputFor('Larvae')).toHaveValue('2');
+    fireEvent.click(minusFor('Larvae'));
+    fireEvent.click(minusFor('Larvae'));
+    expect(inputFor('Larvae')).toHaveValue('');
     expect(minusFor('Larvae')).toBeDisabled();
   });
 
-  it('marks only the unrecorded categories as none seen', () => {
-    renderPanel({ initial: { copulating_pairs: 3 } });
-
-    fireEvent.click(screen.getByRole('button', { name: /Mark the rest as none seen/i }));
-
-    expect(valueOf('Copulating pairs')).toBe('3'); // untouched
-    expect(valueOf('Larvae')).toBe('0');
-    expect(valueOf('Exuviae')).toBe('0');
-    expect(valueOf('Emerging adults')).toBe('0');
+  it('accepts typed entry and ignores non-numeric input', () => {
+    renderPanel({ adultTotal: 50 });
+    fireEvent.change(inputFor('Exuviae'), { target: { value: '23' } });
+    expect(inputFor('Exuviae')).toHaveValue('23');
+    fireEvent.change(inputFor('Exuviae'), { target: { value: '2x' } });
+    expect(inputFor('Exuviae')).toHaveValue('23');
   });
 
-  it('clears everything back to not recorded', () => {
-    renderPanel({ initial: { copulating_pairs: 2, larvae: 0 } });
-
-    fireEvent.click(screen.getByRole('button', { name: /^Clear$/i }));
-
-    expect(valueOf('Copulating pairs')).toBe('—');
-    expect(valueOf('Larvae')).toBe('—');
-  });
-
-  it('announces the current value to screen readers', () => {
-    renderPanel();
-    expect(chip('Larvae')).toHaveAccessibleName(/not recorded/i);
-
-    tapTimes('Larvae', 1);
-    expect(chip('Larvae')).toHaveAccessibleName(/Larvae: 1/);
+  it('leaves the other categories untouched while counting one', () => {
+    renderPanel({ adultTotal: 10 });
+    fireEvent.click(plusFor('Ovipositing females'));
+    expect(inputFor('Ovipositing females')).toHaveValue('1');
+    expect(inputFor('Larvae')).toHaveValue('');
+    expect(inputFor('Exuviae')).toHaveValue('');
   });
 });
 
-describe('StageCountsFields validation', () => {
-  it('adds one via the + button', () => {
-    renderPanel();
-    fireEvent.click(screen.getByRole('button', { name: /Add one to Larvae/i }));
-    expect(valueOf('Larvae')).toBe('1');
-  });
-
+describe('StageCountsFields caps', () => {
   it('stops counting at the cap the adult total implies, and says why', () => {
-    renderPanel({ adultTotal: 5 });
-    tapTimes('Copulating pairs', 4);
-    // floor(5 / 2) = 2: the third and fourth taps are refused.
-    expect(valueOf('Copulating pairs')).toBe('2');
-    expect(screen.getByRole('button', { name: /Add one to Copulating pairs/i })).toBeDisabled();
-    expect(screen.getByText(/Capped at 2/i)).toBeInTheDocument();
+    renderPanel({ adultTotal: 4 });
+    fireEvent.click(plusFor('Copulating pairs'));
+    fireEvent.click(plusFor('Copulating pairs'));
+    expect(inputFor('Copulating pairs')).toHaveValue('2');
+    expect(plusFor('Copulating pairs')).toBeDisabled();
+    expect(screen.getByText(/Capped at 2/)).toBeInTheDocument();
   });
 
   it('a single adult cannot be a pair: + is dead from the start, with the reason', () => {
     renderPanel({ adultTotal: 1 });
-    tapTimes('Copulating pairs', 1);
-    expect(valueOf('Copulating pairs')).toBe('—');
-    expect(screen.getByText(/Capped at 0/i)).toBeInTheDocument();
+    expect(plusFor('Copulating pairs')).toBeDisabled();
+    expect(screen.getByText(/Capped at 0/)).toBeInTheDocument();
   });
 
-  it('renders a blocking error when a recorded count exceeds its cap', () => {
+  it('clamps typed entry to the cap rather than accepting the impossible', () => {
+    renderPanel({ adultTotal: 4 });
+    fireEvent.change(inputFor('Ovipositing females'), { target: { value: '9' } });
+    expect(inputFor('Ovipositing females')).toHaveValue('4');
+  });
+
+  it('renders a blocking error when a stranded count exceeds its cap', () => {
     // Reachable by lowering the adult total after counts were entered.
-    renderPanel({ initial: { ovipositing_females: 2 }, adultTotal: 1 });
-    const alert = screen.getByRole('alert');
-    expect(within(alert).getByText(/can't be 2/i)).toBeInTheDocument();
+    render(<Harness initial={{ copulating_pairs: 3 }} adultTotal={4} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/Copulating pairs can't be 3/);
   });
 
   it('shows no error when the totals are consistent', () => {
-    renderPanel({ adultTotal: 8 });
-    tapTimes('Copulating pairs', 4);
+    render(<Harness initial={{ copulating_pairs: 2 }} adultTotal={4} />);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
 
-describe('StageCountsFields type mode', () => {
-  const switchTo = (mode: 'Tap' | 'Type') =>
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${mode}$`, 'i') }));
-
-  it('switches to numeric inputs carrying the current values', () => {
-    renderPanel({ initial: { larvae: 7 } });
-    switchTo('Type');
-
-    const input = screen.getByLabelText('Larvae') as HTMLInputElement;
-    expect(input.value).toBe('7');
-    // GOV.UK markup: type=number drops letters silently and ignores maxlength.
-    expect(input).toHaveAttribute('inputmode', 'numeric');
-    expect(input).not.toHaveAttribute('type', 'number');
-  });
-
-  it('ignores non-numeric and over-long input', () => {
-    renderPanel({ initial: { larvae: 12 } });
-    switchTo('Type');
-    const input = screen.getByLabelText('Larvae') as HTMLInputElement;
-
-    fireEvent.change(input, { target: { value: 'abc' } });
-    expect(input.value).toBe('12');
-
-    fireEvent.change(input, { target: { value: '-3' } });
-    expect(input.value).toBe('12');
-
-    fireEvent.change(input, { target: { value: '12345' } });
-    expect(input.value).toBe('12');
-
-    fireEvent.change(input, { target: { value: '1234' } });
-    expect(input.value).toBe('1234');
-  });
-
-  it('treats an emptied field as not recorded rather than zero', () => {
-    renderPanel({ initial: { larvae: 4 } });
-    switchTo('Type');
-
-    fireEvent.change(screen.getByLabelText('Larvae'), { target: { value: '' } });
-
-    switchTo('Tap');
-    expect(valueOf('Larvae')).toBe('—');
-  });
-});
-
 describe('StageCountsFields disclosure', () => {
-  const header = () => screen.getByRole('button', { name: /Life stage/i });
-
   it('is collapsed on a fresh sighting, so the total stays the prominent field', () => {
     render(<Harness />);
     expect(header()).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('button', { name: /^Larvae:/ })).not.toBeInTheDocument();
   });
 
-  it('says it is optional and unrecorded while closed', () => {
-    render(<Harness />);
-    expect(screen.getByText(/Optional — breeding evidence/i)).toBeInTheDocument();
+  it('says it is optional while nothing positive is recorded', () => {
+    render(<Harness initial={{ larvae: 0, exuviae: 0 }} />);
+    expect(header()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('Optional — breeding evidence')).toBeInTheDocument();
+  });
+
+  it('starts open when a sighting already has evidence, so an edit hides nothing', () => {
+    render(<Harness initial={{ ovipositing_females: 2 }} />);
+    expect(header()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('summarises the positive counts while closed', () => {
+    render(<Harness initial={{ ovipositing_females: 2, larvae: 1 }} />);
+    fireEvent.click(header()); // starts open; close it
+    expect(screen.getByText(/2 ovipositing females, 1 larva/i)).toBeInTheDocument();
   });
 
   it('opens on tap and closes again', () => {
     render(<Harness />);
     fireEvent.click(header());
     expect(header()).toHaveAttribute('aria-expanded', 'true');
-    expect(chip('Larvae')).toBeInTheDocument();
-
     fireEvent.click(header());
     expect(header()).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  it('starts open when a sighting already has counts, so an edit hides nothing', () => {
-    render(<Harness initial={{ ovipositing_females: 2 }} />);
-    expect(header()).toHaveAttribute('aria-expanded', 'true');
-  });
-
-  it('summarises what was recorded while closed', () => {
-    render(<Harness initial={{ ovipositing_females: 2, larvae: 1 }} />);
-    fireEvent.click(header()); // starts open; close it
-    expect(screen.getByText(/2 ovipositing females, 1 larva/i)).toBeInTheDocument();
-  });
-
-  it('distinguishes a searched-and-absent record from an unrecorded one', () => {
-    render(<Harness initial={{ larvae: 0, exuviae: 0 }} />);
-    fireEvent.click(header());
-    // Scoped to the header: the panel body stays mounted while collapsed and
-    // has its own "None seen for any" button.
-    expect(within(header()).getByText('None seen')).toBeInTheDocument();
-  });
-
-  it('hides the uninformative "adults present" tier, which every record would show', () => {
-    render(<Harness adultTotal={4} />);
-    expect(screen.queryByText('Adults present')).not.toBeInTheDocument();
-  });
-
-  it('shows the derived breeding tier without opening the panel', () => {
-    render(<Harness initial={{ exuviae: 3 }} />);
-    fireEvent.click(header());
-    expect(header()).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('Breeding confirmed')).toBeInTheDocument();
-  });
-
-  it('never leaves a save-blocking error folded out of sight', () => {
-    // Lowering the adult total below a recorded count is the way in.
-    const { rerender } = render(<Harness initial={{ ovipositing_females: 2 }} adultTotal={5} />);
-    fireEvent.click(header());
-    expect(header()).toHaveAttribute('aria-expanded', 'false');
-
-    rerender(<Harness initial={{ ovipositing_females: 2 }} adultTotal={1} />);
-    expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 });

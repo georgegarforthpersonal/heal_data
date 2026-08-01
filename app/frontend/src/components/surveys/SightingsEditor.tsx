@@ -554,7 +554,7 @@ export function SightingsEditor({
                               />
                             )}
                           </Stack>
-                          {stageCountSpecies && (
+                          {stageCountSpecies && hasPositiveStageCounts(pickStageCounts(sighting)) && (
                             <Box sx={{ mt: 0.5 }}>
                               <StageCountsSummary counts={pickStageCounts(sighting)} adultTotal={sighting.count} />
                             </Box>

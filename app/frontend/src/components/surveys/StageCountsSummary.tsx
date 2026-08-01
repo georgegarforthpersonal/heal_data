@@ -11,7 +11,7 @@
 import { Chip, Stack, Typography } from '@mui/material';
 import {
   deriveBreedingTier,
-  hasStageCounts,
+  hasPositiveStageCounts,
   summariseStageCounts,
   type StageCounts,
 } from '../../config/stageCounts';
@@ -23,7 +23,9 @@ interface StageCountsSummaryProps {
 }
 
 export default function StageCountsSummary({ counts, adultTotal }: StageCountsSummaryProps) {
-  if (!hasStageCounts(counts)) return null;
+  // Zero and unrecorded read the same everywhere: only positive evidence
+  // earns a line on the record.
+  if (!hasPositiveStageCounts(counts)) return null;
   const tier = deriveBreedingTier(counts, adultTotal);
   const summary = summariseStageCounts(counts);
 

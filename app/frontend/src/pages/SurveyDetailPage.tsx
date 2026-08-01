@@ -13,7 +13,7 @@ import { AudioClipPlayer } from '../components/audio/AudioClipPlayer';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSightingsGridConfig } from '../components/surveys/sightingsGridConfig';
 import { getSpeciesIcon } from '../config';
-import { hasPositiveStageCounts, hasStageCounts, pickStageCounts } from '../config/stageCounts';
+import { hasPositiveStageCounts, pickStageCounts } from '../config/stageCounts';
 import StageCountsSummary from '../components/surveys/StageCountsSummary';
 import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
@@ -1291,7 +1291,7 @@ export function SurveyDetailPage() {
                             {/* BDS breeding evidence — tier + counts, full width
                                 like notes. Without this the evidence is only
                                 visible in the entry widget and the export. */}
-                            {hasStageCounts(pickStageCounts(sighting)) && (
+                            {hasPositiveStageCounts(pickStageCounts(sighting)) && (
                               <Box sx={{ px: 1.5, pb: 1.5 }}>
                                 <StageCountsSummary
                                   counts={pickStageCounts(sighting)}
