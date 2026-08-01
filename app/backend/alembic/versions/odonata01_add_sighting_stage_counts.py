@@ -47,6 +47,8 @@ def upgrade() -> None:
     # by running migrations, so the columns may already be present.
     for column in STAGE_COLUMNS:
         op.execute(f'ALTER TABLE sighting ADD COLUMN IF NOT EXISTS {column} INTEGER')
+        # ADD CONSTRAINT has no IF NOT EXISTS, so drop first to stay re-runnable.
+        op.execute(f'ALTER TABLE sighting DROP CONSTRAINT IF EXISTS sighting_{column}_non_negative')
         op.execute(
             f'ALTER TABLE sighting ADD CONSTRAINT sighting_{column}_non_negative '
             f'CHECK ({column} IS NULL OR {column} >= 0)'
