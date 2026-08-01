@@ -1,14 +1,16 @@
 /**
- * The "All surveys" door row at the foot of a group's Surveys panel — shared
- * by the scheduled worklist panel (recorded/scheduled split summary) and the
- * unscheduled record panel (recorded count only).
+ * The "Past surveys" door row at the foot of a group's Surveys panel — the
+ * way into the full survey history. Shared by the scheduled worklist panel
+ * and the unscheduled record panel; the label leads with "Past" because
+ * that's what people come looking for ("previous records", "results") — the
+ * schedule is already on the page above it.
  */
 import { Box, ButtonBase, Typography } from '@mui/material';
-import { AssignmentTurnedIn, ChevronRight } from '@mui/icons-material';
+import { ChevronRight, History } from '@mui/icons-material';
 import { groupColors } from '../../pages/groups/groupsTokens';
 
 interface AllSurveysDoorProps {
-  /** Counts line under the label, e.g. "12 recorded · 3 scheduled". */
+  /** Counts line under the label, e.g. "43 recorded · results & history". */
   summary: string;
   onViewAll: () => void;
 }
@@ -41,11 +43,11 @@ export default function AllSurveysDoor({ summary, onViewAll }: AllSurveysDoorPro
           flexShrink: 0,
         }}
       >
-        <AssignmentTurnedIn sx={{ fontSize: 18, color: groupColors.brandDark }} />
+        <History sx={{ fontSize: 18, color: groupColors.brandDark }} />
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: groupColors.textPrimary }}>
-          All surveys
+          Past surveys
         </Typography>
         <Typography sx={{ fontSize: 12, color: groupColors.textMuted }}>{summary}</Typography>
       </Box>

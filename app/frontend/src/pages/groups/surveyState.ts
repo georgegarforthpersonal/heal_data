@@ -12,7 +12,7 @@
  *   - needs-survey  : open, window has passed with nothing recorded
  */
 import dayjs from 'dayjs';
-import type { ScheduledSurvey } from '../../services/api';
+import type { ScheduledSurvey, Survey } from '../../services/api';
 
 export type SlotState = 'recorded' | 'upcoming' | 'due-this-week' | 'needs-survey' | 'cancelled';
 
@@ -158,6 +158,30 @@ export function recordedThisWeek(slots: ScheduledSurvey[], today: string = today
         today <= s.window_end,
     )
     .sort(byWindowStart);
+}
+
+/**
+ * The Recent section's rows for the worklist panel: the newest recorded
+ * surveys minus any already pinned as this week's recorded rows (a survey
+ * shown under "This week" must not repeat under "Recent"), capped at `limit`.
+ */
+export function recentBeyondThisWeek(
+  recentSurveys: Survey[],
+  pinnedThisWeek: ScheduledSurvey[],
+  limit = 3,
+): Survey[] {
+  const pinned = new Set(pinnedThisWeek.flatMap((s) => s.linked_surveys.map((l) => l.id)));
+  return recentSurveys.filter((s) => !pinned.has(s.id)).slice(0, limit);
+}
+
+/**
+ * The Schedule filter's rows on the All surveys page: open and cancelled
+ * slots (fulfilled slots are represented by their recorded surveys under
+ * Past), soonest first — the same oldest-overdue-to-furthest-future order
+ * as the group page worklist.
+ */
+export function scheduleSlots(slots: ScheduledSurvey[]): ScheduledSurvey[] {
+  return slots.filter((s) => s.linked_surveys.length === 0).sort(byWindowStart);
 }
 
 /**

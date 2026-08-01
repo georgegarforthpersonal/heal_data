@@ -2,7 +2,7 @@
  * The Surveys panel for unscheduled ('record' activity) groups. These types
  * have no ScheduledSurvey slots to build a worklist from — surveys arrive
  * opportunistically — so the panel leads with a record CTA, shows the most
- * recent recorded surveys, and keeps the same "All surveys" door as the
+ * recent recorded surveys, and keeps the same "Past surveys" door as the
  * worklist panel (recorded count only; nothing is ever scheduled).
  */
 import { Box, Paper, Typography, Button } from '@mui/material';

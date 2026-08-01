@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ScheduledSurvey } from '../../services/api';
+import type { ScheduledSurvey, Survey } from '../../services/api';
 import {
   deriveSlotState,
   buildWorklist,
@@ -8,6 +8,8 @@ import {
   formatSurveyDateShort,
   formatRecordedDateShort,
   recordedThisWeek,
+  recentBeyondThisWeek,
+  scheduleSlots,
 } from './surveyState';
 
 const TODAY = '2026-06-25';
@@ -236,5 +238,63 @@ describe('nextScheduledSurvey', () => {
     const done = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
     const later = slot({ id: 2, window_start: '2026-07-06' });
     expect(nextScheduledSurvey([done, later], TODAY)?.id).toBe(2);
+  });
+});
+
+function survey(id: number, date: string): Survey {
+  return {
+    id,
+    date,
+    scheduled_survey_id: null,
+    start_time: null,
+    end_time: null,
+    sun_percentage: null,
+    temperature_celsius: null,
+    conditions_met: null,
+    notes: null,
+    location_id: null,
+    location_name: null,
+    device_id: null,
+    surveyor_ids: [],
+    sightings_count: 0,
+    species_breakdown: [],
+    survey_type_id: 1,
+    survey_type_name: null,
+    survey_type_icon: null,
+    survey_type_color: null,
+  };
+}
+
+describe('recentBeyondThisWeek', () => {
+  it('drops surveys already pinned as this week\'s recorded rows', () => {
+    const pinned = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
+    const surveys = [survey(101, '2026-06-23'), survey(50, '2026-06-18'), survey(49, '2026-06-11')];
+    expect(recentBeyondThisWeek(surveys, [pinned]).map((s) => s.id)).toEqual([50, 49]);
+  });
+
+  it('caps at the limit after filtering', () => {
+    const surveys = [survey(4, '2026-06-18'), survey(3, '2026-06-11'), survey(2, '2026-06-04'), survey(1, '2026-05-28')];
+    expect(recentBeyondThisWeek(surveys, []).map((s) => s.id)).toEqual([4, 3, 2]);
+  });
+
+  it('passes everything through when nothing is pinned', () => {
+    const surveys = [survey(2, '2026-06-18'), survey(1, '2026-06-11')];
+    expect(recentBeyondThisWeek(surveys, [])).toEqual(surveys);
+  });
+});
+
+describe('scheduleSlots', () => {
+  it('excludes fulfilled slots and sorts soonest first', () => {
+    const slots = [
+      slot({ id: 3, window_start: '2026-07-13', window_end: '2026-07-19' }),
+      recordedSlot({ id: 2, window_start: '2026-06-22', window_end: '2026-06-28' }),
+      slot({ id: 1, window_start: '2026-06-15', window_end: '2026-06-21' }), // overdue
+    ];
+    expect(scheduleSlots(slots).map((s) => s.id)).toEqual([1, 3]);
+  });
+
+  it('keeps cancelled unfulfilled slots (they are part of the schedule story)', () => {
+    const slots = [slot({ id: 1, window_start: '2026-07-06', status: 'cancelled' })];
+    expect(scheduleSlots(slots).map((s) => s.id)).toEqual([1]);
   });
 });

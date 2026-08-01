@@ -3,19 +3,19 @@
  * chronologically top to bottom: "To record" (every overdue row, oldest first
  * — the actionable backlog is never hidden), "This week" (the current week's
  * survey always has an anchor here — still due or already recorded, it never
- * vanishes), "Upcoming" (the next 3 scheduled rows), and an "All surveys"
- * door whose recorded/scheduled split says exactly what's behind it. To
- * record and Upcoming hide when empty; This week hides only when the panel
- * has nothing at all to show. An empty diary shows the last recorded
- * surveys instead (same Recent section as the unscheduled panel) — the
- * panel stays useful between seasons.
+ * vanishes), "Upcoming" (the next 3 scheduled rows), "Recent" (the last
+ * recorded surveys with their species counts — past results are always
+ * visible on the page, never only behind a door), and a "Past surveys" door
+ * to the full history. To record and Upcoming hide when empty; This week
+ * hides only when the diary is empty, which leaves the Recent rows carrying
+ * the panel between seasons.
  */
 import { Box, Paper, Typography, Button } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import type { ScheduledSurvey, Survey, Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
 import { groupCardSx, groupColors, recordButtonSx } from '../../pages/groups/groupsTokens';
-import { buildWorklist } from '../../pages/groups/surveyState';
+import { buildWorklist, recentBeyondThisWeek } from '../../pages/groups/surveyState';
 import SurveyWorklistRow from './SurveyWorklistRow';
 import RecentSurveyRows from './RecentSurveyRows';
 import AllSurveysDoor from './AllSurveysDoor';
@@ -86,9 +86,11 @@ export default function SurveysPanel({
 }: SurveysPanelProps) {
   const { canEditSurveys } = usePermissions();
   const { dueThisWeek, overdue, upcoming, upcomingTotal } = buildWorklist(slots);
-  const scheduledCount = overdue.length + dueThisWeek.length + upcomingTotal;
   const thisWeekCount = dueThisWeek.length + recordedThisWeek.length;
   const empty = thisWeekCount === 0 && overdue.length === 0 && upcoming.length === 0;
+  // This week's recorded survey is already pinned above — Recent carries on
+  // from the week before it.
+  const recent = recentBeyondThisWeek(recentSurveys, recordedThisWeek);
 
   return (
     <Paper sx={groupCardSx}>
@@ -118,27 +120,14 @@ export default function SurveysPanel({
         )}
       </Box>
 
-      {/* Empty diary: say so, then fall back to the last recorded surveys —
-          the same Recent section the unscheduled panel leads with. */}
+      {/* Empty diary: say so — the Recent section below still carries the
+          panel, so the group's results never disappear between seasons. */}
       {empty && (
-        <>
-          <Box sx={{ px: 2.25, py: recentSurveys.length > 0 ? 2 : 3 }}>
-            <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
-              No scheduled surveys.
-            </Typography>
-          </Box>
-          {recentSurveys.length > 0 && (
-            <>
-              <SectionHeader label="Recent" color={groupColors.textMuted} />
-              <RecentSurveyRows
-                surveys={recentSurveys}
-                resolveSurveyors={resolveSurveyors}
-                speciesType={speciesType}
-                onOpenSurvey={onOpenRecorded}
-              />
-            </>
-          )}
-        </>
+        <Box sx={{ px: 2.25, py: recent.length > 0 ? 2 : 3 }}>
+          <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
+            No scheduled surveys.
+          </Typography>
+        </Box>
       )}
 
       {overdue.length > 0 && (
@@ -208,7 +197,21 @@ export default function SurveysPanel({
         />
       ))}
 
-      <AllSurveysDoor summary={`${recordedCount} recorded · ${scheduledCount} scheduled`} onViewAll={onViewAll} />
+      {/* The last recorded surveys, results on show — the scent trail to the
+          full history for anyone who came looking for "previous records". */}
+      {recent.length > 0 && (
+        <>
+          <SectionHeader label="Recent" color={groupColors.textMuted} />
+          <RecentSurveyRows
+            surveys={recent}
+            resolveSurveyors={resolveSurveyors}
+            speciesType={speciesType}
+            onOpenSurvey={onOpenRecorded}
+          />
+        </>
+      )}
+
+      <AllSurveysDoor summary={`${recordedCount} recorded · results & history`} onViewAll={onViewAll} />
     </Paper>
   );
 }

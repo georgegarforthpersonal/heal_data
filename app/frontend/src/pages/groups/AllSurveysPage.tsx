@@ -1,16 +1,20 @@
 /**
- * All surveys: the full chronological history/forward-schedule for a survey
- * type. Status-only rows (no titles); the date — a single day or a week range,
+ * All surveys: the full history and forward schedule for a survey type.
+ * Status-only rows (no titles); the date — a single day or a week range,
  * with the year — heads each row and is the identifier (no calendar tile).
  *
- * The list merges two sources, date-descending (upcoming on top): the group's
- * open/cancelled slots (schedule) and its recorded surveys (history, paged via
- * Load more). Fulfilled slots are represented by their recorded surveys, so
- * no week appears twice.
+ * Scheduled ('worklist') groups split the two sources behind filter chips
+ * rather than interleaving them: "Past" (recorded surveys, newest first,
+ * paged via Load more) and "Schedule" (open/cancelled slots, soonest first).
+ * Past is the default — the group page's own worklist already covers the
+ * near-term schedule, and people open this page for previous results.
+ * Fulfilled slots are represented by their recorded surveys under Past, so
+ * no week appears twice. Unscheduled ('record') groups have no slots, so
+ * they get the Past list alone, chipless.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Box, Paper, Typography, Button, CircularProgress } from '@mui/material';
+import { Alert, Box, ButtonBase, Paper, Typography, Button, CircularProgress } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import {
   ApiError,
@@ -25,7 +29,7 @@ import {
 } from '../../services/api';
 import { recordButtonSx, groupCardSx, groupColors } from './groupsTokens';
 import { groupActivity, primarySpeciesType, resolveGroupTypeId } from './groupMeta';
-import { deriveSlotState, formatRecordedDate, formatSurveyDate, type SlotState } from './surveyState';
+import { deriveSlotState, formatRecordedDate, formatSurveyDate, scheduleSlots, type SlotState } from './surveyState';
 import { useSignupSaved, useSurveyorLookup } from '../../hooks';
 import { usePermissions } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -64,10 +68,30 @@ function StatusChip({ state }: { state: SlotState }) {
   );
 }
 
-/** One merged list entry: an unfulfilled/cancelled slot, or a recorded survey. */
+/** One list entry: a schedule slot (Schedule filter) or a recorded survey (Past). */
 type Row =
-  | { kind: 'slot'; slot: ScheduledSurvey; sortDate: string }
-  | { kind: 'survey'; survey: Survey; sortDate: string };
+  | { kind: 'slot'; slot: ScheduledSurvey }
+  | { kind: 'survey'; survey: Survey };
+
+/** Past | Schedule filter pill — active is the recorded-green chip treatment. */
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <ButtonBase
+      onClick={onClick}
+      sx={{
+        px: 1.5,
+        py: 0.6,
+        borderRadius: '7px',
+        fontSize: 13,
+        fontWeight: 600,
+        bgcolor: active ? '#DBEDDB' : '#EBECED',
+        color: active ? '#2E6B42' : '#454648',
+      }}
+    >
+      {label}
+    </ButtonBase>
+  );
+}
 
 export default function AllSurveysPage() {
   const { typeId } = useParams<{ typeId: string }>();
@@ -83,6 +107,9 @@ export default function AllSurveysPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
   const [greenIds, setGreenIds] = useState<Set<number>>(new Set());
+  // Past by default: this page's visitors come for previous results — the
+  // group page's worklist already shows the near-term schedule.
+  const [filter, setFilter] = useState<'past' | 'schedule'>('past');
   const toast = useToast();
   const { canEditSurveys } = usePermissions();
 
@@ -201,20 +228,14 @@ export default function AllSurveysPage() {
     navigate(`/surveys/new?scheduled_survey_id=${slot.id}`, returnTo);
 
   // Slots with linked surveys are represented by those recorded surveys
-  // (whatever the slot's status — a cancelled-then-recorded week must not
-  // appear twice); the remaining slots are the schedule. Merged
-  // date-descending so upcoming weeks sit on top of the history.
-  const rows: Row[] = [
-    ...slots
-      .filter((s) => s.linked_surveys.length === 0)
-      .map((slot): Row => ({ kind: 'slot', slot, sortDate: slot.window_start })),
-    ...surveys.map((survey): Row => ({ kind: 'survey', survey, sortDate: survey.date })),
-  ].sort((a, b) => b.sortDate.localeCompare(a.sortDate));
-
-  const scheduledCount = slots.filter((s) => {
-    const st = deriveSlotState(s);
-    return st === 'upcoming' || st === 'due-this-week' || st === 'needs-survey';
-  }).length;
+  // under Past (whatever the slot's status — a cancelled-then-recorded week
+  // must not appear twice); the remaining slots are the Schedule list.
+  const worklist = groupActivity(surveyType.name) === 'worklist';
+  const schedule = scheduleSlots(slots);
+  const showPast = !worklist || filter === 'past';
+  const rows: Row[] = showPast
+    ? surveys.map((survey): Row => ({ kind: 'survey', survey }))
+    : schedule.map((slot): Row => ({ kind: 'slot', slot }));
 
   return (
     <Box sx={{ bgcolor: groupColors.page, minHeight: '100%', px: { xs: 2, sm: 4 }, py: { xs: 2, sm: 3 } }}>
@@ -231,16 +252,27 @@ export default function AllSurveysPage() {
           All surveys
         </Typography>
         <Typography sx={{ fontSize: 13.5, color: '#888', mb: 2 }}>
-          {/* Unscheduled ('record') groups never have slots — no point saying "0 scheduled". */}
-          {surveyType.name} · {total} recorded
-          {groupActivity(surveyType.name) === 'worklist' ? ` · ${scheduledCount} scheduled` : ''}, most recent first
+          {surveyType.name} ·{' '}
+          {showPast ? `${total} recorded, most recent first` : `${schedule.length} scheduled, soonest first`}
         </Typography>
+
+        {/* Unscheduled ('record') groups never have slots — no chips, Past only. */}
+        {worklist && (
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <FilterChip label={`Past (${total})`} active={filter === 'past'} onClick={() => setFilter('past')} />
+            <FilterChip
+              label={`Schedule (${schedule.length})`}
+              active={filter === 'schedule'}
+              onClick={() => setFilter('schedule')}
+            />
+          </Box>
+        )}
 
         <Paper sx={groupCardSx}>
           {rows.length === 0 ? (
             <Box sx={{ px: 2.25, py: 3 }}>
               <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
-                No surveys yet.
+                {showPast ? 'No surveys recorded yet.' : 'Nothing scheduled.'}
               </Typography>
             </Box>
           ) : (
@@ -376,7 +408,7 @@ export default function AllSurveysPage() {
             })
           )}
 
-          {surveys.length < total && (
+          {showPast && surveys.length < total && (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5, borderTop: `1px solid ${groupColors.dividerInner}` }}>
               <Button
                 onClick={loadMore}

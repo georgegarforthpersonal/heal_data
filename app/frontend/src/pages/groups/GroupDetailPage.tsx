@@ -94,16 +94,17 @@ export default function GroupDetailPage() {
 
         // The worklist is built from the group's slots (linked recorded
         // surveys come embedded, so fulfilment and this week's pin derive
-        // from the same list); unscheduled ('record') groups have no slots,
-        // so their panel shows the most recent surveys instead — the same
-        // paged call that gives every variant its recorded total (the list
-        // is date-descending, so page 1 IS the recent list).
+        // from the same list); every variant's Recent section shows the most
+        // recent surveys from the same paged call that gives it its recorded
+        // total (the list is date-descending, so page 1 IS the recent list).
+        // Limit 4, not 3: the worklist panel drops this week's already-pinned
+        // survey from Recent and still wants three rows left.
         const scheduled = groupActivity(details.name) === 'worklist';
         const [slotList, surveysPage, surveyorList, withBoundaries] = await Promise.all([
           scheduled
             ? scheduledSurveysAPI.getAll({ survey_type_id: surveyTypeId })
             : Promise.resolve([]),
-          surveysAPI.getAll({ survey_type_id: surveyTypeId, page: 1, limit: 3 }),
+          surveysAPI.getAll({ survey_type_id: surveyTypeId, page: 1, limit: 4 }),
           surveyorsAPI.getAll(),
           locationsAPI.getAllWithBoundaries(),
         ]);
@@ -250,7 +251,7 @@ export default function GroupDetailPage() {
             <Box sx={{ order: 2, minWidth: 0 }}>
               {activity === 'record' ? (
                 <RecordPanel
-                  surveys={recentSurveys}
+                  surveys={recentSurveys.slice(0, 3)}
                   recordedCount={recordedCount}
                   resolveSurveyors={resolveSurveyors}
                   speciesType={speciesType}
