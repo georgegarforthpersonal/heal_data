@@ -588,10 +588,10 @@ export function SightingsEditor({
               sx={{
                 p: 4,
                 textAlign: 'center',
-                border: '1.5px dashed',
-                borderColor: 'rgba(35,42,35,0.2)',
-                borderRadius: '12px',
-                bgcolor: 'rgba(35,42,35,0.02)',
+                border: '2px dashed',
+                borderColor: 'divider',
+                borderRadius: 1,
+                bgcolor: 'grey.50',
               }}
             >
               <Typography variant="body2" color="text.secondary">

@@ -64,7 +64,7 @@ export default function NumberStepper({
         height: dims.height,
         border: '1px solid',
         borderColor: 'divider',
-        borderRadius: '10px',
+        borderRadius: 1.5,
         overflow: 'hidden',
         flexShrink: 0,
         ...(labelPlacement === 'top' ? {} : { width: 'auto' }),

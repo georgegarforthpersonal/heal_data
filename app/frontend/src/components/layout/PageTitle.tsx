@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { Box, Typography } from '@mui/material';
-import { displayFontFamily } from '../../theme';
 
 /**
  * Consistent top-of-page heading for the top-level pages (Surveys, Groups,
@@ -32,10 +31,7 @@ export function PageTitle({
       }}
     >
       <Box sx={{ minWidth: 0 }}>
-        <Typography
-          component="h1"
-          sx={{ fontFamily: displayFontFamily, fontSize: 23, fontWeight: 600, lineHeight: 1.25 }}
-        >
+        <Typography component="h1" sx={{ fontSize: 20, fontWeight: 600, lineHeight: 1.3 }}>
           {title}
         </Typography>
         {subtitle && (

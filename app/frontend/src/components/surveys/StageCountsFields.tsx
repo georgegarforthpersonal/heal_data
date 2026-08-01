@@ -73,7 +73,7 @@ export default function StageCountsFields({
           minHeight: 48,
           px: 1,
           py: 1,
-          borderRadius: '10px',
+          borderRadius: 1.5,
           justifyContent: 'space-between',
           textAlign: 'left',
           gap: 1,

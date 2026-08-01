@@ -5,22 +5,22 @@
  * the green-on-neutral look that is now the whole app's identity. The
  * neutrals and amber treatment stay scoped to Groups.
  */
-import { brandColors, inkColors } from '../../theme';
+import { brandColors } from '../../theme';
 
 export const groupColors = {
   brand: brandColors.main,
   brandDark: brandColors.dark,
   brandHover: brandColors.hover,
 
-  page: inkColors.canvas,
-  paper: inkColors.paper,
+  page: '#fafafa',
+  paper: '#ffffff',
 
-  textPrimary: inkColors.text,
-  textSecondary: inkColors.textSecondary,
-  textMuted: inkColors.textMuted,
+  textPrimary: '#1a1a1a',
+  textSecondary: '#666666',
+  textMuted: '#888888',
 
-  divider: inkColors.divider,
-  dividerInner: inkColors.dividerInner,
+  divider: 'rgba(0,0,0,0.12)',
+  dividerInner: 'rgba(0,0,0,0.06)',
 
   // "Needs a survey" amber treatment
   amberRowBg: '#FFFCF3',
@@ -32,7 +32,7 @@ export const groupColors = {
 export const groupCardSx = {
   bgcolor: groupColors.paper,
   border: `1px solid ${groupColors.divider}`,
-  borderRadius: '12px',
+  borderRadius: '10px',
   boxShadow: 'none',
 } as const;
 

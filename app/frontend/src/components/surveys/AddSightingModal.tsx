@@ -332,9 +332,9 @@ export function AddSightingModal({
                 gap: 1.5,
                 p: 2,
                 border: '1px solid',
-                borderColor: 'rgba(81,137,90,0.35)',
-                borderRadius: '10px',
-                bgcolor: '#ECF3EC',
+                borderColor: 'divider',
+                borderRadius: 1,
+                bgcolor: 'grey.50',
               }}
             >
               {(() => {

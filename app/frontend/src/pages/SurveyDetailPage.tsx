@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Box, Typography, Paper, Stack, Button, Divider, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip } from '@mui/material';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Edit, Delete, CalendarToday, Person, LocationOn, AccessTime, Thermostat, WbSunny } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, CalendarToday, Person, LocationOn, AccessTime, Thermostat, WbSunny } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
 import { usePermissions } from '../context/AuthContext';
 import { surveysAPI, surveyorsAPI, locationsAPI, speciesAPI, surveyTypesAPI, imagesAPI, devicesAPI, ApiError } from '../services/api';
@@ -792,7 +792,6 @@ export function SurveyDetailPage() {
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
       {/* Page Header */}
       <PageHeader
-        title={surveyType ? `${surveyType.name} survey` : 'Survey'}
         backButton={{ label: `Back to ${returnTo.label}`, href: returnToHref(returnTo) }}
         actions={
           <>
@@ -800,6 +799,7 @@ export function SurveyDetailPage() {
               <Stack direction="row" spacing={1}>
                 <Button
                   variant="outlined"
+                  startIcon={<Cancel />}
                   onClick={handleCancel}
                   disabled={saving}
                   sx={{
@@ -812,6 +812,7 @@ export function SurveyDetailPage() {
                 </Button>
                 <Button
                   variant="contained"
+                  startIcon={saving ? undefined : <Save />}
                   onClick={handleSave}
                   disabled={
                     saving ||
@@ -895,7 +896,7 @@ export function SurveyDetailPage() {
           }}
         >
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            {isEditMode ? 'Survey details' : 'Survey information'}
+            {isEditMode ? 'Survey Details' : 'Survey Information'}
           </Typography>
 
           {isEditMode ? (
@@ -1360,7 +1361,7 @@ export function SurveyDetailPage() {
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle>Delete survey?</DialogTitle>
+          <DialogTitle>Delete Survey?</DialogTitle>
           <DialogContent>
             <DialogContentText>
               Are you sure you want to delete this survey from {formatDate(survey.date)} at {survey.location_name ?? 'Unknown'}?
@@ -1389,7 +1390,7 @@ export function SurveyDetailPage() {
                   Deleting...
                 </>
               ) : (
-                'Delete survey'
+                'Delete Survey'
               )}
             </Button>
           </DialogActions>
