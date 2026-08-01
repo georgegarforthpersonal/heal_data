@@ -37,8 +37,9 @@ export default function SurveyWorklistRow({
 }: SurveyWorklistRowProps) {
   const needsSurvey = state === 'needs-survey';
   const dueThisWeek = state === 'due-this-week';
-  // Rows carrying the sign-up toggle crush the date on phones, so they stack:
-  // date + avatars line, sign-up line. Overdue rows have no actions at all.
+  // Rows carrying the sign-up toggle stack on phones into the two ideas the
+  // row holds: a when-row (date + chip, location below) and a who-row
+  // (avatars + sign-up). Overdue rows have no who-row at all.
   const stacked = !needsSurvey;
 
   return (
@@ -86,30 +87,23 @@ export default function SurveyWorklistRow({
             </Typography>
           )}
         </Box>
-        {/* On the stacked phone layout the date line's top-right slot always
-            carries who's going — avatars, or "No surveyors yet" when empty;
-            the sign-up line below is actions only. */}
-        {stacked && (
-          <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexShrink: 0 }}>
-            <SurveyorAvatars surveyors={surveyors} greenIds={greenIds} />
-          </Box>
-        )}
       </Box>
 
+      {/* The who-row: everyone going (avatars, or "No surveyors yet") beside
+          the sign-up action. On phones it is its own full-width line under
+          the when-row — date/chip and people never share a line, so a crowd
+          of sign-ups can't crush the date. */}
       {stacked && (
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
+            justifyContent: { xs: 'space-between', sm: 'flex-end' },
             gap: 1.25,
             flexShrink: 0,
           }}
         >
-          {/* On xs the date line's slot carries the avatars/empty label */}
-          <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
-            <SurveyorAvatars surveyors={surveyors} greenIds={greenIds} />
-          </Box>
+          <SurveyorAvatars surveyors={surveyors} greenIds={greenIds} />
           <SelfSignupButton slot={slot} assigned={surveyors} onSaved={onSignupSaved} />
         </Box>
       )}

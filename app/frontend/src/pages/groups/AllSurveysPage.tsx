@@ -321,16 +321,11 @@ export default function AllSurveysPage() {
                         )}
                       </Box>
                     </Box>
-                    {/* On phones the date line's top-right slot carries who's
-                        going — avatars, or "No surveyors yet" when empty
-                        (recorded rows just omit them). */}
-                    {stacked && (
+                    {/* Recorded rows keep their avatars on the date line's
+                        top-right slot on phones (they have no who-row). */}
+                    {stacked && row.kind === 'survey' && (
                       <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexShrink: 0 }}>
-                        <SurveyorAvatars
-                          surveyors={assigned}
-                          greenIds={greenIds}
-                          emptyLabel={row.kind === 'survey' ? '' : undefined}
-                        />
+                        <SurveyorAvatars surveyors={assigned} greenIds={greenIds} emptyLabel="" />
                       </Box>
                     )}
                   </Box>
@@ -360,25 +355,24 @@ export default function AllSurveysPage() {
                     </Box>
                   )}
 
-                  {/* Sign-up is open for future weeks and the current week alike —
-                      the same one-click self toggle for every role. Recording
-                      happens only through the group page's header button; the
-                      survey's date decides which week it fulfils. */}
+                  {/* The who-row: avatars beside the one-click sign-up toggle
+                      (open to every role). On phones it is its own full-width
+                      line under the when-row, so sign-ups never crush the
+                      date. Recording happens only through the group page's
+                      header button; the survey's date decides which week it
+                      fulfils. */}
                   {row.kind === 'slot' && (state === 'upcoming' || state === 'due-this-week') && (
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'flex-end',
+                        justifyContent: { xs: 'space-between', sm: 'flex-end' },
                         flexWrap: 'wrap',
                         gap: 1.25,
                         flexShrink: 0,
                       }}
                     >
-                      {/* On xs the date line's slot carries the avatars/empty label */}
-                      <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
-                        <SurveyorAvatars surveyors={assigned} greenIds={greenIds} />
-                      </Box>
+                      <SurveyorAvatars surveyors={assigned} greenIds={greenIds} />
                       <SelfSignupButton slot={row.slot} assigned={assigned} onSaved={handleSignupSaved} />
                     </Box>
                   )}
