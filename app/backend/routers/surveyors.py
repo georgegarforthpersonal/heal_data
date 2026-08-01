@@ -61,7 +61,7 @@ def _check_surveyor_duplicate(
 
 
 @router.get("", response_model=List[SurveyorRead])
-async def get_surveyors(
+def get_surveyors(
     include_inactive: bool = False,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -89,7 +89,7 @@ async def get_surveyors(
 
 
 @router.get("/{surveyor_id}", response_model=SurveyorRead)
-async def get_surveyor(
+def get_surveyor(
     surveyor_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -105,7 +105,7 @@ async def get_surveyor(
 
 
 @router.post("", response_model=SurveyorRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor)])
-async def create_surveyor(
+def create_surveyor(
     surveyor: SurveyorCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -135,7 +135,7 @@ async def create_surveyor(
 
 
 @router.put("/{surveyor_id}", response_model=SurveyorRead, dependencies=[Depends(require_editor)])
-async def update_surveyor(
+def update_surveyor(
     surveyor_id: int,
     surveyor: SurveyorUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -176,7 +176,7 @@ async def update_surveyor(
 
 
 @router.delete("/{surveyor_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
-async def delete_surveyor(
+def delete_surveyor(
     surveyor_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -195,7 +195,7 @@ async def delete_surveyor(
 
 
 @router.post("/{surveyor_id}/deactivate", response_model=SurveyorRead, dependencies=[Depends(require_admin_role)])
-async def deactivate_surveyor(
+def deactivate_surveyor(
     surveyor_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -223,7 +223,7 @@ async def deactivate_surveyor(
 
 
 @router.post("/{surveyor_id}/reactivate", response_model=SurveyorRead, dependencies=[Depends(require_admin_role)])
-async def reactivate_surveyor(
+def reactivate_surveyor(
     surveyor_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)

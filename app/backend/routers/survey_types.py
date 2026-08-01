@@ -111,14 +111,14 @@ def _validate_device_ids(device_ids: List[int], org: Organisation, db: Session) 
 
 
 @router.get("/species-types", response_model=List[SpeciesTypeRead])
-async def get_species_types(db: Session = Depends(get_db)) -> List[SpeciesType]:
+def get_species_types(db: Session = Depends(get_db)) -> List[SpeciesType]:
     """Get all species types (reference data - global, not org-specific)"""
     species_types = db.query(SpeciesType).order_by(SpeciesType.display_name).all()
     return species_types  # type: ignore[no-any-return]
 
 
 @router.get("", response_model=List[SurveyTypeRead])
-async def get_survey_types(
+def get_survey_types(
     include_inactive: bool = False,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -142,7 +142,7 @@ async def get_survey_types(
 
 
 @router.get("/{survey_type_id}", response_model=SurveyTypeWithDetails)
-async def get_survey_type(
+def get_survey_type(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -268,7 +268,7 @@ async def get_survey_type(
 
 
 @router.get("/{survey_type_id}/recent-media", response_model=SurveyTypeRecentMedia)
-async def get_survey_type_recent_media(
+def get_survey_type_recent_media(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -339,7 +339,7 @@ async def get_survey_type_recent_media(
 
 
 @router.post("", response_model=SurveyTypeRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin_role)])
-async def create_survey_type(
+def create_survey_type(
     survey_type: SurveyTypeCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -427,7 +427,7 @@ async def create_survey_type(
 
 
 @router.put("/{survey_type_id}", response_model=SurveyTypeRead, dependencies=[Depends(require_admin_role)])
-async def update_survey_type(
+def update_survey_type(
     survey_type_id: int,
     survey_type: SurveyTypeUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -537,7 +537,7 @@ async def update_survey_type(
 
 
 @router.delete("/{survey_type_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
-async def delete_survey_type(
+def delete_survey_type(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -561,7 +561,7 @@ async def delete_survey_type(
 
 
 @router.post("/{survey_type_id}/reactivate", response_model=SurveyTypeRead, dependencies=[Depends(require_admin_role)])
-async def reactivate_survey_type(
+def reactivate_survey_type(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -585,7 +585,7 @@ async def reactivate_survey_type(
 # ============================================================================
 
 @router.get("/{survey_type_id}/files", response_model=List[SurveyTypeFileRead])
-async def list_survey_type_files(
+def list_survey_type_files(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
@@ -607,7 +607,7 @@ async def list_survey_type_files(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_admin_role)],
 )
-async def upload_survey_type_file(
+def upload_survey_type_file(
     survey_type_id: int,
     file: UploadFile = File(...),
     org: Organisation = Depends(get_current_organisation),
@@ -669,7 +669,7 @@ async def upload_survey_type_file(
 
 
 @router.get("/{survey_type_id}/files/{file_id}/download")
-async def get_survey_type_file_download_url(
+def get_survey_type_file_download_url(
     survey_type_id: int,
     file_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -697,7 +697,7 @@ async def get_survey_type_file_download_url(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_admin_role)],
 )
-async def delete_survey_type_file(
+def delete_survey_type_file(
     survey_type_id: int,
     file_id: int,
     org: Organisation = Depends(get_current_organisation),

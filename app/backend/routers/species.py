@@ -46,7 +46,7 @@ def _to_species_read(species: Species) -> SpeciesRead:
 
 
 @router.get("", response_model=List[SpeciesRead])
-async def get_species(
+def get_species(
     survey_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ) -> List[SpeciesRead]:
@@ -72,7 +72,7 @@ async def get_species(
 
 
 @router.get("/by-survey-type/{survey_type_id}", response_model=List[SpeciesRead])
-async def get_species_by_survey_type(
+def get_species_by_survey_type(
     survey_type_id: int,
     db: Session = Depends(get_db)
 ) -> List[SpeciesRead]:
@@ -116,7 +116,7 @@ async def get_species_by_survey_type(
 
 
 @router.get("/{species_id}", response_model=SpeciesRead)
-async def get_species_by_id(
+def get_species_by_id(
     species_id: int,
     db: Session = Depends(get_db)
 ) -> SpeciesRead:
@@ -128,7 +128,7 @@ async def get_species_by_id(
 
 
 @router.post("", response_model=SpeciesRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin_role)])
-async def create_species(
+def create_species(
     species: SpeciesCreate,
     db: Session = Depends(get_db)
 ) -> SpeciesRead:
@@ -153,7 +153,7 @@ async def create_species(
 
 
 @router.put("/{species_id}", response_model=SpeciesRead, dependencies=[Depends(require_admin_role)])
-async def update_species(
+def update_species(
     species_id: int,
     species: SpeciesUpdate,
     db: Session = Depends(get_db)
@@ -179,7 +179,7 @@ async def update_species(
 
 
 @router.delete("/{species_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
-async def delete_species(
+def delete_species(
     species_id: int,
     db: Session = Depends(get_db)
 ) -> None:

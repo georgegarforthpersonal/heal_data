@@ -165,7 +165,7 @@ def _parse_hms(value: str) -> time:
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_editor)],
 )
-async def save_survey_detections(
+def save_survey_detections(
     survey_id: int,
     payload: SurveyDetectionsSaveRequest,
     org: Organisation = Depends(get_current_organisation),
@@ -217,7 +217,7 @@ def _build_recording_response(recording: AudioRecording, detection_count: int) -
 
 
 @router.get("/{survey_id}/audio", response_model=List[AudioRecordingRead])
-async def list_audio_recordings(
+def list_audio_recordings(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
@@ -253,7 +253,7 @@ async def list_audio_recordings(
 # NOTE: must be declared before /{survey_id}/audio/{recording_id} so the
 # literal segment wins over the path parameter.
 @router.get("/{survey_id}/audio/processing-summary", response_model=ProcessingSummary)
-async def get_audio_processing_summary(
+def get_audio_processing_summary(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
@@ -289,7 +289,7 @@ async def get_audio_processing_summary(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_editor)],
 )
-async def upload_audio_files(
+def upload_audio_files(
     survey_id: int,
     files: List[UploadFile] = File(...),
     skip_processing: bool = Query(False, description="Skip BirdNET processing (for wizard uploads)"),
@@ -366,7 +366,7 @@ async def upload_audio_files(
     "/{survey_id}/audio/{recording_id}/process",
     dependencies=[Depends(require_editor)],
 )
-async def process_audio_recording(
+def process_audio_recording(
     survey_id: int,
     recording_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -405,7 +405,7 @@ async def process_audio_recording(
 
 
 @router.get("/{survey_id}/audio/{recording_id}", response_model=AudioRecordingRead)
-async def get_audio_recording(
+def get_audio_recording(
     survey_id: int,
     recording_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -438,7 +438,7 @@ async def get_audio_recording(
     "/{survey_id}/audio/{recording_id}/detections",
     response_model=List[AudioDetectionRead],
 )
-async def get_audio_detections(
+def get_audio_detections(
     survey_id: int,
     recording_id: int,
     min_confidence: float = 0.0,
@@ -488,7 +488,7 @@ async def get_audio_detections(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_editor)],
 )
-async def delete_audio_recording(
+def delete_audio_recording(
     survey_id: int,
     recording_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -522,7 +522,7 @@ download_router = APIRouter()
 
 
 @download_router.get("/{recording_id}/download")
-async def get_download_url(
+def get_download_url(
     recording_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),

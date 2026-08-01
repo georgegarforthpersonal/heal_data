@@ -259,7 +259,7 @@ def _client_ip(request: Request) -> str:
 # ============================================================================
 
 @router.post("/login")
-async def login(
+def login(
     body: LoginRequest,
     request: Request,
     response: Response,
@@ -307,7 +307,7 @@ async def login(
 
 
 @router.post("/logout")
-async def logout(
+def logout(
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
@@ -323,7 +323,7 @@ async def logout(
 
 
 @router.get("/me")
-async def me(
+def me(
     org: Organisation = Depends(get_current_organisation),
     principal: Optional[Principal] = Depends(get_current_principal),
 ) -> dict[str, Any]:
@@ -343,7 +343,7 @@ async def me(
 # ============================================================================
 
 @router.post("/change-password")
-async def change_password(
+def change_password(
     body: ChangePasswordRequest,
     response: Response,
     db: Session = Depends(get_db),
@@ -372,7 +372,7 @@ async def change_password(
 # ============================================================================
 
 @router.post("/request-password-reset")
-async def request_password_reset(
+def request_password_reset(
     body: RequestPasswordResetRequest,
     request: Request,
     db: Session = Depends(get_db),
@@ -401,7 +401,7 @@ async def request_password_reset(
 
 
 @router.post("/reset-password")
-async def reset_password(
+def reset_password(
     body: ResetPasswordRequest,
     response: Response,
     db: Session = Depends(get_db),
@@ -432,7 +432,7 @@ async def reset_password(
 # ============================================================================
 
 @router.get("/invites/lookup")
-async def lookup_invite(
+def lookup_invite(
     token: str,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -465,7 +465,7 @@ async def lookup_invite(
 
 
 @router.post("/accept-invite")
-async def accept_invite(
+def accept_invite(
     body: AcceptInviteRequest,
     response: Response,
     db: Session = Depends(get_db),
@@ -522,7 +522,7 @@ async def accept_invite(
 
 
 @router.get("/invites", response_model=List[InviteRead])
-async def list_invites(
+def list_invites(
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
     principal: Principal = Depends(require_admin_role),
@@ -556,7 +556,7 @@ async def list_invites(
 
 
 @router.post("/invites", status_code=201)
-async def create_invite(
+def create_invite(
     body: InviteCreate,
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
@@ -613,7 +613,7 @@ async def create_invite(
 
 
 @router.patch("/invites/{invite_id}", response_model=InviteRead)
-async def update_invite(
+def update_invite(
     invite_id: int,
     body: InviteUpdate,
     db: Session = Depends(get_db),
@@ -646,7 +646,7 @@ async def update_invite(
 
 
 @router.post("/invites/{invite_id}/resend")
-async def resend_invite(
+def resend_invite(
     invite_id: int,
     send_email: bool = True,
     db: Session = Depends(get_db),
@@ -680,7 +680,7 @@ async def resend_invite(
 
 
 @router.delete("/invites/{invite_id}", status_code=204)
-async def revoke_invite(
+def revoke_invite(
     invite_id: int,
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
@@ -703,7 +703,7 @@ async def revoke_invite(
 # ============================================================================
 
 @router.get("/users", response_model=List[UserRead])
-async def list_users(
+def list_users(
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
     principal: Principal = Depends(require_admin_role),
@@ -715,7 +715,7 @@ async def list_users(
 
 
 @router.patch("/users/{user_id}", response_model=UserRead)
-async def update_user(
+def update_user(
     user_id: int,
     body: UserAdminUpdate,
     db: Session = Depends(get_db),
@@ -754,7 +754,7 @@ async def update_user(
 
 
 @router.post("/users/{user_id}/link-surveyor")
-async def link_user_surveyor(
+def link_user_surveyor(
     user_id: int,
     body: LinkSurveyorRequest,
     db: Session = Depends(get_db),

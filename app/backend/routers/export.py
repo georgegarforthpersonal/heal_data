@@ -256,7 +256,7 @@ def _create_sqlite_export(db: Session, org: Organisation) -> bytes:
 
 
 @router.get("/sqlite")
-async def export_sqlite(
+def export_sqlite(
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
     _principal: Principal = Depends(require_editor),
@@ -354,7 +354,7 @@ def _records_response(rows: list[Any], prefix: str, label: str) -> StreamingResp
 
 
 @router.get("/records/survey-types", response_model=List[SurveyTypeRead])
-async def list_survey_types_with_records(
+def list_survey_types_with_records(
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
     _principal: Principal = Depends(require_user),
@@ -388,7 +388,7 @@ async def list_survey_types_with_records(
 
 
 @router.get("/records/species-types", response_model=List[SpeciesTypeRead])
-async def list_species_types_with_records(
+def list_species_types_with_records(
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
     _principal: Principal = Depends(require_user),
@@ -416,7 +416,7 @@ async def list_species_types_with_records(
 
 
 @router.get("/records/by-survey-type/{survey_type_id}")
-async def export_records_by_survey_type(
+def export_records_by_survey_type(
     survey_type_id: int,
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
@@ -445,7 +445,7 @@ async def export_records_by_survey_type(
 
 
 @router.get("/records/by-species-type/{species_type_id}")
-async def export_records_by_species_type(
+def export_records_by_species_type(
     species_type_id: int,
     db: Session = Depends(get_db),
     org: Organisation = Depends(get_current_organisation),
