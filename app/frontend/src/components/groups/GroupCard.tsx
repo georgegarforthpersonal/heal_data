@@ -40,7 +40,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       >
         {value}
       </Typography>
-      <Typography sx={{ fontSize: 12.5, color: '#888', mt: 0.25 }} noWrap>
+      <Typography sx={{ fontSize: 12.5, color: groupColors.textMuted, mt: 0.25 }} noWrap>
         {label}
       </Typography>
     </Box>
@@ -62,11 +62,15 @@ export default function GroupCard({
       sx={{
         height: '100%',
         border: `1px solid ${groupColors.divider}`,
-        borderRadius: '10px',
+        borderRadius: '12px',
         boxShadow: 'none',
         overflow: 'hidden',
-        transition: 'box-shadow 120ms, border-color 120ms',
-        '&:hover': { boxShadow: '0 4px 14px rgba(0,0,0,0.08)' },
+        transition: 'box-shadow 150ms ease, border-color 150ms ease, transform 150ms ease',
+        '&:hover': {
+          boxShadow: '0 6px 20px rgba(26,32,27,0.09), 0 2px 6px rgba(26,32,27,0.05)',
+          borderColor: 'rgba(35,42,35,0.2)',
+          transform: 'translateY(-1px)',
+        },
       }}
     >
       <ButtonBase
@@ -95,12 +99,12 @@ export default function GroupCard({
             {surveyType.description && (
               // Wraps freely — descriptions are capped at 100 chars in admin
               // precisely so the card never has to truncate with "…".
-              <Typography sx={{ fontSize: 12.5, color: '#888', lineHeight: 1.35 }}>
+              <Typography sx={{ fontSize: 12.5, color: groupColors.textMuted, lineHeight: 1.35 }}>
                 {surveyType.description}
               </Typography>
             )}
           </Box>
-          <ChevronRight sx={{ color: '#bbb' }} />
+          <ChevronRight sx={{ color: '#A9AFA9' }} />
         </Box>
 
         {/* Description-less headers carry less visual weight — tighten the gap

@@ -50,7 +50,7 @@ export default function NumberStepper({
           height: CONTROL_HEIGHT,
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 1.5,
+          borderRadius: '10px',
           overflow: 'hidden',
         }}
       >

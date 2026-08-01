@@ -148,7 +148,7 @@ export default function StageCountsFields({
           minHeight: 48,
           px: 1,
           py: 1,
-          borderRadius: 1.5,
+          borderRadius: '10px',
           justifyContent: 'space-between',
           textAlign: 'left',
           gap: 1,
@@ -250,7 +250,7 @@ export default function StageCountsFields({
                         minHeight: CHIP_MIN_HEIGHT,
                         px: 2,
                         py: 1,
-                        borderRadius: 1.5,
+                        borderRadius: '10px',
                         border: '2px solid',
                         // Border carries the category colour so the cue clears
                         // 3:1 against the page even when the fill is pale.
@@ -302,7 +302,7 @@ export default function StageCountsFields({
                       alignSelf: 'stretch',
                       // Rounded rect, not the default circle: a stretched
                       // circular IconButton renders as an ellipse next to the card.
-                      borderRadius: 1.5,
+                      borderRadius: '10px',
                       border: '1px solid',
                       borderColor: 'divider',
                     }}
@@ -317,7 +317,7 @@ export default function StageCountsFields({
                       width: 48,
                       flexShrink: 0,
                       alignSelf: 'stretch',
-                      borderRadius: 1.5,
+                      borderRadius: '10px',
                       border: '1px solid',
                       // The + carries the category colour once counting — the
                       // visible "this is how numbers go up" affordance.

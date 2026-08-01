@@ -1,7 +1,7 @@
 import { Box, Paper, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { brandColors } from '../../theme';
+import { brandColors, displayFontFamily } from '../../theme';
 import { orgLogoUrl } from '../../config/orgBranding';
 import { PoweredByCanopy } from '../../components/layout/PoweredByCanopy';
 import canopyLogo from '../../assets/canopy-logo.svg';
@@ -73,7 +73,10 @@ export function AuthPageLayout({
               {organisation.name}
             </Typography>
           )}
-          <Typography variant="h5" fontWeight={600} sx={{ mt: 0.5 }}>
+          <Typography
+            component="h1"
+            sx={{ fontFamily: displayFontFamily, fontSize: 24, fontWeight: 600, mt: 0.5 }}
+          >
             {title}
           </Typography>
         </Box>

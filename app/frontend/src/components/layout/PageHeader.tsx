@@ -1,10 +1,17 @@
 import { type ReactNode } from 'react';
-import { Stack, Link } from '@mui/material';
+import { Box, Stack, Link, Typography } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../../hooks/useResponsive';
+import { displayFontFamily } from '../../theme';
 
 interface PageHeaderProps {
+  /**
+   * Page title, in the display face. On mobile (no back link) it is the only
+   * answer to "where am I?", so pass one on any page reachable by deep link.
+   */
+  title?: string;
+
   /**
    * Configuration for the back button
    */
@@ -58,7 +65,7 @@ interface PageHeaderProps {
  * />
  * ```
  */
-export function PageHeader({ backButton, actions }: PageHeaderProps) {
+export function PageHeader({ title, backButton, actions }: PageHeaderProps) {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
 
@@ -70,33 +77,55 @@ export function PageHeader({ backButton, actions }: PageHeaderProps) {
     }
   };
 
+  // On phones a display-size title and the action buttons can't share a row —
+  // the title truncates to "Record s…" — so the header stacks: title first,
+  // actions right-aligned beneath it.
+  const stacked = isMobile && !!title;
+
   return (
     <Stack
-      direction="row"
-      alignItems="center"
-      justifyContent={isMobile ? 'flex-end' : 'space-between'}
-      sx={{ mb: 3 }}
+      direction={stacked ? 'column' : 'row'}
+      alignItems={stacked ? 'stretch' : 'center'}
+      justifyContent={isMobile && !title ? 'flex-end' : 'space-between'}
+      sx={{ mb: 3, gap: stacked ? 1 : 1.5 }}
     >
-      {!isMobile && backButton && (
-        <Link
-          component="button"
-          onClick={handleBackClick}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            textDecoration: 'none',
-            color: 'text.secondary',
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-        >
-          <ArrowBack sx={{ fontSize: 16 }} />
-          {backButton.label || 'Back to Surveys'}
-        </Link>
-      )}
-      {actions}
+      <Box sx={{ minWidth: 0 }}>
+        {!isMobile && backButton && (
+          <Link
+            component="button"
+            onClick={handleBackClick}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              textDecoration: 'none',
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+              },
+            }}
+          >
+            <ArrowBack sx={{ fontSize: 16 }} />
+            {backButton.label || 'Back to Surveys'}
+          </Link>
+        )}
+        {title && (
+          <Typography
+            component="h1"
+            noWrap
+            sx={{
+              fontFamily: displayFontFamily,
+              fontSize: 22,
+              fontWeight: 600,
+              lineHeight: 1.25,
+              mt: !isMobile && backButton ? 0.5 : 0,
+            }}
+          >
+            {title}
+          </Typography>
+        )}
+      </Box>
+      <Box sx={{ flexShrink: 0, alignSelf: stacked ? 'flex-end' : undefined }}>{actions}</Box>
     </Stack>
   );
 }

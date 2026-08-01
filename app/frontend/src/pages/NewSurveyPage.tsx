@@ -10,7 +10,7 @@ import {
   Autocomplete,
   TextField,
 } from '@mui/material';
-import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-material';
+import { CloudUpload, Delete, PhotoCamera } from '@mui/icons-material';
 import { Dayjs } from 'dayjs';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
@@ -620,12 +620,12 @@ export function NewSurveyPage() {
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
       {/* Page Header */}
       <PageHeader
+        title="Record survey"
         backButton={{ href: '/surveys' }}
         actions={
           <Stack direction="row" spacing={1}>
             <Button
               variant="outlined"
-              startIcon={<Cancel />}
               onClick={handleCancel}
               disabled={saving}
               sx={{
@@ -638,7 +638,6 @@ export function NewSurveyPage() {
             </Button>
             <Button
               variant="contained"
-              startIcon={saving ? undefined : <Save />}
               onClick={handleSave}
               disabled={saveDisabled}
               sx={{
@@ -679,7 +678,7 @@ export function NewSurveyPage() {
         }}
       >
         <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          Survey Type
+          Survey type
         </Typography>
         <Autocomplete
           options={surveyTypes}
@@ -719,7 +718,7 @@ export function NewSurveyPage() {
           }}
         >
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Survey Details
+            Survey details
           </Typography>
 
           <SurveyFormFields
@@ -763,7 +762,7 @@ export function NewSurveyPage() {
         >
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Camera Trap Images ({pendingImageFiles.length})
+              Camera trap images ({pendingImageFiles.length})
             </Typography>
             <Button
               component="label"
