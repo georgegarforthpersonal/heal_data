@@ -124,6 +124,22 @@ describe('StageCountsFields caps', () => {
   });
 });
 
+describe('StageCountsFields inline variant', () => {
+  it('shows the rows with no disclosure — one continuous counting block', () => {
+    render(
+      <StageCountsFields
+        variant="inline"
+        value={{}}
+        onChange={() => {}}
+        adultTotal={4}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /Life stage/i })).not.toBeInTheDocument();
+    expect(inputFor('Larvae')).toBeInTheDocument();
+    expect(screen.getByText(/Life stage & behaviour/)).toBeInTheDocument();
+  });
+});
+
 describe('StageCountsFields disclosure', () => {
   it('is collapsed on a fresh sighting, so the total stays the prominent field', () => {
     render(<Harness />);

@@ -8,14 +8,20 @@
  * "looked and saw none" (George's call, Aug 2026), so there is no not-recorded
  * dash, no bulk "none seen" action, and no Tap/Type mode split.
  *
+ * Two variants:
+ * - 'inline' (the sighting modal): the rows sit directly under Adults (total)
+ *   as one continuous counting block, with a quiet caption. Five small
+ *   zero-default rows don't need hiding, and a fold read as a foreign widget
+ *   between ordinary form fields.
+ * - 'collapsible' (the desktop table): every dragonfly row carries these, so
+ *   they fold behind a disclosure to keep the table scannable. Auto-opens
+ *   when a sighting has positive counts or a blocking cap error.
+ *
  * Counts bounded by the adult total (pairs ×2, ovipositing ×1 — see
  * stageCountCap) stop hard at their cap: + disables, typed entry clamps, and
  * the row says why. Lowering the total after entry can still strand a value
  * over its cap, so over-cap values render as errors and the parent blocks
  * saving.
- *
- * The panel stays collapsed until something positive is recorded — most
- * records are an adult count and nothing else.
  */
 
 import { useEffect, useState } from 'react';
@@ -40,6 +46,8 @@ interface StageCountsFieldsProps {
   /** The sighting's Count field, used to cross-check totals (pairs ×2 etc.). */
   adultTotal?: number | null;
   disabled?: boolean;
+  /** 'inline' shows the rows always; 'collapsible' folds them (default). */
+  variant?: 'inline' | 'collapsible';
 }
 
 export default function StageCountsFields({
@@ -47,6 +55,7 @@ export default function StageCountsFields({
   onChange,
   adultTotal,
   disabled = false,
+  variant = 'collapsible',
 }: StageCountsFieldsProps) {
   const errors = stageCountErrors(value, adultTotal);
 
@@ -57,6 +66,56 @@ export default function StageCountsFields({
   useEffect(() => {
     if (errors.length > 0) setExpanded(true);
   }, [errors.length]);
+
+  const rows = (
+    <Stack spacing={1.25}>
+      {STAGE_COUNT_FIELDS.map((field) => {
+        const current = value[field.key] ?? 0;
+        const cap = stageCountCap(field.key, adultTotal);
+        const max = cap ? Math.min(cap.max, MAX_STAGE_COUNT) : MAX_STAGE_COUNT;
+        const atCap = cap !== null && current >= cap.max;
+        return (
+          <NumberStepper
+            key={field.key}
+            label={field.label}
+            value={current}
+            onChange={(next) => onChange(field.key, next)}
+            min={0}
+            max={max}
+            size="small"
+            labelPlacement="start"
+            disabled={disabled}
+            accentColor={notionColors[field.color].text}
+            helperText={atCap && !disabled ? `Capped at ${cap.max}: ${cap.reason}.` : undefined}
+          />
+        );
+      })}
+    </Stack>
+  );
+
+  const errorAlert = errors.length > 0 && (
+    // Hard: these states are impossible by definition, and the parent
+    // blocks saving while any remain. Each message points at the fix.
+    <Alert severity="error" sx={{ mt: 1.5 }}>
+      {errors.map((error) => (
+        <Typography key={error} variant="body2">
+          {error}
+        </Typography>
+      ))}
+    </Alert>
+  );
+
+  if (variant === 'inline') {
+    return (
+      <Box>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          Life stage &amp; behaviour
+        </Typography>
+        {rows}
+        {errorAlert}
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -91,44 +150,10 @@ export default function StageCountsFields({
       </ButtonBase>
 
       <Collapse in={expanded} id="stage-counts-panel">
-        <Stack spacing={1.25} sx={{ pt: 1, px: 1 }}>
-          {STAGE_COUNT_FIELDS.map((field) => {
-            const current = value[field.key] ?? 0;
-            const cap = stageCountCap(field.key, adultTotal);
-            const max = cap ? Math.min(cap.max, MAX_STAGE_COUNT) : MAX_STAGE_COUNT;
-            const atCap = cap !== null && current >= cap.max;
-            return (
-              <NumberStepper
-                key={field.key}
-                label={field.label}
-                value={current}
-                onChange={(next) => onChange(field.key, next)}
-                min={0}
-                max={max}
-                size="small"
-                labelPlacement="start"
-                disabled={disabled}
-                accentColor={notionColors[field.color].text}
-                helperText={
-                  atCap && !disabled ? `Capped at ${cap.max}: ${cap.reason}.` : undefined
-                }
-              />
-            );
-          })}
-        </Stack>
+        <Box sx={{ pt: 1, px: 1 }}>{rows}</Box>
       </Collapse>
 
-      {errors.length > 0 && (
-        // Hard: these states are impossible by definition, and the parent
-        // blocks saving while any remain. Each message points at the fix.
-        <Alert severity="error" sx={{ mt: 1.5 }}>
-          {errors.map((error) => (
-            <Typography key={error} variant="body2">
-              {error}
-            </Typography>
-          ))}
-        </Alert>
-      )}
+      {errorAlert}
     </Box>
   );
 }
