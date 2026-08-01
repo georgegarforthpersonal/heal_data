@@ -28,7 +28,6 @@ import {
 } from '../../services/api';
 import { groupColors, GROUP_MAX_WIDTH } from './groupsTokens';
 import { groupActivity, primarySpeciesType, recordSurveyPath, resolveGroupTypeId } from './groupMeta';
-import { recordedThisWeek } from './surveyState';
 import { useSignupSaved, useSurveyorLookup } from '../../hooks';
 import GroupBreadcrumb from '../../components/groups/GroupBreadcrumb';
 import GroupHero from '../../components/groups/GroupHero';
@@ -93,18 +92,16 @@ export default function GroupDetailPage() {
         setSurveyType(details);
 
         // The worklist is built from the group's slots (linked recorded
-        // surveys come embedded, so fulfilment and this week's pin derive
-        // from the same list); every variant's Recent section shows the most
-        // recent surveys from the same paged call that gives it its recorded
-        // total (the list is date-descending, so page 1 IS the recent list).
-        // Limit 4, not 3: the worklist panel drops this week's already-pinned
-        // survey from Recent and still wants three rows left.
+        // surveys come embedded, so fulfilment derives from the same list);
+        // every variant's Recent section shows the most recent surveys from
+        // the same paged call that gives it its recorded total (the list is
+        // date-descending, so page 1 IS the recent list).
         const scheduled = groupActivity(details.name) === 'worklist';
         const [slotList, surveysPage, surveyorList, withBoundaries] = await Promise.all([
           scheduled
             ? scheduledSurveysAPI.getAll({ survey_type_id: surveyTypeId })
             : Promise.resolve([]),
-          surveysAPI.getAll({ survey_type_id: surveyTypeId, page: 1, limit: 4 }),
+          surveysAPI.getAll({ survey_type_id: surveyTypeId, page: 1, limit: 3 }),
           surveyorsAPI.getAll(),
           locationsAPI.getAllWithBoundaries(),
         ]);
@@ -209,11 +206,6 @@ export default function GroupDetailPage() {
   // slot on the new-survey form.
   const recordSlot = (slot: ScheduledSurvey) =>
     navigate(`/surveys/new?scheduled_survey_id=${slot.id}`, { state: returnTo });
-  // A fulfilled slot opens its recorded survey.
-  const openSlotSurvey = (slot: ScheduledSurvey) => {
-    const surveyId = slot.linked_surveys[0]?.id;
-    if (surveyId != null) navigate(`/surveys/${surveyId}`, { state: returnTo });
-  };
   // Unscheduled groups record without a slot: media types jump straight to
   // their wizard, plain types to the standard form with the type preselected.
   const recordNew = () => navigate(recordSurveyPath(surveyType), { state: returnTo });
@@ -251,7 +243,7 @@ export default function GroupDetailPage() {
             <Box sx={{ order: 2, minWidth: 0 }}>
               {activity === 'record' ? (
                 <RecordPanel
-                  surveys={recentSurveys.slice(0, 3)}
+                  surveys={recentSurveys}
                   recordedCount={recordedCount}
                   resolveSurveyors={resolveSurveyors}
                   speciesType={speciesType}
@@ -267,7 +259,6 @@ export default function GroupDetailPage() {
               ) : (
                 <SurveysPanel
                   slots={slots}
-                  recordedThisWeek={recordedThisWeek(slots)}
                   resolveSurveyors={resolveSurveyors}
                   recordedCount={recordedCount}
                   recentSurveys={recentSurveys}
@@ -275,7 +266,6 @@ export default function GroupDetailPage() {
                   greenIds={greenIds}
                   onAddSurvey={recordSlot}
                   onSignupSaved={handleSignupSaved}
-                  onOpenSurvey={openSlotSurvey}
                   onOpenRecorded={openSurvey}
                   onViewAll={() => navigate(`/groups/${typeId}/all`)}
                   onRecordNew={recordNew}

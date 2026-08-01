@@ -1,18 +1,18 @@
 /**
- * A single row in the Surveys worklist. The date — a single day or a week range,
- * with the year — is the identifier and heads the row; there is no calendar tile
- * or icon (a week has no single day to pin one to). The middle carries the
- * location and status, never a title.
+ * A single row in the Surveys panel's Scheduled list. The date — a single day
+ * or a week range, with the year — is the identifier and heads the row; there
+ * is no calendar tile or icon (a week has no single day to pin one to). The
+ * middle carries the location and status, never a title.
  *
  * Actions by state: overdue rows record only (the week has passed, surveyors
  * are captured on the record form); due-this-week rows both sign up and record
- * (people join surveys later in the current week); upcoming rows sign up only;
- * recorded rows (this week's survey, already done) link through to the survey.
- * The "To record" section header carries the due-now meaning, so due-this-week
- * rows need no status line of their own.
+ * (people join surveys later in the current week) and carry a "Due this week"
+ * chip so the current week stands out inside the single chronological list;
+ * upcoming rows sign up only. Recorded surveys don't appear here at all —
+ * they live in the panel's Recent rows.
  */
 import { Box, Button, Typography } from '@mui/material';
-import { Add, CheckCircleOutline, ChevronRight, WarningAmberRounded } from '@mui/icons-material';
+import { Add, WarningAmberRounded } from '@mui/icons-material';
 import type { ScheduledSurvey, Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
 import SelfSignupButton from './SelfSignupButton';
@@ -22,7 +22,7 @@ import { formatSurveyDate } from '../../pages/groups/surveyState';
 
 interface SurveyWorklistRowProps {
   slot: ScheduledSurvey;
-  state: 'needs-survey' | 'due-this-week' | 'upcoming' | 'recorded';
+  state: 'needs-survey' | 'due-this-week' | 'upcoming';
   surveyors: Surveyor[];
   /** Surveyor ids assigned this session — rendered green. */
   greenIds?: Set<number>;
@@ -30,8 +30,6 @@ interface SurveyWorklistRowProps {
   onAddSurvey: (slot: ScheduledSurvey) => void;
   /** Called after a one-click sign-up/withdraw with the new surveyor ids. */
   onSignupSaved: (slotId: number, surveyorIds: number[]) => void;
-  /** Open the slot's recorded survey read-only (recorded rows only). */
-  onOpen?: (slot: ScheduledSurvey) => void;
 }
 
 export default function SurveyWorklistRow({
@@ -41,15 +39,12 @@ export default function SurveyWorklistRow({
   greenIds,
   onAddSurvey,
   onSignupSaved,
-  onOpen,
 }: SurveyWorklistRowProps) {
   const needsSurvey = state === 'needs-survey';
   const dueThisWeek = state === 'due-this-week';
-  const upcoming = state === 'upcoming';
-  const recorded = state === 'recorded';
   // Rows that carry the sign-up toggle (with or without Record survey) crush
   // the date on phones, so they stack: date + avatars line, actions line.
-  const stacked = dueThisWeek || upcoming;
+  const stacked = !needsSurvey;
   // Recording a survey needs editor access; the button is hidden below that.
   // Sign up is the same one-click self toggle for every role — putting other
   // people on a survey is done on the survey itself, not here.
@@ -72,7 +67,6 @@ export default function SurveyWorklistRow({
 
   return (
     <Box
-      onClick={recorded && onOpen ? () => onOpen(slot) : undefined}
       sx={{
         display: 'flex',
         flexDirection: { xs: stacked ? 'column' : 'row', sm: 'row' },
@@ -82,9 +76,6 @@ export default function SurveyWorklistRow({
         py: 1.6,
         borderTop: `1px solid ${groupColors.dividerInner}`,
         bgcolor: needsSurvey ? groupColors.amberRowBg : 'transparent',
-        ...(recorded && onOpen
-          ? { cursor: 'pointer', '&:hover': { bgcolor: groupColors.page } }
-          : {}),
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
@@ -105,6 +96,23 @@ export default function SurveyWorklistRow({
               </Typography>
             </Box>
           )}
+          {dueThisWeek && (
+            <Box
+              sx={{
+                display: 'inline-block',
+                mt: 0.5,
+                px: 1,
+                py: 0.3,
+                borderRadius: '6px',
+                bgcolor: '#DCE8F2',
+                color: '#2C5F8A',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              Due this week
+            </Box>
+          )}
         </Box>
         {/* On the stacked phone layout the date line's top-right slot always
             carries who's going — avatars, or "No surveyors yet" when empty;
@@ -116,31 +124,7 @@ export default function SurveyWorklistRow({
         )}
       </Box>
 
-      {recorded ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
-          {surveyors.length > 0 && (
-            <SurveyorAvatars surveyors={surveyors} greenIds={greenIds} emptyLabel="" />
-          )}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              px: 1.25,
-              py: 0.4,
-              borderRadius: '6px',
-              bgcolor: '#DBEDDB',
-              color: groupColors.brandDark,
-              fontSize: 12.5,
-              fontWeight: 600,
-            }}
-          >
-            <CheckCircleOutline sx={{ fontSize: 15 }} />
-            Recorded
-          </Box>
-          {onOpen && <ChevronRight sx={{ fontSize: 18, color: groupColors.textMuted }} />}
-        </Box>
-      ) : needsSurvey ? (
+      {needsSurvey ? (
         recordButton
       ) : dueThisWeek ? (
         <Box

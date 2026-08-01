@@ -12,7 +12,7 @@
  *   - needs-survey  : open, window has passed with nothing recorded
  */
 import dayjs from 'dayjs';
-import type { ScheduledSurvey, Survey } from '../../services/api';
+import type { ScheduledSurvey } from '../../services/api';
 
 export type SlotState = 'recorded' | 'upcoming' | 'due-this-week' | 'needs-survey' | 'cancelled';
 
@@ -142,36 +142,6 @@ export function buildWorklist(slots: ScheduledSurvey[], today: string = todayIso
     .sort(byWindowStart);
 
   return { dueThisWeek, overdue, upcoming: allUpcoming.slice(0, 3), upcomingTotal: allUpcoming.length };
-}
-
-/**
- * The fulfilled slots that belong to the current week, so the panel can keep
- * showing this week's survey after it has been recorded rather than letting it
- * vanish from the worklist.
- */
-export function recordedThisWeek(slots: ScheduledSurvey[], today: string = todayIso()): ScheduledSurvey[] {
-  return slots
-    .filter(
-      (s) =>
-        deriveSlotState(s, today) === 'recorded' &&
-        today >= s.window_start &&
-        today <= s.window_end,
-    )
-    .sort(byWindowStart);
-}
-
-/**
- * The Recent section's rows for the worklist panel: the newest recorded
- * surveys minus any already pinned as this week's recorded rows (a survey
- * shown under "This week" must not repeat under "Recent"), capped at `limit`.
- */
-export function recentBeyondThisWeek(
-  recentSurveys: Survey[],
-  pinnedThisWeek: ScheduledSurvey[],
-  limit = 3,
-): Survey[] {
-  const pinned = new Set(pinnedThisWeek.flatMap((s) => s.linked_surveys.map((l) => l.id)));
-  return recentSurveys.filter((s) => !pinned.has(s.id)).slice(0, limit);
 }
 
 /**

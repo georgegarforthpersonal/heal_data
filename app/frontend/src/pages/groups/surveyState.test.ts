@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ScheduledSurvey, Survey } from '../../services/api';
+import type { ScheduledSurvey } from '../../services/api';
 import {
   deriveSlotState,
   buildWorklist,
@@ -7,8 +7,6 @@ import {
   formatWeekRange,
   formatSurveyDateShort,
   formatRecordedDateShort,
-  recordedThisWeek,
-  recentBeyondThisWeek,
   scheduleSlots,
 } from './surveyState';
 
@@ -189,29 +187,6 @@ describe('buildWorklist', () => {
   });
 });
 
-describe('recordedThisWeek', () => {
-  it('keeps a fulfilled weekly slot whose window contains today', () => {
-    const s = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
-    expect(recordedThisWeek([s], TODAY).map((x) => x.id)).toEqual([1]);
-  });
-
-  it('drops a fulfilled weekly slot from a past window', () => {
-    const s = recordedSlot({ id: 2, window_start: '2026-06-15', window_end: '2026-06-21' });
-    expect(recordedThisWeek([s], TODAY)).toEqual([]);
-  });
-
-  it('keeps a fulfilled day-precise slot only when it is for today', () => {
-    const today = recordedSlot({ id: 3, window_start: TODAY });
-    const yesterday = recordedSlot({ id: 4, window_start: '2026-06-24' });
-    expect(recordedThisWeek([today, yesterday], TODAY).map((x) => x.id)).toEqual([3]);
-  });
-
-  it('ignores unfulfilled slots even inside the current window', () => {
-    const s = slot({ id: 5, window_start: '2026-06-22', window_end: '2026-06-28' });
-    expect(recordedThisWeek([s], TODAY)).toEqual([]);
-  });
-});
-
 describe('nextScheduledSurvey', () => {
   it('returns the soonest upcoming slot', () => {
     const slots = [
@@ -238,48 +213,6 @@ describe('nextScheduledSurvey', () => {
     const done = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
     const later = slot({ id: 2, window_start: '2026-07-06' });
     expect(nextScheduledSurvey([done, later], TODAY)?.id).toBe(2);
-  });
-});
-
-function survey(id: number, date: string): Survey {
-  return {
-    id,
-    date,
-    scheduled_survey_id: null,
-    start_time: null,
-    end_time: null,
-    sun_percentage: null,
-    temperature_celsius: null,
-    conditions_met: null,
-    notes: null,
-    location_id: null,
-    location_name: null,
-    device_id: null,
-    surveyor_ids: [],
-    sightings_count: 0,
-    species_breakdown: [],
-    survey_type_id: 1,
-    survey_type_name: null,
-    survey_type_icon: null,
-    survey_type_color: null,
-  };
-}
-
-describe('recentBeyondThisWeek', () => {
-  it('drops surveys already pinned as this week\'s recorded rows', () => {
-    const pinned = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
-    const surveys = [survey(101, '2026-06-23'), survey(50, '2026-06-18'), survey(49, '2026-06-11')];
-    expect(recentBeyondThisWeek(surveys, [pinned]).map((s) => s.id)).toEqual([50, 49]);
-  });
-
-  it('caps at the limit after filtering', () => {
-    const surveys = [survey(4, '2026-06-18'), survey(3, '2026-06-11'), survey(2, '2026-06-04'), survey(1, '2026-05-28')];
-    expect(recentBeyondThisWeek(surveys, []).map((s) => s.id)).toEqual([4, 3, 2]);
-  });
-
-  it('passes everything through when nothing is pinned', () => {
-    const surveys = [survey(2, '2026-06-18'), survey(1, '2026-06-11')];
-    expect(recentBeyondThisWeek(surveys, [])).toEqual(surveys);
   });
 });
 
