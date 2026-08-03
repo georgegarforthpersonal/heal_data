@@ -6,11 +6,14 @@
  * so that is what these cover.
  */
 
-import { useState } from 'react';
+import { createRef, useState, type RefObject } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 
-import CoordinateEntry, { type CoordinateFormat } from './CoordinateEntry';
+import CoordinateEntry, {
+  type CoordinateEntryHandle,
+  type CoordinateFormat,
+} from './CoordinateEntry';
 
 function Harness({
   onAdd = () => {},
@@ -199,5 +202,63 @@ describe('the Heal dragonfly survey sheet', () => {
       expect(lng).toBeLessThan(-2.36);
       unmount();
     }
+  });
+});
+
+describe('commitPending (flush on save)', () => {
+  function RefHarness({
+    entryRef,
+    onAdd = () => {},
+  }: {
+    entryRef: RefObject<CoordinateEntryHandle | null>;
+    onAdd?: (lat: number, lng: number) => void;
+  }) {
+    const [format, setFormat] = useState<CoordinateFormat>('gridref');
+    return (
+      <CoordinateEntry ref={entryRef} format={format} onFormatChange={setFormat} onAdd={onAdd} />
+    );
+  }
+
+  it('adds a reference that was typed but never added', () => {
+    const entryRef = createRef<CoordinateEntryHandle>();
+    const onAdd = vi.fn();
+    render(<RefHarness entryRef={entryRef} onAdd={onAdd} />);
+
+    type('Grid reference', 'ST737401');
+    let result!: ReturnType<CoordinateEntryHandle['commitPending']>;
+    act(() => {
+      result = entryRef.current!.commitPending();
+    });
+
+    expect(result.status).toBe('committed');
+    expect(onAdd).toHaveBeenCalledTimes(1);
+    if (result.status === 'committed') {
+      expect(result.lat).toBeCloseTo(51.15998, 3);
+    }
+  });
+
+  it('reports an untouched box as empty, including a seeded square', () => {
+    const entryRef = createRef<CoordinateEntryHandle>();
+    const onAdd = vi.fn();
+    render(<RefHarness entryRef={entryRef} onAdd={onAdd} />);
+
+    type('Grid reference', 'ST');
+    act(() => {
+      expect(entryRef.current!.commitPending().status).toBe('empty');
+    });
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it('reports unresolvable input as invalid and shows its error', () => {
+    const entryRef = createRef<CoordinateEntryHandle>();
+    const onAdd = vi.fn();
+    render(<RefHarness entryRef={entryRef} onAdd={onAdd} />);
+
+    type('Grid reference', 'ST73740'); // odd figure count
+    act(() => {
+      expect(entryRef.current!.commitPending().status).toBe('invalid');
+    });
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(screen.getByText(/even number of digits/i)).toBeInTheDocument();
   });
 });

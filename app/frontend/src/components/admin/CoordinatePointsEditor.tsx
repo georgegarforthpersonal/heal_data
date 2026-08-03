@@ -7,16 +7,22 @@
  * where it can be checked, reordered or removed before it is used.
  */
 
+import { type Ref } from 'react';
 import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
-import CoordinateEntry, { type CoordinateFormat } from '../surveys/CoordinateEntry';
+import CoordinateEntry, {
+  type CoordinateEntryHandle,
+  type CoordinateFormat,
+} from '../surveys/CoordinateEntry';
 import { latLngToGridRef } from '../../utils/coords';
 import type { Position } from '../../utils/geometry';
 
 interface CoordinatePointsEditorProps {
+  /** Forwards to the entry box so a dialog can flush typed input on save. */
+  entryRef?: Ref<CoordinateEntryHandle>;
   /** Ordered [lng, lat] positions, matching GeoJSON. */
   points: Position[];
   onChange: (next: Position[]) => void;
@@ -31,6 +37,7 @@ interface CoordinatePointsEditorProps {
 }
 
 export default function CoordinatePointsEditor({
+  entryRef,
   points,
   onChange,
   format,
@@ -74,6 +81,7 @@ export default function CoordinatePointsEditor({
       </Typography>
 
       <CoordinateEntry
+        ref={entryRef}
         format={format}
         onFormatChange={onFormatChange}
         onAdd={addPoint}

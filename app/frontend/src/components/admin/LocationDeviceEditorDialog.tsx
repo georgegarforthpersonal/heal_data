@@ -6,7 +6,7 @@
  * toggle is hidden. Saving routes to the matching API.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -55,7 +55,10 @@ import LocationColorSelector from './LocationColorSelector';
 import SectorEditor from './SectorEditor';
 import LocationMapPicker from '../surveys/LocationMapPicker';
 import CoordinatePointsEditor from './CoordinatePointsEditor';
-import CoordinateEntry, { type CoordinateFormat } from '../surveys/CoordinateEntry';
+import CoordinateEntry, {
+  type CoordinateEntryHandle,
+  type CoordinateFormat,
+} from '../surveys/CoordinateEntry';
 
 export type EditorKind = 'location' | 'device';
 
@@ -119,6 +122,9 @@ export default function LocationDeviceEditorDialog({
   const [coordFormat, setCoordFormat] = useState<CoordinateFormat>('gridref');
   // Bumped when coordinates are typed in, so the map reloads the new point.
   const [placeNonce, setPlaceNonce] = useState(0);
+  // Entry boxes, so Save can flush a coordinate that was typed but not added.
+  const pointEntryRef = useRef<CoordinateEntryHandle>(null);
+  const listEntryRef = useRef<CoordinateEntryHandle>(null);
 
   // Device form
   const [deviceName, setDeviceName] = useState('');
@@ -270,6 +276,41 @@ export default function LocationDeviceEditorDialog({
       setError('Name is required');
       return;
     }
+
+    // A coordinate typed but not yet added counts as intended: flush it into
+    // the shape now rather than silently dropping it on save. Unresolvable
+    // input blocks the save with its error shown at the entry box.
+    let effectiveGeometry = geometry;
+    let effectiveDividers = sectorDividers;
+    if (locationType === 'point') {
+      const pending = pointEntryRef.current?.commitPending();
+      if (pending?.status === 'invalid') {
+        setError('Check the typed coordinate — fix it or clear the box, then save');
+        return;
+      }
+      if (pending?.status === 'committed') {
+        effectiveGeometry = { type: 'Point', coordinates: [pending.lng, pending.lat] };
+      }
+    } else if (locationType === 'route' || locationType === 'area') {
+      const pending = listEntryRef.current?.commitPending();
+      if (pending?.status === 'invalid') {
+        setError('Check the typed coordinate — add it or clear the box, then save');
+        return;
+      }
+      if (pending?.status === 'committed') {
+        const next: Position[] = [...coordPoints, [pending.lng, pending.lat]];
+        if (locationType === 'area') {
+          effectiveGeometry =
+            next.length >= 3 ? { type: 'Polygon', coordinates: [[...next, next[0]]] } : null;
+        } else {
+          effectiveGeometry = next.length >= 2 ? { type: 'LineString', coordinates: next } : null;
+        }
+        // The line just changed shape, so divider fractions no longer apply
+        // (same rule as handlePointsChange).
+        effectiveDividers = [];
+      }
+    }
+
     setSaving(true);
     setError(null);
 
@@ -280,13 +321,16 @@ export default function LocationDeviceEditorDialog({
       // Always sent: null resets to the per-type default colour.
       color,
       // Always send geometry so edits (including removals) persist; null for 'none'.
-      geometry: isDrawable ? geometry : null,
+      geometry: isDrawable ? effectiveGeometry : null,
     };
 
     // Routes carry sectors; an explicit list replaces the stored set, and [] clears.
     if (locationType === 'route') {
-      if (geometry?.type === 'LineString' && sectorDividers.length >= 1) {
-        payload.sectors = splitLine(geometry.coordinates as Position[], sectorDividers).map(
+      if (effectiveGeometry?.type === 'LineString' && effectiveDividers.length >= 1) {
+        payload.sectors = splitLine(
+          effectiveGeometry.coordinates as Position[],
+          effectiveDividers,
+        ).map(
           (coords, i): SectorInput => ({
             id: sectorIds[i],
             name: (sectorNames[i] ?? '').trim() || `Sector ${i + 1}`,
@@ -437,6 +481,7 @@ export default function LocationDeviceEditorDialog({
                   />
                   {locationType === 'point' && (
                     <CoordinateEntry
+                      ref={pointEntryRef}
                       format={coordFormat}
                       onFormatChange={setCoordFormat}
                       onAdd={handlePlacePoint}
@@ -449,6 +494,7 @@ export default function LocationDeviceEditorDialog({
 
                   {(locationType === 'route' || locationType === 'area') && (
                     <CoordinatePointsEditor
+                      entryRef={listEntryRef}
                       points={coordPoints}
                       onChange={handlePointsChange}
                       format={coordFormat}

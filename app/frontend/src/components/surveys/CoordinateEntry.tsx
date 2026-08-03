@@ -10,14 +10,29 @@
  * format throughout, and so the choice survives adding a point.
  */
 
-import { useMemo, useState } from 'react';
+import { useImperativeHandle, useMemo, useState, type Ref } from 'react';
 import { Box, Button, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 
 import { latLngToGridRef, parseGridRef, parseLatLng } from '../../utils/coords';
 
 export type CoordinateFormat = 'gridref' | 'latlng';
 
+/** Result of flushing the entry box from outside (e.g. on dialog save). */
+export type CommitPendingResult =
+  | { status: 'empty' } // nothing typed beyond the seeded square
+  | { status: 'invalid' } // something typed that does not resolve; error shown
+  | { status: 'committed'; lat: number; lng: number }; // added via onAdd
+
+export interface CoordinateEntryHandle {
+  /**
+   * Add whatever is typed but not yet added, as if the add button had been
+   * pressed — so a coordinate typed just before "Save" is not silently lost.
+   */
+  commitPending(): CommitPendingResult;
+}
+
 interface CoordinateEntryProps {
+  ref?: Ref<CoordinateEntryHandle>;
   format: CoordinateFormat;
   onFormatChange: (next: CoordinateFormat) => void;
   /** Called with WGS84 degrees once the entry resolves. */
@@ -33,6 +48,7 @@ interface CoordinateEntryProps {
 }
 
 export default function CoordinateEntry({
+  ref,
   format,
   onFormatChange,
   onAdd,
@@ -99,6 +115,37 @@ export default function CoordinateEntry({
       handleAdd();
     }
   };
+
+  useImperativeHandle(ref, (): CoordinateEntryHandle => ({
+    commitPending() {
+      if (format === 'gridref') {
+        const trimmed = gridRef.trim();
+        // Nothing, or just the seeded square letters, means nothing was typed.
+        if (trimmed === '' || /^[A-Z]{1,2}$/.test(trimmed)) return { status: 'empty' };
+        const result = parseGridRef(trimmed);
+        if (!result.ok) {
+          setError(result.error);
+          return { status: 'invalid' };
+        }
+        onAdd(result.lat, result.lng);
+        clear();
+        return { status: 'committed', lat: result.lat, lng: result.lng };
+      }
+      if (!lat.trim() && !lng.trim()) return { status: 'empty' };
+      if (!lat.trim() || !lng.trim()) {
+        setError('Enter both a latitude and a longitude');
+        return { status: 'invalid' };
+      }
+      const result = parseLatLng(`${lat.trim()}, ${lng.trim()}`);
+      if (!result.ok) {
+        setError(result.error);
+        return { status: 'invalid' };
+      }
+      onAdd(result.lat, result.lng);
+      clear();
+      return { status: 'committed', lat: result.lat, lng: result.lng };
+    },
+  }));
 
   return (
     <Box>
