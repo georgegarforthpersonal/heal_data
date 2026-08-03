@@ -9,6 +9,7 @@ import {
   parseCoordinateInput,
   latLngToGridRef,
   resolveGridRefParts,
+  extractCoordinateList,
 } from './coords';
 
 describe('parseLatLng', () => {
@@ -267,5 +268,55 @@ describe('resolveGridRefParts', () => {
   it('still applies the square validation from parseGridRef', () => {
     expect(resolveGridRefParts('SI', '734', '400').ok).toBe(false); // I unused
     expect(resolveGridRefParts('AA', '123', '456').ok).toBe(false); // off-grid
+  });
+});
+
+describe('extractCoordinateList', () => {
+  it('pulls grid refs out of a pasted route-guidance document, in walking order', () => {
+    const doc = [
+      '1: ST734400 – Start from the office, cross the road and pass through the gate.',
+      '2. ST734399 – Continue along mown path, head up and into next field.',
+      '3. ST733399 – Cross stream, check banks and into field next to railway line.',
+      'Retrace steps, cross back over the stream and head back to buildings.',
+      '10. ST739398 – Head out the gate at the bottom (code 4321) and turn left.',
+    ].join('\n');
+    const result = extractCoordinateList(doc);
+    expect(result.map((r) => r.source)).toEqual(['ST734400', 'ST734399', 'ST733399', 'ST739398']);
+    expect(result.every((r) => r.ok)).toBe(true);
+  });
+
+  it('resolves an extracted ref to the same position as parseGridRef', () => {
+    const [only] = extractCoordinateList('start at ST 734 400 please');
+    expect(only.ok).toBe(true);
+    const direct = parseGridRef('ST734400');
+    if (only.ok && direct.ok) {
+      expect(only.lat).toBeCloseTo(direct.lat, 10);
+      expect(only.lng).toBeCloseTo(direct.lng, 10);
+    }
+  });
+
+  it('extracts decimal degree pairs, mixed with grid refs, in reading order', () => {
+    const result = extractCoordinateList('ST734400 then 51.15908, -2.38104\n51.16, -2.39');
+    expect(result).toHaveLength(3);
+    expect(result.map((r) => r.ok)).toEqual([true, true, true]);
+    if (result[1].ok) expect(result[1].kind).toBe('latlng');
+  });
+
+  it('flags a coordinate-shaped token that does not resolve, rather than dropping it', () => {
+    const result = extractCoordinateList('waypoint ST 73440 by the gate'); // 5 figures: typo
+    expect(result).toHaveLength(1);
+    expect(result[0].ok).toBe(false);
+  });
+
+  it('ignores prose, short letter-digit pairs, and empty text', () => {
+    expect(extractCoordinateList('')).toEqual([]);
+    expect(extractCoordinateList('Explore the 3 scrapes near gate code 4321')).toEqual([]);
+    expect(extractCoordinateList('meet in room AB 12 at 10')).toEqual([]);
+  });
+
+  it('flags out-of-range decimal pairs as problems', () => {
+    const result = extractCoordinateList('91.0, -2.3');
+    expect(result).toHaveLength(1);
+    expect(result[0].ok).toBe(false);
   });
 });
