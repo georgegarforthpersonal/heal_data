@@ -1,24 +1,19 @@
 /**
- * Builds a route or area from typed coordinates: one at a time in labelled
- * fields, or a whole list at once via the paste box.
+ * Builds a route or area from coordinates entered one at a time.
  *
- * Single entry echoes each coordinate back in both formats before it is
- * added, so a typo is caught while it is still cheap to fix. The paste box
- * accepts a document as written — waypoints mixed with prose — extracts every
- * coordinate it can find and reports every token it could not resolve, then
- * lists the result in walking order where it can still be checked, reordered
- * or removed before the shape is saved.
+ * Replaces an earlier paste-a-list box. Free text was quicker but a typo
+ * silently became a point in the wrong field; here each coordinate is entered
+ * in labelled parts, echoed back in both formats, and listed in walking order
+ * where it can be checked, reordered or removed before it is used.
  */
 
-import { useMemo, useState } from 'react';
-import { Box, Button, Collapse, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 
 import CoordinateEntry, { type CoordinateFormat } from '../surveys/CoordinateEntry';
-import { extractCoordinateList, latLngToGridRef, type ExtractedCoordinate } from '../../utils/coords';
+import { latLngToGridRef } from '../../utils/coords';
 import type { Position } from '../../utils/geometry';
 
 interface CoordinatePointsEditorProps {
@@ -47,25 +42,7 @@ export default function CoordinatePointsEditor({
 }: CoordinatePointsEditorProps) {
   const minimum = shape === 'area' ? 3 : 2;
 
-  const [pasteOpen, setPasteOpen] = useState(false);
-  const [pasteText, setPasteText] = useState('');
-
-  const pasted = useMemo(() => {
-    const all = pasteText.trim() ? extractCoordinateList(pasteText) : [];
-    return {
-      found: all.filter((c): c is Extract<ExtractedCoordinate, { ok: true }> => c.ok),
-      problems: all.filter((c): c is Extract<ExtractedCoordinate, { ok: false }> => !c.ok),
-    };
-  }, [pasteText]);
-
   const addPoint = (lat: number, lng: number) => onChange([...points, [lng, lat]]);
-
-  const addPastedPoints = () => {
-    if (pasted.found.length === 0) return;
-    onChange([...points, ...pasted.found.map((c): Position => [c.lng, c.lat])]);
-    setPasteText('');
-    setPasteOpen(false);
-  };
 
   const removePoint = (index: number) =>
     onChange(points.filter((_, i) => i !== index));
@@ -105,62 +82,6 @@ export default function CoordinatePointsEditor({
         addLabel={points.length === 0 ? 'Add first point' : 'Add point'}
         disabled={disabled}
       />
-
-      <Box sx={{ mt: 1 }}>
-        <Button
-          size="small"
-          startIcon={<PlaylistAddIcon />}
-          onClick={() => setPasteOpen((o) => !o)}
-          disabled={disabled}
-          sx={{ textTransform: 'none' }}
-        >
-          {pasteOpen ? 'Hide paste box' : 'Paste a list of coordinates'}
-        </Button>
-        <Collapse in={pasteOpen}>
-          <Stack spacing={1} sx={{ mt: 1 }}>
-            <TextField
-              size="small"
-              fullWidth
-              multiline
-              minRows={4}
-              maxRows={10}
-              placeholder={
-                'Paste grid references or lat/long pairs, one stop per line — surrounding text is fine, e.g.\n1: ST734400 – Start from the office\n2. ST734399 – Continue along the mown path'
-              }
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              disabled={disabled}
-              inputProps={{ 'aria-label': 'Paste a list of coordinates' }}
-            />
-            {pasted.problems.length > 0 && (
-              <Typography variant="caption" color="error">
-                Could not read{' '}
-                {pasted.problems.map((p) => `“${p.source}”`).join(', ')} — check for missing or
-                extra figures.
-              </Typography>
-            )}
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={addPastedPoints}
-                disabled={disabled || pasted.found.length === 0}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
-                Add {pasted.found.length > 0 ? pasted.found.length : ''} point
-                {pasted.found.length === 1 ? '' : 's'}
-              </Button>
-              <Typography variant="caption" color={pasted.found.length > 0 ? 'text.secondary' : 'text.disabled'}>
-                {pasteText.trim() === ''
-                  ? 'Coordinates are found automatically — the rest of the text is ignored.'
-                  : pasted.found.length === 0
-                    ? 'No coordinates found yet.'
-                    : `${pasted.found.length} coordinate${pasted.found.length === 1 ? '' : 's'} found, in the order written.`}
-              </Typography>
-            </Stack>
-          </Stack>
-        </Collapse>
-      </Box>
 
       {points.length > 0 && (
         <Stack spacing={0.5} sx={{ mt: 1.5 }}>

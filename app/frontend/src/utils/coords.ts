@@ -221,69 +221,6 @@ export function parseCoordinateInput(input: string): ParseCoordinateResult {
 }
 
 
-export type ExtractedCoordinate =
-  | { ok: true; lat: number; lng: number; kind: 'latlng' | 'gridref'; source: string }
-  | { ok: false; error: string; source: string };
-
-// A grid-ref-shaped token inside prose: two uppercase letters then figures,
-// optionally space-grouped ("ST734400", "ST 734 400"). Lowercase is not
-// matched here — in running text that would catch far too much.
-const GRID_REF_TOKEN = /\b([A-Z]{2}) ?(\d(?: ?\d)*)\b/g;
-// A decimal degree pair like "51.15908, -2.38104".
-const LAT_LNG_TOKEN = /(-?\d{1,3}\.\d+)\s*[, ]\s*(-?\d{1,3}\.\d+)/g;
-
-/**
- * Pull every coordinate out of a pasted block of text, in reading order.
- *
- * Accepts OS grid references and decimal lat/lng pairs, mixed freely with
- * prose — so a whole route-guidance document can be pasted and each waypoint
- * ("1: ST734400 – Start from the office…") is found on its line. Tokens that
- * look like a coordinate but do not resolve (odd figure count, square outside
- * the grid, out-of-range degrees) are returned as problems so a typo is shown
- * rather than silently dropped.
- */
-export function extractCoordinateList(text: string): ExtractedCoordinate[] {
-  const out: ExtractedCoordinate[] = [];
-  for (const line of text.split(/\r?\n/)) {
-    const matches: {
-      index: number;
-      source: string;
-      parse: () => ParseCoordinateResult | ParseLatLngResult;
-    }[] = [];
-
-    for (const m of line.matchAll(GRID_REF_TOKEN)) {
-      const digits = m[2].replace(/ /g, '');
-      // Fewer than 4 figures is more likely prose ("AB 12") than a real
-      // reference; skip it silently rather than flag it.
-      if (digits.length < 4) continue;
-      const source = m[0];
-      matches.push({ index: m.index ?? 0, source, parse: () => parseGridRef(`${m[1]}${digits}`) });
-    }
-    for (const m of line.matchAll(LAT_LNG_TOKEN)) {
-      const source = m[0];
-      matches.push({ index: m.index ?? 0, source, parse: () => parseLatLng(`${m[1]}, ${m[2]}`) });
-    }
-
-    matches.sort((a, b) => a.index - b.index);
-    for (const match of matches) {
-      const result = match.parse();
-      if (result.ok) {
-        out.push({
-          ok: true,
-          lat: result.lat,
-          lng: result.lng,
-          kind: 'kind' in result ? result.kind : 'latlng',
-          source: match.source,
-        });
-      } else {
-        out.push({ ok: false, error: result.error, source: match.source });
-      }
-    }
-  }
-  return out;
-}
-
-
 /** Geodetic WGS84 -> OSGB36 lat/lon (radians), the inverse of osgb36ToWgs84. */
 function wgs84ToOsgb36(latDeg: number, lngDeg: number): { lat: number; lon: number } {
   const a2 = 6378137.0;
