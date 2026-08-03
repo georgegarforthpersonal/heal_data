@@ -339,6 +339,12 @@ export interface Species {
 // they are only returned nested under their parent route.
 export type LocationType = 'area' | 'route' | 'point' | 'none' | 'sector';
 
+/** Minimal survey-type reference for "used by" displays on admin lists. */
+export interface SurveyTypeRef {
+  id: number;
+  name: string;
+}
+
 export interface Location {
   id: number;
   name: string;
@@ -352,6 +358,8 @@ export interface Location {
   // Named map-colour key overriding the location_type default; null/absent =
   // default. Keys map to colours in config/locationStyles.ts.
   color?: string | null;
+  // Survey types this location is linked to; populated by the list endpoint.
+  survey_types?: SurveyTypeRef[];
 }
 
 /** Display label for a location: "<parent> - child" for sectors, else the name. */
@@ -1110,6 +1118,8 @@ export interface Device {
   location_id: number | null;
   location_name: string | null;
   is_active: boolean;
+  // Survey types this device is allocated to; populated by the list endpoint.
+  survey_types?: SurveyTypeRef[];
 }
 
 export interface DeviceCreate {

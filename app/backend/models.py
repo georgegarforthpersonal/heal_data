@@ -282,6 +282,12 @@ class DeviceUpdate(SQLModel):
     is_active: Optional[bool] = None
 
 
+class SurveyTypeRef(SQLModel):
+    """Minimal survey-type reference for "used by" displays on admin lists."""
+    id: int
+    name: str
+
+
 class DeviceRead(DeviceBase):
     """Model for reading a device"""
     id: int
@@ -290,6 +296,8 @@ class DeviceRead(DeviceBase):
     location_id: Optional[int] = None
     location_name: Optional[str] = None
     is_active: bool
+    # Survey types this device is allocated to (via survey_type_device).
+    survey_types: List[SurveyTypeRef] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -672,6 +680,9 @@ class LocationRead(LocationBase):
     # Sector order within its parent route (null for top-level locations), so
     # clients can render standalone sectors in route order.
     ordinal: Optional[int] = None
+    # Survey types this location is linked to (via survey_type_location).
+    # Populated by the plain list endpoint; other endpoints may leave it empty.
+    survey_types: List[SurveyTypeRef] = Field(default_factory=list)
 
 
 class LocationWithBoundary(LocationRead):

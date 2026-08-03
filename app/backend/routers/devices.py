@@ -17,7 +17,7 @@ from typing import List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database.connection import get_db
-from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, Organisation, Location
+from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, Organisation, Location, SurveyTypeRef
 from auth import require_admin_role
 from dependencies import get_current_organisation
 
@@ -116,7 +116,24 @@ async def get_devices(
     result = db.execute(query, params)
     rows = result.fetchall()
 
-    return [_device_to_read(row) for row in rows]
+    # One pass over the link table gives every device its survey types.
+    links = db.execute(text("""
+        SELECT std.device_id, st.id, st.name
+        FROM survey_type_device std
+        INNER JOIN survey_type st ON st.id = std.survey_type_id
+        WHERE st.organisation_id = :org_id
+        ORDER BY st.name
+    """), {"org_id": org.id}).fetchall()
+    survey_types_by_device: dict[int, list[SurveyTypeRef]] = {}
+    for device_id, st_id, st_name in links:
+        survey_types_by_device.setdefault(device_id, []).append(SurveyTypeRef(id=st_id, name=st_name))
+
+    devices = []
+    for row in rows:
+        device = _device_to_read(row)
+        device.survey_types = survey_types_by_device.get(row.id, [])
+        devices.append(device)
+    return devices
 
 
 @router.get("/{id}", response_model=DeviceRead)

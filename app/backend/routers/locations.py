@@ -212,6 +212,18 @@ async def get_locations(
         Location.organisation_id == org.id,
     ).order_by(Location.name).all()
 
+    # One pass over the link table gives every location its survey types.
+    links = db.execute(text("""
+        SELECT stl.location_id, st.id, st.name
+        FROM survey_type_location stl
+        INNER JOIN survey_type st ON st.id = stl.survey_type_id
+        WHERE st.organisation_id = :org_id
+        ORDER BY st.name
+    """).bindparams(org_id=org.id)).fetchall()
+    survey_types_by_location: dict[int, list[dict[str, Any]]] = {}
+    for location_id, st_id, st_name in links:
+        survey_types_by_location.setdefault(location_id, []).append({"id": st_id, "name": st_name})
+
     names_by_id = {loc.id: loc.name for loc in locations}
     return [
         {
@@ -221,6 +233,7 @@ async def get_locations(
             "parent_name": names_by_id.get(loc.parent_location_id) if loc.parent_location_id else None,
             "ordinal": loc.ordinal,
             "color": loc.color,
+            "survey_types": survey_types_by_location.get(loc.id, []),
         }
         for loc in locations
     ]

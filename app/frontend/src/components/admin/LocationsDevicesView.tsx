@@ -24,6 +24,10 @@ import {
   InputAdornment,
   ToggleButton,
   ToggleButtonGroup,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Chip,
   IconButton,
   Typography,
@@ -40,7 +44,7 @@ import PlaceIcon from '@mui/icons-material/Place';
 import SensorsIcon from '@mui/icons-material/Sensors';
 
 import { locationsAPI, devicesAPI, locationDisplayName } from '../../services/api';
-import type { Location, LocationType, LocationWithBoundary, Device } from '../../services/api';
+import type { Location, LocationType, LocationWithBoundary, Device, SurveyTypeRef } from '../../services/api';
 import { brandColors } from '../../theme';
 import { useToast } from '../../context/ToastContext';
 import { useRowHighlight } from '../../hooks';
@@ -98,6 +102,7 @@ export default function LocationsDevicesView({
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [search, setSearch] = useState('');
   const [kindFilter, setKindFilter] = useState<'all' | EntityKind>('all');
+  const [surveyTypeFilter, setSurveyTypeFilter] = useState<number | ''>('');
 
   // Editor dialog
   const [editorOpen, setEditorOpen] = useState(false);
@@ -122,6 +127,34 @@ export default function LocationsDevicesView({
     () => new Map(boundaries.map((b) => [b.id, b])),
     [boundaries],
   );
+
+  // Survey types per top-level location. Sectors carry their own links, so a
+  // route shows (and matches the filter on) the union of its own and its
+  // sectors' survey types.
+  const usedByLocation = useMemo(() => {
+    const typesByLocationId = new Map(locations.map((l) => [l.id, l.survey_types ?? []]));
+    const out = new Map<number, SurveyTypeRef[]>();
+    for (const location of locations) {
+      if (location.location_type === 'sector') continue;
+      const byId = new Map((location.survey_types ?? []).map((st) => [st.id, st]));
+      for (const sector of boundariesById.get(location.id)?.sectors ?? []) {
+        for (const st of typesByLocationId.get(sector.id) ?? []) byId.set(st.id, st);
+      }
+      out.set(
+        location.id,
+        [...byId.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+    }
+    return out;
+  }, [locations, boundariesById]);
+
+  // Every survey type that appears on anything, for the filter's options.
+  const surveyTypeOptions = useMemo(() => {
+    const byId = new Map<number, SurveyTypeRef>();
+    for (const refs of usedByLocation.values()) for (const st of refs) byId.set(st.id, st);
+    for (const device of devices) for (const st of device.survey_types ?? []) byId.set(st.id, st);
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [usedByLocation, devices]);
 
   /** Build the full location editor target, filling geometry defaults when absent. */
   const toLocationEditTarget = (location: Location): LocationWithBoundary => {
@@ -227,16 +260,29 @@ export default function LocationsDevicesView({
     // into the route's row here; searching a sector name finds the route.
     const topLevel = locations.filter((l) => l.location_type !== 'sector');
     const matchesLocation = (l: Location) => {
+      if (
+        surveyTypeFilter !== '' &&
+        !(usedByLocation.get(l.id) ?? []).some((st) => st.id === surveyTypeFilter)
+      ) {
+        return false;
+      }
       if (!query) return true;
       if (locationDisplayName(l).toLowerCase().includes(query)) return true;
       const sectors = boundariesById.get(l.id)?.sectors ?? [];
       return sectors.some((s) => s.name.toLowerCase().includes(query));
     };
+    const matchesDevice = (d: Device) => {
+      if (
+        surveyTypeFilter !== '' &&
+        !(d.survey_types ?? []).some((st) => st.id === surveyTypeFilter)
+      ) {
+        return false;
+      }
+      return !query || d.name.toLowerCase().includes(query);
+    };
 
     const fLocations = showLocations ? topLevel.filter(matchesLocation) : [];
-    const fDevices = showDevices
-      ? devices.filter((d) => !query || d.name.toLowerCase().includes(query))
-      : [];
+    const fDevices = showDevices ? devices.filter(matchesDevice) : [];
     const fBoundaries = showLocations ? boundaries.filter(matchesLocation) : [];
 
     const out: Row[] = [];
@@ -258,10 +304,10 @@ export default function LocationsDevicesView({
       locationCount: topLevel.length,
       deviceCount: devices.length,
     };
-  }, [locations, devices, boundaries, boundariesById, search, kindFilter]);
+  }, [locations, devices, boundaries, boundariesById, usedByLocation, search, kindFilter, surveyTypeFilter]);
 
   const error = loadError ?? crudError;
-  const colSpan = 3;
+  const colSpan = 4;
 
   // Rendering helpers shared between the desktop table and mobile card list.
   // Rows open the editor on click, so the icons stop propagation; edit and
@@ -380,7 +426,21 @@ export default function LocationsDevicesView({
     </Stack>
   );
 
-  const filtering = search.trim() !== '' || kindFilter !== 'all';
+  /** "Used by" cell: one small chip per linked survey type, or a quiet dash. */
+  const usedByCell = (refs: SurveyTypeRef[] | undefined) =>
+    !refs || refs.length === 0 ? (
+      <Typography variant="body2" color="text.secondary">
+        —
+      </Typography>
+    ) : (
+      <Stack direction="row" flexWrap="wrap" gap={0.5}>
+        {refs.map((st) => (
+          <Chip key={st.id} label={st.name} size="small" variant="outlined" />
+        ))}
+      </Stack>
+    );
+
+  const filtering = search.trim() !== '' || kindFilter !== 'all' || surveyTypeFilter !== '';
   const emptyMessage = filtering ? 'No matches' : 'No locations or devices yet';
 
   return (
@@ -427,6 +487,23 @@ export default function LocationsDevicesView({
             <ToggleButton value="location">Locations</ToggleButton>
             <ToggleButton value="device">Devices</ToggleButton>
           </ToggleButtonGroup>
+          {surveyTypeOptions.length > 0 && (
+            <FormControl size="small" sx={{ minWidth: 170 }}>
+              <InputLabel>Used by</InputLabel>
+              <Select
+                value={surveyTypeFilter}
+                label="Used by"
+                onChange={(e) => setSurveyTypeFilter(e.target.value as number | '')}
+              >
+                <MenuItem value="">Any survey type</MenuItem>
+                {surveyTypeOptions.map((st) => (
+                  <MenuItem key={st.id} value={st.id}>
+                    {st.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </Stack>
 
         <Stack direction="row" alignItems="center" justifyContent="flex-end" gap={1.5}>
@@ -490,7 +567,14 @@ export default function LocationsDevicesView({
                       </Typography>
                     </Stack>
                   }
-                  chips={locationTypeCell(row.location)}
+                  chips={
+                    <>
+                      {locationTypeCell(row.location)}
+                      {(usedByLocation.get(row.location.id) ?? []).map((st) => (
+                        <Chip key={st.id} label={st.name} size="small" variant="outlined" />
+                      ))}
+                    </>
+                  }
                   actions={locationActions(row.location)}
                 />
               ) : (
@@ -507,7 +591,14 @@ export default function LocationsDevicesView({
                       </Typography>
                     </Stack>
                   }
-                  chips={deviceTypeCell(row.device)}
+                  chips={
+                    <>
+                      {deviceTypeCell(row.device)}
+                      {(row.device.survey_types ?? []).map((st) => (
+                        <Chip key={st.id} label={st.name} size="small" variant="outlined" />
+                      ))}
+                    </>
+                  }
                   actions={deviceActions(row.device)}
                 />
               ),
@@ -521,6 +612,7 @@ export default function LocationsDevicesView({
               <TableRow>
                 <TableCell>Name</TableCell>
                 <TableCell>Type</TableCell>
+                <TableCell>Used by</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -556,6 +648,7 @@ export default function LocationsDevicesView({
                         </Stack>
                       </TableCell>
                       <TableCell>{locationTypeCell(row.location)}</TableCell>
+                      <TableCell>{usedByCell(usedByLocation.get(row.location.id))}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {locationActions(row.location)}
@@ -579,6 +672,7 @@ export default function LocationsDevicesView({
                         </Stack>
                       </TableCell>
                       <TableCell>{deviceTypeCell(row.device)}</TableCell>
+                      <TableCell>{usedByCell(row.device.survey_types)}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {deviceActions(row.device)}
