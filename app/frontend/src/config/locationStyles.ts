@@ -28,15 +28,20 @@ export const LOCATION_TYPE_STYLE: Record<Exclude<LocationType, 'none'>, Location
  * `location.color`. Same Okabe–Ito-based, satellite-legible constraints as the
  * type defaults above (saturated hues, no green). Null/unknown keys fall back
  * to the location_type default, so the palette can evolve without touching data.
+ * Listed in the order the picker shows them.
  */
 export const LOCATION_COLORS: Record<string, { label: string; hex: string }> = {
   blue: { label: 'Blue', hex: '#0072B2' },
-  red: { label: 'Red', hex: ROUTE_COLOR },
-  pink: { label: 'Pink', hex: '#CC79A7' },
-  orange: { label: 'Orange', hex: '#E69F00' },
-  purple: { label: 'Purple', hex: '#7B4FA6' },
+  sky: { label: 'Sky blue', hex: '#56B4E9' },
   teal: { label: 'Teal', hex: '#009E9B' },
+  purple: { label: 'Purple', hex: '#7B4FA6' },
+  magenta: { label: 'Magenta', hex: '#C20088' },
+  pink: { label: 'Pink', hex: '#CC79A7' },
+  red: { label: 'Red', hex: ROUTE_COLOR },
+  orange: { label: 'Orange', hex: '#E69F00' },
+  yellow: { label: 'Yellow', hex: '#F0E442' },
   brown: { label: 'Brown', hex: '#8C5A2B' },
+  grey: { label: 'Grey', hex: '#6E6E6E' },
   black: { label: 'Black', hex: '#2B2B2B' },
 };
 
