@@ -148,13 +148,14 @@ export default function LocationsDevicesView({
     return out;
   }, [locations, boundariesById]);
 
-  // Every survey type that appears on anything, for the filter's options.
+  // Filter options: only survey types with at least one linked location.
+  // Types whose only links are device allocations are left out — they would
+  // pad the dropdown without helping anyone find a location.
   const surveyTypeOptions = useMemo(() => {
     const byId = new Map<number, SurveyTypeRef>();
     for (const refs of usedByLocation.values()) for (const st of refs) byId.set(st.id, st);
-    for (const device of devices) for (const st of device.survey_types ?? []) byId.set(st.id, st);
     return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [usedByLocation, devices]);
+  }, [usedByLocation]);
 
   /** Build the full location editor target, filling geometry defaults when absent. */
   const toLocationEditTarget = (location: Location): LocationWithBoundary => {
