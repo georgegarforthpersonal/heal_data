@@ -97,7 +97,7 @@ export default function LocationsDevicesView({
 }: LocationsDevicesViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [search, setSearch] = useState('');
-  const [kinds, setKinds] = useState<EntityKind[]>(['location', 'device']);
+  const [kindFilter, setKindFilter] = useState<'all' | EntityKind>('all');
 
   // Editor dialog
   const [editorOpen, setEditorOpen] = useState(false);
@@ -183,7 +183,7 @@ export default function LocationsDevicesView({
       await locationsAPI.delete(deleteLocationTarget.id);
       setDeleteLocationTarget(null);
       await onReload();
-      toast.error('Location deleted successfully');
+      toast.success('Location deleted');
     } catch (err) {
       setCrudError(err instanceof Error ? err.message : 'Failed to delete location');
     } finally {
@@ -198,7 +198,7 @@ export default function LocationsDevicesView({
       await devicesAPI.deactivate(deactivateDeviceTarget.id);
       setDeactivateDeviceTarget(null);
       await onReload();
-      toast.error('Device deactivated');
+      toast.success('Device deactivated');
     } catch (err) {
       setCrudError(err instanceof Error ? err.message : 'Failed to deactivate device');
     } finally {
@@ -218,59 +218,83 @@ export default function LocationsDevicesView({
   };
 
   // The search + kind filter drive the map and the list together.
-  const { rows, filteredDevices, filteredBoundaries } = useMemo(() => {
+  const { rows, filteredDevices, filteredBoundaries, locationCount, deviceCount } = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const showLocations = kinds.includes('location');
-    const showDevices = kinds.includes('device');
+    const showLocations = kindFilter !== 'device';
+    const showDevices = kindFilter !== 'location';
 
-    const fLocations = showLocations
-      ? locations.filter((l) => !query || locationDisplayName(l).toLowerCase().includes(query))
-      : [];
+    // Sectors are managed inside their parent route's editor, so they fold
+    // into the route's row here; searching a sector name finds the route.
+    const topLevel = locations.filter((l) => l.location_type !== 'sector');
+    const matchesLocation = (l: Location) => {
+      if (!query) return true;
+      if (locationDisplayName(l).toLowerCase().includes(query)) return true;
+      const sectors = boundariesById.get(l.id)?.sectors ?? [];
+      return sectors.some((s) => s.name.toLowerCase().includes(query));
+    };
+
+    const fLocations = showLocations ? topLevel.filter(matchesLocation) : [];
     const fDevices = showDevices
       ? devices.filter((d) => !query || d.name.toLowerCase().includes(query))
       : [];
-    const fBoundaries = showLocations
-      ? boundaries.filter((b) => !query || b.name.toLowerCase().includes(query))
-      : [];
+    const fBoundaries = showLocations ? boundaries.filter(matchesLocation) : [];
 
     const out: Row[] = [];
     for (const location of fLocations) {
-      // Sectors sort by "<parent> - name" so they group under their route.
       out.push({ kind: 'location', sortName: locationDisplayName(location).toLowerCase(), location });
     }
     for (const device of fDevices) {
       out.push({ kind: 'device', sortName: device.name.toLowerCase(), device });
     }
-    out.sort((a, b) => a.sortName.localeCompare(b.sortName));
+    // Numeric-aware compare so station names read N1, N2 … N10, not N1, N10, N2.
+    out.sort((a, b) =>
+      a.sortName.localeCompare(b.sortName, undefined, { numeric: true, sensitivity: 'base' }),
+    );
 
-    return { rows: out, filteredDevices: fDevices, filteredBoundaries: fBoundaries };
-  }, [locations, devices, boundaries, search, kinds]);
+    return {
+      rows: out,
+      filteredDevices: fDevices,
+      filteredBoundaries: fBoundaries,
+      locationCount: topLevel.length,
+      deviceCount: devices.length,
+    };
+  }, [locations, devices, boundaries, boundariesById, search, kindFilter]);
 
   const error = loadError ?? crudError;
-  const colSpan = 5;
+  const colSpan = 3;
 
-  // Rendering helpers shared between the desktop table and mobile card list
+  // Rendering helpers shared between the desktop table and mobile card list.
+  // Rows open the editor on click, so the icons stop propagation; edit and
+  // delete stay quiet until pointed at rather than filling the page with red.
+  const actionIconSx = (hoverColor: string) => ({
+    color: 'text.disabled',
+    '&:hover': { color: hoverColor },
+  });
+
   const locationActions = (location: Location) => (
     <>
       <IconButton
         size="small"
-        onClick={() => handleEditLocation(location)}
-        sx={{ color: 'primary.main' }}
-        title={location.location_type === 'sector' ? 'Edit route' : 'Edit'}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleEditLocation(location);
+        }}
+        sx={actionIconSx('primary.main')}
+        title="Edit"
       >
         <Edit />
       </IconButton>
-      {/* Sectors are added/removed inside their route's editor, not deleted directly. */}
-      {location.location_type !== 'sector' && (
-        <IconButton
-          size="small"
-          onClick={() => setDeleteLocationTarget(location)}
-          sx={{ color: 'error.main' }}
-          title="Delete"
-        >
-          <Delete />
-        </IconButton>
-      )}
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation();
+          setDeleteLocationTarget(location);
+        }}
+        sx={actionIconSx('error.main')}
+        title="Delete"
+      >
+        <Delete />
+      </IconButton>
     </>
   );
 
@@ -278,8 +302,11 @@ export default function LocationsDevicesView({
     <>
       <IconButton
         size="small"
-        onClick={() => handleEditDevice(device)}
-        sx={{ color: 'primary.main' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleEditDevice(device);
+        }}
+        sx={actionIconSx('primary.main')}
         title="Edit"
       >
         <Edit />
@@ -287,8 +314,11 @@ export default function LocationsDevicesView({
       {device.is_active ? (
         <IconButton
           size="small"
-          onClick={() => setDeactivateDeviceTarget(device)}
-          sx={{ color: 'error.main' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setDeactivateDeviceTarget(device);
+          }}
+          sx={actionIconSx('error.main')}
           title="Deactivate"
         >
           <Delete />
@@ -296,7 +326,10 @@ export default function LocationsDevicesView({
       ) : (
         <IconButton
           size="small"
-          onClick={() => handleReactivateDevice(device)}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleReactivateDevice(device);
+          }}
           sx={{ color: 'success.main' }}
           title="Reactivate"
         >
@@ -306,19 +339,49 @@ export default function LocationsDevicesView({
     </>
   );
 
-  const locationTypeChip = (location: Location) => {
+  /** Type cell: a coloured chip for mappable types, quiet text for the rest. */
+  const locationTypeCell = (location: Location) => {
     const type = location.location_type ?? 'none';
+    if (type === 'none') {
+      return (
+        <Typography variant="body2" color="text.secondary">
+          No coordinates
+        </Typography>
+      );
+    }
+    const sectorCount =
+      type === 'route' ? (boundariesById.get(location.id)?.sectors?.length ?? 0) : 0;
     return (
-      <Chip
-        label={LOCATION_TYPE_LABELS[type]}
-        size="small"
-        color={LOCATION_TYPE_COLORS[type]}
-        sx={{ minWidth: 70 }}
-      />
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Chip
+          label={LOCATION_TYPE_LABELS[type]}
+          size="small"
+          color={LOCATION_TYPE_COLORS[type]}
+          sx={{ minWidth: 70 }}
+        />
+        {sectorCount > 0 && (
+          <Typography variant="caption" color="text.secondary">
+            {sectorCount} sector{sectorCount === 1 ? '' : 's'}
+          </Typography>
+        )}
+      </Stack>
     );
   };
 
-  const emptyMessage = search || kinds.length < 2 ? 'No matches' : 'No locations or devices yet';
+  const deviceTypeCell = (device: Device) => (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <Chip
+        label={DEVICE_TYPE_LABELS[device.device_type]}
+        size="small"
+        color={DEVICE_CHIP_COLORS[device.device_type]}
+        variant="outlined"
+      />
+      {!device.is_active && <Chip label="Inactive" size="small" />}
+    </Stack>
+  );
+
+  const filtering = search.trim() !== '' || kindFilter !== 'all';
+  const emptyMessage = filtering ? 'No matches' : 'No locations or devices yet';
 
   return (
     <Box>
@@ -354,11 +417,13 @@ export default function LocationsDevicesView({
             sx={{ minWidth: { sm: 260 } }}
           />
           <ToggleButtonGroup
-            value={kinds}
-            onChange={(_, next: EntityKind[]) => setKinds(next)}
+            value={kindFilter}
+            exclusive
+            onChange={(_, next: 'all' | EntityKind | null) => next && setKindFilter(next)}
             size="small"
             aria-label="filter by kind"
           >
+            <ToggleButton value="all">All</ToggleButton>
             <ToggleButton value="location">Locations</ToggleButton>
             <ToggleButton value="device">Devices</ToggleButton>
           </ToggleButtonGroup>
@@ -376,6 +441,16 @@ export default function LocationsDevicesView({
           </Button>
         </Stack>
       </Stack>
+
+      {!loading && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          {filtering
+            ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
+            : `${locationCount} location${locationCount === 1 ? '' : 's'} · ${deviceCount} device${
+                deviceCount === 1 ? '' : 's'
+              }`}
+        </Typography>
+      )}
 
       {viewMode === 'map' ? (
         <DeviceMap
@@ -406,17 +481,16 @@ export default function LocationsDevicesView({
                   key={`location-${row.location.id}`}
                   ref={locationHighlight.rowRef(row.location.id) as Ref<HTMLDivElement>}
                   sx={locationHighlight.rowSx(row.location.id)}
+                  onClick={() => handleEditLocation(row.location)}
                   title={
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {locationDisplayName(row.location)}
-                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <PlaceIcon fontSize="small" sx={{ color: 'text.disabled' }} titleAccess="Location" />
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {locationDisplayName(row.location)}
+                      </Typography>
+                    </Stack>
                   }
-                  chips={
-                    <>
-                      <Chip icon={<PlaceIcon />} label="Location" size="small" variant="outlined" />
-                      {locationTypeChip(row.location)}
-                    </>
-                  }
+                  chips={locationTypeCell(row.location)}
                   actions={locationActions(row.location)}
                 />
               ) : (
@@ -424,27 +498,16 @@ export default function LocationsDevicesView({
                   key={`device-${row.device.id}`}
                   ref={deviceHighlight.rowRef(row.device.id) as Ref<HTMLDivElement>}
                   sx={deviceHighlight.rowSx(row.device.id)}
+                  onClick={() => handleEditDevice(row.device)}
                   title={
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {row.device.name}
-                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <SensorsIcon fontSize="small" sx={{ color: 'text.disabled' }} titleAccess="Device" />
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {row.device.name}
+                      </Typography>
+                    </Stack>
                   }
-                  chips={
-                    <>
-                      <Chip icon={<SensorsIcon />} label="Device" size="small" variant="outlined" />
-                      <Chip
-                        label={DEVICE_TYPE_LABELS[row.device.device_type]}
-                        size="small"
-                        color={DEVICE_CHIP_COLORS[row.device.device_type]}
-                        variant="outlined"
-                      />
-                      <Chip
-                        label={row.device.is_active ? 'Active' : 'Inactive'}
-                        size="small"
-                        color={row.device.is_active ? 'success' : 'default'}
-                      />
-                    </>
-                  }
+                  chips={deviceTypeCell(row.device)}
                   actions={deviceActions(row.device)}
                 />
               ),
@@ -457,9 +520,7 @@ export default function LocationsDevicesView({
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
-                <TableCell>Kind</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -482,29 +543,19 @@ export default function LocationsDevicesView({
                     <TableRow
                       key={`location-${row.location.id}`}
                       ref={locationHighlight.rowRef(row.location.id)}
+                      onClick={() => handleEditLocation(row.location)}
                       sx={[
-                        { '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } },
+                        { cursor: 'pointer', '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } },
                         locationHighlight.rowSx(row.location.id),
                       ]}
                     >
                       <TableCell>
-                        <Typography variant="body1">{locationDisplayName(row.location)}</Typography>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <PlaceIcon fontSize="small" sx={{ color: 'text.disabled' }} titleAccess="Location" />
+                          <Typography variant="body1">{locationDisplayName(row.location)}</Typography>
+                        </Stack>
                       </TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={<PlaceIcon />}
-                          label="Location"
-                          size="small"
-                          variant="outlined"
-                          sx={{ minWidth: 96 }}
-                        />
-                      </TableCell>
-                      <TableCell>{locationTypeChip(row.location)}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          —
-                        </Typography>
-                      </TableCell>
+                      <TableCell>{locationTypeCell(row.location)}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {locationActions(row.location)}
@@ -515,39 +566,19 @@ export default function LocationsDevicesView({
                     <TableRow
                       key={`device-${row.device.id}`}
                       ref={deviceHighlight.rowRef(row.device.id)}
+                      onClick={() => handleEditDevice(row.device)}
                       sx={[
-                        { '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } },
+                        { cursor: 'pointer', '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.02)' } },
                         deviceHighlight.rowSx(row.device.id),
                       ]}
                     >
                       <TableCell>
-                        <Typography variant="body1">{row.device.name}</Typography>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <SensorsIcon fontSize="small" sx={{ color: 'text.disabled' }} titleAccess="Device" />
+                          <Typography variant="body1">{row.device.name}</Typography>
+                        </Stack>
                       </TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={<SensorsIcon />}
-                          label="Device"
-                          size="small"
-                          variant="outlined"
-                          sx={{ minWidth: 96 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={DEVICE_TYPE_LABELS[row.device.device_type]}
-                          size="small"
-                          color={DEVICE_CHIP_COLORS[row.device.device_type]}
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={row.device.is_active ? 'Active' : 'Inactive'}
-                          size="small"
-                          color={row.device.is_active ? 'success' : 'default'}
-                          sx={{ minWidth: 70 }}
-                        />
-                      </TableCell>
+                      <TableCell>{deviceTypeCell(row.device)}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {deviceActions(row.device)}

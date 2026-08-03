@@ -16,17 +16,20 @@ interface EntityCardProps {
   chips?: ReactNode;
   /** Icon buttons pinned to the top-right corner. */
   actions?: ReactNode;
+  /** Makes the whole card tappable (actions stop propagation themselves). */
+  onClick?: () => void;
   /** Ref to the card element, for scroll-into-view highlighting. */
   ref?: Ref<HTMLDivElement>;
   sx?: SxProps<Theme>;
 }
 
-export default function EntityCard({ title, subtitle, chips, actions, ref, sx = [] }: EntityCardProps) {
+export default function EntityCard({ title, subtitle, chips, actions, onClick, ref, sx = [] }: EntityCardProps) {
   return (
     <Paper
       ref={ref}
       variant="outlined"
-      sx={[{ p: 2 }, ...(Array.isArray(sx) ? sx : [sx])]}
+      onClick={onClick}
+      sx={[{ p: 2 }, onClick ? { cursor: 'pointer' } : {}, ...(Array.isArray(sx) ? sx : [sx])]}
     >
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
         <Box sx={{ minWidth: 0 }}>
