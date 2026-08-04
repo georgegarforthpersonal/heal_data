@@ -198,7 +198,7 @@ def _sectors_for(db: Session, org_id: int) -> Dict[int, List[Dict[str, Any]]]:
 # ---------------------------------------------------------------------------
 
 @router.get("", response_model=List[LocationRead])
-async def get_locations(
+def get_locations(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ) -> List[dict[str, Any]]:
@@ -240,7 +240,7 @@ async def get_locations(
 
 
 @router.get("/by-survey-type/{survey_type_id}", response_model=List[LocationRead])
-async def get_locations_by_survey_type(
+def get_locations_by_survey_type(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -263,7 +263,7 @@ async def get_locations_by_survey_type(
 
 
 @router.get("/with-boundaries", response_model=List[LocationWithBoundary])
-async def get_locations_with_boundaries(
+def get_locations_with_boundaries(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ) -> List[dict[str, Any]]:
@@ -305,7 +305,7 @@ async def get_locations_with_boundaries(
 
 
 @router.get("/{location_id}", response_model=LocationRead)
-async def get_location(
+def get_location(
     location_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -327,7 +327,7 @@ async def get_location(
 # ---------------------------------------------------------------------------
 
 @router.post("", response_model=LocationRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin_role)])
-async def create_location(
+def create_location(
     location: LocationCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -364,7 +364,7 @@ async def create_location(
 
 
 @router.put("/{location_id}", response_model=LocationRead, dependencies=[Depends(require_admin_role)])
-async def update_location(
+def update_location(
     location_id: int,
     location: LocationUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -431,7 +431,7 @@ async def update_location(
 
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
-async def delete_location(
+def delete_location(
     location_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)

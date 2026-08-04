@@ -173,7 +173,7 @@ async def filter_images_for_false_positives(
 
 
 @router.get("/{survey_id}/images", response_model=List[CameraTrapImageRead])
-async def list_images(
+def list_images(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
@@ -209,7 +209,7 @@ async def list_images(
 # NOTE: must be declared before /{survey_id}/images/{image_id} so the
 # literal segment wins over the path parameter.
 @router.get("/{survey_id}/images/processing-summary", response_model=ProcessingSummary)
-async def get_image_processing_summary(
+def get_image_processing_summary(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
@@ -245,7 +245,7 @@ async def get_image_processing_summary(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_editor)],
 )
-async def upload_images(
+def upload_images(
     survey_id: int,
     files: List[UploadFile] = File(...),
     skip_processing: bool = Query(False, description="Skip AI processing (for manual classification)"),
@@ -344,7 +344,7 @@ async def upload_images(
     "/{survey_id}/images/{image_id}/process",
     dependencies=[Depends(require_editor)],
 )
-async def process_image(
+def process_image(
     survey_id: int,
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -383,7 +383,7 @@ async def process_image(
 
 
 @router.get("/{survey_id}/images/{image_id}", response_model=CameraTrapImageRead)
-async def get_image(
+def get_image(
     survey_id: int,
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -416,7 +416,7 @@ async def get_image(
     "/{survey_id}/images/{image_id}/detections",
     response_model=List[CameraTrapDetectionRead],
 )
-async def get_image_detections(
+def get_image_detections(
     survey_id: int,
     image_id: int,
     min_confidence: float = 0.0,
@@ -468,7 +468,7 @@ async def get_image_detections(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_editor)],
 )
-async def delete_image(
+def delete_image(
     survey_id: int,
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -502,7 +502,7 @@ download_router = APIRouter()
 
 
 @download_router.get("/{image_id}/download")
-async def get_download_url(
+def get_download_url(
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
@@ -522,7 +522,7 @@ async def get_download_url(
 
 
 @download_router.get("/{image_id}/preview")
-async def get_preview_url(
+def get_preview_url(
     image_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),

@@ -66,7 +66,7 @@ def _device_to_read(row: Any) -> DeviceRead:
 
 
 @router.get("", response_model=List[DeviceRead])
-async def get_devices(
+def get_devices(
     include_inactive: bool = False,
     device_type: Optional[str] = Query(None, description="Filter by device type (audio_recorder, camera_trap)"),
     org: Organisation = Depends(get_current_organisation),
@@ -268,7 +268,7 @@ async def update_device(
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
-async def delete_device(
+def delete_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
