@@ -98,7 +98,7 @@ def _serialize_slots(db: Session, slots: List[ScheduledSurvey]) -> List[dict[str
 
 
 @router.get("", response_model=List[ScheduledSurveyRead])
-async def get_scheduled_surveys(
+def get_scheduled_surveys(
     survey_type_id: Optional[int] = Query(None, description="Filter by survey type ID"),
     slot_status: Optional[ScheduledSurveyStatus] = Query(None, alias="status", description="Filter by slot status"),
     org: Organisation = Depends(get_current_organisation),
@@ -126,7 +126,7 @@ async def get_scheduled_surveys(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_editor)],
 )
-async def schedule_surveys(
+def schedule_surveys(
     schedule: ScheduledSurveyCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -191,7 +191,7 @@ def _get_slot(db: Session, scheduled_survey_id: int, org_id: int) -> ScheduledSu
 
 
 @router.get("/{scheduled_survey_id}", response_model=ScheduledSurveyRead)
-async def get_scheduled_survey(
+def get_scheduled_survey(
     scheduled_survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -202,7 +202,7 @@ async def get_scheduled_survey(
 
 
 @router.put("/{scheduled_survey_id}", response_model=ScheduledSurveyRead, dependencies=[Depends(require_editor)])
-async def update_scheduled_survey(
+def update_scheduled_survey(
     scheduled_survey_id: int,
     update: ScheduledSurveyUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -231,7 +231,7 @@ async def update_scheduled_survey(
 
 
 @router.delete("/{scheduled_survey_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_editor)])
-async def delete_scheduled_survey(
+def delete_scheduled_survey(
     scheduled_survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -272,7 +272,7 @@ def _slot_surveyor_ids(db: Session, scheduled_survey_id: int) -> list[int]:
 
 
 @router.post("/{scheduled_survey_id}/signup")
-async def sign_up_to_scheduled_survey(
+def sign_up_to_scheduled_survey(
     scheduled_survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),
@@ -305,7 +305,7 @@ async def sign_up_to_scheduled_survey(
 
 
 @router.delete("/{scheduled_survey_id}/signup")
-async def withdraw_from_scheduled_survey(
+def withdraw_from_scheduled_survey(
     scheduled_survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db),

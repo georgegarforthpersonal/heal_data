@@ -29,6 +29,7 @@ from models import (
     Survey, SurveyRead, SurveyCreate, SurveyUpdate,
     ScheduledSurvey,
     Sighting, SightingCreate, SightingUpdate, SightingWithDetails,
+    STAGE_COUNT_FIELDS,
     Species, SpeciesType, Location, SurveySurveyor,
     SurveyType,
     BreedingStatusCode, BreedingStatusCodeRead,
@@ -82,7 +83,7 @@ def _sync_device_individual(db: Session, sighting_id: int, device_id: int, count
 # ============================================================================
 
 @router.get("/breeding-codes", response_model=List[BreedingStatusCodeRead])
-async def get_breeding_codes(db: Session = Depends(get_db)) -> List[dict[str, Any]]:
+def get_breeding_codes(db: Session = Depends(get_db)) -> List[dict[str, Any]]:
     """
     Get all BTO breeding status codes grouped by category.
 
@@ -108,7 +109,7 @@ async def get_breeding_codes(db: Session = Depends(get_db)) -> List[dict[str, An
 # ============================================================================
 
 @router.get("")
-async def get_surveys(
+def get_surveys(
     page: int = Query(1, ge=1, description="Page number (starting from 1)"),
     limit: int = Query(25, ge=1, le=100, description="Items per page"),
     start_date: Optional[date] = Query(None, description="Filter surveys from this date (inclusive)"),
@@ -284,7 +285,7 @@ async def get_surveys(
 
 
 @router.get("/{survey_id}", response_model=SurveyRead)
-async def get_survey(
+def get_survey(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -344,7 +345,7 @@ async def get_survey(
 
 
 @router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor)])
-async def create_survey(
+def create_survey(
     survey: SurveyCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -431,7 +432,7 @@ async def create_survey(
 
 
 @router.put("/{survey_id}", response_model=SurveyRead, dependencies=[Depends(require_editor)])
-async def update_survey(
+def update_survey(
     survey_id: int,
     survey: SurveyUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -527,7 +528,7 @@ async def update_survey(
 
 
 @router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_editor)])
-async def delete_survey(
+def delete_survey(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -575,7 +576,7 @@ async def delete_survey(
 # ============================================================================
 
 @router.get("/{survey_id}/sightings", response_model=List[SightingWithIndividuals])
-async def get_survey_sightings(
+def get_survey_sightings(
     survey_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -615,6 +616,11 @@ async def get_survey_sightings(
         Sighting.device_id,
         Sighting.count,
         Sighting.notes,
+        Sighting.copulating_pairs,
+        Sighting.ovipositing_females,
+        Sighting.larvae,
+        Sighting.exuviae,
+        Sighting.emerging_adults,
         Species.name.label('species_name'),  # type: ignore[union-attr]
         Species.scientific_name.label('species_scientific_name'),  # type: ignore[union-attr]
         location_name_expr,
@@ -669,6 +675,7 @@ async def get_survey_sightings(
             "device_id": row.device_id,
             "count": row.count,
             "notes": row.notes,
+            **{field: getattr(row, field) for field in STAGE_COUNT_FIELDS},
             "species_name": row.species_name,
             "species_scientific_name": row.species_scientific_name,
             "individuals": [
@@ -691,7 +698,7 @@ async def get_survey_sightings(
 
 
 @router.post("/{survey_id}/sightings", response_model=SightingWithIndividuals, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor)])
-async def create_sighting(
+def create_sighting(
     survey_id: int,
     sighting: SightingCreate,
     org: Organisation = Depends(get_current_organisation),
@@ -770,6 +777,7 @@ async def create_sighting(
         location_id=sighting.location_id,
         device_id=sighting.device_id,
         notes=sighting.notes,
+        **{field: getattr(sighting, field) for field in STAGE_COUNT_FIELDS},
     )
 
     db.add(db_sighting)
@@ -881,6 +889,7 @@ async def create_sighting(
         "device_id": db_sighting.device_id,
         "count": db_sighting.count,
         "notes": db_sighting.notes,
+        **{field: getattr(db_sighting, field) for field in STAGE_COUNT_FIELDS},
         "species_name": species.name if species else None,
         "species_scientific_name": species.scientific_name if species else None,
         "individuals": [
@@ -900,7 +909,7 @@ async def create_sighting(
 
 
 @router.put("/{survey_id}/sightings/{sighting_id}", response_model=SightingWithDetails, dependencies=[Depends(require_editor)])
-async def update_sighting(
+def update_sighting(
     survey_id: int,
     sighting_id: int,
     sighting: SightingUpdate,
@@ -939,6 +948,21 @@ async def update_sighting(
     # Update sighting fields (exclude image_ids as it's handled separately via junction table)
     update_data = sighting.model_dump(exclude_unset=True)
     image_ids = update_data.pop("image_ids", None)
+
+    # SightingUpdate is partial, so the zero-count rule is checked against the
+    # merged row: 0 adults must leave some positive stage count behind. Checked
+    # before mutating the ORM row so a rejection can't leave dirty state.
+    merged = {
+        field: update_data.get(field, getattr(db_sighting, field))
+        for field in ("count", *STAGE_COUNT_FIELDS)
+    }
+    if (merged["count"] or 0) == 0 and not any(
+        (merged[field] or 0) > 0 for field in STAGE_COUNT_FIELDS
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="count must be positive unless a stage count (larvae, exuviae, …) is recorded above zero",
+        )
 
     for field, value in update_data.items():
         setattr(db_sighting, field, value)
@@ -1006,6 +1030,7 @@ async def update_sighting(
         "device_id": db_sighting.device_id,
         "count": db_sighting.count,
         "notes": db_sighting.notes,
+        **{field: getattr(db_sighting, field) for field in STAGE_COUNT_FIELDS},
         "species_name": species.name if species else None,
         "species_scientific_name": species.scientific_name if species else None,
         "image_ids": result_image_ids,
@@ -1013,7 +1038,7 @@ async def update_sighting(
 
 
 @router.delete("/{survey_id}/sightings/{sighting_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_editor)])
-async def delete_sighting(
+def delete_sighting(
     survey_id: int,
     sighting_id: int,
     org: Organisation = Depends(get_current_organisation),
@@ -1053,7 +1078,7 @@ async def delete_sighting(
 # ============================================================================
 
 @router.post("/{survey_id}/sightings/{sighting_id}/individuals", response_model=IndividualLocationRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor)])
-async def add_individual_location(
+def add_individual_location(
     survey_id: int,
     sighting_id: int,
     individual: IndividualLocationCreate,
@@ -1123,7 +1148,7 @@ async def add_individual_location(
 
 
 @router.put("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", response_model=IndividualLocationRead, dependencies=[Depends(require_editor)])
-async def update_individual_location(
+def update_individual_location(
     survey_id: int,
     sighting_id: int,
     individual_id: int,
@@ -1219,7 +1244,7 @@ async def update_individual_location(
 
 
 @router.delete("/{survey_id}/sightings/{sighting_id}/individuals/{individual_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_editor)])
-async def delete_individual_location(
+def delete_individual_location(
     survey_id: int,
     sighting_id: int,
     individual_id: int,

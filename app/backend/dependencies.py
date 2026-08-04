@@ -17,7 +17,7 @@ from models import Organisation
 from auth import get_current_principal
 
 
-async def get_current_organisation(request: Request) -> Organisation:
+def get_current_organisation(request: Request) -> Organisation:
     """
     Extract organisation from the authenticated principal or X-Org-Slug header.
 

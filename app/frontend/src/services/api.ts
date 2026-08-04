@@ -339,6 +339,12 @@ export interface Species {
 // they are only returned nested under their parent route.
 export type LocationType = 'area' | 'route' | 'point' | 'none' | 'sector';
 
+/** Minimal survey-type reference for "used by" displays on admin lists. */
+export interface SurveyTypeRef {
+  id: number;
+  name: string;
+}
+
 export interface Location {
   id: number;
   name: string;
@@ -352,6 +358,8 @@ export interface Location {
   // Named map-colour key overriding the location_type default; null/absent =
   // default. Keys map to colours in config/locationStyles.ts.
   color?: string | null;
+  // Survey types this location is linked to; populated by the list endpoint.
+  survey_types?: SurveyTypeRef[];
 }
 
 /** Display label for a location: "<parent> - child" for sectors, else the name. */
@@ -531,6 +539,12 @@ export interface Sighting {
   notes?: string | null; // Optional notes for this sighting
   image_ids?: number[]; // Linked camera trap image IDs
   audio_clips?: SightingAudioClip[]; // Linked audio detection clips
+  // BDS life stage / behaviour counts; null = not recorded (see config/stageCounts)
+  copulating_pairs?: number | null;
+  ovipositing_females?: number | null;
+  larvae?: number | null;
+  exuviae?: number | null;
+  emerging_adults?: number | null;
 }
 
 /**
@@ -586,6 +600,12 @@ export interface SightingCreateRequest {
   notes?: string | null; // Optional notes for this sighting
   image_ids?: number[]; // Camera trap image IDs to link
   audio_detections?: AudioDetectionCreateRequest[]; // Bird detections to link
+  // BDS life stage / behaviour counts; omit or null when not recorded
+  copulating_pairs?: number | null;
+  ovipositing_females?: number | null;
+  larvae?: number | null;
+  exuviae?: number | null;
+  emerging_adults?: number | null;
 }
 
 /**
@@ -1098,6 +1118,8 @@ export interface Device {
   location_id: number | null;
   location_name: string | null;
   is_active: boolean;
+  // Survey types this device is allocated to; populated by the list endpoint.
+  survey_types?: SurveyTypeRef[];
 }
 
 export interface DeviceCreate {

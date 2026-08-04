@@ -13,6 +13,8 @@ import { AudioClipPlayer } from '../components/audio/AudioClipPlayer';
 import { MapModeSightings } from '../components/surveys/MapModeSightings';
 import { getSightingsGridConfig } from '../components/surveys/sightingsGridConfig';
 import { getSpeciesIcon } from '../config';
+import { hasPositiveStageCounts, pickStageCounts } from '../config/stageCounts';
+import StageCountsSummary from '../components/surveys/StageCountsSummary';
 import { PageHeader } from '../components/layout/PageHeader';
 import { getSurveyorName, formatDate } from '../utils/formatters';
 import { scopeBoundariesToLocations } from '../utils/scopeBoundaries';
@@ -120,9 +122,9 @@ export function SurveyDetailPage() {
   // Defaults to the main surveys list when reached via a deep link.
   const returnTo = readReturnTo(location);
 
-  // Every survey row is a recorded event; recording a scheduled slot happens
-  // on the new-survey form (?scheduled_survey_id=N), so this page only views
-  // and edits.
+  // Every survey row is a recorded event; recording happens on the
+  // new-survey form (the survey's date links it to its scheduled week), so
+  // this page only views and edits.
   const startInEditMode = searchParams.get('edit') === 'true';
   const [isEditMode, setIsEditMode] = useState(startInEditMode);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
@@ -253,6 +255,8 @@ export function SurveyDetailPage() {
       device_id: sighting.device_id,
       // Include notes for this sighting
       notes: sighting.notes,
+      // Include BDS life stage / behaviour counts
+      ...pickStageCounts(sighting),
       // Include individuals if present (from SightingWithIndividuals)
       individuals: sighting.individuals?.map((ind: any) => ({
         ...ind,
@@ -410,7 +414,6 @@ export function SurveyDetailPage() {
   const showStartEndTime = surveyType?.allow_start_end_time ?? false;
   const showSunPercentage = surveyType?.allow_sun_percentage ?? false;
   const showTemperature = surveyType?.allow_temperature ?? false;
-  const showDescription = surveyType?.allow_show_description && surveyType?.description;
 
 
   // ============================================================================
@@ -428,9 +431,10 @@ export function SurveyDetailPage() {
       errors.surveyors = 'At least one surveyor is required';
     }
 
-    // If location at sighting level, check that each sighting has a location
+    // If location at sighting level, check that each sighting has a location.
+    // A zero-adult row still counts when positive breeding evidence carries it.
     const validSightings = editDraftSightings.filter(
-      (s) => s.species_id !== null && s.count > 0
+      (s) => s.species_id !== null && (s.count > 0 || hasPositiveStageCounts(pickStageCounts(s)))
     );
     if (allowSightingDeviceSelection) {
       const sightingsWithoutDevice = validSightings.filter((s) => !s.device_id);
@@ -512,9 +516,10 @@ export function SurveyDetailPage() {
       await surveysAPI.update(Number(id), surveyData);
 
       // Step 2: Handle sightings changes
-      // Get valid sightings (non-empty rows)
+      // Get valid sightings (non-empty rows; zero-adult rows stand when
+      // positive breeding evidence carries them)
       const validSightings = workingDraft.filter(
-        (s) => s.species_id !== null && s.count > 0
+        (s) => s.species_id !== null && (s.count > 0 || hasPositiveStageCounts(pickStageCounts(s)))
       );
 
       // Identify which sightings to delete (existing sightings not in the new list)
@@ -586,6 +591,7 @@ export function SurveyDetailPage() {
             location_id: locationAtSightingLevel ? sighting.location_id : undefined,
             device_id: allowSightingDeviceSelection ? sighting.device_id : undefined,
             notes: sighting.notes,
+            ...pickStageCounts(sighting),
             image_ids: finalImageIds,
           });
 
@@ -668,6 +674,7 @@ export function SurveyDetailPage() {
             location_id: locationAtSightingLevel ? sighting.location_id : undefined,
             device_id: allowSightingDeviceSelection ? sighting.device_id : undefined,
             notes: sighting.notes,
+            ...pickStageCounts(sighting),
             individuals: sighting.individuals?.map((ind) => ({
               latitude: ind.latitude,
               longitude: ind.longitude,
@@ -825,7 +832,7 @@ export function SurveyDetailPage() {
                       Saving...
                     </>
                   ) : (
-                    'Save Survey'
+                    'Save survey'
                   )}
                 </Button>
               </Stack>
@@ -870,12 +877,6 @@ export function SurveyDetailPage() {
         </Alert>
       )}
 
-      {/* Survey Type Description Banner */}
-      {showDescription && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {surveyType!.description}
-        </Alert>
-      )}
 
         {/* Survey Metadata Card */}
         <Paper
@@ -1280,6 +1281,15 @@ export function SurveyDetailPage() {
                               </Typography>
 
                             </Box>
+
+                            {/* BDS breeding evidence — tier + counts, full width
+                                like notes. Without this the evidence is only
+                                visible in the entry widget and the export. */}
+                            {hasPositiveStageCounts(pickStageCounts(sighting)) && (
+                              <Box sx={{ px: 1.5, pb: 1.5 }}>
+                                <StageCountsSummary counts={pickStageCounts(sighting)} />
+                              </Box>
+                            )}
 
                             {/* Notes — full-width line, clamped with tap-to-expand */}
                             {allowSightingNotes && sighting.notes && String(sighting.notes).trim() !== '' && (

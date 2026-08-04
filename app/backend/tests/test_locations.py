@@ -31,6 +31,27 @@ class TestGetLocations:
         assert data[0]["name"] == "Meadow"  # Sorted alphabetically
         assert data[1]["name"] == "Woodland"
 
+    def test_get_locations_includes_linked_survey_types(
+        self, client: TestClient, auth_headers: dict, create_location, create_survey_type, db_session
+    ):
+        """Each location lists the survey types it is linked to, sorted by name."""
+        from models import SurveyTypeLocationLink
+
+        linked = create_location(name="Linked Field")
+        unlinked = create_location(name="Unlinked Field")
+        st_b = create_survey_type(name="Butterfly")
+        st_a = create_survey_type(name="Audio")
+        db_session.add(SurveyTypeLocationLink(survey_type_id=st_b.id, location_id=linked.id))
+        db_session.add(SurveyTypeLocationLink(survey_type_id=st_a.id, location_id=linked.id))
+        db_session.commit()
+
+        response = client.get("/api/locations", headers=auth_headers)
+        assert response.status_code == 200
+
+        by_id = {loc["id"]: loc for loc in response.json()}
+        assert [st["name"] for st in by_id[linked.id]["survey_types"]] == ["Audio", "Butterfly"]
+        assert by_id[unlinked.id]["survey_types"] == []
+
 
 class TestGetLocationById:
     """Tests for GET /api/locations/{id}"""

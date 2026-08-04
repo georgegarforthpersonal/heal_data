@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
-import { Box, Paper, Stack, TextField, Typography, Chip } from '@mui/material';
+import { Box, Paper, Stack, TextField, Typography } from '@mui/material';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -98,24 +98,6 @@ export default function SectorEditor({ routeGeometry, dividers, names, onChange 
   return (
     <Box>
       <Paper elevation={2} sx={{ mb: 1, overflow: 'hidden', position: 'relative' }}>
-        {/* Offset past the Leaflet zoom control (top-left) so they don't overlap. */}
-        <Stack direction="row" sx={{ position: 'absolute', top: 10, left: 52, right: 10, zIndex: 1000 }}>
-          <Chip
-            size="small"
-            label={
-              dividers.length === 0
-                ? 'Click the route to add a divider'
-                : `${sectors.length} sectors · click a divider dot to remove`
-            }
-            sx={{
-              bgcolor: 'white',
-              boxShadow: 2,
-              maxWidth: 340,
-              height: 'auto',
-              '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5, lineHeight: 1.3 },
-            }}
-          />
-        </Stack>
         <Box sx={{ height: { xs: '280px', sm: '360px' }, width: '100%' }}>
           <MapContainer center={center} zoom={14} style={{ height: '100%', width: '100%' }}>
             <TileLayer
@@ -146,6 +128,11 @@ export default function SectorEditor({ routeGeometry, dividers, names, onChange 
           </MapContainer>
         </Box>
       </Paper>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75, mb: 1 }}>
+        {dividers.length === 0
+          ? 'Click the route to add a divider'
+          : `${sectors.length} sectors · click a divider dot to remove`}
+      </Typography>
 
       <Stack spacing={1}>
         {sectors.map((coords, i) => (

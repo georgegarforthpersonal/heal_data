@@ -28,7 +28,6 @@ import {
 } from '../../services/api';
 import { groupColors, GROUP_MAX_WIDTH } from './groupsTokens';
 import { groupActivity, primarySpeciesType, recordSurveyPath, resolveGroupTypeId } from './groupMeta';
-import { recordedThisWeek } from './surveyState';
 import { useSignupSaved, useSurveyorLookup } from '../../hooks';
 import GroupBreadcrumb from '../../components/groups/GroupBreadcrumb';
 import GroupHero from '../../components/groups/GroupHero';
@@ -93,11 +92,10 @@ export default function GroupDetailPage() {
         setSurveyType(details);
 
         // The worklist is built from the group's slots (linked recorded
-        // surveys come embedded, so fulfilment and this week's pin derive
-        // from the same list); unscheduled ('record') groups have no slots,
-        // so their panel shows the most recent surveys instead — the same
-        // paged call that gives every variant its recorded total (the list
-        // is date-descending, so page 1 IS the recent list).
+        // surveys come embedded, so fulfilment derives from the same list);
+        // every variant's Recent section shows the most recent surveys from
+        // the same paged call that gives it its recorded total (the list is
+        // date-descending, so page 1 IS the recent list).
         const scheduled = groupActivity(details.name) === 'worklist';
         const [slotList, surveysPage, surveyorList, withBoundaries] = await Promise.all([
           scheduled
@@ -204,15 +202,6 @@ export default function GroupDetailPage() {
   // SingleSpeciesCountPanel, without a picker.
   const hasSeasonal = activity === 'worklist' && !singleSpecies;
   const returnTo = { returnTo: { pathname: `/groups/${typeId}`, label: surveyType.name } };
-  // Recording a slot creates a NEW survey linked to it, prefilled from the
-  // slot on the new-survey form.
-  const recordSlot = (slot: ScheduledSurvey) =>
-    navigate(`/surveys/new?scheduled_survey_id=${slot.id}`, { state: returnTo });
-  // A fulfilled slot opens its recorded survey.
-  const openSlotSurvey = (slot: ScheduledSurvey) => {
-    const surveyId = slot.linked_surveys[0]?.id;
-    if (surveyId != null) navigate(`/surveys/${surveyId}`, { state: returnTo });
-  };
   // Unscheduled groups record without a slot: media types jump straight to
   // their wizard, plain types to the standard form with the type preselected.
   const recordNew = () => navigate(recordSurveyPath(surveyType), { state: returnTo });
@@ -266,15 +255,12 @@ export default function GroupDetailPage() {
               ) : (
                 <SurveysPanel
                   slots={slots}
-                  recordedThisWeek={recordedThisWeek(slots)}
                   resolveSurveyors={resolveSurveyors}
                   recordedCount={recordedCount}
                   recentSurveys={recentSurveys}
                   speciesType={speciesType}
                   greenIds={greenIds}
-                  onAddSurvey={recordSlot}
                   onSignupSaved={handleSignupSaved}
-                  onOpenSurvey={openSlotSurvey}
                   onOpenRecorded={openSurvey}
                   onViewAll={() => navigate(`/groups/${typeId}/all`)}
                   onRecordNew={recordNew}
@@ -305,7 +291,11 @@ export default function GroupDetailPage() {
 
           {/* Right column */}
           <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, flex: 1, minWidth: 0 }}>
-            <Box sx={{ order: 1, minWidth: 0 }}>
+            {/* An empty Files panel must not own the first phone screenful —
+                sink it below the working panels on xs. Desktop keeps its slot
+                (the two-column layout has room), and while loading it holds
+                position rather than jumping when the fetch resolves. */}
+            <Box sx={{ order: { xs: !filesLoading && files.length === 0 ? 6 : 1, md: 1 }, minWidth: 0 }}>
               <FilesPanel surveyTypeId={surveyType.id} files={files} loading={filesLoading} />
             </Box>
             <Box sx={{ order: 3, minWidth: 0 }}>

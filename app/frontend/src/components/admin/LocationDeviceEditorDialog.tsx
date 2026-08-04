@@ -6,7 +6,7 @@
  * toggle is hidden. Saving routes to the matching API.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -48,11 +48,17 @@ import { geometryLengthM, type GeoJsonGeometry, type Position } from '../../util
 import { splitLine } from '../../utils/sectorGeometry';
 import { DEVICE_TYPE_LABELS } from '../../utils/deviceIcon';
 import { brandColors } from '../../theme';
+import { DEFAULT_MAP_CENTER } from '../../config';
 import { useResponsive } from '../../hooks/useResponsive';
 import LocationDrawMap, { type DrawableLocationType } from './LocationDrawMap';
 import LocationColorSelector from './LocationColorSelector';
 import SectorEditor from './SectorEditor';
 import LocationMapPicker from '../surveys/LocationMapPicker';
+import CoordinatePointsEditor from './CoordinatePointsEditor';
+import CoordinateEntry, {
+  type CoordinateEntryHandle,
+  type CoordinateFormat,
+} from '../surveys/CoordinateEntry';
 
 export type EditorKind = 'location' | 'device';
 
@@ -111,6 +117,14 @@ export default function LocationDeviceEditorDialog({
   const [sectorDividers, setSectorDividers] = useState<number[]>([]);
   const [sectorNames, setSectorNames] = useState<string[]>([]);
   const [sectorIds, setSectorIds] = useState<(number | undefined)[]>([]);
+  // Which coordinate format the structured entry is showing; remembered
+  // across points so a whole route is entered one way.
+  const [coordFormat, setCoordFormat] = useState<CoordinateFormat>('gridref');
+  // Bumped when coordinates are typed in, so the map reloads the new point.
+  const [placeNonce, setPlaceNonce] = useState(0);
+  // Entry boxes, so Save can flush a coordinate that was typed but not added.
+  const pointEntryRef = useRef<CoordinateEntryHandle>(null);
+  const listEntryRef = useRef<CoordinateEntryHandle>(null);
 
   // Device form
   const [deviceName, setDeviceName] = useState('');
@@ -189,6 +203,53 @@ export default function LocationDeviceEditorDialog({
     setSectorIds([]);
   };
 
+  /** Set (or move) a point location from the structured coordinate entry. */
+  const handlePlacePoint = (lat: number, lng: number) => {
+    setGeometry({ type: 'Point', coordinates: [lng, lat] });
+    setPlaceNonce((n) => n + 1);
+  };
+
+  /**
+   * The shape's vertices, read straight off the geometry so the map and the
+   * point list are never two copies that can drift apart: dragging a vertex
+   * updates the list, and editing the list redraws the map.
+   */
+  const coordPoints: Position[] = useMemo(() => {
+    if (locationType === 'route' && geometry?.type === 'LineString') {
+      return geometry.coordinates as Position[];
+    }
+    if (locationType === 'area' && geometry?.type === 'Polygon') {
+      const ring = (geometry.coordinates as Position[][])[0] ?? [];
+      // Drop the repeated closing vertex; it is an artefact of the format.
+      if (ring.length > 1) {
+        const [first] = ring;
+        const last = ring[ring.length - 1];
+        if (first[0] === last[0] && first[1] === last[1]) return ring.slice(0, -1);
+      }
+      return ring;
+    }
+    return [];
+  }, [geometry, locationType]);
+
+  const handlePointsChange = (next: Position[]) => {
+    if (locationType === 'area') {
+      // A polygon ring must close; do it for them rather than making them
+      // repeat the first corner.
+      setGeometry(
+        next.length >= 3 ? { type: 'Polygon', coordinates: [[...next, next[0]]] } : null,
+      );
+    } else {
+      setGeometry(next.length >= 2 ? { type: 'LineString', coordinates: next } : null);
+    }
+
+    // Changing the shape invalidates sector dividers, which are fractions of
+    // the line that no longer exists.
+    setSectorDividers([]);
+    setSectorNames([]);
+    setSectorIds([]);
+    setPlaceNonce((n) => n + 1);
+  };
+
   const handleGeometryChange = (next: GeoJsonGeometry | null) => {
     setGeometry(next);
     // Clearing/redrawing the route invalidates its dividers (fractions of the
@@ -210,17 +271,46 @@ export default function LocationDeviceEditorDialog({
     setSectorNames(nextNames);
   };
 
-  // Don't show the location being edited as a faint reference on its own map.
-  const locationReferenceForMap = useMemo(
-    () => referenceLocations.filter((l) => l.id !== location?.id),
-    [referenceLocations, location?.id],
-  );
-
   const handleSaveLocation = async () => {
     if (!name.trim()) {
       setError('Name is required');
       return;
     }
+
+    // A coordinate typed but not yet added counts as intended: flush it into
+    // the shape now rather than silently dropping it on save. Unresolvable
+    // input blocks the save with its error shown at the entry box.
+    let effectiveGeometry = geometry;
+    let effectiveDividers = sectorDividers;
+    if (locationType === 'point') {
+      const pending = pointEntryRef.current?.commitPending();
+      if (pending?.status === 'invalid') {
+        setError('Check the typed coordinate — fix it or clear the box, then save');
+        return;
+      }
+      if (pending?.status === 'committed') {
+        effectiveGeometry = { type: 'Point', coordinates: [pending.lng, pending.lat] };
+      }
+    } else if (locationType === 'route' || locationType === 'area') {
+      const pending = listEntryRef.current?.commitPending();
+      if (pending?.status === 'invalid') {
+        setError('Check the typed coordinate — add it or clear the box, then save');
+        return;
+      }
+      if (pending?.status === 'committed') {
+        const next: Position[] = [...coordPoints, [pending.lng, pending.lat]];
+        if (locationType === 'area') {
+          effectiveGeometry =
+            next.length >= 3 ? { type: 'Polygon', coordinates: [[...next, next[0]]] } : null;
+        } else {
+          effectiveGeometry = next.length >= 2 ? { type: 'LineString', coordinates: next } : null;
+        }
+        // The line just changed shape, so divider fractions no longer apply
+        // (same rule as handlePointsChange).
+        effectiveDividers = [];
+      }
+    }
+
     setSaving(true);
     setError(null);
 
@@ -231,13 +321,16 @@ export default function LocationDeviceEditorDialog({
       // Always sent: null resets to the per-type default colour.
       color,
       // Always send geometry so edits (including removals) persist; null for 'none'.
-      geometry: isDrawable ? geometry : null,
+      geometry: isDrawable ? effectiveGeometry : null,
     };
 
     // Routes carry sectors; an explicit list replaces the stored set, and [] clears.
     if (locationType === 'route') {
-      if (geometry?.type === 'LineString' && sectorDividers.length >= 1) {
-        payload.sectors = splitLine(geometry.coordinates as Position[], sectorDividers).map(
+      if (effectiveGeometry?.type === 'LineString' && effectiveDividers.length >= 1) {
+        payload.sectors = splitLine(
+          effectiveGeometry.coordinates as Position[],
+          effectiveDividers,
+        ).map(
           (coords, i): SectorInput => ({
             id: sectorIds[i],
             name: (sectorNames[i] ?? '').trim() || `Sector ${i + 1}`,
@@ -384,8 +477,34 @@ export default function LocationDeviceEditorDialog({
                     color={color}
                     value={geometry}
                     onChange={handleGeometryChange}
-                    referenceLocations={locationReferenceForMap}
+                    remountKey={placeNonce}
                   />
+                  {locationType === 'point' && (
+                    <CoordinateEntry
+                      ref={pointEntryRef}
+                      format={coordFormat}
+                      onFormatChange={setCoordFormat}
+                      onAdd={handlePlacePoint}
+                      nearLat={DEFAULT_MAP_CENTER[0]}
+                      nearLng={DEFAULT_MAP_CENTER[1]}
+                      addLabel={geometry ? 'Move point' : 'Set point'}
+                      disabled={saving}
+                    />
+                  )}
+
+                  {(locationType === 'route' || locationType === 'area') && (
+                    <CoordinatePointsEditor
+                      entryRef={listEntryRef}
+                      points={coordPoints}
+                      onChange={handlePointsChange}
+                      format={coordFormat}
+                      onFormatChange={setCoordFormat}
+                      shape={locationType}
+                      nearLat={DEFAULT_MAP_CENTER[0]}
+                      nearLng={DEFAULT_MAP_CENTER[1]}
+                      disabled={saving}
+                    />
+                  )}
                 </>
               )}
 

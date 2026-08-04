@@ -17,7 +17,7 @@ from typing import List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database.connection import get_db
-from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, Organisation, Location
+from models import Device, DeviceRead, DeviceCreate, DeviceUpdate, Organisation, Location, SurveyTypeRef
 from auth import require_admin_role
 from dependencies import get_current_organisation
 
@@ -66,7 +66,7 @@ def _device_to_read(row: Any) -> DeviceRead:
 
 
 @router.get("", response_model=List[DeviceRead])
-async def get_devices(
+def get_devices(
     include_inactive: bool = False,
     device_type: Optional[str] = Query(None, description="Filter by device type (audio_recorder, camera_trap)"),
     org: Organisation = Depends(get_current_organisation),
@@ -116,11 +116,28 @@ async def get_devices(
     result = db.execute(query, params)
     rows = result.fetchall()
 
-    return [_device_to_read(row) for row in rows]
+    # One pass over the link table gives every device its survey types.
+    links = db.execute(text("""
+        SELECT std.device_id, st.id, st.name
+        FROM survey_type_device std
+        INNER JOIN survey_type st ON st.id = std.survey_type_id
+        WHERE st.organisation_id = :org_id
+        ORDER BY st.name
+    """), {"org_id": org.id}).fetchall()
+    survey_types_by_device: dict[int, list[SurveyTypeRef]] = {}
+    for device_id, st_id, st_name in links:
+        survey_types_by_device.setdefault(device_id, []).append(SurveyTypeRef(id=st_id, name=st_name))
+
+    devices = []
+    for row in rows:
+        device = _device_to_read(row)
+        device.survey_types = survey_types_by_device.get(row.id, [])
+        devices.append(device)
+    return devices
 
 
 @router.get("/{id}", response_model=DeviceRead)
-async def get_device(
+def get_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -153,7 +170,7 @@ async def get_device(
 
 
 @router.post("", response_model=DeviceRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin_role)])
-async def create_device(
+def create_device(
     device: DeviceCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -190,11 +207,11 @@ async def create_device(
     db.refresh(db_device)
 
     # Fetch and return the created device with all fields
-    return await get_device(db_device.id, org, db)  # type: ignore[no-any-return]
+    return get_device(db_device.id, org, db)  # type: ignore[no-any-return]
 
 
 @router.put("/{id}", response_model=DeviceRead, dependencies=[Depends(require_admin_role)])
-async def update_device(
+def update_device(
     id: int,
     device: DeviceUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -247,11 +264,11 @@ async def update_device(
         db.commit()
 
     # Fetch and return the updated device
-    return await get_device(id, org, db)  # type: ignore[no-any-return]
+    return get_device(id, org, db)  # type: ignore[no-any-return]
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
-async def delete_device(
+def delete_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -270,7 +287,7 @@ async def delete_device(
 
 
 @router.post("/{id}/deactivate", response_model=DeviceRead, dependencies=[Depends(require_admin_role)])
-async def deactivate_device(
+def deactivate_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -294,11 +311,11 @@ async def deactivate_device(
     db_device.is_active = False
     db.commit()
 
-    return await get_device(id, org, db)  # type: ignore[no-any-return]
+    return get_device(id, org, db)  # type: ignore[no-any-return]
 
 
 @router.post("/{id}/reactivate", response_model=DeviceRead, dependencies=[Depends(require_admin_role)])
-async def reactivate_device(
+def reactivate_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -321,4 +338,4 @@ async def reactivate_device(
     db_device.is_active = True
     db.commit()
 
-    return await get_device(id, org, db)  # type: ignore[no-any-return]
+    return get_device(id, org, db)  # type: ignore[no-any-return]

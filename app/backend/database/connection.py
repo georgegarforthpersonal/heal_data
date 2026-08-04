@@ -271,6 +271,22 @@ def get_engine() -> Engine:
             pool_recycle=300,  # Recycle connections older than 5 min (Neon pooler reaps idle sockets)
             pool_size=5,
             max_overflow=10,
+            connect_args={
+                # A Neon compute suspend can leave a pooled socket half-open;
+                # without these a query (or the pre-ping itself) retransmits
+                # into the void for minutes. Bound every failure mode to
+                # seconds so pre-ping reconnects instead of hanging.
+                "connect_timeout": 5,
+                "keepalives": 1,
+                "keepalives_idle": 15,
+                "keepalives_interval": 5,
+                "keepalives_count": 3,
+                # Caps time spent retransmitting unacked data (the in-flight
+                # query case keepalives can't catch). Linux-only; no-op on
+                # macOS dev machines. No statement_timeout here: session GUCs
+                # leak through the Neon pooler.
+                "tcp_user_timeout": 30_000,
+            },
             echo=False  # Set to True for SQL query logging
         )
         print(f"✅ SQLAlchemy engine created: {database_url.split('@')[1] if '@' in database_url else database_url}")

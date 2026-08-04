@@ -17,7 +17,6 @@ import {
   InputLabel,
   ListSubheader,
   TextField,
-  Button,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MapIcon from '@mui/icons-material/Map';
@@ -27,12 +26,12 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import 'leaflet/dist/leaflet.css';
 import { stopMapAnimation } from '../../utils/stopMapAnimation';
-import { parseLatLng } from '../../utils/coords';
+import CoordinateEntry, { type CoordinateFormat } from './CoordinateEntry';
 
 import type { BreedingStatusCode, BreedingCategory, LocationWithBoundary } from '../../services/api';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { DEFAULT_MAP_CENTER } from '../../config';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
+import { CATEGORY_COLORS, CATEGORY_LABELS, CATEGORY_TEXT_COLOR } from './breedingConstants';
 import { boundaryLatLngs } from './mapModeUtils';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 
@@ -164,8 +163,7 @@ export default function MultiLocationMapPicker({
 }: MultiLocationMapPickerProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
-  const [coordInput, setCoordInput] = useState('');
-  const [coordError, setCoordError] = useState<string | null>(null);
+  const [coordFormat, setCoordFormat] = useState<CoordinateFormat>('gridref');
   const [panTarget, setPanTarget] = useState<{ lat: number; lng: number; seq: number } | null>(null);
   const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
 
@@ -201,18 +199,6 @@ export default function MultiLocationMapPicker({
     (latlng: LatLng) => addPoint(latlng.lat, latlng.lng),
     [addPoint]
   );
-
-  // Add a location from the typed coordinate input
-  const handleAddTyped = useCallback(() => {
-    const result = parseLatLng(coordInput);
-    if (!result.ok) {
-      setCoordError(result.error);
-      return;
-    }
-    addPoint(result.lat, result.lng, true);
-    setCoordInput('');
-    setCoordError(null);
-  }, [coordInput, addPoint]);
 
   // Update count for a specific location
   const handleCountChange = useCallback(
@@ -285,8 +271,12 @@ export default function MultiLocationMapPicker({
     return 'Click on the map to add more locations.';
   };
 
-  // Get progress text
+  // Get progress text. Before the first pin the fraction reads as robot talk
+  // ("0 of 1 across 0 locations"), so start with an invitation instead.
   const getProgressText = () => {
+    if (locations.length === 0) {
+      return 'none pinned yet — tap the map to add one';
+    }
     if (maxCount === undefined) {
       return `${totalCount} individual${totalCount === 1 ? '' : 's'} across ${locations.length} location${locations.length === 1 ? '' : 's'}`;
     }
@@ -427,40 +417,21 @@ export default function MultiLocationMapPicker({
         )}
       </Paper>
 
-      {/* Typed coordinate entry */}
+      {/* Structured coordinate entry (survey-type flag). Same component as the
+          admin route builder, so grid refs and lat/long behave identically
+          wherever coordinates are typed. */}
       {allowCoordinateEntry && (
-      <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          fullWidth
-          label="Add by coordinates"
-          placeholder="e.g. 51.12345, -2.34567"
-          InputLabelProps={{ shrink: true }}
-          value={coordInput}
-          onChange={(e) => {
-            setCoordInput(e.target.value);
-            setCoordError(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleAddTyped();
-            }
-          }}
-          error={!!coordError}
-          helperText={coordError || 'Decimal latitude, longitude (WGS84)'}
-          disabled={disabled || isAtMax}
-        />
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleAddTyped}
-          disabled={disabled || isAtMax || !coordInput.trim()}
-          sx={{ textTransform: 'none', fontWeight: 600, mt: '5px' }}
-        >
-          Add
-        </Button>
-      </Stack>
+        <Box sx={{ mb: 2 }}>
+          <CoordinateEntry
+            format={coordFormat}
+            onFormatChange={setCoordFormat}
+            onAdd={(lat, lng) => addPoint(lat, lng, true)}
+            nearLat={locations[0]?.latitude ?? DEFAULT_MAP_CENTER[0]}
+            nearLng={locations[0]?.longitude ?? DEFAULT_MAP_CENTER[1]}
+            addLabel="Add location"
+            disabled={disabled || isAtMax}
+          />
+        </Box>
       )}
 
       {/* Individual Cards */}
@@ -544,7 +515,7 @@ export default function MultiLocationMapPicker({
                               size="small"
                               sx={{
                                 bgcolor: CATEGORY_COLORS[code.category],
-                                color: 'white',
+                                color: CATEGORY_TEXT_COLOR,
                                 fontWeight: 600,
                                 height: 20,
                                 minWidth: 28,
@@ -567,7 +538,7 @@ export default function MultiLocationMapPicker({
                             key={`header-${category}`}
                             sx={{
                               bgcolor: CATEGORY_COLORS[category],
-                              color: 'white',
+                              color: CATEGORY_TEXT_COLOR,
                               fontWeight: 600,
                               lineHeight: '32px',
                             }}
@@ -583,7 +554,7 @@ export default function MultiLocationMapPicker({
                                     size="small"
                                     sx={{
                                       bgcolor: CATEGORY_COLORS[category],
-                                      color: 'white',
+                                      color: CATEGORY_TEXT_COLOR,
                                       fontWeight: 600,
                                       height: 20,
                                       minWidth: 28,

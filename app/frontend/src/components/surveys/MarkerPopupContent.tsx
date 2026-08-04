@@ -15,7 +15,7 @@ import type { Species, BreedingStatusCode, BreedingCategory } from '../../servic
 import type { MapMarker } from './mapModeUtils';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 import { getSpeciesIcon } from '../../config';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from './breedingConstants';
+import { CATEGORY_COLORS, CATEGORY_LABELS, CATEGORY_TEXT_COLOR } from './breedingConstants';
 
 interface MarkerPopupContentAddProps {
   mode: 'add';
@@ -432,7 +432,7 @@ function ViewPopupContent({
               size="small"
               sx={{
                 bgcolor: CATEGORY_COLORS[breedingCode.category],
-                color: 'white',
+                color: CATEGORY_TEXT_COLOR,
                 fontWeight: 600,
                 height: 18,
                 minWidth: 24,
@@ -578,7 +578,7 @@ export function GroupedMarkerPopupContent({
                       size="small"
                       sx={{
                         bgcolor: CATEGORY_COLORS[breedingCode.category],
-                        color: 'white',
+                        color: CATEGORY_TEXT_COLOR,
                         fontWeight: 600,
                         height: 16,
                         minWidth: 20,
@@ -627,7 +627,7 @@ function BreedingStatusField({
               px: 1.5,
               py: 0.5,
               bgcolor: CATEGORY_COLORS[breedingCodes.find((c) => CATEGORY_LABELS[c.category] === params.group)?.category || 'non_breeding'],
-              color: 'white',
+              color: CATEGORY_TEXT_COLOR,
               fontWeight: 600,
               fontSize: '0.75rem',
             }}
@@ -645,7 +645,7 @@ function BreedingStatusField({
               size="small"
               sx={{
                 bgcolor: CATEGORY_COLORS[option.category],
-                color: 'white',
+                color: CATEGORY_TEXT_COLOR,
                 fontWeight: 600,
                 height: 18,
                 minWidth: 24,

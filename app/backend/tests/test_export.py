@@ -21,12 +21,14 @@ def _make_sighting(
     species_id: int,
     count: int = 1,
     location_id: int = None,
+    **stage_counts,
 ) -> Sighting:
     sighting = Sighting(
         survey_id=survey_id,
         species_id=species_id,
         count=count,
         location_id=location_id,
+        **stage_counts,
     )
     db_session.add(sighting)
     db_session.commit()
@@ -103,6 +105,76 @@ class TestRecordsExportBySurveyType:
         assert count == 3
         assert str(day).startswith("2026-06-01")
         assert loc == "North Meadow"
+
+    def test_stage_counts_appear_only_when_recorded(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        db_session: Session,
+        create_survey_type,
+        create_survey,
+        create_species,
+        create_location,
+    ):
+        """A dragonfly export gains the BDS columns; other exports keep five."""
+        survey_type = create_survey_type(name="Dragonfly Transect")
+        location = create_location(name="North Meadow")
+        species = create_species(
+            name="Emperor Dragonfly", scientific_name="Anax imperator"
+        )
+        survey = create_survey(
+            survey_date=date(2026, 6, 1),
+            survey_type_id=survey_type.id,
+            location_id=location.id,
+        )
+        _make_sighting(
+            db_session, survey.id, species.id, count=3,
+            copulating_pairs=2, ovipositing_females=1, exuviae=0,
+        )
+
+        rows = _read_rows(client.get(
+            f"/api/export/records/by-survey-type/{survey_type.id}",
+            headers=auth_headers,
+        ))
+        assert rows[0] == RECORD_HEADERS + [
+            "copulating_pairs", "ovipositing_females",
+            "larvae", "exuviae", "emerging_adults",
+        ]
+        record = rows[1]
+        assert record[len(RECORD_HEADERS)] == 2      # copulating_pairs
+        assert record[len(RECORD_HEADERS) + 1] == 1  # ovipositing_females
+        # "Not recorded" is a blank cell, and must stay distinguishable from a
+        # recorded zero ("searched for, found none").
+        assert record[len(RECORD_HEADERS) + 2] is None  # larvae
+        assert record[len(RECORD_HEADERS) + 3] == 0     # exuviae
+
+    def test_stage_columns_omitted_for_other_taxa(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+        db_session: Session,
+        create_survey_type,
+        create_survey,
+        create_species,
+        create_location,
+    ):
+        """Bird and bat sheets must not gain five empty columns."""
+        survey_type = create_survey_type(name="Birders")
+        location = create_location(name="North Meadow")
+        species = create_species(name="Robin", scientific_name="Erithacus rubecula")
+        survey = create_survey(
+            survey_date=date(2026, 6, 1),
+            survey_type_id=survey_type.id,
+            location_id=location.id,
+        )
+        _make_sighting(db_session, survey.id, species.id, count=2)
+
+        rows = _read_rows(client.get(
+            f"/api/export/records/by-survey-type/{survey_type.id}",
+            headers=auth_headers,
+        ))
+        assert rows[0] == RECORD_HEADERS
+        assert len(rows[1]) == len(RECORD_HEADERS)
 
     def test_sighting_location_takes_precedence_over_survey(
         self,

@@ -71,7 +71,7 @@ def determine_date_range(data_points: List, start_date: Optional[date], end_date
 
 
 @router.get("/cumulative-species", response_model=CumulativeSpeciesResponse)
-async def get_cumulative_species(
+def get_cumulative_species(
     species_types: Optional[List[str]] = Query(None, description="Filter by species types (e.g., 'bird', 'butterfly')"),
     survey_type_id: Optional[int] = Query(None, description="Only count sightings from surveys of this type"),
     start_date: Optional[date] = Query(None, description="Filter surveys from this date (inclusive)"),
@@ -209,7 +209,7 @@ async def get_cumulative_species(
 
 
 @router.get("/species-types-with-entries", response_model=List[str])
-async def get_species_types_with_entries(
+def get_species_types_with_entries(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ) -> List[str]:
@@ -250,7 +250,7 @@ async def get_species_types_with_entries(
 
 
 @router.get("/species-by-count", response_model=List[SpeciesWithCount])
-async def get_species_by_count(
+def get_species_by_count(
     species_type: str = Query(..., description="Species type to filter (e.g., 'bird', 'butterfly')"),
     survey_type_id: Optional[int] = Query(None, description="Only count sightings from surveys of this type"),
     org: Organisation = Depends(get_current_organisation),
@@ -320,7 +320,7 @@ async def get_species_by_count(
 
 
 @router.get("/species-occurrences", response_model=SpeciesOccurrenceResponse)
-async def get_species_occurrences(
+def get_species_occurrences(
     species_id: int = Query(..., description="Species ID to get occurrences for"),
     survey_type_id: Optional[int] = Query(None, description="Only include surveys of this type"),
     start_date: Optional[date] = Query(None, description="Filter from this date (inclusive)"),
@@ -430,7 +430,7 @@ async def get_species_occurrences(
 
 
 @router.get("/species-sightings", response_model=List[Dict[str, Any]])
-async def get_species_sightings(
+def get_species_sightings(
     species_id: int = Query(..., description="Species ID to get sightings for"),
     start_date: Optional[date] = Query(None, description="Filter from this date (inclusive)"),
     end_date: Optional[date] = Query(None, description="Filter until this date (inclusive)"),

@@ -14,6 +14,7 @@ from datetime import date as date_type, time as time_type, datetime
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
 from enum import Enum as PyEnum
+from pydantic import model_validator
 from sqlmodel import Field, SQLModel, Relationship
 import sqlalchemy as sa
 
@@ -281,6 +282,12 @@ class DeviceUpdate(SQLModel):
     is_active: Optional[bool] = None
 
 
+class SurveyTypeRef(SQLModel):
+    """Minimal survey-type reference for "used by" displays on admin lists."""
+    id: int
+    name: str
+
+
 class DeviceRead(DeviceBase):
     """Model for reading a device"""
     id: int
@@ -289,6 +296,8 @@ class DeviceRead(DeviceBase):
     location_id: Optional[int] = None
     location_name: Optional[str] = None
     is_active: bool
+    # Survey types this device is allocated to (via survey_type_device).
+    survey_types: List[SurveyTypeRef] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -671,6 +680,9 @@ class LocationRead(LocationBase):
     # Sector order within its parent route (null for top-level locations), so
     # clients can render standalone sectors in route order.
     ordinal: Optional[int] = None
+    # Survey types this location is linked to (via survey_type_location).
+    # Populated by the plain list endpoint; other endpoints may leave it empty.
+    survey_types: List[SurveyTypeRef] = Field(default_factory=list)
 
 
 class LocationWithBoundary(LocationRead):
@@ -1047,7 +1059,28 @@ class SurveyWithSightingsCount(SurveyRead):
 class SightingBase(SQLModel):
     """Base sighting fields"""
     species_id: int = Field(gt=0, foreign_key="species.id", description="Species ID")
-    count: int = Field(gt=0, description="Number of individuals sighted")
+    # 0 is allowed only for BDS records where positive stage counts carry the
+    # sighting (an exuviae-only visit has no adults); SightingCreate enforces
+    # that a zero-count sighting has some positive evidence.
+    count: int = Field(ge=0, description="Number of individuals sighted (adults total for Odonata)")
+    # BDS Odonata form columns; `count` above is its "Adults (total)". None
+    # means not recorded, which is distinct from 0 ("looked, saw none").
+    copulating_pairs: Optional[int] = Field(None, ge=0, description="Copulating/tandem pairs (1 pair = 1)")
+    ovipositing_females: Optional[int] = Field(None, ge=0, description="Ovipositing females")
+    larvae: Optional[int] = Field(None, ge=0, description="Larvae")
+    exuviae: Optional[int] = Field(None, ge=0, description="Exuviae (cast larval skins)")
+    emerging_adults: Optional[int] = Field(None, ge=0, description="Emerging/teneral adults")
+
+
+#: The BDS stage/behaviour count columns, in recording-form order. `count`
+#: (adults total) is deliberately excluded — it is required, these are not.
+STAGE_COUNT_FIELDS = (
+    "copulating_pairs",
+    "ovipositing_females",
+    "larvae",
+    "exuviae",
+    "emerging_adults",
+)
 
 
 class Sighting(SightingBase, table=True):  # type: ignore[call-arg]
@@ -1079,11 +1112,19 @@ class Sighting(SightingBase, table=True):  # type: ignore[call-arg]
 class SightingUpdate(SQLModel):
     """Model for updating a sighting (all fields optional)"""
     species_id: Optional[int] = Field(None, gt=0)
-    count: Optional[int] = Field(None, gt=0)
+    # 0 allowed as for SightingBase; the update route checks the merged row
+    # still carries positive evidence (a partial update can't check alone).
+    count: Optional[int] = Field(None, ge=0)
     location_id: Optional[int] = Field(None, description="Location ID (for sighting-level locations)")
     device_id: Optional[int] = Field(None, description="Device ID (for sighting-level device selection)")
     notes: Optional[str] = Field(None, description="Optional notes for this sighting")
     image_ids: Optional[List[int]] = Field(None, description="Camera trap image IDs to link via junction table")
+    # Stage/behaviour counts; sent explicitly as null to clear one.
+    copulating_pairs: Optional[int] = Field(None, ge=0)
+    ovipositing_females: Optional[int] = Field(None, ge=0)
+    larvae: Optional[int] = Field(None, ge=0)
+    exuviae: Optional[int] = Field(None, ge=0)
+    emerging_adults: Optional[int] = Field(None, ge=0)
 
 
 class SightingRead(SightingBase):
@@ -1219,6 +1260,18 @@ class SightingCreate(SightingBase):
     individuals: List[IndividualLocationCreate] = Field(default_factory=list, description="Individual location points")
     image_ids: List[int] = Field(default_factory=list, description="Camera trap image IDs to link")
     audio_detections: List[AudioDetectionCreate] = Field(default_factory=list, description="Bird detections to link")
+
+    @model_validator(mode="after")
+    def _zero_count_needs_evidence(self) -> "SightingCreate":
+        """0 adults with no positive stage count is not a sighting of anything."""
+        if self.count == 0 and not any(
+            (getattr(self, field) or 0) > 0 for field in STAGE_COUNT_FIELDS
+        ):
+            raise ValueError(
+                "count must be positive unless a stage count "
+                "(larvae, exuviae, …) is recorded above zero"
+            )
+        return self
 
 
 class SightingAudioClip(SQLModel):

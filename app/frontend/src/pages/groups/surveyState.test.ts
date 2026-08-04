@@ -7,7 +7,7 @@ import {
   formatWeekRange,
   formatSurveyDateShort,
   formatRecordedDateShort,
-  recordedThisWeek,
+  scheduleSlots,
 } from './surveyState';
 
 const TODAY = '2026-06-25';
@@ -187,29 +187,6 @@ describe('buildWorklist', () => {
   });
 });
 
-describe('recordedThisWeek', () => {
-  it('keeps a fulfilled weekly slot whose window contains today', () => {
-    const s = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
-    expect(recordedThisWeek([s], TODAY).map((x) => x.id)).toEqual([1]);
-  });
-
-  it('drops a fulfilled weekly slot from a past window', () => {
-    const s = recordedSlot({ id: 2, window_start: '2026-06-15', window_end: '2026-06-21' });
-    expect(recordedThisWeek([s], TODAY)).toEqual([]);
-  });
-
-  it('keeps a fulfilled day-precise slot only when it is for today', () => {
-    const today = recordedSlot({ id: 3, window_start: TODAY });
-    const yesterday = recordedSlot({ id: 4, window_start: '2026-06-24' });
-    expect(recordedThisWeek([today, yesterday], TODAY).map((x) => x.id)).toEqual([3]);
-  });
-
-  it('ignores unfulfilled slots even inside the current window', () => {
-    const s = slot({ id: 5, window_start: '2026-06-22', window_end: '2026-06-28' });
-    expect(recordedThisWeek([s], TODAY)).toEqual([]);
-  });
-});
-
 describe('nextScheduledSurvey', () => {
   it('returns the soonest upcoming slot', () => {
     const slots = [
@@ -236,5 +213,21 @@ describe('nextScheduledSurvey', () => {
     const done = recordedSlot({ id: 1, window_start: '2026-06-22', window_end: '2026-06-28' });
     const later = slot({ id: 2, window_start: '2026-07-06' });
     expect(nextScheduledSurvey([done, later], TODAY)?.id).toBe(2);
+  });
+});
+
+describe('scheduleSlots', () => {
+  it('excludes fulfilled slots and sorts soonest first', () => {
+    const slots = [
+      slot({ id: 3, window_start: '2026-07-13', window_end: '2026-07-19' }),
+      recordedSlot({ id: 2, window_start: '2026-06-22', window_end: '2026-06-28' }),
+      slot({ id: 1, window_start: '2026-06-15', window_end: '2026-06-21' }), // overdue
+    ];
+    expect(scheduleSlots(slots).map((s) => s.id)).toEqual([1, 3]);
+  });
+
+  it('keeps cancelled unfulfilled slots (they are part of the schedule story)', () => {
+    const slots = [slot({ id: 1, window_start: '2026-07-06', status: 'cancelled' })];
+    expect(scheduleSlots(slots).map((s) => s.id)).toEqual([1]);
   });
 });

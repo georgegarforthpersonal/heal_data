@@ -18,3 +18,7 @@ export const CATEGORY_COLORS: Record<BreedingCategory, string> = {
   'probable_breeder': '#FF9800',   // Orange
   'confirmed_breeder': '#4CAF50',  // Green
 };
+
+// Text colour for labels sitting ON a category fill. White fails WCAG on all
+// four fills (1.6:1 on the amber); near-black clears 4.5:1 on every one.
+export const CATEGORY_TEXT_COLOR = 'rgba(0, 0, 0, 0.87)';

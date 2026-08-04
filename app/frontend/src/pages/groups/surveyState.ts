@@ -145,19 +145,13 @@ export function buildWorklist(slots: ScheduledSurvey[], today: string = todayIso
 }
 
 /**
- * The fulfilled slots that belong to the current week, so the panel can keep
- * showing this week's survey after it has been recorded rather than letting it
- * vanish from the worklist.
+ * The Schedule filter's rows on the All surveys page: open and cancelled
+ * slots (fulfilled slots are represented by their recorded surveys under
+ * Past), soonest first — the same oldest-overdue-to-furthest-future order
+ * as the group page worklist.
  */
-export function recordedThisWeek(slots: ScheduledSurvey[], today: string = todayIso()): ScheduledSurvey[] {
-  return slots
-    .filter(
-      (s) =>
-        deriveSlotState(s, today) === 'recorded' &&
-        today >= s.window_start &&
-        today <= s.window_end,
-    )
-    .sort(byWindowStart);
+export function scheduleSlots(slots: ScheduledSurvey[]): ScheduledSurvey[] {
+  return slots.filter((s) => s.linked_surveys.length === 0).sort(byWindowStart);
 }
 
 /**

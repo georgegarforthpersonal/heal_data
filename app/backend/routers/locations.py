@@ -198,7 +198,7 @@ def _sectors_for(db: Session, org_id: int) -> Dict[int, List[Dict[str, Any]]]:
 # ---------------------------------------------------------------------------
 
 @router.get("", response_model=List[LocationRead])
-async def get_locations(
+def get_locations(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ) -> List[dict[str, Any]]:
@@ -212,6 +212,18 @@ async def get_locations(
         Location.organisation_id == org.id,
     ).order_by(Location.name).all()
 
+    # One pass over the link table gives every location its survey types.
+    links = db.execute(text("""
+        SELECT stl.location_id, st.id, st.name
+        FROM survey_type_location stl
+        INNER JOIN survey_type st ON st.id = stl.survey_type_id
+        WHERE st.organisation_id = :org_id
+        ORDER BY st.name
+    """).bindparams(org_id=org.id)).fetchall()
+    survey_types_by_location: dict[int, list[dict[str, Any]]] = {}
+    for location_id, st_id, st_name in links:
+        survey_types_by_location.setdefault(location_id, []).append({"id": st_id, "name": st_name})
+
     names_by_id = {loc.id: loc.name for loc in locations}
     return [
         {
@@ -221,13 +233,14 @@ async def get_locations(
             "parent_name": names_by_id.get(loc.parent_location_id) if loc.parent_location_id else None,
             "ordinal": loc.ordinal,
             "color": loc.color,
+            "survey_types": survey_types_by_location.get(loc.id, []),
         }
         for loc in locations
     ]
 
 
 @router.get("/by-survey-type/{survey_type_id}", response_model=List[LocationRead])
-async def get_locations_by_survey_type(
+def get_locations_by_survey_type(
     survey_type_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -250,7 +263,7 @@ async def get_locations_by_survey_type(
 
 
 @router.get("/with-boundaries", response_model=List[LocationWithBoundary])
-async def get_locations_with_boundaries(
+def get_locations_with_boundaries(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ) -> List[dict[str, Any]]:
@@ -292,7 +305,7 @@ async def get_locations_with_boundaries(
 
 
 @router.get("/{location_id}", response_model=LocationRead)
-async def get_location(
+def get_location(
     location_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -314,7 +327,7 @@ async def get_location(
 # ---------------------------------------------------------------------------
 
 @router.post("", response_model=LocationRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin_role)])
-async def create_location(
+def create_location(
     location: LocationCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -351,7 +364,7 @@ async def create_location(
 
 
 @router.put("/{location_id}", response_model=LocationRead, dependencies=[Depends(require_admin_role)])
-async def update_location(
+def update_location(
     location_id: int,
     location: LocationUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -418,7 +431,7 @@ async def update_location(
 
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
-async def delete_location(
+def delete_location(
     location_id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
