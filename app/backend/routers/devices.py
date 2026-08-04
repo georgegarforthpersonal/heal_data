@@ -137,7 +137,7 @@ def get_devices(
 
 
 @router.get("/{id}", response_model=DeviceRead)
-async def get_device(
+def get_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -170,7 +170,7 @@ async def get_device(
 
 
 @router.post("", response_model=DeviceRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin_role)])
-async def create_device(
+def create_device(
     device: DeviceCreate,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -207,11 +207,11 @@ async def create_device(
     db.refresh(db_device)
 
     # Fetch and return the created device with all fields
-    return await get_device(db_device.id, org, db)  # type: ignore[no-any-return]
+    return get_device(db_device.id, org, db)  # type: ignore[no-any-return]
 
 
 @router.put("/{id}", response_model=DeviceRead, dependencies=[Depends(require_admin_role)])
-async def update_device(
+def update_device(
     id: int,
     device: DeviceUpdate,
     org: Organisation = Depends(get_current_organisation),
@@ -264,7 +264,7 @@ async def update_device(
         db.commit()
 
     # Fetch and return the updated device
-    return await get_device(id, org, db)  # type: ignore[no-any-return]
+    return get_device(id, org, db)  # type: ignore[no-any-return]
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_role)])
@@ -287,7 +287,7 @@ def delete_device(
 
 
 @router.post("/{id}/deactivate", response_model=DeviceRead, dependencies=[Depends(require_admin_role)])
-async def deactivate_device(
+def deactivate_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -311,11 +311,11 @@ async def deactivate_device(
     db_device.is_active = False
     db.commit()
 
-    return await get_device(id, org, db)  # type: ignore[no-any-return]
+    return get_device(id, org, db)  # type: ignore[no-any-return]
 
 
 @router.post("/{id}/reactivate", response_model=DeviceRead, dependencies=[Depends(require_admin_role)])
-async def reactivate_device(
+def reactivate_device(
     id: int,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
@@ -338,4 +338,4 @@ async def reactivate_device(
     db_device.is_active = True
     db.commit()
 
-    return await get_device(id, org, db)  # type: ignore[no-any-return]
+    return get_device(id, org, db)  # type: ignore[no-any-return]
