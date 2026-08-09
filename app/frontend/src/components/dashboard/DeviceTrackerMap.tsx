@@ -481,7 +481,7 @@ export function DeviceTrackerMap() {
       <Paper
         elevation={0}
         className="fullscreen-map-container"
-        sx={{ overflow: 'hidden', border: '1px solid', borderColor: 'divider', position: 'relative', flexShrink: 0, display: 'flex', flexDirection: 'column', ...fullscreenContainerSx }}
+        sx={{ overflow: 'hidden', border: '1px solid', borderColor: 'divider', flexShrink: 0, display: 'flex', flexDirection: 'column', ...fullscreenContainerSx }}
       >
         {/* Toolbar in normal flow (not overlaid on the map) so it never hides
             map content, stays available in fullscreen, and wraps to a second
