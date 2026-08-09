@@ -623,7 +623,7 @@ export function DeviceTrackerMap() {
           {showEmptyWindowNotice && selectedDevice && (
             <Box sx={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, pointerEvents: 'none', maxWidth: 'calc(100% - 24px)' }}>
               <Paper elevation={2} sx={{ px: 1.5, py: 0.75 }}>
-                <Typography variant="caption" sx={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <Typography variant="caption" sx={{ display: 'block', textAlign: 'center' }}>
                   <strong>{tagName(selectedDevice)}</strong>
                   {`: no fixes in ${activeWindow.noun}`}
                   {selectedDevice.gps_timestamp
