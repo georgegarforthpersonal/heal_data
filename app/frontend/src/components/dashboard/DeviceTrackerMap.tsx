@@ -25,10 +25,19 @@ import SatelliteIcon from '@mui/icons-material/Satellite';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import 'leaflet/dist/leaflet.css';
 import { stopMapAnimation } from '../../utils/stopMapAnimation';
 import { ecotopiaAPI } from '../../services/api';
 import type { EcotopiaDevice, EcotopiaGpsFix } from '../../services/api';
+import {
+  TRACK_WINDOW_OPTIONS,
+  DEFAULT_WINDOW_KEY,
+  windowOption,
+  windowStartFor,
+  hasFixInWindow,
+  filterTrackToWindow,
+} from './trackerTimeWindow';
 import { useMapFullscreen, MapResizeHandler } from '../../hooks';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../config';
 import { brandColors } from '../../theme';
@@ -155,11 +164,24 @@ function ZoomWatcher({ onZoom }: { onZoom: (z: number) => void }) {
 }
 
 // The selected tracker's historical path, terminating at its current pin.
-function TrackOverlay({ device, track, color }: { device: EcotopiaDevice; track: EcotopiaGpsFix[]; color: string }) {
+// `endAtDevice` is false when a time window is active and the device's latest
+// fix predates it — extending the line would smuggle an out-of-window position
+// into the filtered track.
+function TrackOverlay({
+  device,
+  track,
+  color,
+  endAtDevice,
+}: {
+  device: EcotopiaDevice;
+  track: EcotopiaGpsFix[];
+  color: string;
+  endAtDevice: boolean;
+}) {
   let points: [number, number][] = track.map((f) => [f.latitude, f.longitude]);
   // The paginated GPS history can lag behind status_gps, so extend the line to
   // the device's current position so it ends at the badge pin.
-  if (device.latitude != null && device.longitude != null) {
+  if (endAtDevice && device.latitude != null && device.longitude != null) {
     const last = points[points.length - 1];
     if (!last || Math.abs(last[0] - device.latitude) > 1e-5 || Math.abs(last[1] - device.longitude) > 1e-5) {
       points = [...points, [device.latitude, device.longitude]];
@@ -180,17 +202,21 @@ function TrackOverlay({ device, track, color }: { device: EcotopiaDevice; track:
 
 // List of every located tag. The selected row is highlighted to tie it to the
 // pin on the map; clicking a row toggles selection just like tapping a pin, and
-// selecting a pin scrolls its row into view.
+// selecting a pin scrolls its row into view. When a time window is active,
+// birds with no fix inside it are greyed out — but keep their row (and their
+// old "Last fix" date) so it's obvious which tags have gone quiet and since when.
 function TrackerTable({
   devices,
   colors,
   selectedId,
   onSelect,
+  windowStart,
 }: {
   devices: EcotopiaDevice[];
   colors: Map<string, string>;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  windowStart: Dayjs | null;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
@@ -234,47 +260,58 @@ function TrackerTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {devices.map((d) => (
-            <TableRow
-              key={d.id}
-              hover
-              selected={d.id === selectedId}
-              ref={d.id === selectedId ? selectedRowRef : undefined}
-              onClick={() => onSelect(d.id)}
-              sx={{ cursor: 'pointer' }}
-            >
-              <TableCell>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: colors.get(d.id) ?? brandColors.main, flexShrink: 0 }} />
-                  <Typography sx={{ fontWeight: 600, fontSize: 'inherit' }}>
-                    {tagName(d)}
-                  </Typography>
-                  {d.description && (
-                    <Typography variant="caption" color="text.secondary">
-                      {d.description}
+          {devices.map((d) => {
+            const stale = !hasFixInWindow(d.gps_timestamp, windowStart);
+            return (
+              <TableRow
+                key={d.id}
+                hover
+                selected={d.id === selectedId}
+                ref={d.id === selectedId ? selectedRowRef : undefined}
+                onClick={() => onSelect(d.id)}
+                sx={{ cursor: 'pointer', ...(stale && { '& .MuiTableCell-root': { color: 'text.disabled' } }) }}
+              >
+                <TableCell>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: colors.get(d.id) ?? brandColors.main, flexShrink: 0, ...(stale && { filter: 'grayscale(100%)', opacity: 0.4 }) }} />
+                    <Typography sx={{ fontWeight: 600, fontSize: 'inherit', color: 'inherit' }}>
+                      {tagName(d)}
                     </Typography>
-                  )}
-                </Stack>
-              </TableCell>
-              <TableCell>{sexSymbol(d) || '—'}</TableCell>
-              <TableCell>
-                {d.ring_number ? (
-                  <Stack direction="row" alignItems="center" gap={0.75}>
-                    <Box
-                      title={d.ring_colour ?? undefined}
-                      sx={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid', borderColor: d.ring_colour ?? 'text.disabled', flexShrink: 0 }}
-                    />
-                    {d.ring_number}
+                    {d.description && (
+                      <Typography variant="caption" color={stale ? 'inherit' : 'text.secondary'}>
+                        {d.description}
+                      </Typography>
+                    )}
                   </Stack>
-                ) : (
-                  '—'
-                )}
-              </TableCell>
-              <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                {d.gps_timestamp ? dayjs(d.gps_timestamp).format('D MMM HH:mm') : '—'}
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>{sexSymbol(d) || '—'}</TableCell>
+                <TableCell>
+                  {d.ring_number ? (
+                    <Stack direction="row" alignItems="center" gap={0.75}>
+                      <Box
+                        title={d.ring_colour ?? undefined}
+                        sx={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid', borderColor: d.ring_colour ?? 'text.disabled', flexShrink: 0, ...(stale && { filter: 'grayscale(100%)', opacity: 0.4 }) }}
+                      />
+                      {d.ring_number}
+                    </Stack>
+                  ) : (
+                    '—'
+                  )}
+                </TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                  {stale && d.gps_timestamp ? (
+                    <Tooltip title="No fixes in the selected period — showing the last known fix">
+                      <span>{dayjs(d.gps_timestamp).format('D MMM HH:mm')}</span>
+                    </Tooltip>
+                  ) : d.gps_timestamp ? (
+                    dayjs(d.gps_timestamp).format('D MMM HH:mm')
+                  ) : (
+                    '—'
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>
@@ -283,9 +320,16 @@ function TrackerTable({
 
 /** Cannwood-only GPS Tracking tab: tracked tags at their latest GNSS location, with
  *  co-located tags clustered. Clicking a single tracker's pin — or its row in the
- *  table below the map — overlays that one tracker's historical track. */
+ *  table below the map — overlays that one tracker's historical track.
+ *
+ *  A time-window filter (default: no filter) narrows the overlaid track to the
+ *  recent past — the everyday question is "where has this bird been the last few
+ *  days?". The window is applied client-side to the already-fetched full track,
+ *  so switching windows never refetches. Birds whose latest fix predates the
+ *  window grey out (map pin and table row) rather than disappear, and selecting
+ *  one shows a notice instead of a track. */
 export function DeviceTrackerMap() {
-  const { isFullscreen, toggleFullscreen, fullscreenContainerSx, fullscreenMapSx } = useMapFullscreen();
+  const { isFullscreen, toggleFullscreen, fullscreenContainerSx } = useMapFullscreen();
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
 
   const [zoom, setZoom] = useState<number>(DEFAULT_MAP_ZOOM);
@@ -300,6 +344,11 @@ export function DeviceTrackerMap() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [track, setTrack] = useState<EcotopiaGpsFix[]>([]);
   const [trackLoading, setTrackLoading] = useState(false);
+
+  // Time window applied to the loaded data (tracks + pin/row freshness).
+  const [windowKey, setWindowKey] = useState<string>(DEFAULT_WINDOW_KEY);
+  const activeWindow = windowOption(windowKey);
+  const windowStart = useMemo(() => windowStartFor(activeWindow.days), [activeWindow.days]);
 
   const trackDays = useMemo(() => Math.max(1, dayjs().diff(dayjs(TRACK_START), 'day')), []);
 
@@ -366,6 +415,18 @@ export function DeviceTrackerMap() {
     [devices, selectedDeviceId],
   );
 
+  const windowedTrack = useMemo(() => filterTrackToWindow(track, windowStart), [track, windowStart]);
+
+  // Whether the selected bird's latest fix is inside the window; when it isn't,
+  // the track line must not be extended to that (out-of-window) position.
+  const selectedIsCurrent = selectedDevice == null || hasFixInWindow(selectedDevice.gps_timestamp, windowStart);
+
+  // The two streams can disagree (a satellite fix may postdate status_gps), so
+  // only declare "no fixes in this period" once the track has actually loaded
+  // and come back empty for the window.
+  const showEmptyWindowNotice =
+    windowStart != null && selectedDevice != null && !trackLoading && windowedTrack.length === 0 && !selectedIsCurrent;
+
   // Each tracker's colour is defined server-side on the bird mapping, so it stays
   // stable across renders and consistent with any other view that uses it.
   const deviceColors = useMemo<Map<string, string>>(
@@ -420,40 +481,66 @@ export function DeviceTrackerMap() {
       <Paper
         elevation={0}
         className="fullscreen-map-container"
-        sx={{ overflow: 'hidden', border: '1px solid', borderColor: 'divider', position: 'relative', flexShrink: 0, ...fullscreenContainerSx }}
+        sx={{ overflow: 'hidden', border: '1px solid', borderColor: 'divider', flexShrink: 0, display: 'flex', flexDirection: 'column', ...fullscreenContainerSx }}
       >
-        {trackLoading && (
-          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1100, height: 3 }} />
-        )}
-        <Stack direction="row" spacing={0.5} sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1000 }}>
+        {/* Toolbar in normal flow (not overlaid on the map) so it never hides
+            map content, stays available in fullscreen, and wraps to a second
+            line on narrow phones: time window left, map controls right. */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          flexWrap="wrap"
+          columnGap={1}
+          rowGap={0.75}
+          sx={{ px: 1, py: 0.75, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}
+        >
           <ToggleButtonGroup
-            value={mapType}
+            value={windowKey}
             exclusive
-            onChange={(_, v) => v && setMapType(v)}
+            onChange={(_, v) => v && setWindowKey(v)}
             size="small"
-            sx={{ bgcolor: 'white', boxShadow: 2 }}
+            aria-label="time window"
           >
-            <ToggleButton value="street" aria-label="street map">
-              <Tooltip title="Street Map">
-                <MapIcon fontSize="small" />
-              </Tooltip>
-            </ToggleButton>
-            <ToggleButton value="satellite" aria-label="satellite view">
-              <Tooltip title="Satellite View">
-                <SatelliteIcon fontSize="small" />
-              </Tooltip>
-            </ToggleButton>
+            {TRACK_WINDOW_OPTIONS.map((o) => (
+              <ToggleButton key={o.key} value={o.key} aria-label={o.noun} sx={{ px: 1.25, py: 0.25, textTransform: 'none', fontWeight: 600 }}>
+                {o.label}
+              </ToggleButton>
+            ))}
           </ToggleButtonGroup>
-          <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
-            <IconButton size="small" onClick={toggleFullscreen} sx={{ bgcolor: 'white', boxShadow: 2, '&:hover': { bgcolor: 'grey.100' } }}>
-              {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ flex: 1 }} />
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <ToggleButtonGroup
+              value={mapType}
+              exclusive
+              onChange={(_, v) => v && setMapType(v)}
+              size="small"
+            >
+              <ToggleButton value="street" aria-label="street map" sx={{ py: 0.25 }}>
+                <Tooltip title="Street Map">
+                  <MapIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
+              <ToggleButton value="satellite" aria-label="satellite view" sx={{ py: 0.25 }}>
+                <Tooltip title="Satellite View">
+                  <SatelliteIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+              <IconButton size="small" onClick={toggleFullscreen}>
+                {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </Stack>
 
         {/* Shorter on mobile so the table below peeks above the fold and the
-            user can tell there's more to scroll to. */}
-        <Box sx={{ height: { xs: 340, sm: 500 }, width: '100%', ...fullscreenMapSx }}>
+            user can tell there's more to scroll to. In fullscreen the map takes
+            whatever the toolbar leaves. */}
+        <Box sx={{ position: 'relative', height: { xs: 340, sm: 500 }, width: '100%', ...(isFullscreen && { height: 'auto', flex: 1, minHeight: 0 }) }}>
+          {trackLoading && (
+            <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1100, height: 3 }} />
+          )}
           <MapContainer ref={mapRef} center={DEFAULT_MAP_CENTER} zoom={DEFAULT_MAP_ZOOM} attributionControl={false} style={{ height: '100%', width: '100%' }}>
             <AttributionControl prefix={false} />
             {mapType === 'satellite' ? (
@@ -473,8 +560,9 @@ export function DeviceTrackerMap() {
             {selectedDevice && (
               <TrackOverlay
                 device={selectedDevice}
-                track={track}
+                track={windowedTrack}
                 color={deviceColors.get(selectedDevice.id) ?? brandColors.main}
+                endAtDevice={selectedIsCurrent}
               />
             )}
 
@@ -483,9 +571,14 @@ export function DeviceTrackerMap() {
               if (group.devices.length === 1) {
                 const d = group.devices[0];
                 const isSel = d.id === selectedDeviceId;
+                // A bird with no fix inside the time window greys out but keeps
+                // its pin (at the last known position) so it doesn't just vanish.
+                // The selected pin stays full-colour; the map notice carries the
+                // "no fixes in this period" message instead.
+                const stale = !hasFixInWindow(d.gps_timestamp, windowStart);
                 const icon = badgeIcon(tagName(d), deviceColors.get(d.id) ?? brandColors.main, {
                   emphasized: isSel,
-                  dimmed: hasSelection && !isSel,
+                  dimmed: !isSel && (hasSelection || stale),
                 });
                 return (
                   <Marker
@@ -498,9 +591,11 @@ export function DeviceTrackerMap() {
                 );
               }
               // The selected tracker is never in a cluster, so clusters dim whenever
-              // one is selected. A cluster can't toggle a track unambiguously — tap it
+              // one is selected — or when every bird in the cluster is outside the
+              // time window. A cluster can't toggle a track unambiguously — tap it
               // to zoom in and split it into individually-clickable pins.
-              const icon = clusterIcon(group.devices.length, hasSelection);
+              const allStale = group.devices.every((d) => !hasFixInWindow(d.gps_timestamp, windowStart));
+              const icon = clusterIcon(group.devices.length, hasSelection || allStale);
               return (
                 <Marker
                   key={group.key}
@@ -521,10 +616,33 @@ export function DeviceTrackerMap() {
             <FitBounds points={fitPoints} />
             <MapResizeHandler isFullscreen={isFullscreen} />
           </MapContainer>
+
+          {/* The selected bird has nothing to show in the chosen window: say so
+              (and when it was last heard from) rather than silently drawing no
+              track. pointerEvents:none keeps the map fully interactive under it. */}
+          {showEmptyWindowNotice && selectedDevice && (
+            <Box sx={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, pointerEvents: 'none', maxWidth: 'calc(100% - 24px)' }}>
+              <Paper elevation={2} sx={{ px: 1.5, py: 0.75 }}>
+                <Typography variant="caption" sx={{ display: 'block', textAlign: 'center' }}>
+                  <strong>{tagName(selectedDevice)}</strong>
+                  {`: no fixes in ${activeWindow.noun}`}
+                  {selectedDevice.gps_timestamp
+                    ? ` — last fix ${dayjs(selectedDevice.gps_timestamp).format('D MMM HH:mm')}`
+                    : ' — no fixes recorded yet'}
+                </Typography>
+              </Paper>
+            </Box>
+          )}
         </Box>
       </Paper>
 
-      <TrackerTable devices={locatedDevices} colors={deviceColors} selectedId={selectedDeviceId} onSelect={selectFromRow} />
+      <TrackerTable
+        devices={locatedDevices}
+        colors={deviceColors}
+        selectedId={selectedDeviceId}
+        onSelect={selectFromRow}
+        windowStart={windowStart}
+      />
     </Box>
   );
 }
