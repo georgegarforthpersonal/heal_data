@@ -92,13 +92,15 @@ export default function SurveyWorklistRow({
       {/* The who-row: everyone going (avatars, or "No surveyors yet") beside
           the sign-up action. On phones it is its own full-width line under
           the when-row — date/chip and people never share a line, so a crowd
-          of sign-ups can't crush the date. */}
+          of sign-ups can't crush the date. Right-aligned at every width so
+          people + affordance sit at the right edge, same as the Recent rows:
+          one scanning rule for the whole panel. */}
       {stacked && (
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: { xs: 'space-between', sm: 'flex-end' },
+            justifyContent: 'flex-end',
             gap: 1.25,
             flexShrink: 0,
           }}
