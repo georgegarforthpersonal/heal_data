@@ -4,6 +4,10 @@
  * "Recent" section: RecordPanel leads with it for unscheduled groups, and
  * SurveysPanel falls back to it when a scheduled group's diary is empty.
  * Headers stay with the panels; this is just the rows.
+ *
+ * Row grammar (shared with the Scheduled rows): line 1 is identity only
+ * (date, location); line 2 is payload from the left (species chips) with
+ * people + affordance (avatars, chevron) at the right edge.
  */
 import { Box, Typography } from '@mui/material';
 import { ChevronRight } from '@mui/icons-material';
@@ -48,29 +52,27 @@ export default function RecentSurveyRows({
             '&:hover': { bgcolor: groupColors.page },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.6, minWidth: 0, flex: 1 }}>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
-                {formatRecordedDate(survey.date)}
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
+              {formatRecordedDate(survey.date)}
+            </Typography>
+            {survey.location_name && (
+              <Typography sx={{ fontSize: 13, color: groupColors.textMuted, mt: 0.25 }} noWrap>
+                {survey.location_name}
               </Typography>
-              {survey.location_name && (
-                <Typography sx={{ fontSize: 13, color: groupColors.textMuted, mt: 0.25 }} noWrap>
-                  {survey.location_name}
-                </Typography>
-              )}
-            </Box>
-            <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1, flexShrink: 0 }}>
-              <SurveyorAvatars surveyors={resolveSurveyors(survey.surveyor_ids)} emptyLabel="" />
-              <ChevronRight sx={{ fontSize: 18, color: groupColors.textMuted }} />
-            </Box>
+            )}
           </Box>
+          {/* Bottom line, same grammar as the Scheduled rows' who-row: payload
+              (species chips) from the left, people + affordance at the right
+              edge. On phones space-between pushes them apart; on desktop the
+              whole cell is content-sized and right-aligned anyway. */}
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
               gap: 1.6,
               minWidth: 0,
-              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+              justifyContent: 'space-between',
               flexShrink: { xs: 1, sm: 0 },
             }}
           >
@@ -79,7 +81,7 @@ export default function RecentSurveyRows({
               fallbackSpeciesType={speciesType}
               justify={{ xs: 'flex-start', sm: 'flex-end' }}
             />
-            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1.6, flexShrink: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.6, flexShrink: 0 }}>
               <SurveyorAvatars surveyors={resolveSurveyors(survey.surveyor_ids)} emptyLabel="" />
               <ChevronRight sx={{ fontSize: 18, color: groupColors.textMuted }} />
             </Box>
