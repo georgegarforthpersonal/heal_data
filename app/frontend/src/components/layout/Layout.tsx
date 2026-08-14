@@ -37,17 +37,19 @@ function useScrollRestoration(scroller: React.RefObject<HTMLDivElement | null>) 
     const markUserScroll = () => {
       userScrolled = true;
     };
-    let observer: ResizeObserver | null = null;
-    if (target > 0 && typeof ResizeObserver !== 'undefined') {
+    // MutationObserver, not ResizeObserver: hydration REPLACES the skeleton
+    // nodes, and a ResizeObserver watching removed nodes never fires again.
+    let observer: MutationObserver | null = null;
+    if (target > 0 && typeof MutationObserver !== 'undefined') {
       el.addEventListener('wheel', markUserScroll, { passive: true });
       el.addEventListener('touchstart', markUserScroll, { passive: true });
-      observer = new ResizeObserver(() => {
+      observer = new MutationObserver(() => {
         if (cancelled || userScrolled) return;
         if (el.scrollTop < target && el.scrollHeight - el.clientHeight >= target) {
           el.scrollTop = target;
         }
       });
-      for (const child of Array.from(el.children)) observer.observe(child);
+      observer.observe(el, { childList: true, subtree: true });
       setTimeout(() => observer?.disconnect(), 2500);
     }
 
