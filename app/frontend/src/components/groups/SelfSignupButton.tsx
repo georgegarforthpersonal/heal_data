@@ -1,20 +1,26 @@
 /**
- * Self sign-up as an instant toggle — no confirmation dialog. Signing up and
- * withdrawing are both single clicks: each is trivially reversible (the
- * opposite click undoes it), so the pattern is act-immediately + toast, with
- * the button itself carrying the state. Signed up it reads "✓ Signed up ×"
- * in brand green — the trailing × (removable-chip pattern) is what makes
- * tap-to-withdraw discoverable on touch, where there is no hover. Hovering
+ * Self sign-up as an instant, optimistic toggle — no confirmation dialog.
+ * The button flips the moment it's clicked (the request settles in the
+ * background), and both directions offer Undo in their toast, so a mis-tap
+ * on touch — where the whole button withdraws — costs one tap to reverse.
+ * Signed up it reads "✓ Signed up ×"; the trailing × (removable-chip
+ * pattern) is what makes tap-to-withdraw discoverable on touch. Hovering
  * (desktop) flips the whole button to a red "Withdraw" (GitHub-unfollow
  * style).
+ *
+ * The optimistic state also persists through a failed surveyor-list refresh
+ * after a first-time sign-up (which mints a new surveyor row): the server
+ * accepted, so the button must keep saying "Signed up" even while the
+ * lookup can't yet resolve the new surveyor id to this user.
  */
 import { useState } from 'react';
-import { Button, CircularProgress } from '@mui/material';
+import { Button } from '@mui/material';
 import { Check, Close, PersonAddAlt1 } from '@mui/icons-material';
 import { scheduledSurveysAPI, type ScheduledSurvey, type Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { groupColors } from '../../pages/groups/groupsTokens';
+import { formatSurveyDate } from '../../pages/groups/surveyState';
 
 interface SelfSignupButtonProps {
   slot: ScheduledSurvey;
@@ -29,36 +35,56 @@ const withdrawRed = '#c62828';
 export default function SelfSignupButton({ slot, assigned, onSaved }: SelfSignupButtonProps) {
   const toast = useToast();
   const { user } = usePermissions();
-  const [inFlight, setInFlight] = useState<'signup' | 'withdraw' | null>(null);
+  const [inFlight, setInFlight] = useState(false);
   const [hover, setHover] = useState(false);
+  // Optimistic/persistent signed-up state. null = trust the derived value;
+  // set after a click and kept after success (see docstring).
+  const [local, setLocal] = useState<boolean | null>(null);
 
-  const isSignedUp = assigned.some((s) => s.user_id != null && s.user_id === user?.id);
-  const saving = inFlight !== null;
-  // The red withdraw treatment shows while hovering the signed-up state and
-  // stays through the withdraw request itself. Hover is cleared after every
-  // completed action, so a fresh sign-up reads "✓ Signed up ×" even though
-  // the pointer is still on the button — Withdraw only appears once the
-  // pointer leaves and returns.
-  const showWithdraw = inFlight === 'withdraw' || (isSignedUp && hover && !saving);
+  // Signing up requires an account to link the surveyor to.
+  if (!user) return null;
 
-  const handleClick = async (e: React.MouseEvent) => {
-    // Some rows navigate on click — this button must never trigger that.
-    e.stopPropagation();
-    if (saving) return;
-    const withdrawing = isSignedUp;
-    setInFlight(withdrawing ? 'withdraw' : 'signup');
+  const serverSignedUp = assigned.some((s) => s.user_id != null && s.user_id === user.id);
+  const isSignedUp = local ?? serverSignedUp;
+  // The red withdraw treatment shows while hovering the signed-up state.
+  // Hover is cleared after every action, so a fresh sign-up reads
+  // "✓ Signed up ×" even though the pointer is still on the button.
+  const showWithdraw = isSignedUp && hover && !inFlight;
+
+  const perform = async (withdrawing: boolean, isUndo: boolean) => {
+    if (inFlight) return;
+    setInFlight(true);
+    setLocal(!withdrawing); // flip immediately — the request settles behind it
     try {
       const result = withdrawing
         ? await scheduledSurveysAPI.withdraw(slot.id)
         : await scheduledSurveysAPI.signUp(slot.id);
       onSaved(slot.id, result.surveyor_ids);
-      toast.success(withdrawing ? 'You’ve been taken off this survey' : 'You’re signed up');
+      const undo: () => void = () => void perform(!withdrawing, true);
+      if (withdrawing) {
+        toast.success(
+          isUndo ? 'Sign-up restored' : 'You’ve withdrawn from this survey',
+          isUndo ? undefined : { label: 'Undo', onClick: undo },
+        );
+      } else {
+        toast.success(
+          isUndo ? 'Withdrawal undone — you’re signed up' : 'You’re signed up',
+          isUndo ? undefined : { label: 'Undo', onClick: undo },
+        );
+      }
     } catch {
-      toast.error(withdrawing ? 'Failed to withdraw' : 'Failed to sign up');
+      setLocal(withdrawing); // roll the optimistic flip back
+      toast.error(withdrawing ? 'Couldn’t withdraw — try again' : 'Couldn’t sign up — try again');
     } finally {
-      setInFlight(null);
+      setInFlight(false);
       setHover(false);
     }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Some rows navigate on click — this button must never trigger that.
+    e.stopPropagation();
+    void perform(isSignedUp, false);
   };
 
   return (
@@ -67,11 +93,14 @@ export default function SelfSignupButton({ slot, assigned, onSaved }: SelfSignup
       onClick={handleClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      disabled={saving}
+      disabled={inFlight}
+      aria-label={
+        isSignedUp
+          ? `Withdraw from the survey ${formatSurveyDate(slot)}`
+          : `Sign up for the survey ${formatSurveyDate(slot)}`
+      }
       startIcon={
-        saving ? (
-          <CircularProgress size={14} color="inherit" />
-        ) : showWithdraw ? (
+        showWithdraw ? (
           <Close sx={{ fontSize: 17 }} />
         ) : isSignedUp ? (
           <Check sx={{ fontSize: 17 }} />
@@ -80,7 +109,7 @@ export default function SelfSignupButton({ slot, assigned, onSaved }: SelfSignup
         )
       }
       endIcon={
-        isSignedUp && !showWithdraw && !saving ? (
+        isSignedUp && !showWithdraw ? (
           <Close sx={{ fontSize: 15, opacity: 0.6 }} />
         ) : undefined
       }
@@ -92,6 +121,7 @@ export default function SelfSignupButton({ slot, assigned, onSaved }: SelfSignup
         px: 1.5,
         py: 0.5,
         minWidth: 112,
+        minHeight: { xs: 44, sm: 32 },
         // Colour is driven by the same state as the label (not CSS :hover),
         // so text and treatment can never disagree.
         ...(showWithdraw
@@ -108,24 +138,17 @@ export default function SelfSignupButton({ slot, assigned, onSaved }: SelfSignup
                 borderColor: groupColors.brand,
                 bgcolor: 'rgba(61,139,86,0.06)',
                 '&:hover': { borderColor: groupColors.brandDark, bgcolor: 'rgba(61,139,86,0.06)' },
+                '&.Mui-disabled': { color: groupColors.brandDark, borderColor: groupColors.brand },
               }
             : {
-                color: groupColors.brand,
+                color: groupColors.brandDark,
                 borderColor: groupColors.brand,
                 '&:hover': { borderColor: groupColors.brandDark, bgcolor: 'rgba(61,139,86,0.04)' },
-                '&.Mui-disabled': { color: groupColors.brand, borderColor: groupColors.brand },
+                '&.Mui-disabled': { color: groupColors.brandDark, borderColor: groupColors.brand },
               }),
       }}
     >
-      {inFlight === 'signup'
-        ? 'Signing up…'
-        : inFlight === 'withdraw'
-          ? 'Withdrawing…'
-          : showWithdraw
-            ? 'Withdraw'
-            : isSignedUp
-              ? 'Signed up'
-              : 'Sign up'}
+      {showWithdraw ? 'Withdraw' : isSignedUp ? 'Signed up' : 'Sign up'}
     </Button>
   );
 }

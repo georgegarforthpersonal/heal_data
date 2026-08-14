@@ -1379,6 +1379,16 @@ export const locationsAPI = {
   getBySurveyType: (surveyTypeId: number): Promise<Location[]> => {
     return fetchAPI(`/locations/by-survey-type/${surveyTypeId}`);
   },
+
+  /**
+   * The survey type's locations with their GeoJSON geometry (sector colours
+   * fall back to their parent route's; routes embed their ordered sectors) —
+   * everything a group map needs, scoped to one type instead of the whole
+   * organisation's geometry.
+   */
+  getBySurveyTypeWithGeometry: (surveyTypeId: number): Promise<LocationWithBoundary[]> => {
+    return fetchAPI(`/locations/by-survey-type/${surveyTypeId}?with_geometry=true`);
+  },
 };
 
 // ============================================================================

@@ -17,7 +17,7 @@ import {
 } from '../../services/api';
 import { AudioClipPlayer } from '../audio/AudioClipPlayer';
 import { ImageViewerModal, type ImageViewerItem } from '../ImageViewerModal';
-import { groupCardSx, groupColors } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, panelTitleSx } from '../../pages/groups/groupsTokens';
 import { formatRecordedDateShort } from '../../pages/groups/surveyState';
 
 /** Species shown on the panel before the "All species" door takes over. */
@@ -99,7 +99,7 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
   return (
     <Paper sx={groupCardSx}>
       <Box sx={{ px: 2.25, py: 1.75, borderBottom: `1px solid ${groupColors.divider}` }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary }}>
+        <Typography component="h2" sx={panelTitleSx}>
           {title}
         </Typography>
       </Box>
@@ -206,7 +206,7 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
               {total} species {kind === 'photos' ? 'photographed' : 'detected'}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: groupColors.brand, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: groupColors.brandDark, flexShrink: 0 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>View all</Typography>
             <ChevronRight sx={{ fontSize: 18 }} />
           </Box>

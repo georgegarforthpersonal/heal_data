@@ -1,9 +1,8 @@
 /**
- * The "Past surveys" door row at the foot of a group's Surveys panel — the
+ * The "All surveys" door row at the foot of a group's Surveys panel — the
  * way into the full survey history. Shared by the scheduled worklist panel
- * and the unscheduled record panel; the label leads with "Past" because
- * that's what people come looking for ("previous records", "results") — the
- * schedule is already on the page above it.
+ * and the unscheduled record panel. The label matches the destination
+ * page's title so the door and the page it opens share one name.
  */
 import { Box, ButtonBase, Typography } from '@mui/material';
 import { ChevronRight, History } from '@mui/icons-material';
@@ -47,11 +46,11 @@ export default function AllSurveysDoor({ summary, onViewAll }: AllSurveysDoorPro
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: groupColors.textPrimary }}>
-          Past surveys
+          All surveys
         </Typography>
         <Typography sx={{ fontSize: 12, color: groupColors.textMuted }}>{summary}</Typography>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: groupColors.brand, flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: groupColors.brandDark, flexShrink: 0 }}>
         <Typography sx={{ fontSize: 13, fontWeight: 600 }}>View all</Typography>
         <ChevronRight sx={{ fontSize: 18 }} />
       </Box>

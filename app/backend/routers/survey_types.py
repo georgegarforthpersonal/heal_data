@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from typing import List, Set, Union
 from datetime import datetime
 from sqlmodel import col
-from sqlalchemy import func, text
+from sqlalchemy import func, nullsfirst, text
 from sqlalchemy.orm import Session
 from database.connection import get_db
 from auth import require_admin_role
@@ -163,7 +163,9 @@ def get_survey_type(
             SurveyTypeLocationLink.survey_type_id == survey_type_id,
             Location.organisation_id == org.id
         )
-        .order_by(Location.name)
+        # Walk order for sectors (routes/areas have no ordinal and sort by
+        # name); alphabetical would mis-order a transect's sections.
+        .order_by(nullsfirst(col(Location.ordinal).asc()), Location.name)
         .all()
     )
 

@@ -12,7 +12,7 @@ import { Box, CircularProgress, Paper, ToggleButton, ToggleButtonGroup, Typograp
 import { BarChart as ChartIcon, ViewList } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { dashboardAPI, type Species, type SpeciesOccurrenceDataPoint } from '../../services/api';
-import { groupCardSx, groupColors } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, panelTitleSx } from '../../pages/groups/groupsTokens';
 import SeasonalCountChart from '../dashboard/SeasonalCountChart';
 
 interface SingleSpeciesCountPanelProps {
@@ -72,7 +72,7 @@ export default function SingleSpeciesCountPanel({ surveyTypeId, species }: Singl
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary }} noWrap>
+          <Typography component="h2" sx={{ ...panelTitleSx, whiteSpace: 'nowrap' }}>
             Sighting count
           </Typography>
           <Typography

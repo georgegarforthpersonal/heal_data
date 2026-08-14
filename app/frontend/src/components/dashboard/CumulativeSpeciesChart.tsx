@@ -9,7 +9,7 @@
  * and the Groups "Species count" panel — only the colour/height/chrome differ.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, CircularProgress, Paper, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Paper, Typography } from '@mui/material';
 import {
   AreaChart,
   Area,
@@ -86,7 +86,10 @@ function prepareChartData(data: CumulativeSpeciesDataPoint[]): {
         dedupSpecies[type] = Array.from(new Set(names));
       });
       return {
-        date: new Date(dateKey).getTime(),
+        // dayjs parses the ISO date in LOCAL time, matching the tooltip's
+        // parse — new Date() parsed it as UTC, so west of UTC the axis and
+        // tooltip could disagree by a day.
+        date: dayjs(dateKey).valueOf(),
         dateStr: dateKey,
         ...d.counts,
         newSpecies: dedupSpecies,
@@ -119,7 +122,8 @@ export default function CumulativeSpeciesChart({
 }: CumulativeSpeciesChartProps) {
   const [data, setData] = useState<CumulativeSpeciesDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   // Keep the latest onSummary without retriggering the fetch effect.
   const onSummaryRef = useRef(onSummary);
@@ -131,7 +135,7 @@ export default function CumulativeSpeciesChart({
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError(null);
+    setError(false);
     const filter = typesKey === '' ? undefined : typesKey.split(',');
     dashboardAPI
       .getCumulativeSpecies(filter, surveyTypeId)
@@ -143,9 +147,10 @@ export default function CumulativeSpeciesChart({
           types: typesInSeries(res.data),
         });
       })
-      .catch((err) => {
+      .catch(() => {
         if (!active) return;
-        setError(err instanceof Error ? err.message : 'Failed to load chart data');
+        // Written copy, never a raw API error string, and always a Retry.
+        setError(true);
         // Don't leave a stale headline count sitting beside the error.
         onSummaryRef.current?.({ total: 0, types: [] });
       })
@@ -155,7 +160,7 @@ export default function CumulativeSpeciesChart({
     return () => {
       active = false;
     };
-  }, [typesKey, surveyTypeId]);
+  }, [typesKey, surveyTypeId, attempt]);
 
   const prepared = useMemo(() => prepareChartData(data), [data]);
 
@@ -175,10 +180,13 @@ export default function CumulativeSpeciesChart({
   }
   if (error) {
     return (
-      <Box sx={centeredSx}>
-        <Typography variant="body2" color="error">
-          {error}
+      <Box sx={{ ...centeredSx, flexDirection: 'column', gap: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Couldn’t load the species chart.
         </Typography>
+        <Button size="small" onClick={() => setAttempt((n) => n + 1)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+          Retry
+        </Button>
       </Box>
     );
   }
@@ -208,13 +216,19 @@ export default function CumulativeSpeciesChart({
           tickLine={false}
           axisLine={{ stroke: '#eceeec' }}
         />
-        {/* The count is the point of a discovery curve — show the scale. */}
+        {/* The count is the point of a discovery curve — say what it counts. */}
         <YAxis
-          width={32}
+          width={44}
           allowDecimals={false}
           tick={{ fontSize: 11, fill: '#666' }}
           tickLine={false}
           axisLine={false}
+          label={{
+            value: 'Species',
+            angle: -90,
+            position: 'insideLeft',
+            style: { fontSize: 11, fill: '#666', textAnchor: 'middle' },
+          }}
         />
         <RechartsTooltip
           content={
@@ -259,7 +273,8 @@ interface TooltipProps {
 function CumulativeTooltip({ active, payload, noun }: TooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
-  const date = dayjs(point.dateStr).format('MMM DD, YYYY');
+  // UK date order, matching every other date in the product.
+  const date = dayjs(point.dateStr).format('D MMM YYYY');
   // The chart plots the combined 'all' series regardless of the filter.
   const newSpeciesList = point.newSpecies?.all ?? [];
   const count = (point.all as number) || 0;
@@ -272,10 +287,11 @@ function CumulativeTooltip({ active, payload, noun }: TooltipProps) {
       <Typography variant="body2" sx={{ mb: 1 }}>
         Total: {count} {noun}
       </Typography>
+      {/* Each point is a survey date, not a calendar week — say "survey". */}
       {newSpeciesList.length > 0 ? (
         <>
           <Typography variant="body2" sx={{ fontWeight: 600, mt: 1.5, mb: 0.5 }}>
-            New this week:
+            New on this survey:
           </Typography>
           <Box sx={{ maxHeight: 150, overflowY: 'auto' }}>
             {newSpeciesList.map((species, idx) => (
@@ -287,7 +303,7 @@ function CumulativeTooltip({ active, payload, noun }: TooltipProps) {
         </>
       ) : (
         <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-          No new species this week
+          No new species on this survey
         </Typography>
       )}
     </Paper>

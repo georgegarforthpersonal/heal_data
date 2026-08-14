@@ -48,6 +48,11 @@ interface SurveyFormFieldsProps {
   showStartEndTime?: boolean;
   showSunPercentage?: boolean;
   showTemperature?: boolean;
+
+  // Optional date window (slot-aware recording constrains the picker to the
+  // week being fulfilled).
+  minDate?: Dayjs | null;
+  maxDate?: Dayjs | null;
 }
 
 /**
@@ -85,6 +90,8 @@ export function SurveyFormFields({
   showStartEndTime = false,
   showSunPercentage = false,
   showTemperature = false,
+  minDate = null,
+  maxDate = null,
 }: SurveyFormFieldsProps) {
   const [surveyorsOpen, setSurveyorsOpen] = useState(false);
 
@@ -100,6 +107,8 @@ export function SurveyFormFields({
         label="Date *"
         value={date}
         onChange={onDateChange}
+        minDate={minDate ?? undefined}
+        maxDate={maxDate ?? undefined}
         slotProps={{
           textField: {
             fullWidth: true,

@@ -162,6 +162,32 @@ function LocationLegendIcon({ type }: { type: Exclude<LocationType, 'none'> }) {
   );
 }
 
+/**
+ * Keep an embedded (read-only, not fullscreen) map from hijacking the page's
+ * scroll: wheel scrolls the page (zoom via the +/- buttons), and one-finger
+ * touch drags scroll the page too (pinch-zoom stays live; fullscreen
+ * restores full pan/zoom). Editing maps keep every gesture.
+ */
+function GestureGuard({ active }: { active: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!active) {
+      map.scrollWheelZoom.enable();
+      map.dragging.enable();
+      return;
+    }
+    map.scrollWheelZoom.disable();
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      map.dragging.disable();
+    }
+    return () => {
+      map.scrollWheelZoom.enable();
+      map.dragging.enable();
+    };
+  }, [map, active]);
+  return null;
+}
+
 export default function DeviceMap({
   devices,
   locationsWithBoundaries,
@@ -315,7 +341,10 @@ export default function DeviceMap({
         <Box
           sx={{
             height,
-            minHeight: 400,
+            // A numeric height prop is the height (it used to be silently
+            // overridden by this floor); viewport-relative string heights
+            // keep the 400px floor so short windows don't crush the map.
+            minHeight: typeof height === 'number' ? undefined : 400,
             width: '100%',
             ...fullscreenMapSx,
           }}
@@ -326,6 +355,7 @@ export default function DeviceMap({
             style={{ height: '100%', width: '100%' }}
             attributionControl={false}
           >
+            <GestureGuard active={readOnly && !isFullscreen} />
             <AttributionControl prefix={false} position="bottomleft" />
             {mapType === 'satellite' ? (
               <TileLayer

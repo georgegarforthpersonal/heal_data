@@ -147,6 +147,29 @@ export function groupPath(surveyType: Pick<SurveyType, 'id' | 'name'>): string {
   return `/groups/${groupSlug(surveyType.name) || surveyType.id}`;
 }
 
+// The survey-type list changes rarely but gates the first paint of every
+// group page (the slug must resolve before anything can be fetched), so it
+// is cached for a few minutes. A failed fetch is never cached.
+const TYPES_CACHE_TTL_MS = 5 * 60 * 1000;
+let typesCache: { promise: Promise<SurveyType[]>; at: number } | null = null;
+
+function cachedSurveyTypes(): Promise<SurveyType[]> {
+  const now = Date.now();
+  if (!typesCache || now - typesCache.at > TYPES_CACHE_TTL_MS) {
+    const promise = surveyTypesAPI.getAll().catch((err) => {
+      typesCache = null; // never cache a failure
+      throw err;
+    });
+    typesCache = { promise, at: now };
+  }
+  return typesCache.promise;
+}
+
+/** Drop the cached survey-type list (tests, or after admin edits). */
+export function clearGroupTypeCache(): void {
+  typesCache = null;
+}
+
 /**
  * Resolve a /groups/:typeId route param — a name slug or a numeric id (old
  * links keep working) — to the survey type id, or null when nothing matches.
@@ -158,7 +181,7 @@ export function groupPath(surveyType: Pick<SurveyType, 'id' | 'name'>): string {
 export async function resolveGroupTypeId(param: string): Promise<number | null> {
   const beta = new Set(betaGroupNames());
   const isBeta = (t: SurveyType) => beta.has(t.name.trim().toLowerCase());
-  const types = await surveyTypesAPI.getAll();
+  const types = await cachedSurveyTypes();
   if (/^\d+$/.test(param)) {
     const match = types.find((t) => t.id === Number(param));
     return match && isBeta(match) ? match.id : null;

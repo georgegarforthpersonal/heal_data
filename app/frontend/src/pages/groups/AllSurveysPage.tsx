@@ -13,7 +13,7 @@
  * they get the Past list alone, chipless.
  */
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Box, ButtonBase, Paper, Typography, Button, CircularProgress } from '@mui/material';
 import {
   ApiError,
@@ -29,7 +29,7 @@ import {
 import { groupCardSx, groupColors } from './groupsTokens';
 import { groupActivity, primarySpeciesType, resolveGroupTypeId } from './groupMeta';
 import { deriveSlotState, formatRecordedDate, formatSurveyDate, scheduleSlots, type SlotState } from './surveyState';
-import { useSignupSaved, useSurveyorLookup } from '../../hooks';
+import { useDocumentTitle, useSignupSaved, useSurveyorLookup } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
 import GroupBreadcrumb from '../../components/groups/GroupBreadcrumb';
 import SelfSignupButton from '../../components/groups/SelfSignupButton';
@@ -42,8 +42,8 @@ const STATUS_STYLES: Record<SlotState, { label: string; color: string; bg: strin
   recorded: { label: 'Recorded', color: '#2E6B42', bg: '#DBEDDB' },
   upcoming: { label: 'Upcoming', color: '#454648', bg: '#EBECED' },
   'due-this-week': { label: 'Due this week', color: '#2C5F8A', bg: '#DCE8F2' },
-  'needs-survey': { label: 'Overdue', color: groupColors.amberMonth, bg: '#FBF3DB' },
-  cancelled: { label: 'Cancelled', color: '#888888', bg: '#EBECED' },
+  'needs-survey': { label: 'Not recorded', color: groupColors.amberMonth, bg: '#FBF3DB' },
+  cancelled: { label: 'Cancelled', color: '#54585C', bg: '#EBECED' },
 };
 
 function StatusChip({ state }: { state: SlotState }) {
@@ -106,9 +106,15 @@ export default function AllSurveysPage() {
   const [error, setError] = useState(false);
   const [greenIds, setGreenIds] = useState<Set<number>>(new Set());
   // Past by default: this page's visitors come for previous results — the
-  // group page's worklist already shows the near-term schedule.
-  const [filter, setFilter] = useState<'past' | 'schedule'>('past');
+  // group page's worklist already shows the near-term schedule. The filter
+  // lives in the URL so back/refresh/share keep the view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter: 'past' | 'schedule' = searchParams.get('tab') === 'schedule' ? 'schedule' : 'past';
+  const setFilter = (next: 'past' | 'schedule') =>
+    setSearchParams(next === 'past' ? {} : { tab: 'schedule' }, { replace: true });
   const toast = useToast();
+
+  useDocumentTitle(surveyType ? `${surveyType.name} · All surveys` : undefined);
 
   useEffect(() => {
     if (!typeId) {
@@ -212,7 +218,9 @@ export default function AllSurveysPage() {
     state: {
       returnTo: {
         pathname: `/groups/${typeId}/all`,
-        label: surveyType.name,
+        // Restore the filter the user had when they come back.
+        search: filter === 'schedule' ? '?tab=schedule' : '',
+        label: `${surveyType.name} surveys`,
       },
     },
   };
@@ -241,10 +249,10 @@ export default function AllSurveysPage() {
           ]}
         />
 
-        <Typography sx={{ fontSize: 24, fontWeight: 600, color: groupColors.textPrimary }}>
+        <Typography component="h1" sx={{ fontSize: 24, fontWeight: 600, color: groupColors.textPrimary, m: 0 }}>
           All surveys
         </Typography>
-        <Typography sx={{ fontSize: 13.5, color: '#888', mb: 2 }}>
+        <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted, mb: 2 }}>
           {surveyType.name} ·{' '}
           {showPast ? `${total} recorded, most recent first` : `${schedule.length} scheduled, soonest first`}
         </Typography>
@@ -282,26 +290,31 @@ export default function AllSurveysPage() {
               // stack too, chips starting from the left — uniformly, so light
               // and chip-heavy rows read the same (mixed alignment looked odd).
               const stacked = state === 'due-this-week' || state === 'upcoming' || row.kind === 'survey';
+              // Recorded rows navigate, so they are real buttons (keyboard
+              // reachable); slot rows are static containers.
+              const RowComponent: React.ElementType = clickable ? ButtonBase : Box;
               return (
-                <Box
+                <RowComponent
                   key={`${row.kind}-${row.kind === 'survey' ? row.survey.id : row.slot.id}`}
+                  {...(clickable
+                    ? {
+                        onClick: () => openSurvey(row.survey.id),
+                        'aria-label': `Open the survey recorded ${formatRecordedDate(row.survey.date)}`,
+                      }
+                    : {})}
                   sx={{
+                    width: '100%',
                     display: 'flex',
                     flexDirection: { xs: stacked ? 'column' : 'row', sm: 'row' },
                     alignItems: { xs: stacked ? 'stretch' : 'center', sm: 'center' },
                     gap: { xs: stacked ? 1 : 1.75, sm: 1.75 },
                     px: 2.25,
                     py: 1.6,
+                    textAlign: 'left',
                     borderTop: idx === 0 ? 'none' : `1px solid ${groupColors.dividerInner}`,
                     bgcolor: state === 'needs-survey' ? groupColors.amberRowBg : 'transparent',
-                    ...(clickable
-                      ? {
-                          cursor: 'pointer',
-                          '&:hover': { bgcolor: groupColors.page },
-                        }
-                      : {}),
+                    ...(clickable ? { '&:hover': { bgcolor: groupColors.page } } : {}),
                   }}
-                  onClick={clickable ? () => openSurvey(row.survey.id) : undefined}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -376,7 +389,7 @@ export default function AllSurveysPage() {
                       <SelfSignupButton slot={row.slot} assigned={assigned} onSaved={handleSignupSaved} />
                     </Box>
                   )}
-                </Box>
+                </RowComponent>
               );
             })
           )}
@@ -387,7 +400,7 @@ export default function AllSurveysPage() {
                 onClick={loadMore}
                 disabled={loadingMore}
                 startIcon={loadingMore ? <CircularProgress size={14} /> : undefined}
-                sx={{ textTransform: 'none', color: groupColors.brand }}
+                sx={{ textTransform: 'none', color: groupColors.brandDark, fontWeight: 600 }}
               >
                 Load more
               </Button>

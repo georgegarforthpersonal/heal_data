@@ -1,6 +1,9 @@
 /**
- * Overlapping avatar group for the surveyors assigned to a survey. Falls back to
- * a muted "No surveyors yet" when empty.
+ * Overlapping avatar group for the surveyors assigned to a survey. Falls back
+ * to a muted invitation ("No one signed up yet") when empty. The group
+ * carries all the names as an accessible label — individual circles are
+ * decorative to assistive tech (their tooltips are pointer-only), so the
+ * names are never mouse-only.
  */
 import type { MouseEvent } from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
@@ -25,7 +28,7 @@ interface SurveyorAvatarsProps {
 
 export default function SurveyorAvatars({
   surveyors,
-  emptyLabel = 'No surveyors yet',
+  emptyLabel = 'No one signed up yet',
   max = 5,
   greenIds,
 }: SurveyorAvatarsProps) {
@@ -34,7 +37,7 @@ export default function SurveyorAvatars({
     // with and without surveyors line up.
     return (
       <Box sx={{ height: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-        <Typography variant="caption" sx={{ color: '#999', fontStyle: 'italic' }}>
+        <Typography variant="caption" sx={{ color: groupColors.textMuted, fontStyle: 'italic' }}>
           {emptyLabel}
         </Typography>
       </Box>
@@ -43,13 +46,19 @@ export default function SurveyorAvatars({
 
   const shown = surveyors.slice(0, max);
   const overflow = surveyors.length - shown.length;
+  const allNames = surveyors.map(surveyorFullName).join(', ');
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box
+      role="group"
+      aria-label={`Surveyors: ${allNames}`}
+      sx={{ display: 'flex', alignItems: 'center' }}
+    >
       {shown.map((s, idx) => (
         <Tooltip key={s.id} title={surveyorFullName(s)} arrow {...touchProps}>
           <Box
             onClick={stopClick}
+            aria-hidden
             sx={{
               width: 28,
               height: 28,
@@ -78,6 +87,7 @@ export default function SurveyorAvatars({
         >
           <Box
             onClick={stopClick}
+            aria-hidden
             sx={{
               width: 28,
               height: 28,

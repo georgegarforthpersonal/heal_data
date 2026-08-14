@@ -3,8 +3,10 @@
  * plotted as a dot on a shared Jan–Dec axis, one colour per year, joined
  * only within a year — sparse/seasonal data stays honest (no line across
  * the winter gap) and seasons can be compared year-on-year. Zero counts are
- * real data: surveyed, none seen. Shared by the Dashboards page and the
- * Groups single-species panel — only height/chrome differ.
+ * real data: surveyed, none seen. Years are encoded by colour AND dash
+ * pattern (never hue alone), and the legend always renders so a single-year
+ * chart still says which year it shows. Shared by the Dashboards page and
+ * the Groups panels — only height/chrome differ.
  */
 import { Box, Paper, Typography } from '@mui/material';
 import {
@@ -23,6 +25,7 @@ import {
   buildSeasonalSeries,
   shouldAggregateMonthly,
   YEAR_SERIES_COLORS,
+  YEAR_SERIES_DASHES,
   type SeasonalRow,
 } from '../groups/seasonalSeries';
 
@@ -47,15 +50,17 @@ export default function SeasonalCountChart({
   if (!series) {
     return (
       <Box sx={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography sx={{ fontSize: 13.5, color: '#888' }}>{emptyMessage}</Typography>
+        <Typography sx={{ fontSize: 13.5, color: '#707070' }}>{emptyMessage}</Typography>
       </Box>
     );
   }
 
-  // series.years is most-recent-first so the brand green lands on the current
-  // season. Colour therefore binds to the YEAR, not to render order — lines,
-  // legend and tooltip all read chronologically without repainting anything.
+  // series.years is most-recent-first so the brand green (and the solid
+  // line) land on the current season. Colour and dash bind to the YEAR, not
+  // to render order — lines, legend and tooltip all read chronologically
+  // without repainting anything.
   const colourOf = (year: number) => YEAR_SERIES_COLORS[series.years.indexOf(year)];
+  const dashOf = (year: number) => YEAR_SERIES_DASHES[series.years.indexOf(year)];
   const chronological = [...series.years].sort((a, b) => a - b);
 
   return (
@@ -75,11 +80,17 @@ export default function SeasonalCountChart({
             axisLine={{ stroke: '#eceeec' }}
           />
           <YAxis
-            width={32}
+            width={44}
             allowDecimals={false}
             tick={{ fontSize: 11, fill: '#666' }}
             tickLine={false}
             axisLine={false}
+            label={{
+              value: monthly ? 'Peak count' : 'Count',
+              angle: -90,
+              position: 'insideLeft',
+              style: { fontSize: 11, fill: '#666', textAnchor: 'middle' },
+            }}
           />
           <RechartsTooltip content={<SeasonTooltip monthly={monthly} />} />
           {chronological.map((year) => (
@@ -88,6 +99,7 @@ export default function SeasonalCountChart({
               dataKey={String(year)}
               stroke={colourOf(year)}
               strokeWidth={2}
+              strokeDasharray={dashOf(year)}
               // Per-survey rows are keyed by exact date, so every other
               // year's visit punches a hole in this year's series — those
               // holes must connect. Monthly rows align across years: there a
@@ -101,24 +113,33 @@ export default function SeasonalCountChart({
           ))}
         </LineChart>
       </ResponsiveContainer>
-      {(series.years.length > 1 || monthly) && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', mt: 1 }}>
-          {series.years.length > 1 &&
-            chronological.map((year) => (
-              <Box key={year} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colourOf(year) }} />
-                <Typography sx={{ fontSize: 12, color: '#666' }}>{year}</Typography>
-              </Box>
-            ))}
-          {series.truncated && (
-            <Typography sx={{ fontSize: 12, color: '#888' }}>earlier years not shown</Typography>
-          )}
-          {monthly && (
-            <Typography sx={{ fontSize: 12, color: '#888' }}>peak count per month</Typography>
-          )}
-        </Box>
-      )}
+      {/* Always render the legend: a one-season chart's x-axis shows only
+          months, so without this nothing says which year it is. */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', mt: 1 }}>
+        {chronological.map((year) => (
+          <Box key={year} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+            <LegendSwatch color={colourOf(year)} dash={dashOf(year)} />
+            <Typography sx={{ fontSize: 12, color: '#666' }}>{year}</Typography>
+          </Box>
+        ))}
+        {series.truncated && (
+          <Typography sx={{ fontSize: 12, color: '#707070' }}>earlier years not shown</Typography>
+        )}
+        {monthly && (
+          <Typography sx={{ fontSize: 12, color: '#707070' }}>peak count per month</Typography>
+        )}
+      </Box>
     </>
+  );
+}
+
+/** Legend swatch echoing the line's colour AND dash, not a plain dot. */
+function LegendSwatch({ color, dash }: { color: string; dash?: string }) {
+  return (
+    <svg width="20" height="8" aria-hidden focusable="false">
+      <line x1="0" y1="4" x2="20" y2="4" stroke={color} strokeWidth="2" strokeDasharray={dash} />
+      <circle cx="10" cy="4" r="3" fill={color} stroke="#fff" strokeWidth="1.5" />
+    </svg>
   );
 }
 
@@ -141,7 +162,7 @@ function SeasonTooltip({ active, label, payload, monthly }: SeasonTooltipProps) 
         <Box key={String(p.dataKey)} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
           <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: p.color }} />
           <Typography sx={{ fontSize: 12.5, color: '#666' }}>
-            {p.dataKey}: {p.value}
+            {p.dataKey}: {p.value} counted
           </Typography>
         </Box>
       ))}

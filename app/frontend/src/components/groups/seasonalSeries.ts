@@ -34,6 +34,12 @@ export function seasonYears(data: SpeciesOccurrenceDataPoint[]): { years: number
  * the brand green stays on the current season). */
 export const YEAR_SERIES_COLORS = ['#3D8B56', '#4E7CC7', '#C2703A', '#955FC0', '#99862A'] as const;
 
+/** Dash pattern per year series, same index as YEAR_SERIES_COLORS: the
+ * current season is solid, earlier seasons get distinct dashes so years are
+ * never distinguished by hue alone (green/olive and orange/olive collide
+ * for red-green colour-blind readers). */
+export const YEAR_SERIES_DASHES = [undefined, '6 3', '2 3', '8 3 2 3', '10 4'] as const;
+
 /** Older seasons beyond this many years are dropped from the chart. */
 export const MAX_SEASON_YEARS = YEAR_SERIES_COLORS.length;
 

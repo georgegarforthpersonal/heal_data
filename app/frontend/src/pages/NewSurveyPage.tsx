@@ -11,7 +11,7 @@ import {
   TextField,
 } from '@mui/material';
 import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-material';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
 import { hasPositiveStageCounts, pickStageCounts, stageCountErrors } from '../config/stageCounts';
@@ -36,6 +36,8 @@ import type {
   Device,
 } from '../services/api';
 import { readReturnTo, returnToHref } from '../utils/returnTo';
+import { formatWeekRange } from './groups/surveyState';
+import { useDocumentTitle } from '../hooks';
 import { SurveyFormFields, hasTimeValidationError } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -91,12 +93,27 @@ export function NewSurveyPage() {
   // save — a group page when the record CTA got us here, else the surveys list.
   const returnTo = readReturnTo(location);
   const { isLoading: authLoading } = useAuth();
-  const { canEditSurveys } = usePermissions();
+  const { canEditSurveys, user } = usePermissions();
 
   // Group record flow: ?survey_type_id=N preselects the type (still
   // changeable). Media types never link here — their record CTAs go straight
   // to the wizards — so they're ignored rather than re-dispatched.
   const presetTypeIdParam = searchParams.get('survey_type_id');
+
+  // Slot-aware recording: ?window_start/&window_end carry the scheduled
+  // week being fulfilled. The banner names the week, the date picker is
+  // constrained to it (the date is what links the survey to the slot), and
+  // today is prefilled when it falls inside the window.
+  const windowStartParam = searchParams.get('window_start');
+  const windowEndParam = searchParams.get('window_end');
+  const slotWindow = useMemo(() => {
+    if (!windowStartParam || !windowEndParam) return null;
+    const start = dayjs(windowStartParam);
+    const end = dayjs(windowEndParam);
+    return start.isValid() && end.isValid() && !end.isBefore(start) ? { start, end } : null;
+  }, [windowStartParam, windowEndParam]);
+
+  useDocumentTitle('New survey');
 
   // ============================================================================
   // Form State - Survey Type
@@ -112,7 +129,9 @@ export function NewSurveyPage() {
 
   // Deliberately NOT defaulted to today: the date decides which scheduled
   // week the survey fulfils (the backend links by window), so it must be the
-  // surveyor's statement of when the survey happened, never our guess.
+  // surveyor's statement of when the survey happened, never our guess. The
+  // one exception is slot-aware recording with today inside the slot's
+  // window (see fetchInitialData) — today is then both safe and likely.
   const [date, setDate] = useState<Dayjs | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [selectedSurveyors, setSelectedSurveyors] = useState<Surveyor[]>([]);
@@ -182,6 +201,10 @@ export function NewSurveyPage() {
   // edit, so it alone must not make the unsaved-changes guard fire.
   const autoLocationIdRef = useRef<number | null>(null);
 
+  // Surveyor preselected because it's the signed-in user's own linked
+  // surveyor — a default, not an edit, so it too must not trip the guard.
+  const autoSurveyorIdRef = useRef<number | null>(null);
+
   // Dirty once the user has entered anything beyond the defaults, until the
   // survey is saved. Blocks Cancel, the back link, and browser back; the
   // confirmation dialog below lets the user proceed or stay.
@@ -191,7 +214,7 @@ export function NewSurveyPage() {
       (notes.trim() !== '' ||
         pendingImageFiles.length > 0 ||
         (locationId !== null && locationId !== autoLocationIdRef.current) ||
-        selectedSurveyors.length > 0 ||
+        selectedSurveyors.some((s) => s.id !== autoSurveyorIdRef.current) ||
         draftSightings.some((s) => s.species_id !== null)),
   );
 
@@ -231,10 +254,23 @@ export function NewSurveyPage() {
             ) ?? null
           : null;
         setSelectedSurveyType(preset);
-        setDate(null);
+        // The date decides which scheduled week the survey fulfils, so it is
+        // the surveyor's statement, never a guess — except when the slot's
+        // window contains today, where today is the overwhelmingly common
+        // answer (recording straight after the walk) and still theirs to change.
+        const today = dayjs().startOf('day');
+        setDate(
+          slotWindow && !today.isBefore(slotWindow.start) && !today.isAfter(slotWindow.end)
+            ? today
+            : null,
+        );
         setLocationId(null);
         autoLocationIdRef.current = null;
-        setSelectedSurveyors([]);
+        // Default the surveyor to the signed-in user's own linked surveyor —
+        // most surveys are recorded by someone who was there.
+        const self = user ? surveyorsData.find((s) => s.user_id === user.id) : undefined;
+        autoSurveyorIdRef.current = self?.id ?? null;
+        setSelectedSurveyors(self ? [self] : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load form data');
         console.error('Error fetching data:', err);
@@ -245,7 +281,9 @@ export function NewSurveyPage() {
     };
 
     fetchInitialData();
-  }, [presetTypeIdParam]);
+    // user/slotWindow: re-applying the defaults when they resolve is correct
+    // (both settle before the user can have edited anything).
+  }, [presetTypeIdParam, slotWindow, user]);
 
   // ============================================================================
   // Data Fetching - When Survey Type Changes
@@ -619,7 +657,9 @@ export function NewSurveyPage() {
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
       {/* Page Header */}
       <PageHeader
-        backButton={{ href: '/surveys' }}
+        // Honour the origin (a group page when its record CTA got us here),
+        // exactly like Cancel and post-save navigation do.
+        backButton={{ href: returnToHref(returnTo), label: `Back to ${returnTo.label}` }}
         actions={
           <Stack direction="row" spacing={1}>
             <Button
@@ -664,6 +704,17 @@ export function NewSurveyPage() {
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
           {error}
+        </Alert>
+      )}
+
+      {/* Slot-aware recording: name the week being fulfilled and why the
+          date matters — the date is what links the survey to that week. */}
+      {slotWindow && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Recording for the week {formatWeekRange(slotWindow.start.format('YYYY-MM-DD'), slotWindow.end.format('YYYY-MM-DD'))}.{' '}
+          {date
+            ? 'The date is set to today — change it if the survey happened on a different day that week.'
+            : 'Pick the day that week the survey was carried out — the date links it to this week.'}
         </Alert>
       )}
 
@@ -727,6 +778,8 @@ export function NewSurveyPage() {
             locations={locations}
             surveyors={surveyors}
             onDateChange={setDate}
+            minDate={slotWindow?.start ?? null}
+            maxDate={slotWindow?.end ?? null}
             onLocationChange={setLocationId}
             onSurveyorsChange={setSelectedSurveyors}
             onNotesChange={setNotes}

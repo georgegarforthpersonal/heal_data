@@ -17,15 +17,18 @@ export const groupColors = {
 
   textPrimary: '#1a1a1a',
   textSecondary: '#666666',
-  textMuted: '#888888',
+  // 4.95:1 on white — #888 (3.55:1) failed WCAG AA for the small text this
+  // token is used on everywhere.
+  textMuted: '#707070',
 
   divider: 'rgba(0,0,0,0.12)',
   dividerInner: 'rgba(0,0,0,0.06)',
 
-  // "Needs a survey" amber treatment
+  // "Needs a survey" amber treatment. Foregrounds are dark enough to pass
+  // AA on their tinted chip/row backgrounds, not just on white.
   amberRowBg: '#FFFCF3',
-  amberText: '#B0860A',
-  amberMonth: '#C99A00',
+  amberText: '#8A6D00',
+  amberMonth: '#7A6000',
 } as const;
 
 // Card chrome shared by every Group panel.
@@ -39,16 +42,18 @@ export const groupCardSx = {
 export const GROUP_MAX_WIDTH = 1120;
 
 // The contained "Record survey" button, shared by the worklist row and the
-// All surveys page.
+// All surveys page. brandDark ground: white 13px text on brand main is 4.15:1
+// (under AA); on dark it's 6.2:1. 44px minimum touch target on phones.
 export const recordButtonSx = {
   flexShrink: 0,
-  bgcolor: groupColors.brand,
-  '&:hover': { bgcolor: groupColors.brandHover },
+  bgcolor: groupColors.brandDark,
+  '&:hover': { bgcolor: groupColors.brand },
   borderRadius: '7px',
   textTransform: 'none',
   fontSize: 13,
   px: 1.5,
   py: 0.6,
+  minHeight: { xs: 44, sm: 32 },
 } as const;
 
 // The neutral icon+count chip used for per-species-type breakdowns (survey
@@ -64,6 +69,40 @@ export const typeCountChipSx = {
   color: '#454648',
   fontSize: 12.5,
   fontWeight: 600,
+} as const;
+
+// The small Map/List and Chart/List view toggle shared by the Locations and
+// Species count panels. Text darkened for AA; phones get taller targets.
+export const viewToggleSx = {
+  bgcolor: '#f1f3f1',
+  borderRadius: '7px',
+  p: '3px',
+  flexShrink: 0,
+  '& .MuiToggleButton-root': {
+    border: 'none',
+    borderRadius: '5px !important',
+    px: 1.25,
+    py: 0.4,
+    minHeight: { xs: 40, sm: 28 },
+    color: groupColors.textSecondary,
+    textTransform: 'none',
+    fontSize: 12.5,
+    gap: 0.5,
+  },
+  '& .Mui-selected': {
+    bgcolor: '#fff !important',
+    color: `${groupColors.textPrimary} !important`,
+    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+  },
+} as const;
+
+// Shared header treatment for group panel titles. Rendered as a real <h2> so
+// the page has a navigable heading outline (the hero carries the <h1>).
+export const panelTitleSx = {
+  fontSize: 15,
+  fontWeight: 600,
+  color: groupColors.textPrimary,
+  m: 0,
 } as const;
 
 // Surveyor avatar palette (cycled). A freshly-assigned surveyor renders green.

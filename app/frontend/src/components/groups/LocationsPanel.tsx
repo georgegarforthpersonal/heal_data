@@ -1,9 +1,11 @@
 /**
  * Locations panel for a group: every location assigned to the survey type
  * (routes, sectors, areas, points) plus its allocated devices (a camera trap
- * type's cameras, an audio type's recorders), as either a map or a list
- * (local toggle, default Map). Routes and sectors sort first — volunteers
- * use them to understand where to walk; devices list after locations.
+ * type's cameras, an audio type's recorders), as either a map or a list.
+ * Map is the default only when there is geometry to draw — otherwise the
+ * List has the real content and a map of the default centre would mislead.
+ * Routes sort first, then sectors in walk order (their ordinal is shown —
+ * recorders think in section numbers); devices list after locations.
  */
 import { useState } from 'react';
 import {
@@ -26,7 +28,7 @@ import {
 import { locationDisplayName } from '../../services/api';
 import type { Device, LocationWithBoundary } from '../../services/api';
 import { geometryLengthM, formatLength, geometryAreaSqm, formatArea } from '../../utils/geometry';
-import { groupCardSx, groupColors } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, panelTitleSx, viewToggleSx } from '../../pages/groups/groupsTokens';
 import DeviceMap from '../admin/DeviceMap';
 
 interface LocationsPanelProps {
@@ -84,13 +86,28 @@ function LocationRowIcon({ type }: { type: LocationWithBoundary['location_type']
 }
 
 export default function LocationsPanel({ locations, devices = [] }: LocationsPanelProps) {
-  const [view, setView] = useState<'map' | 'list'>('map');
-
-  // Routes first, then sectors assigned in their own right, then the rest.
+  // Routes first, then sectors in walk order (ordinal), then the rest.
   const order = (l: LocationWithBoundary) =>
     l.location_type === 'route' ? 0 : l.location_type === 'sector' ? 1 : 2;
-  const visible = [...locations].sort((a, b) => order(a) - order(b));
+  const visible = [...locations].sort(
+    (a, b) =>
+      order(a) - order(b) ||
+      (a.ordinal ?? Number.MAX_SAFE_INTEGER) - (b.ordinal ?? Number.MAX_SAFE_INTEGER) ||
+      a.name.localeCompare(b.name),
+  );
   const empty = visible.length === 0 && devices.length === 0;
+
+  // A map with nothing to draw renders the default centre at default zoom —
+  // a confident map of the wrong place. Only default to (or offer) Map when
+  // something on it has geometry.
+  const hasGeometry =
+    visible.some((l) => l.geometry != null || l.boundary_geometry != null) ||
+    devices.some((d) => d.latitude != null && d.longitude != null);
+  // 'auto' until the user chooses, so geometry arriving after mount still
+  // gets the right default.
+  const [view, setView] = useState<'auto' | 'map' | 'list'>('auto');
+  const effectiveView: 'map' | 'list' =
+    view === 'auto' ? (hasGeometry ? 'map' : 'list') : !hasGeometry ? 'list' : view;
 
   return (
     <Paper sx={groupCardSx}>
@@ -105,51 +122,36 @@ export default function LocationsPanel({ locations, devices = [] }: LocationsPan
           borderBottom: `1px solid ${groupColors.divider}`,
         }}
       >
-        <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary, whiteSpace: 'nowrap' }}>
+        <Typography component="h2" sx={{ ...panelTitleSx, whiteSpace: 'nowrap' }}>
           {devices.length > 0 ? 'Locations & devices' : 'Locations'}
         </Typography>
-        <ToggleButtonGroup
-          value={view}
-          exclusive
-          size="small"
-          onChange={(_, v) => v && setView(v)}
-          sx={{
-            bgcolor: '#f1f3f1',
-            borderRadius: '7px',
-            p: '3px',
-            '& .MuiToggleButton-root': {
-              border: 'none',
-              borderRadius: '5px !important',
-              px: 1.25,
-              py: 0.4,
-              color: '#8a8a8a',
-              textTransform: 'none',
-              fontSize: 12.5,
-              gap: 0.5,
-            },
-            '& .Mui-selected': {
-              bgcolor: '#fff !important',
-              color: `${groupColors.textPrimary} !important`,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-            },
-          }}
-        >
-          <ToggleButton value="map">
-            <MapIcon sx={{ fontSize: 15 }} /> Map
-          </ToggleButton>
-          <ToggleButton value="list">
-            <ViewList sx={{ fontSize: 15 }} /> List
-          </ToggleButton>
-        </ToggleButtonGroup>
+        {hasGeometry && (
+          <ToggleButtonGroup
+            value={effectiveView}
+            exclusive
+            size="small"
+            aria-label="Locations view"
+            onChange={(_, v) => v && setView(v)}
+            sx={viewToggleSx}
+          >
+            <ToggleButton value="map">
+              <MapIcon sx={{ fontSize: 15 }} /> Map
+            </ToggleButton>
+            <ToggleButton value="list">
+              <ViewList sx={{ fontSize: 15 }} /> List
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
       </Box>
 
       {empty ? (
         <Box sx={{ px: 2.25, py: 3 }}>
           <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
-            No locations assigned to this survey type yet.
+            No locations assigned yet. Admins link routes and areas to this
+            survey in Edit survey type.
           </Typography>
         </Box>
-      ) : view === 'map' ? (
+      ) : effectiveView === 'map' ? (
         <DeviceMap
           locationsWithBoundaries={visible}
           devices={devices}
@@ -187,7 +189,11 @@ export default function LocationsPanel({ locations, devices = [] }: LocationsPan
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: groupColors.textPrimary }} noWrap>
-                  {locationDisplayName(location)}
+                  {/* Sectors lead with their walk-order number — recorders
+                      think and write in section numbers. */}
+                  {location.location_type === 'sector' && location.ordinal != null
+                    ? `${location.ordinal} · ${locationDisplayName(location)}`
+                    : locationDisplayName(location)}
                 </Typography>
                 {locationDetail(location) !== '' && (
                   <Typography sx={{ fontSize: 11.5, color: groupColors.textMuted }}>

@@ -239,25 +239,54 @@ def get_locations(
     ]
 
 
-@router.get("/by-survey-type/{survey_type_id}", response_model=List[LocationRead])
+@router.get("/by-survey-type/{survey_type_id}", response_model=List[LocationWithBoundary])
 def get_locations_by_survey_type(
     survey_type_id: int,
+    with_geometry: bool = False,
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ) -> List[dict[str, Any]]:
-    """Get locations available for a specific survey type."""
-    result = db.execute(text("""
-        SELECT l.id, l.name, l.location_type, p.name AS parent_name, l.ordinal, l.color
+    """Get locations available for a specific survey type.
+
+    Sectors order by their walk order (ordinal) within the list — recorders
+    think in section numbers, so alphabetical would mis-order the transect.
+
+    With ``with_geometry=true`` each location also carries its GeoJSON
+    geometry, a sector's colour falls back to its parent route's, and route
+    locations embed their ordered sectors — everything a scoped map needs,
+    without fetching the whole organisation's geometry.
+    """
+    geometry_col = (
+        "ST_AsGeoJSON(l.boundary_geometry)::json" if with_geometry else "NULL"
+    )
+    result = db.execute(text(f"""
+        SELECT l.id, l.name, l.location_type, p.name AS parent_name, l.ordinal,
+               COALESCE(l.color, p.color) AS color,
+               {geometry_col} AS geometry
         FROM location l
         INNER JOIN survey_type_location stl ON stl.location_id = l.id
         LEFT JOIN location p ON p.id = l.parent_location_id
         WHERE stl.survey_type_id = :survey_type_id
           AND l.organisation_id = :org_id
-        ORDER BY l.name
+        ORDER BY l.ordinal NULLS FIRST, l.name
     """).bindparams(survey_type_id=survey_type_id, org_id=org.id)).fetchall()
 
+    sectors_by_route: Dict[int, List[Dict[str, Any]]] = {}
+    if with_geometry and any(row[2] == "route" for row in result):
+        assert org.id is not None
+        sectors_by_route = _sectors_for(db, org.id)
+
     return [
-        {"id": row[0], "name": row[1], "location_type": row[2], "parent_name": row[3], "ordinal": row[4], "color": row[5]}
+        {
+            "id": row[0],
+            "name": row[1],
+            "location_type": row[2],
+            "parent_name": row[3],
+            "ordinal": row[4],
+            "color": row[5],
+            "geometry": row[6],
+            "sectors": (sectors_by_route.get(row[0]) or None) if row[2] == "route" else None,
+        }
         for row in result
     ]
 
