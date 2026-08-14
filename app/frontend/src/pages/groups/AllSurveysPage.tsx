@@ -335,13 +335,6 @@ export default function AllSurveysPage() {
                         )}
                       </Box>
                     </Box>
-                    {/* Recorded rows keep their avatars on the date line's
-                        top-right slot on phones (they have no who-row). */}
-                    {stacked && row.kind === 'survey' && (
-                      <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexShrink: 0 }}>
-                        <SurveyorAvatars surveyors={assigned} greenIds={greenIds} emptyLabel="" />
-                      </Box>
-                    )}
                   </Box>
 
                   {/* Right cell varies by status */}
@@ -352,9 +345,11 @@ export default function AllSurveysPage() {
                         alignItems: 'center',
                         gap: 1.25,
                         minWidth: 0,
-                        // Phones: chips get their own full-width line, starting
-                        // from the left (avatars sit on the date line above).
-                        justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+                        // Shared row grammar: payload (chips) from the left,
+                        // people at the right edge. On phones this is its own
+                        // full-width line under the date; on desktop the cell
+                        // is content-sized so space-between is inert.
+                        justifyContent: 'space-between',
                         flexShrink: { xs: 1, sm: 0 },
                       }}
                     >
@@ -363,7 +358,7 @@ export default function AllSurveysPage() {
                         fallbackSpeciesType={speciesType}
                         justify={{ xs: 'flex-start', sm: 'flex-end' }}
                       />
-                      <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexShrink: 0 }}>
+                      <Box sx={{ display: 'flex', flexShrink: 0 }}>
                         <SurveyorAvatars surveyors={assigned} emptyLabel="" greenIds={greenIds} />
                       </Box>
                     </Box>
@@ -379,7 +374,9 @@ export default function AllSurveysPage() {
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                        // Right-aligned at every width: people + affordance at
+                        // the right edge, matching the recorded rows.
+                        justifyContent: 'flex-end',
                         flexWrap: 'wrap',
                         gap: 1.25,
                         flexShrink: 0,

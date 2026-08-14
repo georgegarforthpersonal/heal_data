@@ -57,7 +57,10 @@ export default function SurveyWorklistRow({
         bgcolor: needsSurvey ? groupColors.amberRowBg : 'transparent',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
+      {/* The date is the row's identifier — on desktop (where the who-row
+          shares the line) reserve it enough width that a busy action set
+          can never truncate it to "23–29 …". */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: { xs: 0, sm: 168 }, flex: 1 }}>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
@@ -92,14 +95,16 @@ export default function SurveyWorklistRow({
       </Box>
 
       {/* The who-row: everyone going (avatars, or an invitation) beside the
-          actions. On phones it is its own full-width line under the when-row —
-          date/chip and people never share a line, so a crowd of sign-ups
-          can't crush the date. */}
+          actions — on every open row, including not-recorded weeks. On
+          phones it is its own full-width line under the when-row.
+          Right-aligned at every width so people + affordance sit at the
+          right edge, same as the Recent rows: one scanning rule for the
+          whole panel. */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: { xs: 'space-between', sm: 'flex-end' },
+          justifyContent: 'flex-end',
           flexWrap: 'wrap',
           gap: 1.25,
           flexShrink: 0,
