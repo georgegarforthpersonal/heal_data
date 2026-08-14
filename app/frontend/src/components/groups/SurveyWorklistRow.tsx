@@ -6,16 +6,16 @@
  * never a calendar tile (a week has no single day to pin one to).
  *
  * Every open row carries the one-click sign-up — including overdue weeks, so
- * a volunteer who wants to cover a missed week has an action. Rows that still
- * need a survey (due this week / overdue) also offer Record, which carries
- * the slot's window into the form so the date lands in the right week.
+ * a volunteer who wants to cover a missed week has an action. Recording
+ * happens through the panel header's Record survey button: the survey's
+ * date decides which week it fulfils (the backend links by window), so no
+ * per-row record button is needed.
  */
-import { Box, Button, Typography } from '@mui/material';
-import { Add } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
 import type { ScheduledSurvey, Surveyor } from '../../services/api';
 import SelfSignupButton from './SelfSignupButton';
 import SurveyorAvatars from './SurveyorAvatars';
-import { groupColors, recordButtonSx } from '../../pages/groups/groupsTokens';
+import { groupColors } from '../../pages/groups/groupsTokens';
 import { formatSurveyDate } from '../../pages/groups/surveyState';
 
 interface SurveyWorklistRowProps {
@@ -26,8 +26,6 @@ interface SurveyWorklistRowProps {
   greenIds?: Set<number>;
   /** Called after a one-click sign-up/withdraw with the new surveyor ids. */
   onSignupSaved: (slotId: number, surveyorIds: number[]) => void;
-  /** Record a survey for this slot (undefined = viewer, no record action). */
-  onRecordSlot?: (slot: ScheduledSurvey) => void;
 }
 
 export default function SurveyWorklistRow({
@@ -36,19 +34,22 @@ export default function SurveyWorklistRow({
   surveyors,
   greenIds,
   onSignupSaved,
-  onRecordSlot,
 }: SurveyWorklistRowProps) {
   const needsSurvey = state === 'needs-survey';
   const dueThisWeek = state === 'due-this-week';
-  const showRecord = onRecordSlot != null && (needsSurvey || dueThisWeek);
 
   return (
     <Box
       sx={{
         // Rows stack on phones into the two ideas the row holds: a when-row
         // (date + chip, location below) and a who-row (avatars + actions).
+        // On desktop the two share a line while they fit; a busy who-row
+        // ("Be the first to sign up" + Sign up, or a crowd of avatars)
+        // wraps whole onto its own right-aligned line rather than squeezing
+        // the date — the date is the row's identifier and never truncates.
         display: 'flex',
         flexDirection: { xs: 'column', sm: 'row' },
+        flexWrap: 'wrap',
         alignItems: { xs: 'stretch', sm: 'center' },
         gap: { xs: 1, sm: 1.6 },
         px: 2.25,
@@ -57,12 +58,12 @@ export default function SurveyWorklistRow({
         bgcolor: needsSurvey ? groupColors.amberRowBg : 'transparent',
       }}
     >
-      {/* The date is the row's identifier — on desktop (where the who-row
-          shares the line) reserve it enough width that a busy action set
-          can never truncate it to "23–29 …". */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: { xs: 0, sm: 168 }, flex: 1 }}>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+      {/* min-width fit-content = the date + chip line (the location line
+          opts out below), so the when-cell can never be compressed past its
+          first line and the row wraps instead. */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: { xs: 0, sm: 'fit-content' }, flex: '1 1 auto' }}>
+        <Box sx={{ minWidth: { xs: 0, sm: 'fit-content' }, flex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
               {formatSurveyDate(slot)}
             </Typography>
@@ -87,7 +88,10 @@ export default function SurveyWorklistRow({
             )}
           </Box>
           {slot.location_name && (
-            <Typography sx={{ fontSize: 13, color: groupColors.textMuted, mt: 0.25 }} noWrap>
+            // width 0 + minWidth 100%: fills the cell at layout time but
+            // contributes nothing to its min-content, so a long location
+            // name can't force the row to wrap — it truncates instead.
+            <Typography sx={{ fontSize: 13, color: groupColors.textMuted, mt: 0.25, width: 0, minWidth: '100%' }} noWrap>
               {slot.location_name}
             </Typography>
           )}
@@ -95,7 +99,7 @@ export default function SurveyWorklistRow({
       </Box>
 
       {/* The who-row: everyone going (avatars, or an invitation) beside the
-          actions — on every open row, including not-recorded weeks. On
+          sign-up — on every open row, including not-recorded weeks. On
           phones it is its own full-width line under the when-row.
           Right-aligned at every width so people + affordance sit at the
           right edge, same as the Recent rows: one scanning rule for the
@@ -108,6 +112,8 @@ export default function SurveyWorklistRow({
           flexWrap: 'wrap',
           gap: 1.25,
           flexShrink: 0,
+          // Keeps the cluster on the right edge when it wraps to its own line.
+          ml: 'auto',
         }}
       >
         <SurveyorAvatars
@@ -115,19 +121,7 @@ export default function SurveyWorklistRow({
           greenIds={greenIds}
           emptyLabel="Be the first to sign up"
         />
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <SelfSignupButton slot={slot} assigned={surveyors} onSaved={onSignupSaved} />
-          {showRecord && (
-            <Button
-              variant="contained"
-              startIcon={<Add sx={{ fontSize: 18 }} />}
-              onClick={() => onRecordSlot(slot)}
-              sx={recordButtonSx}
-            >
-              Record
-            </Button>
-          )}
-        </Box>
+        <SelfSignupButton slot={slot} assigned={surveyors} onSaved={onSignupSaved} />
       </Box>
     </Box>
   );

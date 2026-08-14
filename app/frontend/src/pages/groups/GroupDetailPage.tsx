@@ -247,14 +247,6 @@ export default function GroupDetailPage() {
   // Unscheduled groups record without a slot: media types jump straight to
   // their wizard, plain types to the standard form with the type preselected.
   const recordNew = () => surveyType && navigate(recordSurveyPath(surveyType), { state: returnTo });
-  // Slot-aware recording: the form gets the week's window, so the date lands
-  // inside the week being fulfilled and the banner can say which week.
-  const recordForSlot = (slot: ScheduledSurvey) =>
-    surveyType &&
-    navigate(
-      `${recordSurveyPath(surveyType)}&window_start=${slot.window_start}&window_end=${slot.window_end}`,
-      { state: returnTo },
-    );
   const openSurvey = (survey: Survey) => navigate(`/surveys/${survey.id}`, { state: returnTo });
 
   const dataPanel = surveyType && (
@@ -325,7 +317,6 @@ export default function GroupDetailPage() {
                   onOpenRecorded={openSurvey}
                   onViewAll={() => navigate(`/surveys/${typeId}/all`)}
                   onRecordNew={recordNew}
-                  onRecordSlot={recordForSlot}
                 />
               )}
             </Box>

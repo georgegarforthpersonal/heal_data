@@ -306,6 +306,9 @@ export default function AllSurveysPage() {
                   sx={{
                     width: '100%',
                     display: 'flex',
+                    // A busy who-row wraps whole onto its own line rather
+                    // than squeezing the date (the row's identifier).
+                    flexWrap: 'wrap',
                     flexDirection: { xs: stacked ? 'column' : 'row', sm: 'row' },
                     alignItems: { xs: stacked ? 'stretch' : 'center', sm: 'center' },
                     gap: { xs: stacked ? 1 : 1.75, sm: 1.75 },
@@ -317,8 +320,12 @@ export default function AllSurveysPage() {
                     ...(clickable ? { '&:hover': { bgcolor: groupColors.page } } : {}),
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                  {/* min-width fit-content = the date (and status chip); the
+                      location opts out of min-content below, so the cell can
+                      never be compressed past its identity — the row wraps
+                      instead. */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: { xs: 0, sm: 'fit-content' }, flex: '1 1 auto' }}>
+                    <Box sx={{ flex: 1, minWidth: { xs: 0, sm: 'fit-content' } }}>
                       <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
                         {row.kind === 'slot'
                           ? formatSurveyDate(row.slot)
@@ -329,7 +336,7 @@ export default function AllSurveysPage() {
                             need a status chip. */}
                         {row.kind === 'slot' && <StatusChip state={state} />}
                         {locationName && (
-                          <Typography sx={{ fontSize: 13, color: groupColors.textMuted }} noWrap>
+                          <Typography sx={{ fontSize: 13, color: groupColors.textMuted, minWidth: 0 }} noWrap>
                             {locationName}
                           </Typography>
                         )}
@@ -380,6 +387,9 @@ export default function AllSurveysPage() {
                         flexWrap: 'wrap',
                         gap: 1.25,
                         flexShrink: 0,
+                        // Keeps the cluster on the right edge when it wraps
+                        // to its own line.
+                        ml: 'auto',
                       }}
                     >
                       <SurveyorAvatars surveyors={assigned} greenIds={greenIds} />

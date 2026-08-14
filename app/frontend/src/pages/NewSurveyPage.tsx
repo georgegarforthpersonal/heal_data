@@ -11,7 +11,7 @@ import {
   TextField,
 } from '@mui/material';
 import { Save, Cancel, CloudUpload, Delete, PhotoCamera } from '@mui/icons-material';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermissions } from '../context/AuthContext';
 import { hasPositiveStageCounts, pickStageCounts, stageCountErrors } from '../config/stageCounts';
@@ -36,7 +36,6 @@ import type {
   Device,
 } from '../services/api';
 import { readReturnTo, returnToHref } from '../utils/returnTo';
-import { formatWeekRange } from './groups/surveyState';
 import { useDocumentTitle } from '../hooks';
 import { SurveyFormFields, hasTimeValidationError } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
@@ -100,19 +99,6 @@ export function NewSurveyPage() {
   // to the wizards — so they're ignored rather than re-dispatched.
   const presetTypeIdParam = searchParams.get('survey_type_id');
 
-  // Slot-aware recording: ?window_start/&window_end carry the scheduled
-  // week being fulfilled. The banner names the week, the date picker is
-  // constrained to it (the date is what links the survey to the slot), and
-  // today is prefilled when it falls inside the window.
-  const windowStartParam = searchParams.get('window_start');
-  const windowEndParam = searchParams.get('window_end');
-  const slotWindow = useMemo(() => {
-    if (!windowStartParam || !windowEndParam) return null;
-    const start = dayjs(windowStartParam);
-    const end = dayjs(windowEndParam);
-    return start.isValid() && end.isValid() && !end.isBefore(start) ? { start, end } : null;
-  }, [windowStartParam, windowEndParam]);
-
   useDocumentTitle('New survey');
 
   // ============================================================================
@@ -129,9 +115,7 @@ export function NewSurveyPage() {
 
   // Deliberately NOT defaulted to today: the date decides which scheduled
   // week the survey fulfils (the backend links by window), so it must be the
-  // surveyor's statement of when the survey happened, never our guess. The
-  // one exception is slot-aware recording with today inside the slot's
-  // window (see fetchInitialData) — today is then both safe and likely.
+  // surveyor's statement of when the survey happened, never our guess.
   const [date, setDate] = useState<Dayjs | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [selectedSurveyors, setSelectedSurveyors] = useState<Surveyor[]>([]);
@@ -254,16 +238,7 @@ export function NewSurveyPage() {
             ) ?? null
           : null;
         setSelectedSurveyType(preset);
-        // The date decides which scheduled week the survey fulfils, so it is
-        // the surveyor's statement, never a guess — except when the slot's
-        // window contains today, where today is the overwhelmingly common
-        // answer (recording straight after the walk) and still theirs to change.
-        const today = dayjs().startOf('day');
-        setDate(
-          slotWindow && !today.isBefore(slotWindow.start) && !today.isAfter(slotWindow.end)
-            ? today
-            : null,
-        );
+        setDate(null);
         setLocationId(null);
         autoLocationIdRef.current = null;
         // Default the surveyor to the signed-in user's own linked surveyor —
@@ -281,9 +256,9 @@ export function NewSurveyPage() {
     };
 
     fetchInitialData();
-    // user/slotWindow: re-applying the defaults when they resolve is correct
-    // (both settle before the user can have edited anything).
-  }, [presetTypeIdParam, slotWindow, user]);
+    // user: re-applying the surveyor default when auth resolves is correct
+    // (it settles before the user can have edited anything).
+  }, [presetTypeIdParam, user]);
 
   // ============================================================================
   // Data Fetching - When Survey Type Changes
@@ -707,17 +682,6 @@ export function NewSurveyPage() {
         </Alert>
       )}
 
-      {/* Slot-aware recording: name the week being fulfilled and why the
-          date matters — the date is what links the survey to that week. */}
-      {slotWindow && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Recording for the week {formatWeekRange(slotWindow.start.format('YYYY-MM-DD'), slotWindow.end.format('YYYY-MM-DD'))}.{' '}
-          {date
-            ? 'The date is set to today — change it if the survey happened on a different day that week.'
-            : 'Pick the day that week the survey was carried out — the date links it to this week.'}
-        </Alert>
-      )}
-
       {/* Survey Type Selection Card */}
       <Paper
         sx={{
@@ -778,8 +742,6 @@ export function NewSurveyPage() {
             locations={locations}
             surveyors={surveyors}
             onDateChange={setDate}
-            minDate={slotWindow?.start ?? null}
-            maxDate={slotWindow?.end ?? null}
             onLocationChange={setLocationId}
             onSurveyorsChange={setSelectedSurveyors}
             onNotesChange={setNotes}

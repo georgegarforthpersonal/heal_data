@@ -7,10 +7,10 @@
  * their chips are their labels. A long amber backlog collapses to the two
  * most recent weeks plus an expander, so a lapsed season doesn't open as a
  * wall of amber. "Upcoming" below them shows the next 3 future weeks and
- * expands in place. Recording is offered from the header (unscheduled
- * extra visits) and from rows that still need a survey (carrying the slot's
- * week into the form). "Recent" is the last 3 recorded surveys with their
- * species counts. The "All surveys" door at the foot leads to the history.
+ * expands in place. The header's Record survey button is the one way to
+ * record — the survey's date decides which week it fulfils, so scheduled
+ * and unscheduled visits share a single entry point. "Recent" is the last
+ * 3 recorded surveys with their species counts. The "All surveys" door at the foot leads to the history.
  */
 import { useState } from 'react';
 import { Box, Paper, Typography, Button, ButtonBase } from '@mui/material';
@@ -42,11 +42,9 @@ interface SurveysPanelProps {
   /** Open a recorded survey from the Recent rows. */
   onOpenRecorded: (survey: Survey) => void;
   onViewAll: () => void;
-  /** Record a survey outside the schedule (extra visits — the backend still
-   * auto-links it to an open slot when the date falls in its window). */
+  /** Record a survey — the one way in, scheduled or not: the survey's date
+   * decides which week it fulfils (the backend links by window). */
   onRecordNew: () => void;
-  /** Record a survey for a specific slot — the form gets the slot's week. */
-  onRecordSlot: (slot: ScheduledSurvey) => void;
 }
 
 function SectionHeader({ label, color, suffix }: { label: string; color: string; suffix?: React.ReactNode }) {
@@ -96,7 +94,6 @@ export default function SurveysPanel({
   onOpenRecorded,
   onViewAll,
   onRecordNew,
-  onRecordSlot,
 }: SurveysPanelProps) {
   const { canEditSurveys } = usePermissions();
   const [showAllOverdue, setShowAllOverdue] = useState(false);
@@ -108,8 +105,6 @@ export default function SurveysPanel({
   const overdueShown = showAllOverdue ? overdue : overdue.slice(-OVERDUE_SHOWN);
   const overdueHidden = overdue.length - overdueShown.length;
   const upcomingShown = showAllUpcoming ? upcomingAll : upcoming;
-
-  const recordSlot = canEditSurveys ? onRecordSlot : undefined;
 
   // Chronological, soonest first: unrecorded past windows precede this
   // week's — concatenation IS the sort.
@@ -173,7 +168,6 @@ export default function SurveysPanel({
           surveyors={resolveSurveyors(slot.surveyor_ids)}
           greenIds={greenIds}
           onSignupSaved={onSignupSaved}
-          onRecordSlot={recordSlot}
         />
       ))}
 
