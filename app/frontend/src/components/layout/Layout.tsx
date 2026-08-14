@@ -25,11 +25,41 @@ function useScrollRestoration(scroller: React.RefObject<HTMLDivElement | null>) 
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    el.scrollTop = navigationType === 'POP' ? (scrollPositions.get(location.key) ?? 0) : 0;
+    const target = navigationType === 'POP' ? (scrollPositions.get(location.key) ?? 0) : 0;
+    el.scrollTop = target;
+
+    // Pages hydrate progressively behind skeletons, so at restore time the
+    // content may be shorter than the saved offset and the assignment clamps.
+    // Keep re-applying the target as the content grows — until it's reached,
+    // the user scrolls themselves, or a grace period passes.
+    let cancelled = false;
+    let userScrolled = false;
+    const markUserScroll = () => {
+      userScrolled = true;
+    };
+    let observer: ResizeObserver | null = null;
+    if (target > 0 && typeof ResizeObserver !== 'undefined') {
+      el.addEventListener('wheel', markUserScroll, { passive: true });
+      el.addEventListener('touchstart', markUserScroll, { passive: true });
+      observer = new ResizeObserver(() => {
+        if (cancelled || userScrolled) return;
+        if (el.scrollTop < target && el.scrollHeight - el.clientHeight >= target) {
+          el.scrollTop = target;
+        }
+      });
+      for (const child of Array.from(el.children)) observer.observe(child);
+      setTimeout(() => observer?.disconnect(), 2500);
+    }
 
     const save = () => scrollPositions.set(location.key, el.scrollTop);
     el.addEventListener('scroll', save, { passive: true });
-    return () => el.removeEventListener('scroll', save);
+    return () => {
+      cancelled = true;
+      observer?.disconnect();
+      el.removeEventListener('wheel', markUserScroll);
+      el.removeEventListener('touchstart', markUserScroll);
+      el.removeEventListener('scroll', save);
+    };
   }, [location.key, navigationType, scroller]);
 }
 

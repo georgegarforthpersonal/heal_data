@@ -22,7 +22,7 @@ import {
   type SpeciesOccurrenceDataPoint,
   type SpeciesWithCount,
 } from '../../services/api';
-import { groupCardSx, groupColors, panelTitleSx } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, linkButtonSx, panelTitleSx } from '../../pages/groups/groupsTokens';
 import SeasonalCountChart from '../dashboard/SeasonalCountChart';
 
 interface SeasonalCountPanelProps {
@@ -50,6 +50,17 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
   // type (a group can record several, e.g. bird + mammal), merged by count so
   // the picker opens on the species with the most to show.
   const typesKey = speciesTypes.join(',');
+
+  // A different group (param-only navigation reuses this mounted panel) must
+  // not chart the previous group's species — reset the pick so the list
+  // effect below selects the new group's most-recorded species. Retries
+  // (attempt) deliberately keep the user's selection.
+  useEffect(() => {
+    setSelectedId(null);
+    setSpecies(null);
+    setData(null);
+  }, [typesKey, surveyTypeId]);
+
   useEffect(() => {
     let active = true;
     setError(false);
@@ -158,7 +169,7 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
             <Button
               size="small"
               onClick={() => setAttempt((n) => n + 1)}
-              sx={{ textTransform: 'none', color: groupColors.brandDark, fontWeight: 600 }}
+              sx={linkButtonSx}
             >
               Retry
             </Button>

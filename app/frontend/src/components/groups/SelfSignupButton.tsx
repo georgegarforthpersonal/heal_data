@@ -61,9 +61,11 @@ export default function SelfSignupButton({ slot, assigned, onSaved }: SelfSignup
         : await scheduledSurveysAPI.signUp(slot.id);
       onSaved(slot.id, result.surveyor_ids);
       const undo: () => void = () => void perform(!withdrawing, true);
+      // isUndo names the state the undo produced — a withdraw-as-undo has
+      // just REMOVED the sign-up, so it must never read as restoring one.
       if (withdrawing) {
         toast.success(
-          isUndo ? 'Sign-up restored' : 'You’ve withdrawn from this survey',
+          isUndo ? 'Sign-up undone — you’re not on this survey' : 'You’ve withdrawn from this survey',
           isUndo ? undefined : { label: 'Undo', onClick: undo },
         );
       } else {

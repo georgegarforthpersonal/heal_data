@@ -82,6 +82,19 @@ export default function GroupDetailPage() {
     let active = true;
     setError(false);
     setNotFound(false);
+    // Reset data state: a param-only navigation (e.g. history jump from
+    // /groups/butterfly to /groups/bird) reuses this mounted component, and
+    // without this the old group's hero, worklist and locations linger —
+    // or survive outright if one of the new group's fetches fails.
+    setSurveyType(null);
+    setSlots([]);
+    setRecentSurveys([]);
+    setRecordedCount(null);
+    setSurveyors([]);
+    setLocations(null);
+    setActivityLoading(true);
+    setResolvedId(null);
+    setGreenIds(new Set());
 
     (async () => {
       try {

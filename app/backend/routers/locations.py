@@ -248,8 +248,9 @@ def get_locations_by_survey_type(
 ) -> List[dict[str, Any]]:
     """Get locations available for a specific survey type.
 
-    Sectors order by their walk order (ordinal) within the list — recorders
-    think in section numbers, so alphabetical would mis-order the transect.
+    Sectors order by their walk order (ordinal) within their parent route —
+    recorders think in section numbers, so alphabetical would mis-order the
+    transect — and different routes' sectors never interleave.
 
     With ``with_geometry=true`` each location also carries its GeoJSON
     geometry, a sector's colour falls back to its parent route's, and route
@@ -268,7 +269,10 @@ def get_locations_by_survey_type(
         LEFT JOIN location p ON p.id = l.parent_location_id
         WHERE stl.survey_type_id = :survey_type_id
           AND l.organisation_id = :org_id
-        ORDER BY l.ordinal NULLS FIRST, l.name
+        -- Group each route's sectors together (keyed by the parent's name,
+        -- which top-level rows share via their own name), parents/loose
+        -- locations first within a group, then sectors in walk order.
+        ORDER BY COALESCE(p.name, l.name), l.ordinal NULLS FIRST, l.name
     """).bindparams(survey_type_id=survey_type_id, org_id=org.id)).fetchall()
 
     sectors_by_route: Dict[int, List[Dict[str, Any]]] = {}

@@ -26,7 +26,7 @@ import {
   type ScheduledSurvey,
   type Surveyor,
 } from '../../services/api';
-import { groupCardSx, groupColors } from './groupsTokens';
+import { groupCardSx, groupColors, linkButtonSx } from './groupsTokens';
 import { groupActivity, primarySpeciesType, resolveGroupTypeId } from './groupMeta';
 import { deriveSlotState, formatRecordedDate, formatSurveyDate, scheduleSlots, type SlotState } from './surveyState';
 import { useDocumentTitle, useSignupSaved, useSurveyorLookup } from '../../hooks';
@@ -289,7 +289,8 @@ export default function AllSurveysPage() {
               // with avatars top right, actions line below. Recorded rows all
               // stack too, chips starting from the left — uniformly, so light
               // and chip-heavy rows read the same (mixed alignment looked odd).
-              const stacked = state === 'due-this-week' || state === 'upcoming' || row.kind === 'survey';
+              const stacked =
+                state === 'due-this-week' || state === 'upcoming' || state === 'needs-survey' || row.kind === 'survey';
               // Recorded rows navigate, so they are real buttons (keyboard
               // reachable); slot rows are static containers.
               const RowComponent: React.ElementType = clickable ? ButtonBase : Box;
@@ -369,12 +370,11 @@ export default function AllSurveysPage() {
                   )}
 
                   {/* The who-row: avatars beside the one-click sign-up toggle
-                      (open to every role). On phones it is its own full-width
-                      line under the when-row, so sign-ups never crush the
-                      date. Recording happens only through the group page's
-                      header button; the survey's date decides which week it
-                      fulfils. */}
-                  {row.kind === 'slot' && (state === 'upcoming' || state === 'due-this-week') && (
+                      (open to every role) — on every open slot, including
+                      not-recorded past weeks, matching the group worklist.
+                      On phones it is its own full-width line under the
+                      when-row, so sign-ups never crush the date. */}
+                  {row.kind === 'slot' && state !== 'cancelled' && (
                     <Box
                       sx={{
                         display: 'flex',
@@ -400,7 +400,7 @@ export default function AllSurveysPage() {
                 onClick={loadMore}
                 disabled={loadingMore}
                 startIcon={loadingMore ? <CircularProgress size={14} /> : undefined}
-                sx={{ textTransform: 'none', color: groupColors.brandDark, fontWeight: 600 }}
+                sx={linkButtonSx}
               >
                 Load more
               </Button>

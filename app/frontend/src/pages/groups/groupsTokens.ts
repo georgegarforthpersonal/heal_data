@@ -96,6 +96,14 @@ export const viewToggleSx = {
   },
 } as const;
 
+// Tertiary text-button treatment (Retry, Load more, inline expanders) — one
+// token so the next contrast audit has a single place to look.
+export const linkButtonSx = {
+  textTransform: 'none',
+  color: groupColors.brandDark,
+  fontWeight: 600,
+} as const;
+
 // Shared header treatment for group panel titles. Rendered as a real <h2> so
 // the page has a navigable heading outline (the hero carries the <h1>).
 export const panelTitleSx = {

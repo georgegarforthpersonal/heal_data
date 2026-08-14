@@ -4,6 +4,7 @@
  * Shared utility functions for formatting data across the application.
  */
 
+import dayjs from 'dayjs';
 import type { Surveyor } from '../services/api';
 
 /**
@@ -57,12 +58,9 @@ export const getInitials = (name: string): string => {
  * formatDate("2024-01-15") // "15 Jan 2024"
  */
 export const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  // dayjs parses the ISO date in LOCAL time — new Date() parses it as UTC
+  // midnight, which renders the previous day for users west of UTC.
+  return dayjs(dateStr).format('D MMM YYYY');
 };
 
 /**

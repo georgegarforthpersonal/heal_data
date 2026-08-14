@@ -86,12 +86,15 @@ function LocationRowIcon({ type }: { type: LocationWithBoundary['location_type']
 }
 
 export default function LocationsPanel({ locations, devices = [] }: LocationsPanelProps) {
-  // Routes first, then sectors in walk order (ordinal), then the rest.
+  // Routes first, then sectors grouped by their parent route in walk order
+  // (ordinal), then the rest — two routes' sectors must never interleave.
   const order = (l: LocationWithBoundary) =>
     l.location_type === 'route' ? 0 : l.location_type === 'sector' ? 1 : 2;
+  const group = (l: LocationWithBoundary) => l.parent_name ?? l.name;
   const visible = [...locations].sort(
     (a, b) =>
       order(a) - order(b) ||
+      group(a).localeCompare(group(b)) ||
       (a.ordinal ?? Number.MAX_SAFE_INTEGER) - (b.ordinal ?? Number.MAX_SAFE_INTEGER) ||
       a.name.localeCompare(b.name),
   );

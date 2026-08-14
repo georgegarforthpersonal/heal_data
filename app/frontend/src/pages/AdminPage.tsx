@@ -61,7 +61,7 @@ import {
   type DeviceType,
   type ScheduleCadence,
 } from '../services/api';
-import { orgHasGroups } from './groups/groupMeta';
+import { clearGroupTypeCache, orgHasGroups } from './groups/groupMeta';
 import LocationsDevicesManager from '../components/admin/LocationsDevicesManager';
 import RecordsExportPanel from '../components/admin/RecordsExportPanel';
 import ScheduledSurveysPanel from '../components/admin/ScheduledSurveysPanel';
@@ -465,6 +465,9 @@ export function AdminPage() {
 
       setSurveyTypeDialogOpen(false);
       resetSurveyTypeForm();
+      // Group pages resolve their slug against a cached survey-type list —
+      // a rename/create must not 404 bookmarks for the next five minutes.
+      clearGroupTypeCache();
       await loadSurveyTypes();
       if (savedId !== null) {
         toast.success(`Survey type ${surveyTypeDialogMode === 'add' ? 'created' : 'updated'} successfully`);
@@ -484,6 +487,7 @@ export function AdminPage() {
       await surveyTypesAPI.delete(surveyTypeToDeactivate.id);
       setDeactivateSurveyTypeDialogOpen(false);
       setSurveyTypeToDeactivate(null);
+      clearGroupTypeCache();
       await loadSurveyTypes();
       toast.error('Survey type deactivated');
     } catch (err) {

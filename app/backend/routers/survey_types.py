@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from typing import List, Set, Union
 from datetime import datetime
 from sqlmodel import col
-from sqlalchemy import func, nullsfirst, text
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from database.connection import get_db
 from auth import require_admin_role
@@ -163,9 +163,7 @@ def get_survey_type(
             SurveyTypeLocationLink.survey_type_id == survey_type_id,
             Location.organisation_id == org.id
         )
-        # Walk order for sectors (routes/areas have no ordinal and sort by
-        # name); alphabetical would mis-order a transect's sections.
-        .order_by(nullsfirst(col(Location.ordinal).asc()), Location.name)
+        .order_by(Location.name)
         .all()
     )
 
@@ -179,6 +177,20 @@ def get_survey_type(
         )
         if parent_ids
         else {}
+    )
+
+    # Walk order: group each route's sectors together (keyed by parent name;
+    # top-level rows key by their own name and sort ahead of their sectors),
+    # sectors in ordinal order within the group. Alphabetical would mis-order
+    # a transect's sections and interleave two routes' sectors.
+    locations.sort(
+        key=lambda loc: (
+            parent_names.get(loc.parent_location_id, loc.name)
+            if loc.parent_location_id
+            else loc.name,
+            loc.ordinal if loc.ordinal is not None else -1,
+            loc.name,
+        )
     )
 
     # Get associated species types (global data, no org filter)

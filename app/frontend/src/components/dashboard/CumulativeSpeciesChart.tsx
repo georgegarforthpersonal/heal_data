@@ -41,8 +41,10 @@ interface CumulativeSpeciesChartProps {
   color?: string;
   height?: number;
   emptyMessage?: string;
-  /** Fires after each load with headline figures (for an external stat header). */
-  onSummary?: (summary: CumulativeSummary) => void;
+  /** Fires after each load with headline figures (for an external stat
+   * header) — or null on a failed load, so the header can show "unknown"
+   * rather than a confident 0 beside the error. */
+  onSummary?: (summary: CumulativeSummary | null) => void;
 }
 
 const CHART_MARGIN = { top: 10, right: 10, left: 0, bottom: 0 };
@@ -151,8 +153,9 @@ export default function CumulativeSpeciesChart({
         if (!active) return;
         // Written copy, never a raw API error string, and always a Retry.
         setError(true);
-        // Don't leave a stale headline count sitting beside the error.
-        onSummaryRef.current?.({ total: 0, types: [] });
+        // Don't leave a stale headline count sitting beside the error —
+        // null means "unknown", never a confident 0.
+        onSummaryRef.current?.(null);
       })
       .finally(() => {
         if (active) setLoading(false);

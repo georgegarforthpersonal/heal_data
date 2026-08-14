@@ -12,7 +12,7 @@ import { surveyTypesAPI } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { formatFileSize } from '../../utils/fileBadges';
 import FileTypeBadge from '../FileTypeBadge';
-import { groupCardSx, groupColors, panelTitleSx } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, linkButtonSx, panelTitleSx } from '../../pages/groups/groupsTokens';
 
 interface FilesPanelProps {
   surveyTypeId: number;
@@ -59,7 +59,7 @@ export default function FilesPanel({ surveyTypeId, files, loading, error = false
             Couldn’t load the files.
           </Typography>
           {onRetry && (
-            <Button size="small" onClick={onRetry} sx={{ textTransform: 'none', color: groupColors.brandDark, fontWeight: 600 }}>
+            <Button size="small" onClick={onRetry} sx={linkButtonSx}>
               Retry
             </Button>
           )}

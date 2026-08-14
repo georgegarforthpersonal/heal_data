@@ -13,7 +13,7 @@ import { BarChart as ChartIcon, ViewList } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { dashboardAPI, type SpeciesWithCount } from '../../services/api';
 import CumulativeSpeciesChart, { type CumulativeSummary } from '../dashboard/CumulativeSpeciesChart';
-import { groupCardSx, groupColors, panelTitleSx, viewToggleSx } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, linkButtonSx, panelTitleSx, viewToggleSx } from '../../pages/groups/groupsTokens';
 
 interface SpeciesCountPanelProps {
   /** The survey type's linked species types; empty = count everything it recorded. */
@@ -134,7 +134,7 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
               <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
                 Couldn’t load the species list.
               </Typography>
-              <Button size="small" onClick={retryList} sx={{ textTransform: 'none', color: groupColors.brandDark, fontWeight: 600 }}>
+              <Button size="small" onClick={retryList} sx={linkButtonSx}>
                 Retry
               </Button>
             </Box>
