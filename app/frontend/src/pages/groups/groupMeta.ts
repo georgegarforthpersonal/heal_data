@@ -1,7 +1,7 @@
 /**
  * Helpers mapping a survey type to its Groups presentation: the accent colour
  * for its icon tile, the species type that drives its wildlife icon/charts,
- * and the name-slug URLs that make groups addressable as /groups/butterfly.
+ * and the name-slug URLs that make groups addressable as /surveys/butterfly.
  */
 import { notionColors } from '../../theme';
 import { ORG_SLUG, surveyTypesAPI, type SurveyType, type SurveyTypeWithDetails } from '../../services/api';
@@ -141,10 +141,13 @@ export function groupSlug(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/** Canonical path for a group — the name slug, or the id if the name has no
- * sluggable characters. */
+/** Canonical path for a group's survey page — /surveys/<name-slug>. A name
+ * with no sluggable characters falls back to the legacy /groups/<id> URL
+ * (which redirects through the resolver): a bare numeric /surveys/<id>
+ * would collide with the survey detail page. */
 export function groupPath(surveyType: Pick<SurveyType, 'id' | 'name'>): string {
-  return `/groups/${groupSlug(surveyType.name) || surveyType.id}`;
+  const slug = groupSlug(surveyType.name);
+  return slug ? `/surveys/${slug}` : `/groups/${surveyType.id}`;
 }
 
 // The survey-type list changes rarely but gates the first paint of every
@@ -171,7 +174,21 @@ export function clearGroupTypeCache(): void {
 }
 
 /**
- * Resolve a /groups/:typeId route param — a name slug or a numeric id (old
+ * The canonical slug for a legacy /groups/:typeId param (a slug already, or
+ * a numeric group id from pre-slug bookmarks), or null when nothing
+ * resolves. Used by the /groups → /surveys redirect, which cannot forward a
+ * numeric id verbatim — /surveys/<number> is a survey detail URL.
+ */
+export async function legacyGroupSlug(param: string): Promise<string | null> {
+  if (!/^\d+$/.test(param)) return param.toLowerCase();
+  const beta = new Set(betaGroupNames());
+  const types = await cachedSurveyTypes();
+  const match = types.find((t) => t.id === Number(param) && beta.has(t.name.trim().toLowerCase()));
+  return match ? groupSlug(match.name) || null : null;
+}
+
+/**
+ * Resolve a /surveys/:typeId route param — a name slug or a numeric id (old
  * links keep working) — to the survey type id, or null when nothing matches.
  * Only beta group types resolve: a hand-typed /groups/moth (or any group URL
  * in a non-beta org) is a not-found, keeping the pages behind the same gate

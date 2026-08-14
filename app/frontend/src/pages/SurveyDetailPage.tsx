@@ -111,7 +111,10 @@ function SightingNote({ text }: { text: string }) {
  * - Connected to real API
  */
 export function SurveyDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  // The route param is named typeId (the /surveys/:typeId segment is shared
+  // with the group survey pages; numeric params dispatch here).
+  const params = useParams<{ id?: string; typeId?: string }>();
+  const id = params.id ?? params.typeId;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();

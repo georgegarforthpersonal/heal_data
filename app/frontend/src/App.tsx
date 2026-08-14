@@ -1,10 +1,12 @@
 import { ThemeProvider, CssBaseline } from '@mui/material';
+import { useEffect, useState } from 'react';
 import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
   Outlet,
   useLocation,
+  useParams,
   useRouteError,
 } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -32,7 +34,7 @@ import GroupsPage from './pages/groups/GroupsPage';
 import GroupDetailPage from './pages/groups/GroupDetailPage';
 import AllSurveysPage from './pages/groups/AllSurveysPage';
 import GroupMediaPage from './pages/groups/GroupMediaPage';
-import { orgHasGroups } from './pages/groups/groupMeta';
+import { legacyGroupSlug, orgHasGroups } from './pages/groups/groupMeta';
 
 // Set dayjs to use UK locale globally (dd/mm/yyyy format)
 dayjs.locale('en-gb');
@@ -46,7 +48,7 @@ function BubbleRouteError(): never {
   throw useRouteError();
 }
 
-/** "Teams" became "Groups"; old bookmarks and links keep working. */
+/** "Teams" became "Groups" became "Surveys"; old bookmarks keep working. */
 function LegacyTeamsRedirect() {
   const location = useLocation();
   return (
@@ -55,6 +57,43 @@ function LegacyTeamsRedirect() {
       replace
     />
   );
+}
+
+/**
+ * Legacy /groups/:typeId[/…] URLs redirect to their /surveys equivalents.
+ * A slug param forwards verbatim; a pre-slug numeric group id resolves to
+ * its slug first — /surveys/<number> means a recorded survey, not a group.
+ */
+function LegacyGroupsRedirect() {
+  const location = useLocation();
+  const { typeId } = useParams<{ typeId: string }>();
+  const [resolved, setResolved] = useState<string | null | 'pending'>(
+    typeId && /^\d+$/.test(typeId) ? 'pending' : (typeId?.toLowerCase() ?? null),
+  );
+
+  useEffect(() => {
+    if (resolved !== 'pending' || !typeId) return;
+    let active = true;
+    legacyGroupSlug(typeId).then((slug) => active && setResolved(slug));
+    return () => {
+      active = false;
+    };
+  }, [typeId, resolved]);
+
+  if (resolved === 'pending') return null; // resolving the numeric id
+  if (resolved === null) return <Navigate to="/surveys" replace />;
+  const rest = location.pathname.replace(/^\/groups\/[^/]+/, '');
+  return <Navigate to={{ ...location, pathname: `/surveys/${resolved}${rest}` }} replace />;
+}
+
+/**
+ * /surveys/:typeId serves two pages: a numeric param is a recorded survey's
+ * detail page (the pre-existing URLs), anything else is a group's survey
+ * page addressed by name slug (e.g. /surveys/butterfly).
+ */
+function SurveyOrGroupPage() {
+  const { typeId } = useParams<{ typeId: string }>();
+  return /^\d+$/.test(typeId ?? '') ? <SurveyDetailPage /> : <GroupDetailPage />;
 }
 
 
@@ -87,11 +126,12 @@ const router = createBrowserRouter([
           </RequireAuth>
         ),
         children: [
-          // Groups (beta) — grid, per-type group page, and full survey history
-          { path: '/groups', element: <GroupsPage /> },
-          { path: '/groups/:typeId', element: <GroupDetailPage /> },
-          { path: '/groups/:typeId/all', element: <AllSurveysPage /> },
-          { path: '/groups/:typeId/media', element: <GroupMediaPage /> },
+          // Legacy /groups URLs — "Groups" is retired terminology; the pages
+          // live under /surveys now. Old bookmarks and links keep working.
+          { path: '/groups', element: <Navigate to="/surveys" replace /> },
+          { path: '/groups/:typeId', element: <LegacyGroupsRedirect /> },
+          { path: '/groups/:typeId/all', element: <LegacyGroupsRedirect /> },
+          { path: '/groups/:typeId/media', element: <LegacyGroupsRedirect /> },
           { path: '/teams/*', element: <LegacyTeamsRedirect /> },
 
           // Dashboard page
@@ -103,11 +143,9 @@ const router = createBrowserRouter([
           // Admin page
           { path: '/admin', element: <AdminPage /> },
 
-          // The flat surveys list is retired where Groups covers the org —
-          // /surveys (the list URL only) aliases the Groups landing so every
-          // legacy target (back buttons, cancel, post-save) lands correctly.
-          // Orgs without Groups keep the flat list as their fallback.
-          { path: '/surveys', element: orgHasGroups() ? <Navigate to="/groups" replace /> : <SurveysPage /> },
+          // Surveys home: the per-type survey grid where Groups covers the
+          // org, the flat list for orgs without it.
+          { path: '/surveys', element: orgHasGroups() ? <GroupsPage /> : <SurveysPage /> },
 
           // New survey page
           { path: '/surveys/new', element: <NewSurveyPage /> },
@@ -118,11 +156,15 @@ const router = createBrowserRouter([
           // Audio survey wizard
           { path: '/surveys/new/audio', element: <NewAudioSurveyPage /> },
 
-          // Survey detail page
-          { path: '/surveys/:id', element: <SurveyDetailPage /> },
+          // A numeric param is a recorded survey's detail page; a slug is a
+          // group's survey page (/surveys/butterfly). Static /surveys/new
+          // above always wins over this dynamic segment.
+          { path: '/surveys/:typeId', element: <SurveyOrGroupPage /> },
+          { path: '/surveys/:typeId/all', element: <AllSurveysPage /> },
+          { path: '/surveys/:typeId/media', element: <GroupMediaPage /> },
 
           // Redirect root to the landing page
-          { path: '/', element: <Navigate to={orgHasGroups() ? '/groups' : '/surveys'} replace /> },
+          { path: '/', element: <Navigate to="/surveys" replace /> },
 
           // Unmatched routes render an empty layout (as with <Routes> before)
           { path: '*', element: null },

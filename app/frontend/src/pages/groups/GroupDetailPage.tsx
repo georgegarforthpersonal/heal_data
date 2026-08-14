@@ -83,7 +83,7 @@ export default function GroupDetailPage() {
     setError(false);
     setNotFound(false);
     // Reset data state: a param-only navigation (e.g. history jump from
-    // /groups/butterfly to /groups/bird) reuses this mounted component, and
+    // /surveys/butterfly to /surveys/bird) reuses this mounted component, and
     // without this the old group's hero, worklist and locations linger —
     // or survive outright if one of the new group's fetches fails.
     setSurveyType(null);
@@ -197,7 +197,7 @@ export default function GroupDetailPage() {
   if (error) {
     return (
       <Box sx={{ maxWidth: GROUP_MAX_WIDTH, mx: 'auto', px: { xs: 2, sm: 4 }, py: 4 }}>
-        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/groups' }, { label: 'Error' }]} />
+        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/surveys' }, { label: 'Error' }]} />
         <Alert
           severity="error"
           action={
@@ -215,13 +215,13 @@ export default function GroupDetailPage() {
   if (notFound) {
     return (
       <Box sx={{ maxWidth: GROUP_MAX_WIDTH, mx: 'auto', px: { xs: 2, sm: 4 }, py: 4 }}>
-        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/groups' }, { label: 'Not found' }]} />
+        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/surveys' }, { label: 'Not found' }]} />
         <Typography sx={{ color: groupColors.textSecondary, mb: 2 }}>
           This page doesn’t exist — the survey group may have been renamed or removed.
         </Typography>
         <Button
           variant="outlined"
-          onClick={() => navigate('/groups')}
+          onClick={() => navigate('/surveys')}
           sx={{ textTransform: 'none', color: groupColors.brandDark, borderColor: groupColors.brand, fontWeight: 600 }}
         >
           Browse all surveys
@@ -242,7 +242,7 @@ export default function GroupDetailPage() {
   // SingleSpeciesCountPanel, without a picker.
   const hasSeasonal = activity === 'worklist' && !singleSpecies;
   const returnTo = surveyType
-    ? { returnTo: { pathname: `/groups/${typeId}`, label: surveyType.name } }
+    ? { returnTo: { pathname: `/surveys/${typeId}`, label: surveyType.name } }
     : undefined;
   // Unscheduled groups record without a slot: media types jump straight to
   // their wizard, plain types to the standard form with the type preselected.
@@ -271,7 +271,7 @@ export default function GroupDetailPage() {
     <Box sx={{ bgcolor: groupColors.page, minHeight: '100%', px: { xs: 2, sm: 4 }, py: { xs: 2, sm: 3 } }}>
       <Box sx={{ maxWidth: GROUP_MAX_WIDTH, mx: 'auto' }}>
         <GroupBreadcrumb
-          crumbs={[{ label: 'Surveys', to: '/groups' }, { label: surveyType?.name ?? '…' }]}
+          crumbs={[{ label: 'Surveys', to: '/surveys' }, { label: surveyType?.name ?? '…' }]}
         />
 
         {loadingDetails ? (
@@ -311,7 +311,7 @@ export default function GroupDetailPage() {
                   }
                   onRecord={recordNew}
                   onOpenSurvey={openSurvey}
-                  onViewAll={() => navigate(`/groups/${typeId}/all`)}
+                  onViewAll={() => navigate(`/surveys/${typeId}/all`)}
                 />
               ) : (
                 <SurveysPanel
@@ -323,7 +323,7 @@ export default function GroupDetailPage() {
                   greenIds={greenIds}
                   onSignupSaved={handleSignupSaved}
                   onOpenRecorded={openSurvey}
-                  onViewAll={() => navigate(`/groups/${typeId}/all`)}
+                  onViewAll={() => navigate(`/surveys/${typeId}/all`)}
                   onRecordNew={recordNew}
                   onRecordSlot={recordForSlot}
                 />
@@ -343,7 +343,7 @@ export default function GroupDetailPage() {
                 <RecentMediaPanel
                   kind={surveyType.allow_image_upload ? 'photos' : 'clips'}
                   surveyTypeId={surveyType.id}
-                  onViewAll={() => navigate(`/groups/${typeId}/media`)}
+                  onViewAll={() => navigate(`/surveys/${typeId}/media`)}
                 />
               </Box>
             )}
