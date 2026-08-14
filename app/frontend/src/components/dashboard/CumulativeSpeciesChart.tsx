@@ -219,19 +219,12 @@ export default function CumulativeSpeciesChart({
           tickLine={false}
           axisLine={{ stroke: '#eceeec' }}
         />
-        {/* The count is the point of a discovery curve — say what it counts. */}
         <YAxis
-          width={44}
+          width={32}
           allowDecimals={false}
           tick={{ fontSize: 11, fill: '#666' }}
           tickLine={false}
           axisLine={false}
-          label={{
-            value: 'Species',
-            angle: -90,
-            position: 'insideLeft',
-            style: { fontSize: 11, fill: '#666', textAnchor: 'middle' },
-          }}
         />
         <RechartsTooltip
           content={

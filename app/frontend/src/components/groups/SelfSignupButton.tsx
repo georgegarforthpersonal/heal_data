@@ -123,7 +123,6 @@ export default function SelfSignupButton({ slot, assigned, onSaved }: SelfSignup
         px: 1.5,
         py: 0.5,
         minWidth: 112,
-        minHeight: { xs: 44, sm: 32 },
         // Colour is driven by the same state as the label (not CSS :hover),
         // so text and treatment can never disagree.
         ...(showWithdraw

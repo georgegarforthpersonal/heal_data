@@ -7,18 +7,17 @@
  * ('worklist') groups, or a record-CTA + recent-history panel for unscheduled
  * ('record') ones; media groups additionally get a recent photos/clips panel.
  *
- * The page paints progressively: chrome (breadcrumb + hero skeleton)
- * renders immediately, the hero hydrates when the type details arrive, and
- * each panel hydrates from its own fetch behind a skeleton — nothing hides
- * the whole page behind one spinner. Location geometry comes from the
- * type-scoped endpoint, not the whole organisation's.
+ * Location geometry comes from the type-scoped endpoint, not the whole
+ * organisation's, and the slug resolves against a cached type list — the
+ * load is short enough that a single spinner gates the page (skeleton
+ * hydration was tried and felt worse than the brief wait).
  *
  * On mobile the panels stack Surveys-first (the worklist is why the page is
  * opened); Files sits below the working panels.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Box, Button, Skeleton, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import {
   ApiError,
   surveyTypesAPI,
@@ -38,7 +37,6 @@ import { groupActivity, primarySpeciesType, recordSurveyPath, resolveGroupTypeId
 import { useDocumentTitle, useSignupSaved, useSurveyorLookup } from '../../hooks';
 import GroupBreadcrumb from '../../components/groups/GroupBreadcrumb';
 import GroupHero from '../../components/groups/GroupHero';
-import PanelSkeleton from '../../components/groups/PanelSkeleton';
 import SurveysPanel from '../../components/groups/SurveysPanel';
 import RecordPanel from '../../components/groups/RecordPanel';
 import RecentMediaPanel from '../../components/groups/RecentMediaPanel';
@@ -60,7 +58,7 @@ export default function GroupDetailPage() {
   const [surveyors, setSurveyors] = useState<Surveyor[]>([]);
   // null = still loading (locations panel shows a skeleton).
   const [locations, setLocations] = useState<LocationWithBoundary[] | null>(null);
-  const [activityLoading, setActivityLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState<SurveyTypeFile[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
   const [filesError, setFilesError] = useState(false);
@@ -92,7 +90,7 @@ export default function GroupDetailPage() {
     setRecordedCount(null);
     setSurveyors([]);
     setLocations(null);
-    setActivityLoading(true);
+    setLoading(true);
     setResolvedId(null);
     setGreenIds(new Set());
 
@@ -105,6 +103,7 @@ export default function GroupDetailPage() {
         if (surveyTypeId == null) {
           setNotFound(true);
           setFilesLoading(false);
+          setLoading(false);
           return;
         }
         setResolvedId(surveyTypeId);
@@ -144,7 +143,6 @@ export default function GroupDetailPage() {
         // the same paged call that gives it its recorded total (the list is
         // date-descending, so page 1 IS the recent list).
         const scheduled = groupActivity(details.name) === 'worklist';
-        setActivityLoading(true);
         const [slotList, surveysPage, surveyorList] = await Promise.all([
           scheduled
             ? scheduledSurveysAPI.getAll({ survey_type_id: surveyTypeId })
@@ -158,12 +156,13 @@ export default function GroupDetailPage() {
         setRecentSurveys(surveysPage.data);
         setRecordedCount(surveysPage.total);
         setSurveyors(surveyorList);
-        setActivityLoading(false);
+        setLoading(false);
       } catch (err) {
         // Only a 404 means the group doesn't exist; anything else is a fault.
         if (active) {
           if (err instanceof ApiError && err.status === 404) setNotFound(true);
           else setError(true);
+          setLoading(false);
         }
       }
     })();
@@ -193,6 +192,14 @@ export default function GroupDetailPage() {
   const resolveSurveyors = useSurveyorLookup(surveyors);
   const handleSignupSaved = useSignupSaved(slots, setSlots, setGreenIds, surveyors, setSurveyors);
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
+
+  if (loading && !error && !notFound) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (error) {
     return (
@@ -230,26 +237,25 @@ export default function GroupDetailPage() {
     );
   }
 
-  const loadingDetails = surveyType === null;
-  const speciesType = surveyType ? primarySpeciesType(surveyType) : 'butterfly';
+  if (!surveyType) return null; // unreachable: the gate above covers it
+
+  const speciesType = primarySpeciesType(surveyType);
   // A survey type narrowed to exactly one species (e.g. Marsh Fritillary)
   // gets the per-survey seasonal count panel instead of the diversity chart.
-  const singleSpecies = surveyType && surveyType.species.length === 1 ? surveyType.species[0] : null;
-  const activity = surveyType ? groupActivity(surveyType.name) : 'worklist';
+  const singleSpecies = surveyType.species.length === 1 ? surveyType.species[0] : null;
+  const activity = groupActivity(surveyType.name);
   // Seasonal counts need repeat visits through a season to compare, so they
   // belong to the scheduled groups: Bird, Butterfly, Dragonfly today.
   // Single-species scheduled groups already get the same chart from
   // SingleSpeciesCountPanel, without a picker.
   const hasSeasonal = activity === 'worklist' && !singleSpecies;
-  const returnTo = surveyType
-    ? { returnTo: { pathname: `/surveys/${typeId}`, label: surveyType.name } }
-    : undefined;
+  const returnTo = { returnTo: { pathname: `/surveys/${typeId}`, label: surveyType.name } };
   // Unscheduled groups record without a slot: media types jump straight to
   // their wizard, plain types to the standard form with the type preselected.
-  const recordNew = () => surveyType && navigate(recordSurveyPath(surveyType), { state: returnTo });
+  const recordNew = () => navigate(recordSurveyPath(surveyType), { state: returnTo });
   const openSurvey = (survey: Survey) => navigate(`/surveys/${survey.id}`, { state: returnTo });
 
-  const dataPanel = surveyType && (
+  const dataPanel = (
     <Box sx={{ order: 7, minWidth: 0 }}>
       <DataPanel
         surveyTypeId={surveyType.id}
@@ -263,14 +269,10 @@ export default function GroupDetailPage() {
     <Box sx={{ bgcolor: groupColors.page, minHeight: '100%', px: { xs: 2, sm: 4 }, py: { xs: 2, sm: 3 } }}>
       <Box sx={{ maxWidth: GROUP_MAX_WIDTH, mx: 'auto' }}>
         <GroupBreadcrumb
-          crumbs={[{ label: 'Surveys', to: '/surveys' }, { label: surveyType?.name ?? '…' }]}
+          crumbs={[{ label: 'Surveys', to: '/surveys' }, { label: surveyType.name }]}
         />
 
-        {loadingDetails ? (
-          <Skeleton variant="rounded" height={116} sx={{ borderRadius: '12px' }} />
-        ) : (
-          <GroupHero surveyType={surveyType} />
-        )}
+        <GroupHero surveyType={surveyType} />
 
         {/* On xs the column wrappers become display: contents so the panels
             stack as direct flex items in their `order` — Surveys first, the
@@ -288,16 +290,14 @@ export default function GroupDetailPage() {
           {/* Left column */}
           <Box sx={{ display: { xs: 'contents', md: 'flex' }, flexDirection: 'column', gap: 2.25, flex: 1, minWidth: 0 }}>
             <Box sx={{ order: 1, minWidth: 0 }}>
-              {loadingDetails || (activityLoading && recentSurveys.length === 0 && slots.length === 0) ? (
-                <PanelSkeleton titleWidth={72} rows={4} />
-              ) : activity === 'record' ? (
+              {activity === 'record' ? (
                 <RecordPanel
                   surveys={recentSurveys}
                   recordedCount={recordedCount ?? 0}
                   resolveSurveyors={resolveSurveyors}
                   speciesType={speciesType}
                   recordLabel={
-                    surveyType!.allow_image_upload || surveyType!.allow_audio_upload
+                    surveyType.allow_image_upload || surveyType.allow_audio_upload
                       ? 'Record survey'
                       : 'Log a sighting'
                   }
@@ -321,15 +321,13 @@ export default function GroupDetailPage() {
               )}
             </Box>
             <Box sx={{ order: 3, minWidth: 0 }}>
-              {loadingDetails ? (
-                <PanelSkeleton titleWidth={120} blockHeight={240} />
-              ) : singleSpecies ? (
-                <SingleSpeciesCountPanel surveyTypeId={surveyType!.id} species={singleSpecies} />
+              {singleSpecies ? (
+                <SingleSpeciesCountPanel surveyTypeId={surveyType.id} species={singleSpecies} />
               ) : (
-                <SpeciesCountPanel speciesTypes={surveyType!.species_types.map((st) => st.name)} surveyTypeId={surveyType!.id} />
+                <SpeciesCountPanel speciesTypes={surveyType.species_types.map((st) => st.name)} surveyTypeId={surveyType.id} />
               )}
             </Box>
-            {surveyType && (surveyType.allow_image_upload || surveyType.allow_audio_upload) && (
+            {(surveyType.allow_image_upload || surveyType.allow_audio_upload) && (
               <Box sx={{ order: 5, minWidth: 0 }}>
                 <RecentMediaPanel
                   kind={surveyType.allow_image_upload ? 'photos' : 'clips'}
@@ -359,13 +357,9 @@ export default function GroupDetailPage() {
               />
             </Box>
             <Box sx={{ order: 2, minWidth: 0 }}>
-              {locations === null ? (
-                <PanelSkeleton titleWidth={90} blockHeight={360} />
-              ) : (
-                <LocationsPanel locations={locations} devices={surveyType?.devices ?? []} />
-              )}
+              <LocationsPanel locations={locations ?? []} devices={surveyType.devices} />
             </Box>
-            {hasSeasonal && surveyType && (
+            {hasSeasonal && (
               <Box sx={{ order: 6, minWidth: 0 }}>
                 <SeasonalCountPanel
                   surveyTypeId={surveyType.id}

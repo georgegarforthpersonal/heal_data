@@ -3,10 +3,9 @@
  * plotted as a dot on a shared Jan–Dec axis, one colour per year, joined
  * only within a year — sparse/seasonal data stays honest (no line across
  * the winter gap) and seasons can be compared year-on-year. Zero counts are
- * real data: surveyed, none seen. Years are encoded by colour AND dash
- * pattern (never hue alone), and the legend always renders so a single-year
- * chart still says which year it shows. Shared by the Dashboards page and
- * the Groups panels — only height/chrome differ.
+ * real data: surveyed, none seen. The legend always renders, so a
+ * single-year chart still says which year it shows. Shared by the
+ * Dashboards page and the Groups panels — only height/chrome differ.
  */
 import { Box, Paper, Typography } from '@mui/material';
 import {
@@ -25,7 +24,6 @@ import {
   buildSeasonalSeries,
   shouldAggregateMonthly,
   YEAR_SERIES_COLORS,
-  YEAR_SERIES_DASHES,
   type SeasonalRow,
 } from '../groups/seasonalSeries';
 
@@ -55,12 +53,10 @@ export default function SeasonalCountChart({
     );
   }
 
-  // series.years is most-recent-first so the brand green (and the solid
-  // line) land on the current season. Colour and dash bind to the YEAR, not
-  // to render order — lines, legend and tooltip all read chronologically
-  // without repainting anything.
+  // series.years is most-recent-first so the brand green lands on the
+  // current season. Colour binds to the YEAR, not to render order — lines,
+  // legend and tooltip all read chronologically without repainting anything.
   const colourOf = (year: number) => YEAR_SERIES_COLORS[series.years.indexOf(year)];
-  const dashOf = (year: number) => YEAR_SERIES_DASHES[series.years.indexOf(year)];
   const chronological = [...series.years].sort((a, b) => a - b);
 
   return (
@@ -80,17 +76,11 @@ export default function SeasonalCountChart({
             axisLine={{ stroke: '#eceeec' }}
           />
           <YAxis
-            width={44}
+            width={32}
             allowDecimals={false}
             tick={{ fontSize: 11, fill: '#666' }}
             tickLine={false}
             axisLine={false}
-            label={{
-              value: monthly ? 'Peak count' : 'Count',
-              angle: -90,
-              position: 'insideLeft',
-              style: { fontSize: 11, fill: '#666', textAnchor: 'middle' },
-            }}
           />
           <RechartsTooltip content={<SeasonTooltip monthly={monthly} />} />
           {chronological.map((year) => (
@@ -99,7 +89,6 @@ export default function SeasonalCountChart({
               dataKey={String(year)}
               stroke={colourOf(year)}
               strokeWidth={2}
-              strokeDasharray={dashOf(year)}
               // Per-survey rows are keyed by exact date, so every other
               // year's visit punches a hole in this year's series — those
               // holes must connect. Monthly rows align across years: there a
@@ -118,7 +107,7 @@ export default function SeasonalCountChart({
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', mt: 1 }}>
         {chronological.map((year) => (
           <Box key={year} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-            <LegendSwatch color={colourOf(year)} dash={dashOf(year)} />
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colourOf(year) }} />
             <Typography sx={{ fontSize: 12, color: '#666' }}>{year}</Typography>
           </Box>
         ))}
@@ -130,16 +119,6 @@ export default function SeasonalCountChart({
         )}
       </Box>
     </>
-  );
-}
-
-/** Legend swatch echoing the line's colour AND dash, not a plain dot. */
-function LegendSwatch({ color, dash }: { color: string; dash?: string }) {
-  return (
-    <svg width="20" height="8" aria-hidden focusable="false">
-      <line x1="0" y1="4" x2="20" y2="4" stroke={color} strokeWidth="2" strokeDasharray={dash} />
-      <circle cx="10" cy="4" r="3" fill={color} stroke="#fff" strokeWidth="1.5" />
-    </svg>
   );
 }
 

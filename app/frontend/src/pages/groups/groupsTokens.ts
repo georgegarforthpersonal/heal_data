@@ -41,9 +41,9 @@ export const groupCardSx = {
 
 export const GROUP_MAX_WIDTH = 1120;
 
-// The contained "Record survey" button, shared by the worklist row and the
-// All surveys page. brandDark ground: white 13px text on brand main is 4.15:1
-// (under AA); on dark it's 6.2:1. 44px minimum touch target on phones.
+// The contained "Record survey" button, shared by the panel headers and the
+// All surveys page. brandDark ground: white 13px text on brand main is
+// 4.15:1 (under AA); on dark it's 6.2:1.
 export const recordButtonSx = {
   flexShrink: 0,
   bgcolor: groupColors.brandDark,
@@ -53,7 +53,6 @@ export const recordButtonSx = {
   fontSize: 13,
   px: 1.5,
   py: 0.6,
-  minHeight: { xs: 44, sm: 32 },
 } as const;
 
 // The neutral icon+count chip used for per-species-type breakdowns (survey
@@ -72,7 +71,7 @@ export const typeCountChipSx = {
 } as const;
 
 // The small Map/List and Chart/List view toggle shared by the Locations and
-// Species count panels. Text darkened for AA; phones get taller targets.
+// Species count panels. Text darkened for AA.
 export const viewToggleSx = {
   bgcolor: '#f1f3f1',
   borderRadius: '7px',
@@ -83,7 +82,6 @@ export const viewToggleSx = {
     borderRadius: '5px !important',
     px: 1.25,
     py: 0.4,
-    minHeight: { xs: 40, sm: 28 },
     color: groupColors.textSecondary,
     textTransform: 'none',
     fontSize: 12.5,
