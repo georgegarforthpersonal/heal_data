@@ -218,6 +218,8 @@ export function SurveyDetailPage() {
   // Set when a save failed on connectivity: entries are safe on this device
   // and the save re-runs automatically when the connection returns.
   const [pendingSync, setPendingSync] = useState(false);
+  // What the last failed upload attempt said (only shown while pendingSync).
+  const [syncErrorDetail, setSyncErrorDetail] = useState<string | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   // A stored draft found on load, awaiting the user's resume/discard choice.
   const [resumeDraft, setResumeDraft] = useState<SurveyDraftRecord | null>(null);
@@ -259,8 +261,10 @@ export function SurveyDetailPage() {
   const isDirtyRef = useRef(false);
   isDirtyRef.current = isDirty;
 
+  // resumeDraft gate: while the resume offer is open, autosave must not
+  // overwrite the very draft being offered.
   const activeDraft: SurveyDraftRecord | null =
-    draftKey && isDirty
+    draftKey && isDirty && resumeDraft === null
       ? {
           key: draftKey,
           savedAt: 0,
@@ -277,7 +281,11 @@ export function SurveyDetailPage() {
     if (draftKey) deleteSurveyDraft(draftKey).catch(() => {});
   };
 
-  const blocker = useUnsavedChangesGuard(() => isDirtyRef.current);
+  // saveCompleteRef is read live (not via isDirtyRef, which is one render
+  // stale) so the synchronous post-save navigate() is never blocked.
+  const blocker = useUnsavedChangesGuard(
+    () => !saveCompleteRef.current && isDirtyRef.current,
+  );
   // No Background Sync on iOS: retries happen in the foreground, when the
   // connection returns or the app becomes visible (plus the Sync now button).
   useSyncRetry(pendingSync, () => {
@@ -891,8 +899,10 @@ export function SurveyDetailPage() {
 
       if (isRetryableError(err)) {
         // Connectivity, not a real rejection: the draft is safe on this
-        // device and the sync banner explains what happens next.
+        // device and the sync banner explains what happens next — including
+        // what the last attempt said, so a repeating failure isn't invisible.
         setPendingSync(true);
+        setSyncErrorDetail(err instanceof Error ? err.message : String(err));
         setError(null);
       } else {
         setPendingSync(false);
@@ -1065,6 +1075,7 @@ export function SurveyDetailPage() {
           pendingSync={pendingSync}
           saving={saving}
           draftSavedAt={isDirty ? draftSavedAt : null}
+          errorDetail={syncErrorDetail}
           onSyncNow={handleSave}
         />
       )}

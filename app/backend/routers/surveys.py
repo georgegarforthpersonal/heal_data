@@ -378,6 +378,19 @@ def _find_survey_by_client_uuid(db: Session, org_id: int, client_uuid: str) -> O
     ).first()
 
 
+def _integrity_http_error(e: IntegrityError, action: str) -> HTTPException:
+    """FK violations get a 400 with the constraint detail — the payload
+    references a row that doesn't exist, so retrying the same request can
+    never succeed and the client must not queue it for retry. Anything else
+    keeps the 500, but with the original message so the constraint is not
+    lost to support."""
+    orig = getattr(e, "orig", None)
+    detail = str(orig) if orig is not None else str(e)
+    if getattr(orig, "pgcode", None) == "23503":  # foreign_key_violation
+        return HTTPException(status_code=400, detail=f"Failed to {action}: {detail}")
+    return HTTPException(status_code=500, detail=f"Failed to {action}: {detail}")
+
+
 @router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor)])
 def create_survey(
     survey: SurveyCreate,
@@ -400,6 +413,25 @@ def create_survey(
     if survey.client_uuid:
         existing = _find_survey_by_client_uuid(db, org.id, survey.client_uuid)  # type: ignore[arg-type]
         if existing:
+            # The original create committed but its response was lost. The
+            # retry carries the latest form state — the user may have kept
+            # editing while it waited — so apply the payload to the stored row
+            # rather than returning it stale. A byte-identical retry is a
+            # no-op; the slot link is kept as-is (it was validated on the
+            # first pass and the record flow never changes it on retry).
+            for field in (
+                "date", "start_time", "end_time", "sun_percentage",
+                "temperature_celsius", "conditions_met", "notes",
+                "location_id", "device_id", "survey_type_id",
+            ):
+                setattr(existing, field, getattr(survey, field))
+            db.query(SurveySurveyor).filter(
+                SurveySurveyor.survey_id == existing.id
+            ).delete()
+            for surveyor_id in survey.surveyor_ids:
+                db.add(SurveySurveyor(survey_id=existing.id, surveyor_id=surveyor_id))
+            db.commit()
+            db.refresh(existing)
             return _survey_create_response(db, existing)
 
     # An explicit slot (the record flow) is honored without window validation —
@@ -457,7 +489,7 @@ def create_survey(
 
         return _survey_create_response(db, db_survey)
 
-    except IntegrityError:
+    except IntegrityError as e:
         # Two racing retries of the same client_uuid: the unique index rejected
         # the second insert — return the row the winner created.
         db.rollback()
@@ -465,7 +497,7 @@ def create_survey(
             existing = _find_survey_by_client_uuid(db, org.id, survey.client_uuid)  # type: ignore[arg-type]
             if existing:
                 return _survey_create_response(db, existing)
-        raise HTTPException(status_code=500, detail="Failed to create survey: integrity error")
+        raise _integrity_http_error(e, "create survey")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create survey: {str(e)}")
@@ -809,6 +841,32 @@ def _find_sighting_by_client_uuid(db: Session, survey_id: int, client_uuid: str)
     ).first()
 
 
+def _find_individual_by_client_uuid(
+    db: Session, sighting_id: int, client_uuid: str
+) -> Optional[dict[str, Any]]:
+    """The already-created individual for a retried add, as its response dict."""
+    existing = db.execute(
+        text("""
+            SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
+                   count, breeding_status_code, notes, camera_trap_image_id, client_uuid
+            FROM sighting_individual
+            WHERE sighting_id = :sighting_id AND client_uuid = :client_uuid
+        """).bindparams(sighting_id=sighting_id, client_uuid=client_uuid)
+    ).fetchone()
+    if not existing:
+        return None
+    return {
+        "id": existing.id,
+        "latitude": existing.latitude,
+        "longitude": existing.longitude,
+        "count": existing.count,
+        "breeding_status_code": existing.breeding_status_code,
+        "notes": existing.notes,
+        "camera_trap_image_id": existing.camera_trap_image_id,
+        "client_uuid": existing.client_uuid,
+    }
+
+
 @router.post("/{survey_id}/sightings", response_model=SightingWithIndividuals, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor)])
 def create_sighting(
     survey_id: int,
@@ -904,96 +962,99 @@ def create_sighting(
         client_uuid=sighting.client_uuid,
     )
 
-    db.add(db_sighting)
-    db.flush()  # Assigns the ID without committing
-
-    # Create individual location records
-    for ind in sighting.individuals:
-        db.execute(
-            text("""
-                INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id, client_uuid)
-                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id, :client_uuid)
-            """).bindparams(
-                sighting_id=db_sighting.id,
-                lng=ind.longitude,
-                lat=ind.latitude,
-                count=ind.count,
-                code=ind.breeding_status_code,
-                notes=ind.notes,
-                camera_trap_image_id=ind.camera_trap_image_id,
-                client_uuid=ind.client_uuid
-            )
-        )
-
-    # Auto-create an individual point from the device's geometry so the
-    # sighting carries a location even though the user didn't enter one.
-    if sighting.device_id is not None and not sighting.individuals:
-        assert db_sighting.id is not None  # guaranteed by db.flush above
-        _sync_device_individual(db, db_sighting.id, sighting.device_id, sighting.count)
-    # Create sighting_image junction records
-    if sighting.image_ids:
-        existing_images = db.query(CameraTrapImage.id).filter(
-            CameraTrapImage.id.in_(sighting.image_ids)  # type: ignore[union-attr]
-        ).all()
-        existing_ids = {r.id for r in existing_images}
-        invalid_ids = set(sighting.image_ids) - existing_ids
-        if invalid_ids:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid image IDs: {invalid_ids}"
-            )
-    for image_id in sighting.image_ids:
-        db.add(SightingImage(
-            sighting_id=db_sighting.id,
-            camera_trap_image_id=image_id
-        ))
-
-    # Create audio detection records linked to this sighting
-    for det in sighting.audio_detections:
-        # Parse time strings
-        parts = det.start_time.split(":")
-        start_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
-        parts = det.end_time.split(":")
-        end_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
-
-        # Prefer a client-supplied absolute timestamp (wizard passes BirdNET's
-        # computed wall-clock time through directly). Fall back to deriving it
-        # from the parent recording's timestamp for clients that don't send it.
-        if det.detection_timestamp is not None:
-            detection_ts = det.detection_timestamp
-        else:
-            recording = db.query(AudioRecording).filter(
-                AudioRecording.id == det.audio_recording_id
-            ).first()
-            detection_ts = datetime.now(timezone.utc)
-            if recording and recording.recording_timestamp:
-                start_seconds = start_t.hour * 3600 + start_t.minute * 60 + start_t.second
-                detection_ts = recording.recording_timestamp + timedelta(seconds=start_seconds)
-
-        audio_det = AudioDetection(
-            audio_recording_id=det.audio_recording_id,
-            survey_id=db_sighting.survey_id,
-            species_name=det.species_name,
-            species_id=sighting.species_id,
-            confidence=det.confidence,
-            start_time=start_t,
-            end_time=end_t,
-            detection_timestamp=detection_ts,
-            sighting_id=db_sighting.id,
-        )
-        db.add(audio_det)
-
     try:
+        db.add(db_sighting)
+        db.flush()  # Assigns the ID without committing
+
+        # Create individual location records
+        for ind in sighting.individuals:
+            db.execute(
+                text("""
+                    INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id, client_uuid)
+                    VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id, :client_uuid)
+                """).bindparams(
+                    sighting_id=db_sighting.id,
+                    lng=ind.longitude,
+                    lat=ind.latitude,
+                    count=ind.count,
+                    code=ind.breeding_status_code,
+                    notes=ind.notes,
+                    camera_trap_image_id=ind.camera_trap_image_id,
+                    client_uuid=ind.client_uuid
+                )
+            )
+
+        # Auto-create an individual point from the device's geometry so the
+        # sighting carries a location even though the user didn't enter one.
+        if sighting.device_id is not None and not sighting.individuals:
+            assert db_sighting.id is not None  # guaranteed by db.flush above
+            _sync_device_individual(db, db_sighting.id, sighting.device_id, sighting.count)
+        # Create sighting_image junction records
+        if sighting.image_ids:
+            existing_images = db.query(CameraTrapImage.id).filter(
+                CameraTrapImage.id.in_(sighting.image_ids)  # type: ignore[union-attr]
+            ).all()
+            existing_ids = {r.id for r in existing_images}
+            invalid_ids = set(sighting.image_ids) - existing_ids
+            if invalid_ids:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid image IDs: {invalid_ids}"
+                )
+        for image_id in sighting.image_ids:
+            db.add(SightingImage(
+                sighting_id=db_sighting.id,
+                camera_trap_image_id=image_id
+            ))
+
+        # Create audio detection records linked to this sighting
+        for det in sighting.audio_detections:
+            # Parse time strings
+            parts = det.start_time.split(":")
+            start_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
+            parts = det.end_time.split(":")
+            end_t = time(int(parts[0]), int(parts[1]), int(parts[2]))
+
+            # Prefer a client-supplied absolute timestamp (wizard passes BirdNET's
+            # computed wall-clock time through directly). Fall back to deriving it
+            # from the parent recording's timestamp for clients that don't send it.
+            if det.detection_timestamp is not None:
+                detection_ts = det.detection_timestamp
+            else:
+                recording = db.query(AudioRecording).filter(
+                    AudioRecording.id == det.audio_recording_id
+                ).first()
+                detection_ts = datetime.now(timezone.utc)
+                if recording and recording.recording_timestamp:
+                    start_seconds = start_t.hour * 3600 + start_t.minute * 60 + start_t.second
+                    detection_ts = recording.recording_timestamp + timedelta(seconds=start_seconds)
+
+            audio_det = AudioDetection(
+                audio_recording_id=det.audio_recording_id,
+                survey_id=db_sighting.survey_id,
+                species_name=det.species_name,
+                species_id=sighting.species_id,
+                confidence=det.confidence,
+                start_time=start_t,
+                end_time=end_t,
+                detection_timestamp=detection_ts,
+                sighting_id=db_sighting.id,
+            )
+            db.add(audio_det)
+
         db.commit()
-    except IntegrityError:
-        # Two racing retries of the same client_uuid: the unique index rejected
-        # this insert — return the row the winning request created.
+    except IntegrityError as e:
+        # Racing retries of the same client_uuid raise on the INSERT itself
+        # (at db.flush() / the raw individual INSERTs — the partial unique
+        # index is checked at execute time, not commit) — so the whole
+        # insert path sits inside this try. Return the row the winner
+        # created.
         db.rollback()
         if sighting.client_uuid:
             existing = _find_sighting_by_client_uuid(db, survey_id, sighting.client_uuid)
             if existing:
                 return _sighting_with_individuals_response(db, existing)
-        raise HTTPException(status_code=500, detail="Failed to create sighting: integrity error")
+        raise _integrity_http_error(e, "create sighting")
 
     return _sighting_with_individuals_response(db, db_sighting)
 
@@ -1208,73 +1269,44 @@ def add_individual_location(
     # Retry of an add whose response was lost: return the existing individual
     # without re-bumping the sighting count.
     if individual.client_uuid:
-        existing = db.execute(
-            text("""
-                SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-                       count, breeding_status_code, notes, camera_trap_image_id, client_uuid
-                FROM sighting_individual
-                WHERE sighting_id = :sighting_id AND client_uuid = :client_uuid
-            """).bindparams(sighting_id=sighting_id, client_uuid=individual.client_uuid)
-        ).fetchone()
+        existing = _find_individual_by_client_uuid(db, sighting_id, individual.client_uuid)
         if existing:
-            return {
-                "id": existing.id,
-                "latitude": existing.latitude,
-                "longitude": existing.longitude,
-                "count": existing.count,
-                "breeding_status_code": existing.breeding_status_code,
-                "notes": existing.notes,
-                "camera_trap_image_id": existing.camera_trap_image_id,
-                "client_uuid": existing.client_uuid,
-            }
+            return existing
 
-    # Auto-increment sighting count to accommodate the new individual
-    db_sighting.count += individual.count
-    db.add(db_sighting)
-
-    # Insert individual location
-    result = db.execute(
-        text("""
-            INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id, client_uuid)
-            VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id, :client_uuid)
-            RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes, camera_trap_image_id, client_uuid
-        """).bindparams(
-            sighting_id=sighting_id,
-            lng=individual.longitude,
-            lat=individual.latitude,
-            count=individual.count,
-            code=individual.breeding_status_code,
-            notes=individual.notes,
-            camera_trap_image_id=individual.camera_trap_image_id,
-            client_uuid=individual.client_uuid
-        )
-    ).fetchone()
     try:
-        db.commit()
-    except IntegrityError:
-        # Racing retries of the same client_uuid — the winner's row stands
-        # (and only its count bump), so re-read and return it.
-        db.rollback()
-        existing = db.execute(
+        # Auto-increment sighting count to accommodate the new individual
+        db_sighting.count += individual.count
+        db.add(db_sighting)
+
+        # Insert individual location
+        result = db.execute(
             text("""
-                SELECT id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude,
-                       count, breeding_status_code, notes, camera_trap_image_id, client_uuid
-                FROM sighting_individual
-                WHERE sighting_id = :sighting_id AND client_uuid = :client_uuid
-            """).bindparams(sighting_id=sighting_id, client_uuid=individual.client_uuid)
+                INSERT INTO sighting_individual (sighting_id, coordinates, count, breeding_status_code, notes, camera_trap_image_id, client_uuid)
+                VALUES (:sighting_id, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :count, :code, :notes, :camera_trap_image_id, :client_uuid)
+                RETURNING id, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, count, breeding_status_code, notes, camera_trap_image_id, client_uuid
+            """).bindparams(
+                sighting_id=sighting_id,
+                lng=individual.longitude,
+                lat=individual.latitude,
+                count=individual.count,
+                code=individual.breeding_status_code,
+                notes=individual.notes,
+                camera_trap_image_id=individual.camera_trap_image_id,
+                client_uuid=individual.client_uuid
+            )
         ).fetchone()
-        if not existing:
-            raise HTTPException(status_code=500, detail="Failed to add individual: integrity error")
-        return {
-            "id": existing.id,
-            "latitude": existing.latitude,
-            "longitude": existing.longitude,
-            "count": existing.count,
-            "breeding_status_code": existing.breeding_status_code,
-            "notes": existing.notes,
-            "camera_trap_image_id": existing.camera_trap_image_id,
-            "client_uuid": existing.client_uuid,
-        }
+        db.commit()
+    except IntegrityError as e:
+        # Racing retries of the same client_uuid raise on the INSERT itself
+        # (the partial unique index is checked at execute time, not commit).
+        # The winner's row stands (and only its count bump), so re-read and
+        # return it.
+        db.rollback()
+        if individual.client_uuid:
+            existing = _find_individual_by_client_uuid(db, sighting_id, individual.client_uuid)
+            if existing:
+                return existing
+        raise _integrity_http_error(e, "add individual")
 
     return {
         "id": result.id,

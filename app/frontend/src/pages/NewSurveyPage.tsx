@@ -194,9 +194,18 @@ export function NewSurveyPage() {
   // Set when a save failed on connectivity: entries are safe on this device
   // and the save re-runs automatically when the connection returns.
   const [pendingSync, setPendingSync] = useState(false);
+  // What the last failed upload attempt said (only shown while pendingSync).
+  const [syncErrorDetail, setSyncErrorDetail] = useState<string | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   // A stored draft found on load, awaiting the user's resume/discard choice.
   const [resumeDraft, setResumeDraft] = useState<SurveyDraftRecord | null>(null);
+  // Autosave must stay disarmed until the stored-draft check has resolved and
+  // any resume offer has been answered — otherwise the near-empty current
+  // form overwrites the very draft being offered for resume.
+  const [draftCheckComplete, setDraftCheckComplete] = useState(false);
+  // The draft the user chose to resume; fetches that complete afterwards
+  // re-apply its id-based fields instead of resetting the form.
+  const appliedDraftRef = useRef<SurveyDraftRecord | null>(null);
   const online = useOnlineStatus();
   // Idempotency uuid for the survey create; survives retries (and reloads,
   // via the stored draft) so a re-sent create can never duplicate the survey.
@@ -212,15 +221,19 @@ export function NewSurveyPage() {
     !saveCompleteRef.current &&
     (notes.trim() !== '' ||
       pendingImageFiles.length > 0 ||
-      locationId !== null ||
+      (locationId !== null && locationId !== autoLocationIdRef.current) ||
       selectedSurveyors.length > 0 ||
       draftSightings.some((s) => s.species_id !== null));
   const isDirtyRef = useRef(false);
   isDirtyRef.current = isDirty;
 
-  const blocker = useUnsavedChangesGuard(() => isDirtyRef.current);
+  // saveCompleteRef is read live (not via isDirtyRef, which is one render
+  // stale) so the synchronous post-save navigate() is never blocked.
+  const blocker = useUnsavedChangesGuard(
+    () => !saveCompleteRef.current && isDirtyRef.current,
+  );
 
-  const activeDraft: SurveyDraftRecord | null = isDirty
+  const activeDraft: SurveyDraftRecord | null = isDirty && draftCheckComplete && resumeDraft === null
     ? {
         key: NEW_SURVEY_DRAFT_KEY,
         savedAt: 0,
@@ -290,19 +303,23 @@ export function NewSurveyPage() {
                 !t.allow_audio_upload,
             ) ?? null
           : null;
-        setSelectedSurveyType(preset);
-        setDate(null);
-        setLocationId(null);
-        autoLocationIdRef.current = null;
-        setSelectedSurveyors([]);
-
-        // A stored draft means a survey was being entered on this device and
-        // never uploaded (tab killed, failed save). Offer to resume it.
-        try {
-          const storedDraft = await loadSurveyDraft(NEW_SURVEY_DRAFT_KEY);
-          if (storedDraft) setResumeDraft(storedDraft);
-        } catch {
-          // Local storage unavailable (e.g. private browsing) — nothing to resume.
+        // If a draft was already resumed (the check runs independently of
+        // these fetches), re-apply its id-based fields now that the lists
+        // exist, instead of resetting the form under the user.
+        const applied = appliedDraftRef.current;
+        if (applied) {
+          setSelectedSurveyType(
+            surveyTypesData.find((t) => t.id === applied.form.surveyTypeId) ?? null,
+          );
+          setSelectedSurveyors(
+            surveyorsData.filter((s) => applied.form.surveyorIds.includes(s.id)),
+          );
+        } else {
+          setSelectedSurveyType(preset);
+          setDate(null);
+          setLocationId(null);
+          autoLocationIdRef.current = null;
+          setSelectedSurveyors([]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load form data');
@@ -315,6 +332,27 @@ export function NewSurveyPage() {
 
     fetchInitialData();
   }, [presetTypeIdParam]);
+
+  // A stored draft means a survey was being entered on this device and never
+  // uploaded (tab killed, failed save). The check is independent of the
+  // network fetches above so the resume offer appears even when they fail —
+  // offline is exactly when the draft matters.
+  useEffect(() => {
+    let cancelled = false;
+    loadSurveyDraft(NEW_SURVEY_DRAFT_KEY)
+      .then((storedDraft) => {
+        if (!cancelled && storedDraft) setResumeDraft(storedDraft);
+      })
+      .catch(() => {
+        // Local storage unavailable (e.g. private browsing) — nothing to resume.
+      })
+      .finally(() => {
+        if (!cancelled) setDraftCheckComplete(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ============================================================================
   // Data Fetching - When Survey Type Changes
@@ -478,6 +516,9 @@ export function NewSurveyPage() {
   const handleResumeDraft = () => {
     if (!resumeDraft) return;
     const d = resumeDraft;
+    // In-flight initial fetches re-apply the id-based fields from this ref
+    // when they land, instead of resetting the form under the user.
+    appliedDraftRef.current = d;
     // Setting the survey type directly (not via handleSurveyTypeChange) skips
     // the wizard redirects; drafts only exist for the plain form. The
     // type-change effect then re-fetches locations/species and re-validates
@@ -649,8 +690,10 @@ export function NewSurveyPage() {
     } catch (err) {
       if (isRetryableError(err)) {
         // Connectivity, not a real rejection: everything is stored on this
-        // device and the sync banner explains what happens next.
+        // device and the sync banner explains what happens next — including
+        // what the last attempt said, so a repeating failure isn't invisible.
         setPendingSync(true);
+        setSyncErrorDetail(err instanceof Error ? err.message : String(err));
         setError(null);
       } else {
         setPendingSync(false);
@@ -809,6 +852,7 @@ export function NewSurveyPage() {
         pendingSync={pendingSync}
         saving={saving}
         draftSavedAt={isDirty ? draftSavedAt : null}
+        errorDetail={syncErrorDetail}
         onSyncNow={handleSave}
       />
 

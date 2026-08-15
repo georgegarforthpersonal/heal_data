@@ -2231,13 +2231,47 @@ export const imagesAPI = {
       }
       const existing = await imagesAPI.getImages(surveyId);
       const byName = new Map(existing.map((img) => [img.filename, img]));
-      const missing = files.filter((f) => !byName.has(f.name));
-      const uploaded = missing.length
-        ? await imagesAPI.uploadFilesWithMetadata(surveyId, missing, timestamps, skipProcessing)
+
+      // Phones reuse capture names (IMG_0001.jpg), so a same-name server
+      // image only counts as "this file, already uploaded" when the sizes
+      // agree — otherwise we'd silently attach someone else's photo and drop
+      // this one. A genuine collision is uploaded under a deterministic
+      // size-suffixed name, so retrying the retry stays idempotent.
+      const collisionName = (f: File): string => {
+        const dot = f.name.lastIndexOf('.');
+        return dot > 0
+          ? `${f.name.slice(0, dot)}-${f.size}${f.name.slice(dot)}`
+          : `${f.name}-${f.size}`;
+      };
+      const sizeMatches = (img: CameraTrapImage, f: File): boolean =>
+        img.file_size_bytes == null || img.file_size_bytes === f.size;
+      const alreadyUploaded = (f: File): CameraTrapImage | undefined => {
+        const sameName = byName.get(f.name);
+        if (sameName && sizeMatches(sameName, f)) return sameName;
+        const renamed = byName.get(collisionName(f));
+        if (renamed && sizeMatches(renamed, f)) return renamed;
+        return undefined;
+      };
+
+      const timestampsOut: Record<string, string> = { ...(timestamps ?? {}) };
+      const uploadNames = new Map<File, string>();
+      const missing = files.filter((f) => !alreadyUploaded(f));
+      const toUpload = missing.map((f) => {
+        if (!byName.has(f.name)) {
+          uploadNames.set(f, f.name);
+          return f;
+        }
+        const newName = collisionName(f);
+        uploadNames.set(f, newName);
+        if (timestampsOut[f.name]) timestampsOut[newName] = timestampsOut[f.name];
+        return new File([f], newName, { type: f.type, lastModified: f.lastModified });
+      });
+      const uploaded = toUpload.length
+        ? await imagesAPI.uploadFilesWithMetadata(surveyId, toUpload, timestampsOut, skipProcessing)
         : [];
       const uploadedByName = new Map(uploaded.map((img) => [img.filename, img]));
       return files
-        .map((f) => byName.get(f.name) ?? uploadedByName.get(f.name))
+        .map((f) => alreadyUploaded(f) ?? uploadedByName.get(uploadNames.get(f) ?? f.name))
         .filter((img): img is CameraTrapImage => img != null);
     }
   },

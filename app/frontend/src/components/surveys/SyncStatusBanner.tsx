@@ -9,6 +9,8 @@ interface SyncStatusBannerProps {
   saving: boolean;
   /** Last successful local draft backup (epoch ms), or null. */
   draftSavedAt: number | null;
+  /** What the last failed upload attempt said, so repeated failures aren't silent. */
+  errorDetail?: string | null;
   onSyncNow: () => void;
 }
 
@@ -22,6 +24,7 @@ export function SyncStatusBanner({
   pendingSync,
   saving,
   draftSavedAt,
+  errorDetail,
   onSyncNow,
 }: SyncStatusBannerProps) {
   if (pendingSync && !saving) {
@@ -38,6 +41,11 @@ export function SyncStatusBanner({
       >
         Not uploaded yet — your survey is safely stored on this device and will upload
         automatically when you're back online.
+        {online && errorDetail && (
+          <Typography variant="caption" component="div" sx={{ mt: 0.5, opacity: 0.8 }}>
+            Last attempt failed: {errorDetail}
+          </Typography>
+        )}
       </Alert>
     );
   }

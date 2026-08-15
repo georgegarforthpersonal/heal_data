@@ -38,15 +38,14 @@ export function useUnsavedChangesGuard(when: boolean | (() => boolean)) {
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  // (b) In-app navigation. The session-expiry redirect to /login is never
-  // blocked: the session is already dead, the dialog would trap the user,
-  // and the work is preserved by the local draft (see useDraftAutosave).
+  // (b) In-app navigation. Navigations to /login (logout, session expiry) are
+  // blocked like any other: not every guarded page has a local draft backing
+  // it up, and even where one exists the dialog lets the user stay and copy
+  // their work before the session goes.
   return useBlocker(
     useCallback<BlockerFunction>(
       ({ currentLocation, nextLocation }) =>
-        isDirty() &&
-        currentLocation.pathname !== nextLocation.pathname &&
-        nextLocation.pathname !== '/login',
+        isDirty() && currentLocation.pathname !== nextLocation.pathname,
       [isDirty],
     ),
   );

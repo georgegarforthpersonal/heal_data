@@ -681,6 +681,33 @@ class TestClientUuidIdempotency:
         listing = client.get("/api/surveys", headers=auth_headers)
         assert listing.json()["total"] == 1
 
+    def test_create_survey_retry_applies_edited_payload(
+        self, client: TestClient, auth_headers: dict, create_surveyor
+    ):
+        """A retry carries the latest form state — the user may have kept
+        editing while the first response was lost — so the dedup hit applies
+        the payload instead of returning the stale row."""
+        surveyor = create_surveyor()
+        payload = {
+            "date": "2026-07-01",
+            "notes": "first attempt",
+            "surveyor_ids": [surveyor.id],
+            "client_uuid": "66666666-6666-4666-8666-666666666666",
+        }
+
+        first = client.post("/api/surveys", json=payload, headers=auth_headers)
+        assert first.status_code == 201
+
+        edited = {**payload, "date": "2026-07-02", "notes": "edited while offline"}
+        retry = client.post("/api/surveys", json=edited, headers=auth_headers)
+        assert retry.status_code == 201
+        assert retry.json()["id"] == first.json()["id"]
+        assert retry.json()["date"] == "2026-07-02"
+        assert retry.json()["notes"] == "edited while offline"
+
+        listing = client.get("/api/surveys", headers=auth_headers)
+        assert listing.json()["total"] == 1
+
     def test_create_survey_distinct_uuids_create_distinct_surveys(
         self, client: TestClient, auth_headers: dict, create_surveyor
     ):
