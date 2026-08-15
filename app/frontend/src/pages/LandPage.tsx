@@ -48,10 +48,10 @@ export function LandPage() {
             <ImageCompare
               beforeSrc={before2001}
               beforeAlt="Aerial imagery from around 2000: open grazed fields divided by hedgerows"
-              beforeLabel="C. 2000"
+              beforeLabel="2000"
               afterSrc={after2024}
               afterAlt="Aerial imagery from June 2024: extensive scrub and young tree cover across former pasture"
-              afterLabel="JUN 2024"
+              afterLabel="2024"
               aspectRatio={ASPECT}
             />
           </Box>
@@ -86,7 +86,7 @@ export function LandPage() {
           }}
         >
           <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-            Left of the divider: summer, c. 1999–2001 · right: 20 Jun 2024
+            Left of the divider: 2000 · right: 2024
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
             Imagery © Google Earth
