@@ -5,6 +5,7 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { Dayjs } from 'dayjs';
 import type { Location, Surveyor } from '../../services/api';
 import { locationDisplayName } from '../../services/api';
+import { useResponsive } from '../../hooks/useResponsive';
 
 interface SurveyFormFieldsProps {
   // Form values
@@ -87,6 +88,8 @@ export function SurveyFormFields({
   showTemperature = false,
 }: SurveyFormFieldsProps) {
   const [surveyorsOpen, setSurveyorsOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  const { isMobile } = useResponsive();
 
   // Time validation: end time must be after start time
   const timeError = hasTimeValidationError(startTime ?? null, endTime ?? null)
@@ -95,14 +98,22 @@ export function SurveyFormFields({
 
   return (
     <Stack spacing={{ xs: 2, md: 3 }}>
-      {/* Date Picker */}
+      {/* Date Picker. Tapping anywhere in the field opens the calendar (one
+          tap, not a hunt for the small icon); on mobile the field is
+          read-only so the tap opens the picker without also summoning the
+          keyboard, while desktop keeps the field typable. */}
       <DatePicker
         label="Date *"
         value={date}
         onChange={onDateChange}
+        open={dateOpen}
+        onOpen={() => setDateOpen(true)}
+        onClose={() => setDateOpen(false)}
         slotProps={{
+          field: isMobile ? { readOnly: true } : undefined,
           textField: {
             fullWidth: true,
+            onClick: () => setDateOpen(true),
             error: !!validationErrors.date,
             helperText: validationErrors.date,
             sx: {
