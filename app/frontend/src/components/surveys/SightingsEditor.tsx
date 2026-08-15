@@ -14,6 +14,7 @@ import StageCountsFields from './StageCountsFields';
 import StageCountsSummary from './StageCountsSummary';
 import { getSpeciesIcon } from '../../config';
 import { useResponsive } from '../../hooks/useResponsive';
+import { orderSpeciesForEntry, recentSpeciesIds } from '../../utils/speciesOrder';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 
 /** Small thumbnail that lazily loads a presigned URL for an existing image */
@@ -137,17 +138,13 @@ export function SightingsEditor({
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [locationEditingTempId, setLocationEditingTempId] = useState<string | null>(null);
 
-  // Sort species by type first, then by name within each type
-  const sortedSpecies = useMemo(() => {
-    return [...species].sort((a, b) => {
-      if (a.type !== b.type) {
-        return a.type.localeCompare(b.type);
-      }
-      const nameA = a.name || a.scientific_name || '';
-      const nameB = b.name || b.scientific_name || '';
-      return nameA.localeCompare(nameB);
-    });
-  }, [species]);
+  // Order for entry: grouped by type, then recently-used this session, then
+  // most-recorded for this survey type, then alphabetical. This ordered list
+  // is what the modal, map popups and grid all present.
+  const sortedSpecies = useMemo(
+    () => orderSpeciesForEntry(species, recentSpeciesIds(sightings)),
+    [species, sightings]
+  );
 
   // Fixed-species survey types offer exactly one species: the selector is
   // hidden and every sighting is that species.
@@ -382,13 +379,15 @@ export function SightingsEditor({
 
         <MapModeSightings
           sightings={sightings}
-          species={species}
+          species={sortedSpecies}
           breedingCodes={breedingCodes}
           onSightingsChange={onSightingsChange}
           locationsWithBoundaries={locationsWithBoundaries}
           surveyLocationId={surveyLocationId}
           devices={devices}
           allowSightingDeviceSelection={allowSightingDeviceSelection}
+          allowSightingPhotoUpload={allowSightingPhotoUpload}
+          listToggle={viewModeToggle}
         />
       </>
     );
@@ -608,7 +607,7 @@ export function SightingsEditor({
           open={modalOpen}
           onClose={handleModalClose}
           onSave={handleModalSave}
-          species={species}
+          species={sortedSpecies}
           breedingCodes={breedingCodes}
           initialData={
             editingSighting

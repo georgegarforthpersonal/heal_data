@@ -344,6 +344,9 @@ export interface Species {
   species_type_id: number;
   type: string;  // Derived from species_type.name, for display purposes
   species_code: string | null;
+  // How often this species has been recorded for the queried survey type;
+  // feeds the likely-species-first ordering in entry UIs.
+  sightings_count?: number;
 }
 
 /** Spatial representation of a location. */

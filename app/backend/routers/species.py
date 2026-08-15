@@ -23,6 +23,8 @@ from models import (
     SpeciesCreate,
     SpeciesUpdate,
     SpeciesType,
+    Sighting,
+    Survey,
     SurveyTypeSpeciesLink,
     SurveyTypeSpeciesTypeLink,
 )
@@ -31,7 +33,7 @@ from auth import require_admin_role
 router = APIRouter()
 
 
-def _to_species_read(species: Species) -> SpeciesRead:
+def _to_species_read(species: Species, sightings_count: int = 0) -> SpeciesRead:
     """Convert a Species ORM object to SpeciesRead, deriving type from relationship."""
     return SpeciesRead(
         id=species.id,
@@ -42,6 +44,7 @@ def _to_species_read(species: Species) -> SpeciesRead:
         scientific_name=species.scientific_name,
         nbn_atlas_guid=species.nbn_atlas_guid,
         species_code=species.species_code,
+        sightings_count=sightings_count,
     )
 
 
@@ -112,7 +115,17 @@ def get_species_by_survey_type(
             func.coalesce(Species.name, Species.scientific_name)
         ).all()
 
-    return [_to_species_read(s) for s in species]
+    # How often each species has been recorded for this survey type, so the
+    # entry UI can put likely species first instead of a flat A–Z.
+    counts = dict(
+        db.query(Sighting.species_id, func.count(Sighting.id))
+        .join(Survey, Sighting.survey_id == Survey.id)
+        .filter(Survey.survey_type_id == survey_type_id)
+        .group_by(Sighting.species_id)
+        .all()
+    )
+
+    return [_to_species_read(s, counts.get(s.id, 0)) for s in species]
 
 
 @router.get("/{species_id}", response_model=SpeciesRead)
