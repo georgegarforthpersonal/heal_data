@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Stack, TextField, Autocomplete, Box } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -5,6 +6,7 @@ import { Dayjs } from 'dayjs';
 import type { Location, Surveyor } from '../../services/api';
 import { locationDisplayName } from '../../services/api';
 import SurveyorMultiSelect from './SurveyorMultiSelect';
+import { useResponsive } from '../../hooks/useResponsive';
 
 interface SurveyFormFieldsProps {
   // Form values
@@ -86,6 +88,9 @@ export function SurveyFormFields({
   showSunPercentage = false,
   showTemperature = false,
 }: SurveyFormFieldsProps) {
+  const [dateOpen, setDateOpen] = useState(false);
+  const { isMobile } = useResponsive();
+
   // Time validation: end time must be after start time
   const timeError = hasTimeValidationError(startTime ?? null, endTime ?? null)
     ? 'End time must be after start time'
@@ -93,14 +98,22 @@ export function SurveyFormFields({
 
   return (
     <Stack spacing={{ xs: 2, md: 3 }}>
-      {/* Date Picker */}
+      {/* Date Picker. Tapping anywhere in the field opens the calendar (one
+          tap, not a hunt for the small icon); on mobile the field is
+          read-only so the tap opens the picker without also summoning the
+          keyboard, while desktop keeps the field typable. */}
       <DatePicker
         label="Date *"
         value={date}
         onChange={onDateChange}
+        open={dateOpen}
+        onOpen={() => setDateOpen(true)}
+        onClose={() => setDateOpen(false)}
         slotProps={{
+          field: isMobile ? { readOnly: true } : undefined,
           textField: {
             fullWidth: true,
+            onClick: () => setDateOpen(true),
             error: !!validationErrors.date,
             helperText: validationErrors.date,
             sx: {
