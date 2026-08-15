@@ -34,7 +34,9 @@ import {
 import type { DeviceGroup } from './mapModeUtils';
 import { MarkerPopupContent, GroupedMarkerPopupContent } from './MarkerPopupContent';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
+import UserLocationMarker from './UserLocationMarker';
 import { getDeviceIcon } from '../../utils/deviceIcon';
+import type { ReactNode } from 'react';
 
 interface MapModeSightingsProps {
   sightings: DraftSighting[];
@@ -46,6 +48,11 @@ interface MapModeSightingsProps {
   surveyLocationId?: number | null;
   devices?: Device[];
   allowSightingDeviceSelection?: boolean;
+  /** Photos can be attached to sightings from the map popups. */
+  allowSightingPhotoUpload?: boolean;
+  /** The list/map switch, re-rendered inside the fullscreen overlay so the
+   *  user can leave map mode without first finding the exit button. */
+  listToggle?: ReactNode;
 }
 
 function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
@@ -148,6 +155,8 @@ export function MapModeSightings({
   surveyLocationId,
   devices = [],
   allowSightingDeviceSelection = false,
+  allowSightingPhotoUpload = false,
+  listToggle,
 }: MapModeSightingsProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
@@ -192,7 +201,7 @@ export function MapModeSightings({
   }, []);
 
   const handleAddFromPopup = useCallback(
-    (speciesId: number, count: number, breedingStatusCode?: string | null) => {
+    (speciesId: number, count: number, breedingStatusCode?: string | null, photos?: File[]) => {
       if (!addPopupPosition) return;
       const updated = addSpeciesAtLocation(
         sightings,
@@ -200,12 +209,27 @@ export function MapModeSightings({
         addPopupPosition.lng,
         speciesId,
         count,
-        breedingStatusCode
+        breedingStatusCode,
+        photos
       );
       onSightingsChange?.(updated);
       setAddPopupPosition(null);
     },
     [addPopupPosition, sightings, onSightingsChange]
+  );
+
+  // Attach photos taken at the marker to the sighting it belongs to.
+  const handleAddPhotosToSighting = useCallback(
+    (sightingTempId: string, files: File[]) => {
+      onSightingsChange?.(
+        sightings.map((s) =>
+          s.tempId === sightingTempId
+            ? { ...s, pendingPhotos: [...(s.pendingPhotos || []), ...files] }
+            : s
+        )
+      );
+    },
+    [sightings, onSightingsChange]
   );
 
   const handleAddPopupClose = useCallback(() => {
@@ -248,6 +272,11 @@ export function MapModeSightings({
               zIndex: 1000,
             }}
           >
+            {isFullscreen && listToggle && (
+              <Box sx={{ bgcolor: 'white', borderRadius: 1, boxShadow: 2, mr: 0.5 }}>
+                {listToggle}
+              </Box>
+            )}
             <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
               <IconButton
                 size="small"
@@ -296,6 +325,9 @@ export function MapModeSightings({
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
               <FieldBoundaryOverlay locations={locationsWithBoundaries} />
             )}
+
+            {/* The surveyor's own position, so they can orient in the field */}
+            <UserLocationMarker />
 
             {/* Device-attach mode: one marker per device, popup lists species observed there */}
             {allowSightingDeviceSelection && deviceGrouping.groups.map((group) => {
@@ -389,6 +421,11 @@ export function MapModeSightings({
                           onDelete={() =>
                             handleMarkerDelete(firstMarker.sightingTempId, firstMarker.individualTempId)
                           }
+                          allowPhotoUpload={allowSightingPhotoUpload}
+                          pendingPhotoCount={
+                            sightings.find((s) => s.tempId === firstMarker.sightingTempId)?.pendingPhotos?.length ?? 0
+                          }
+                          onAddPhotos={(files) => handleAddPhotosToSighting(firstMarker.sightingTempId, files)}
                         />
                       )
                     ) : (
@@ -426,6 +463,7 @@ export function MapModeSightings({
                   breedingCodes={breedingCodes}
                   onAdd={handleAddFromPopup}
                   onDiscard={handleAddPopupClose}
+                  allowPhotoUpload={allowSightingPhotoUpload}
                 />
               </Popup>
             )}

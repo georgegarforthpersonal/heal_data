@@ -165,15 +165,9 @@ export function AddSightingModal({
     }
   }, [initialData, open]);
 
-  // Sort species by type first, then by name within each type
-  const sortedSpecies = [...species].sort((a, b) => {
-    if (a.type !== b.type) {
-      return a.type.localeCompare(b.type);
-    }
-    const nameA = a.name || a.scientific_name || '';
-    const nameB = b.name || b.scientific_name || '';
-    return nameA.localeCompare(nameB);
-  });
+  // The species list arrives pre-ordered for entry (recently used, then most
+  // recorded for this survey type, then alphabetical — see speciesOrder.ts).
+  const sortedSpecies = species;
 
   // Format category name for display
   const formatCategoryName = (category: string): string => {
@@ -511,25 +505,12 @@ export function AddSightingModal({
               autoFocus={!!singleSpecies}
             />
           ) : (
-            <TextField
+            <NumberStepper
               label="Count *"
+              value={count}
+              onChange={setCount}
+              min={1}
               autoFocus={!!singleSpecies}
-              type="number"
-              value={count || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                setCount(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
-              }}
-              onBlur={() => {
-                if (count < 1) setCount(1);
-              }}
-              inputProps={{ min: 1 }}
-              fullWidth
-              sx={{
-                '& .MuiInputBase-input': {
-                  fontSize: '16px',
-                }
-              }}
             />
           )}
 

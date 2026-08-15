@@ -158,7 +158,8 @@ export function addSpeciesAtLocation(
   lng: number,
   speciesId: number,
   count: number,
-  breedingStatusCode?: string | null
+  breedingStatusCode?: string | null,
+  photos?: File[]
 ): DraftSighting[] {
   const newIndividual: DraftIndividualLocation = {
     tempId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -181,6 +182,9 @@ export function addSpeciesAtLocation(
         ...s,
         count: individuals.reduce((sum, ind) => sum + ind.count, 0),
         individuals,
+        pendingPhotos: photos?.length
+          ? [...(s.pendingPhotos || []), ...photos]
+          : s.pendingPhotos,
       };
     });
   }
@@ -191,6 +195,7 @@ export function addSpeciesAtLocation(
     species_id: speciesId,
     count,
     individuals: [newIndividual],
+    ...(photos?.length ? { pendingPhotos: photos } : {}),
   };
 
   // Filter out empty placeholder rows (species_id === null, no individuals)

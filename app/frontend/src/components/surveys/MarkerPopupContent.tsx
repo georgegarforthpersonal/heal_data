@@ -10,6 +10,9 @@ import {
   Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import CloseIcon from '@mui/icons-material/Close';
+import NumberStepper from './NumberStepper';
 
 import type { Species, BreedingStatusCode, BreedingCategory } from '../../services/api';
 import type { MapMarker } from './mapModeUtils';
@@ -21,8 +24,10 @@ interface MarkerPopupContentAddProps {
   mode: 'add';
   species: Species[];
   breedingCodes: BreedingStatusCode[];
-  onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null) => void;
+  onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null, photos?: File[]) => void;
   onDiscard: () => void;
+  /** Show the photo affordance (survey type allows sighting photos). */
+  allowPhotoUpload?: boolean;
   marker?: undefined;
   onUpdate?: undefined;
   onDelete?: undefined;
@@ -35,6 +40,12 @@ interface MarkerPopupContentEditProps {
   marker: MapMarker;
   onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => void;
   onDelete: () => void;
+  /** Show the photo affordance (survey type allows sighting photos). */
+  allowPhotoUpload?: boolean;
+  /** Photos already attached (pending upload) to the sighting this marker belongs to. */
+  pendingPhotoCount?: number;
+  /** Attach more photos to the sighting this marker belongs to. */
+  onAddPhotos?: (files: File[]) => void;
   onAdd?: undefined;
 }
 
@@ -76,15 +87,9 @@ function stopPropagation(e: React.SyntheticEvent) {
 export function MarkerPopupContent(props: MarkerPopupContentProps) {
   const { mode, species, breedingCodes } = props;
 
-  // Sort species by type then name
-  const sortedSpecies = useMemo(() => {
-    return [...species].sort((a, b) => {
-      if (a.type !== b.type) return a.type.localeCompare(b.type);
-      const nameA = a.name || a.scientific_name || '';
-      const nameB = b.name || b.scientific_name || '';
-      return nameA.localeCompare(nameB);
-    });
-  }, [species]);
+  // The species list arrives pre-ordered for entry (recently used, then most
+  // recorded for this survey type, then alphabetical — see speciesOrder.ts).
+  const sortedSpecies = species;
 
   const formatCategoryName = (category: string): string => {
     return category.charAt(0).toUpperCase() + category.slice(1);
@@ -98,6 +103,7 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
         breedingCodes={breedingCodes}
         onAdd={props.onAdd}
         onDiscard={props.onDiscard}
+        allowPhotoUpload={props.allowPhotoUpload}
         formatCategoryName={formatCategoryName}
       />
     );
@@ -120,7 +126,53 @@ export function MarkerPopupContent(props: MarkerPopupContentProps) {
       marker={props.marker}
       onUpdate={props.onUpdate}
       onDelete={props.onDelete}
+      allowPhotoUpload={props.allowPhotoUpload}
+      pendingPhotoCount={props.pendingPhotoCount}
+      onAddPhotos={props.onAddPhotos}
     />
+  );
+}
+
+/**
+ * Compact "add photo" control for the map popups: opens the phone's native
+ * chooser (camera or photo library — no `capture` attribute, so the user
+ * gets the choice) and reports how many shots are attached.
+ */
+function PopupPhotoButton({
+  count,
+  onFiles,
+}: {
+  count: number;
+  onFiles: (files: File[]) => void;
+}) {
+  return (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <Button
+        component="label"
+        variant="outlined"
+        size="small"
+        startIcon={<PhotoCameraIcon sx={{ fontSize: 16 }} />}
+        sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.75rem' }}
+      >
+        Add photo
+        <input
+          type="file"
+          hidden
+          multiple
+          accept="image/*"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            if (files.length > 0) onFiles(files);
+            e.target.value = '';
+          }}
+        />
+      </Button>
+      {count > 0 && (
+        <Typography variant="caption" color="text.secondary">
+          {count} photo{count === 1 ? '' : 's'}
+        </Typography>
+      )}
+    </Stack>
   );
 }
 
@@ -131,13 +183,15 @@ function AddPopupForm({
   breedingCodes,
   onAdd,
   onDiscard,
+  allowPhotoUpload = false,
   formatCategoryName,
 }: {
   species: Species[];
   sortedSpecies: Species[];
   breedingCodes: BreedingStatusCode[];
-  onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null) => void;
+  onAdd: (speciesId: number, count: number, breedingStatusCode?: string | null, photos?: File[]) => void;
   onDiscard: () => void;
+  allowPhotoUpload?: boolean;
   formatCategoryName: (category: string) => string;
 }) {
   // Fixed-species survey types offer exactly one species: it is preselected
@@ -147,17 +201,19 @@ function AddPopupForm({
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(singleSpecies);
   const [count, setCount] = useState(1);
   const [breedingStatus, setBreedingStatus] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
 
   const isBird = selectedSpecies?.type === 'bird';
   const groupedCodes = useMemo(() => groupBreedingCodes(breedingCodes), [breedingCodes]);
 
   const handleAdd = () => {
     if (!selectedSpecies) return;
-    onAdd(selectedSpecies.id, count, breedingStatus);
+    onAdd(selectedSpecies.id, count, breedingStatus, photos.length > 0 ? photos : undefined);
     // Reset form
     setSelectedSpecies(singleSpecies);
     setCount(1);
     setBreedingStatus(null);
+    setPhotos([]);
   };
 
   return (
@@ -244,21 +300,13 @@ function AddPopupForm({
         />
         )}
 
-        <TextField
-          type="number"
+        <NumberStepper
           label="Count"
-          value={count || ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            setCount(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
-          }}
-          onBlur={() => { if (count < 1) setCount(1); }}
+          value={count}
+          onChange={setCount}
+          min={1}
           size="small"
-          inputProps={{ min: 1 }}
-          sx={{
-            width: 100,
-            '& .MuiInputBase-input': { fontSize: '0.8rem' },
-          }}
+          labelPlacement="start"
         />
 
         {isBird && (
@@ -268,6 +316,29 @@ function AddPopupForm({
             breedingCodes={breedingCodes}
             groupedCodes={groupedCodes}
           />
+        )}
+
+        {allowPhotoUpload && (
+          <Stack spacing={0.5}>
+            <PopupPhotoButton
+              count={photos.length}
+              onFiles={(files) => setPhotos((prev) => [...prev, ...files])}
+            />
+            {photos.length > 0 && (
+              <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
+                {photos.map((file, i) => (
+                  <Chip
+                    key={`${file.name}-${i}`}
+                    label={file.name.length > 18 ? `${file.name.slice(0, 15)}…` : file.name}
+                    size="small"
+                    onDelete={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
+                    deleteIcon={<CloseIcon sx={{ fontSize: 14 }} />}
+                    sx={{ height: 20, '& .MuiChip-label': { fontSize: '0.65rem' } }}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Stack>
         )}
 
         <Stack direction="row" spacing={1}>
@@ -302,12 +373,18 @@ function EditPopupForm({
   marker,
   onUpdate,
   onDelete,
+  allowPhotoUpload = false,
+  pendingPhotoCount = 0,
+  onAddPhotos,
 }: {
   species: Species[];
   breedingCodes: BreedingStatusCode[];
   marker: MapMarker;
   onUpdate: (updates: Partial<Pick<DraftIndividualLocation, 'count' | 'breeding_status_code'>>) => void;
   onDelete: () => void;
+  allowPhotoUpload?: boolean;
+  pendingPhotoCount?: number;
+  onAddPhotos?: (files: File[]) => void;
 }) {
   const sp = species.find((s) => s.id === marker.species_id);
   const speciesName = sp?.name || sp?.scientific_name || 'Unknown';
@@ -340,24 +417,13 @@ function EditPopupForm({
           {marker.latitude.toFixed(6)}, {marker.longitude.toFixed(6)}
         </Typography>
 
-        <TextField
-          type="number"
+        <NumberStepper
           label="Count"
-          value={marker.count || ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            const newCount = val === '' ? 0 : Math.max(0, parseInt(val) || 0);
-            onUpdate({ count: newCount });
-          }}
-          onBlur={() => {
-            if (marker.count < 1) onUpdate({ count: 1 });
-          }}
+          value={marker.count}
+          onChange={(next) => onUpdate({ count: next })}
+          min={1}
           size="small"
-          inputProps={{ min: 1 }}
-          sx={{
-            width: 100,
-            '& .MuiInputBase-input': { fontSize: '0.8rem' },
-          }}
+          labelPlacement="start"
         />
 
         {isBird && (
@@ -367,6 +433,10 @@ function EditPopupForm({
             breedingCodes={breedingCodes}
             groupedCodes={groupedCodes}
           />
+        )}
+
+        {allowPhotoUpload && onAddPhotos && (
+          <PopupPhotoButton count={pendingPhotoCount} onFiles={onAddPhotos} />
         )}
       </Stack>
     </Box>
