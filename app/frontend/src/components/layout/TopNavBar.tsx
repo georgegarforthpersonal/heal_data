@@ -38,12 +38,11 @@ export function TopNavBar() {
   // flat list is retired); orgs without groups keep the flat list.
   const showGroups = orgHasGroups();
   const surveysHome = showGroups ? '/groups' : '/surveys';
-  // Only Cannwood runs GPS trackers today. ORG_SLUG (captured at page load)
-  // rather than getOrgSlug(): client-side navigation drops the local ?org=
-  // override, so re-parsing the URL mis-gates these tabs in local testing.
-  const hasTrackers = ORG_SLUG === 'cannwood';
-  // Land-cover change page — Cannwood-specific content for now.
-  const hasLand = ORG_SLUG === 'cannwood';
+  // GPS tracking and Land are Cannwood-specific today. ORG_SLUG (captured at
+  // page load) rather than getOrgSlug(): client-side navigation drops the
+  // local ?org= override, so re-parsing the URL mis-gates these tabs in
+  // local testing.
+  const isCannwood = ORG_SLUG === 'cannwood';
 
   const navItems = [
     {
@@ -57,7 +56,7 @@ export function TopNavBar() {
       path: '/species',
     },
     // Tracker positions — only orgs with trackers (Cannwood) see this.
-    ...(hasTrackers
+    ...(isCannwood
       ? [
           {
             icon: Sensors,
@@ -67,7 +66,7 @@ export function TopNavBar() {
         ]
       : []),
     // Land-cover change over time — Cannwood only for now.
-    ...(hasLand
+    ...(isCannwood
       ? [
           {
             icon: Landscape,

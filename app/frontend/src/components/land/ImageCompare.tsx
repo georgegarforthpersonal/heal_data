@@ -86,7 +86,9 @@ export function ImageCompare({
         borderColor: 'divider',
         aspectRatio: String(aspectRatio),
         userSelect: 'none',
-        touchAction: 'none',
+        // pan-y: horizontal drags drive the divider, vertical swipes still
+        // scroll the page (the viewer spans the full width on mobile).
+        touchAction: 'pan-y',
         cursor: 'ew-resize',
         '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
       }}
