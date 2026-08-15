@@ -493,6 +493,10 @@ class SpeciesRead(SQLModel):
     scientific_name: Optional[str] = None
     nbn_atlas_guid: Optional[str] = None
     species_code: Optional[str] = None
+    sightings_count: int = Field(
+        default=0,
+        description="How often this species has been recorded in the queried context (0 outside by-survey-type)",
+    )
 
 
 # ============================================================================
