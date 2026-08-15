@@ -25,6 +25,7 @@ import { SurveyDetailPage } from './pages/SurveyDetailPage';
 import { NewSurveyPage } from './pages/NewSurveyPage';
 import { SpeciesPage } from './pages/SpeciesPage';
 import { TrackingPage } from './pages/TrackingPage';
+import { LandPage } from './pages/LandPage';
 import { AdminPage } from './pages/AdminPage';
 import { NewCameraTrapSurveyPage } from './pages/NewCameraTrapSurveyPage';
 import { NewAudioSurveyPage } from './pages/NewAudioSurveyPage';
@@ -97,6 +98,7 @@ const router = createBrowserRouter([
           // Dashboard page
           { path: '/species', element: <SpeciesPage /> },
           { path: '/tracking', element: <TrackingPage /> },
+          { path: '/land', element: <LandPage /> },
           // Old label, kept so existing links/bookmarks land correctly.
           { path: '/dashboards', element: <Navigate to="/species" replace /> },
 

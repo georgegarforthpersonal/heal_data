@@ -1,5 +1,5 @@
 import { AppBar, Toolbar, Box, IconButton, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { Assignment, BarChart, Sensors, Settings, Menu as MenuIcon, Close, Logout } from '@mui/icons-material';
+import { Assignment, BarChart, Landscape, Sensors, Settings, Menu as MenuIcon, Close, Logout } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth, usePermissions } from '../../context/AuthContext';
@@ -40,6 +40,8 @@ export function TopNavBar() {
   const surveysHome = showGroups ? '/groups' : '/surveys';
   // Only Cannwood runs GPS trackers today.
   const hasTrackers = getOrgSlug() === 'cannwood';
+  // Land-cover change page — Cannwood-specific content for now.
+  const hasLand = getOrgSlug() === 'cannwood';
 
   const navItems = [
     {
@@ -59,6 +61,16 @@ export function TopNavBar() {
             icon: Sensors,
             label: 'GPS tracking',
             path: '/tracking',
+          },
+        ]
+      : []),
+    // Land-cover change over time — Cannwood only for now.
+    ...(hasLand
+      ? [
+          {
+            icon: Landscape,
+            label: 'Land',
+            path: '/land',
           },
         ]
       : []),
