@@ -44,12 +44,6 @@ export function LandPage() {
             Imagery © Google Earth
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 3, maxWidth: '72ch' }}>
-          The 2001 frame is the oldest sharp imagery Google Earth holds for the estate
-          (earlier layers are too coarse at this scale). The change since is the story:
-          pasture on the eastern half has given way to scrub and young woodland, ponds and
-          bare scrapes have appeared mid-frame, and hedgerow trees have broadened throughout.
-        </Typography>
       </Box>
     </Box>
   );
