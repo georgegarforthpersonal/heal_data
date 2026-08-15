@@ -34,6 +34,7 @@ import { DEFAULT_MAP_CENTER } from '../../config';
 import { CATEGORY_COLORS, CATEGORY_LABELS, CATEGORY_TEXT_COLOR } from './breedingConstants';
 import { boundaryLatLngs } from './mapModeUtils';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
+import UserLocationMarker from './UserLocationMarker';
 
 // Extended individual location with temp ID for tracking unsaved points
 export interface DraftIndividualLocation {
@@ -370,6 +371,9 @@ export default function MultiLocationMapPicker({
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
               <FieldBoundaryOverlay locations={locationsWithBoundaries} />
             )}
+
+            {/* The surveyor's own position, so they can place points where they stand */}
+            <UserLocationMarker />
 
             {locations.map((loc, index) => (
               <CircleMarker
