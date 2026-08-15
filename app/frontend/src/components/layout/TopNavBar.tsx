@@ -7,7 +7,7 @@ import { UserMenu } from './UserMenu';
 import { PoweredByCanopy } from './PoweredByCanopy';
 import canopyLogo from '../../assets/canopy-logo.svg';
 import { orgLogoUrl } from '../../config/orgBranding';
-import { getOrgSlug } from '../../services/api';
+import { ORG_SLUG } from '../../services/api';
 import { orgHasGroups } from '../../pages/groups/groupMeta';
 
 /**
@@ -38,10 +38,12 @@ export function TopNavBar() {
   // flat list is retired); orgs without groups keep the flat list.
   const showGroups = orgHasGroups();
   const surveysHome = showGroups ? '/groups' : '/surveys';
-  // Only Cannwood runs GPS trackers today.
-  const hasTrackers = getOrgSlug() === 'cannwood';
+  // Only Cannwood runs GPS trackers today. ORG_SLUG (captured at page load)
+  // rather than getOrgSlug(): client-side navigation drops the local ?org=
+  // override, so re-parsing the URL mis-gates these tabs in local testing.
+  const hasTrackers = ORG_SLUG === 'cannwood';
   // Land-cover change page — Cannwood-specific content for now.
-  const hasLand = getOrgSlug() === 'cannwood';
+  const hasLand = ORG_SLUG === 'cannwood';
 
   const navItems = [
     {
