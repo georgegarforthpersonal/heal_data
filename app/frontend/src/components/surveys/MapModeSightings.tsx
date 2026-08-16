@@ -342,6 +342,12 @@ export function MapModeSightings({
                   <Popup
                     closeOnClick={false}
                     autoPan={true}
+                    // Pan clear of the overlaid controls: zoom (top-left) and
+                    // the toggle/fullscreen/layers cluster (top-right) float
+                    // above popups, so without this padding a popup opened
+                    // near the top of the map slides underneath them.
+                    autoPanPaddingTopLeft={[56, 64]}
+                    autoPanPaddingBottomRight={[12, 12]}
                     minWidth={200}
                     maxWidth={320}
                     className="map-mode-popup"
@@ -396,6 +402,12 @@ export function MapModeSightings({
                   <Popup
                     closeOnClick={false}
                     autoPan={true}
+                    // Pan clear of the overlaid controls: zoom (top-left) and
+                    // the toggle/fullscreen/layers cluster (top-right) float
+                    // above popups, so without this padding a popup opened
+                    // near the top of the map slides underneath them.
+                    autoPanPaddingTopLeft={[56, 64]}
+                    autoPanPaddingBottomRight={[12, 12]}
                     minWidth={readOnly ? 200 : 260}
                     maxWidth={320}
                     className="map-mode-popup"
@@ -450,6 +462,12 @@ export function MapModeSightings({
                 position={[addPopupPosition.lat, addPopupPosition.lng]}
                 closeOnClick={false}
                 autoPan={true}
+                    // Pan clear of the overlaid controls: zoom (top-left) and
+                    // the toggle/fullscreen/layers cluster (top-right) float
+                    // above popups, so without this padding a popup opened
+                    // near the top of the map slides underneath them.
+                    autoPanPaddingTopLeft={[56, 64]}
+                    autoPanPaddingBottomRight={[12, 12]}
                 minWidth={260}
                 maxWidth={320}
                 className="map-mode-popup"
