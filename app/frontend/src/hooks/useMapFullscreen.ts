@@ -50,33 +50,23 @@ export function useMapFullscreen() {
   // layout viewport to reveal a focused input (e.g. the species field in a
   // map popup), dragging the fixed fullscreen container — and its exit
   // button — off screen, sometimes leaving it there after the keyboard
-  // closes. While fullscreen, pin the window back to the origin whenever the
-  // visual viewport shifts.
+  // closes. Restore alignment once the keyboard has GONE (viewport back to
+  // ~full height). Never repin while it is open: fighting iOS's
+  // scroll-into-view mid-focus makes the screen visibly thrash.
   useEffect(() => {
     if (!isFullscreen) return;
     window.scrollTo(0, 0);
 
-    let frame: number | null = null;
-    const repin = () => {
-      if (frame !== null) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        if (window.scrollX !== 0 || window.scrollY !== 0) {
-          window.scrollTo(0, 0);
-        }
-      });
-    };
-
     const vv = window.visualViewport;
-    vv?.addEventListener('resize', repin);
-    vv?.addEventListener('scroll', repin);
-    window.addEventListener('scroll', repin);
-    return () => {
-      if (frame !== null) cancelAnimationFrame(frame);
-      vv?.removeEventListener('resize', repin);
-      vv?.removeEventListener('scroll', repin);
-      window.removeEventListener('scroll', repin);
+    if (!vv) return;
+    const onResize = () => {
+      const keyboardClosed = vv.height >= window.innerHeight * 0.9;
+      if (keyboardClosed && (window.scrollX !== 0 || window.scrollY !== 0)) {
+        window.scrollTo(0, 0);
+      }
     };
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
   }, [isFullscreen]);
 
   const fullscreenContainerSx: SxProps<Theme> = isFullscreen

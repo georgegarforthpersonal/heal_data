@@ -288,7 +288,9 @@ function AddPopupForm({
               placeholder="Select species..."
               size="small"
               sx={{
-                '& .MuiInputBase-input': { fontSize: '0.8rem' },
+                // 16px floor: any smaller and iOS zooms the page on focus,
+                // leaving the map stuck zoomed after the popup closes.
+                '& .MuiInputBase-input': { fontSize: '16px' },
               }}
             />
           )}
@@ -735,7 +737,9 @@ function BreedingStatusField({
           placeholder="Not set"
           size="small"
           sx={{
-            '& .MuiInputBase-input': { fontSize: '0.8rem' },
+            // 16px floor: any smaller and iOS zooms the page on focus,
+            // leaving the map stuck zoomed after the popup closes.
+            '& .MuiInputBase-input': { fontSize: '16px' },
           }}
         />
       )}

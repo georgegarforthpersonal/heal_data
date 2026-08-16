@@ -20,7 +20,11 @@
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
     <meta name="twitter:card" content="summary" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- maximum-scale=1 stops iOS Safari's automatic page zoom when focusing
+         an input, which was leaving survey maps stuck zoomed-in mid-entry.
+         Since iOS 10 Safari ignores it for user pinch gestures, so manual
+         zoom (and accessibility zoom) still work. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
