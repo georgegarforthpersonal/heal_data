@@ -55,6 +55,16 @@ class ScheduleCadence(str, PyEnum):
     weekly = "weekly"
 
 
+class RecordMode(str, PyEnum):
+    """Which entry surface a survey type's sightings use.
+
+    - list: count-driven entry (tallies, steppers).
+    - map: spatial entry (tap the map where the sighting was).
+    """
+    list = "list"
+    map = "map"
+
+
 # ============================================================================
 # Organisation Models
 # ============================================================================
@@ -737,6 +747,16 @@ class SurveyTypeBase(SQLModel):
         sa_column=sa.Column("schedule_cadence", sa.String(20), nullable=False, server_default="date"),
         description="Whether surveys of this type are scheduled for a specific day or a whole week",
     )
+    # Which entry surface sightings use. Fixed on phones (the field just
+    # presents the right surface for the method — a transect is a map, a
+    # tally is a list); the default on desktop, where the toggle stays for
+    # cleanup work. Only meaningful when the type allows geolocation or
+    # device selection; the frontend falls back to list otherwise.
+    record_mode: RecordMode = Field(
+        default=RecordMode.list,
+        sa_column=sa.Column("record_mode", sa.String(10), nullable=False, server_default="list"),
+        description="Entry surface for sightings: 'list' or 'map'",
+    )
 
 
 class SurveyType(SurveyTypeBase, table=True):  # type: ignore[call-arg]
@@ -796,6 +816,7 @@ class SurveyTypeUpdate(SQLModel):
     allow_show_description: Optional[bool] = None
     allow_sighting_device_selection: Optional[bool] = None
     sighting_device_type: Optional[DeviceType] = None
+    record_mode: Optional[RecordMode] = None
     icon: Optional[str] = Field(None, max_length=50)
     color: Optional[str] = Field(None, max_length=20)
     schedule_cadence: Optional[ScheduleCadence] = None

@@ -1073,6 +1073,7 @@ export function NewSurveyPage() {
             allowSightingDeviceSelection={allowSightingDeviceSelection}
             devices={devices}
             surveyLocationId={locationId}
+            recordMode={selectedSurveyType.record_mode}
           />
         </Paper>
       )}

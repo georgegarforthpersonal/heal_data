@@ -236,6 +236,7 @@ def get_survey_type(
         icon=survey_type.icon,
         color=survey_type.color,
         schedule_cadence=survey_type.schedule_cadence,
+        record_mode=survey_type.record_mode,
         is_active=survey_type.is_active,
         locations=[
             LocationRead.model_validate(
@@ -398,6 +399,7 @@ def create_survey_type(
         icon=survey_type.icon,
         color=survey_type.color,
         schedule_cadence=survey_type.schedule_cadence,
+        record_mode=survey_type.record_mode,
         organisation_id=org.id
     )
     db.add(db_survey_type)

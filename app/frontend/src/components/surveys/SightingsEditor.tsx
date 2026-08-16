@@ -105,6 +105,10 @@ interface SightingsEditorProps {
   allowSightingDeviceSelection?: boolean; // When true, each sighting picks a device that supplies its location
   devices?: Device[]; // Available devices (already filtered by configured device type) when device selection is on
   surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
+  // The survey type's entry surface. On phones it is fixed (no list/map
+  // toggle — the field just gets the right surface for the method); on
+  // desktop it picks the default and the toggle stays for cleanup work.
+  recordMode?: 'list' | 'map';
 }
 
 /**
@@ -129,10 +133,22 @@ export function SightingsEditor({
   allowSightingDeviceSelection = false,
   devices = [],
   surveyLocationId,
+  recordMode,
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  // 'map' is only honoured when the type can actually show a map.
+  const mapCapable = allowGeolocation || allowSightingDeviceSelection;
+  const effectiveRecordMode: 'list' | 'map' =
+    recordMode === 'map' && mapCapable ? 'map' : 'list';
+
+  const [viewMode, setViewMode] = useState<'list' | 'map'>(effectiveRecordMode);
+
+  // The survey type (and with it the mode) can change without a remount —
+  // e.g. picking a different type on the new-survey page.
+  useEffect(() => {
+    setViewMode(effectiveRecordMode);
+  }, [effectiveRecordMode]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTempId, setEditingTempId] = useState<string | null>(null);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -356,7 +372,9 @@ export function SightingsEditor({
 
   const canShowMap = allowGeolocation || allowSightingDeviceSelection;
 
-  const viewModeToggle = canShowMap ? (
+  // On phones the mode is fixed by the survey type — the toggle was causing
+  // "which view has my data?" confusion in the field. Desktop keeps it.
+  const viewModeToggle = canShowMap && !(isMobile && recordMode) ? (
     <ViewModeToggle value={viewMode} onChange={setViewMode} />
   ) : null;
 

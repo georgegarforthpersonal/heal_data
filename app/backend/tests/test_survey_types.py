@@ -270,6 +270,30 @@ class TestCreateSurveyType:
         )
         assert response.status_code == 400
 
+    def test_record_mode_defaults_to_list_and_is_updatable(
+        self, client: TestClient, auth_headers: dict, create_survey_type
+    ):
+        """record_mode picks the entry surface: defaults to list, admin can set map."""
+        survey_type = create_survey_type(name="Transect")
+
+        details = client.get(f"/api/survey-types/{survey_type.id}", headers=auth_headers).json()
+        assert details["record_mode"] == "list"
+
+        r = client.put(
+            f"/api/survey-types/{survey_type.id}", json={"record_mode": "map"}, headers=auth_headers
+        )
+        assert r.status_code == 200
+        details = client.get(f"/api/survey-types/{survey_type.id}", headers=auth_headers).json()
+        assert details["record_mode"] == "map"
+
+        # An update that doesn't mention record_mode leaves it alone.
+        r = client.put(
+            f"/api/survey-types/{survey_type.id}", json={"description": "spatial"}, headers=auth_headers
+        )
+        assert r.status_code == 200
+        details = client.get(f"/api/survey-types/{survey_type.id}", headers=auth_headers).json()
+        assert details["record_mode"] == "map"
+
     def test_update_replaces_device_allocation(
         self, client: TestClient, auth_headers: dict, create_survey_type, create_device
     ):

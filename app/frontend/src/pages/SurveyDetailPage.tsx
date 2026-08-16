@@ -1263,6 +1263,7 @@ export function SurveyDetailPage() {
               allowSightingDeviceSelection={allowSightingDeviceSelection}
               devices={visibleDevices}
               surveyLocationId={editLocationId}
+              recordMode={surveyType?.record_mode}
             />
           ) : (
             <>

@@ -709,6 +709,13 @@ export interface SpeciesTypeRef {
 export type ScheduleCadence = 'date' | 'weekly';
 
 /**
+ * Which entry surface a survey type's sightings use: a map (tap where the
+ * sighting was) or a list (count-driven tallies). Fixed on phones, the
+ * default on desktop.
+ */
+export type RecordMode = 'list' | 'map';
+
+/**
  * Survey type configuration
  */
 export interface SurveyType {
@@ -716,6 +723,7 @@ export interface SurveyType {
   name: string;
   description: string | null;
   schedule_cadence: ScheduleCadence;
+  record_mode: RecordMode;
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
   allow_coordinate_entry: boolean;
@@ -807,6 +815,7 @@ export interface SurveyTypeCreate {
   icon?: string;
   color?: string;
   schedule_cadence?: ScheduleCadence;
+  record_mode?: RecordMode;
   location_ids: number[];
   species_type_ids: number[];
   /** Specific species to offer (empty/omitted = all species in the species types) */
@@ -837,6 +846,7 @@ export interface SurveyTypeUpdate {
   icon?: string;
   color?: string;
   schedule_cadence?: ScheduleCadence;
+  record_mode?: RecordMode;
   is_active?: boolean;
   location_ids?: number[];
   species_type_ids?: number[];
