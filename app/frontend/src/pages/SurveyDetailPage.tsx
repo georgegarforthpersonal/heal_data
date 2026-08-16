@@ -13,7 +13,8 @@ import { ResumeDraftDialog } from '../components/surveys/ResumeDraftDialog';
 import { SyncStatusBanner } from '../components/surveys/SyncStatusBanner';
 import { UnsavedChangesDialog } from '../components/UnsavedChangesDialog';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
-import { useDraftAutosave, useOnlineStatus, useSyncRetry } from '../hooks';
+import { useDraftAutosave, useOnlineStatus, useSyncRetry, useWakeLock } from '../hooks';
+import { downscalePhotos } from '../utils/downscalePhoto';
 import { loadSurveyDraft, deleteSurveyDraft, saveSurveyDraft, surveyDraftKey } from '../services/draftStore';
 import type { SurveyDraftForm, SurveyDraftRecord } from '../services/draftStore';
 import { draftFingerprint, ensureClientUuids, adoptServerIds } from '../utils/surveyDraftSync';
@@ -291,6 +292,9 @@ export function SurveyDetailPage() {
   useSyncRetry(pendingSync, () => {
     if (!savingRef.current) handleSaveRef.current();
   });
+
+  // Keep the screen awake while actively entering data in the field.
+  useWakeLock(isEditMode);
 
   // Devices surfaced to the picker and map: active devices plus any inactive device
   // already referenced by a sighting (so historical rows stay editable/mappable).
@@ -721,7 +725,8 @@ export function SurveyDetailPage() {
         if (allowSightingPhotoUpload && sighting.pendingPhotos && sighting.pendingPhotos.length > 0) {
           const uploaded = await imagesAPI.uploadFilesRecoveringDuplicates(
             Number(id),
-            sighting.pendingPhotos,
+            // Shrunk client-side so a save doesn't hang on flaky signal
+            await downscalePhotos(sighting.pendingPhotos),
             undefined,
             true // skipProcessing
           );

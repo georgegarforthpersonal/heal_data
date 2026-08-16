@@ -46,7 +46,8 @@ import { ResumeDraftDialog } from '../components/surveys/ResumeDraftDialog';
 import { SyncStatusBanner } from '../components/surveys/SyncStatusBanner';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { scopeBoundariesToLocations } from '../utils/scopeBoundaries';
-import { useDraftAutosave, useOnlineStatus, useSyncRetry } from '../hooks';
+import { useDraftAutosave, useOnlineStatus, useSyncRetry, useWakeLock } from '../hooks';
+import { downscalePhotos } from '../utils/downscalePhoto';
 import {
   loadSurveyDraft,
   deleteSurveyDraft,
@@ -223,6 +224,13 @@ export function NewSurveyPage() {
       pendingImageFiles.length > 0 ||
       (locationId !== null && locationId !== autoLocationIdRef.current) ||
       selectedSurveyors.length > 0 ||
+      // Date, times and conditions count too — a date-only or times-only
+      // entry is still work worth guarding and backing up.
+      date !== null ||
+      startTime !== null ||
+      endTime !== null ||
+      sunPercentage !== '' ||
+      temperatureCelsius !== '' ||
       draftSightings.some((s) => s.species_id !== null));
   const isDirtyRef = useRef(false);
   isDirtyRef.current = isDirty;
@@ -267,6 +275,10 @@ export function NewSurveyPage() {
   useSyncRetry(pendingSync, () => {
     if (!savingRef.current) handleSaveRef.current();
   });
+
+  // Keep the screen awake during entry, like a navigation app mid-route —
+  // phones otherwise dim and lock mid-transect.
+  useWakeLock(true);
 
   // ============================================================================
   // Data Fetching - Initial Load
@@ -632,7 +644,8 @@ export function NewSurveyPage() {
             .map(async (sighting) => {
               const uploaded = await imagesAPI.uploadFilesRecoveringDuplicates(
                 surveyId,
-                sighting.pendingPhotos!,
+                // Shrunk client-side so a save doesn't hang on flaky signal
+                await downscalePhotos(sighting.pendingPhotos!),
                 undefined,
                 true // skipProcessing
               );

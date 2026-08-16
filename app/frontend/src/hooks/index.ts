@@ -15,3 +15,4 @@ export { useSignupSaved } from './useSignupSaved';
 export { useDraftAutosave } from './useDraftAutosave';
 export { useOnlineStatus } from './useOnlineStatus';
 export { useSyncRetry } from './useSyncRetry';
+export { useWakeLock } from './useWakeLock';
