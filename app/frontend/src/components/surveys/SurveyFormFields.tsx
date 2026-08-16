@@ -138,6 +138,9 @@ export function SurveyFormFields({
               label="Location *"
               error={!!validationErrors.location}
               helperText={validationErrors.location}
+              // A handful of options needs no typing: read-only on mobile so
+              // tapping opens the list without summoning the keyboard.
+              inputProps={{ ...params.inputProps, readOnly: isMobile }}
               sx={{
                 '& .MuiInputBase-input': {
                   fontSize: { xs: '16px', sm: '1rem' },
