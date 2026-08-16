@@ -38,6 +38,8 @@ import type {
 } from '../services/api';
 import { readReturnTo, returnToHref } from '../utils/returnTo';
 import { SurveyFormFields, hasTimeValidationError } from '../components/surveys/SurveyFormFields';
+import { SurveyContextChips } from '../components/surveys/SurveyContextChips';
+import { useResponsive } from '../hooks/useResponsive';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -100,8 +102,9 @@ export function NewSurveyPage() {
   // Where Cancel goes and where the detail page's back button points after
   // save — a group page when the record CTA got us here, else the surveys list.
   const returnTo = readReturnTo(location);
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, user } = useAuth();
   const { canEditSurveys } = usePermissions();
+  const { isMobile } = useResponsive();
 
   // Group record flow: ?survey_type_id=N preselects the type (still
   // changeable). Media types never link here — their record CTAs go straight
@@ -191,6 +194,9 @@ export function NewSurveyPage() {
   // Location preselected because the survey type has exactly one — not a user
   // edit, so it alone must not make the unsaved-changes guard fire.
   const autoLocationIdRef = useRef<number | null>(null);
+  // Same for the surveyor defaulted to the signed-in user's linked surveyor —
+  // the one metadata question with an unambiguous answer.
+  const autoSurveyorIdRef = useRef<number | null>(null);
 
   // Set when a save failed on connectivity: entries are safe on this device
   // and the save re-runs automatically when the connection returns.
@@ -223,7 +229,8 @@ export function NewSurveyPage() {
     (notes.trim() !== '' ||
       pendingImageFiles.length > 0 ||
       (locationId !== null && locationId !== autoLocationIdRef.current) ||
-      selectedSurveyors.length > 0 ||
+      selectedSurveyors.length > 1 ||
+      (selectedSurveyors.length === 1 && selectedSurveyors[0].id !== autoSurveyorIdRef.current) ||
       // Date, times and conditions count too — a date-only or times-only
       // entry is still work worth guarding and backing up.
       date !== null ||
@@ -344,6 +351,17 @@ export function NewSurveyPage() {
 
     fetchInitialData();
   }, [presetTypeIdParam]);
+
+  // Default the surveyor to the signed-in user's linked surveyor. Applied
+  // only onto an empty selection, and recorded in autoSurveyorIdRef so it
+  // alone never arms the guard or the draft backup.
+  useEffect(() => {
+    if (!user || surveyors.length === 0) return;
+    const mine = surveyors.find((s) => s.user_id === user.id);
+    if (!mine) return;
+    autoSurveyorIdRef.current = mine.id;
+    setSelectedSurveyors((prev) => (prev.length === 0 ? [mine] : prev));
+  }, [user, surveyors]);
 
   // A stored draft means a survey was being entered on this device and never
   // uploaded (tab killed, failed save). The check is independent of the
@@ -808,8 +826,9 @@ export function NewSurveyPage() {
   // ============================================================================
 
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
-      {/* Page Header */}
+    // Mobile reserves room at the bottom for the fixed thumb bar.
+    <Box sx={{ p: SPACING.PAGE_PADDING, pb: isMobile && selectedSurveyType ? 12 : undefined }}>
+      {/* Page Header. On mobile Save lives in the thumb bar, not up here. */}
       <PageHeader
         backButton={{ href: '/surveys' }}
         actions={
@@ -827,28 +846,30 @@ export function NewSurveyPage() {
             >
               Cancel
             </Button>
-            <Button
-              variant="contained"
-              startIcon={saving ? undefined : <Save />}
-              onClick={handleSave}
-              disabled={saveDisabled}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 'none' },
-                minWidth: 140,
-              }}
-            >
-              {saving ? (
-                <>
-                  <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Saving...
-                </>
-              ) : (
-                'Save survey'
-              )}
-            </Button>
+            {!isMobile && (
+              <Button
+                variant="contained"
+                startIcon={saving ? undefined : <Save />}
+                onClick={handleSave}
+                disabled={saveDisabled}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  boxShadow: 'none',
+                  '&:hover': { boxShadow: 'none' },
+                  minWidth: 140,
+                }}
+              >
+                {saving ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Saving...
+                  </>
+                ) : (
+                  'Save survey'
+                )}
+              </Button>
+            )}
           </Stack>
         }
       />
@@ -869,17 +890,17 @@ export function NewSurveyPage() {
         onSyncNow={handleSave}
       />
 
-      {/* Survey Type Selection Card */}
+      {/* Survey Type. Compact on mobile — the record flow usually preset it. */}
       <Paper
         sx={{
-          p: 3,
-          mb: 3,
+          p: { xs: 2, md: 3 },
+          mb: { xs: 2, md: 3 },
           boxShadow: 'none',
           border: '1px solid',
           borderColor: 'divider',
         }}
       >
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: { xs: 'none', md: 'block' } }}>
           Survey Type
         </Typography>
         <Autocomplete
@@ -888,6 +909,7 @@ export function NewSurveyPage() {
           value={selectedSurveyType}
           onChange={(_, newValue) => handleSurveyTypeChange(newValue)}
           loading={surveyTypesLoading}
+          size={isMobile ? 'small' : 'medium'}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -901,9 +923,36 @@ export function NewSurveyPage() {
         />
       </Paper>
 
-
-      {/* Survey Details Card - Only show when survey type is selected */}
-      {selectedSurveyType && (
+      {/* Survey metadata. Mobile: a row of chips editing via bottom sheets,
+          so sightings — the actual job — start at the top of the screen.
+          Desktop keeps the full form. */}
+      {selectedSurveyType && (isMobile ? (
+        <SurveyContextChips
+          date={date}
+          onDateChange={setDate}
+          surveyors={surveyors}
+          selectedSurveyors={selectedSurveyors}
+          onSurveyorsChange={setSelectedSurveyors}
+          locations={locations}
+          locationId={locationId}
+          onLocationChange={setLocationId}
+          hideLocation={locationAtSightingLevel || locations.length === 0}
+          notes={notes}
+          onNotesChange={setNotes}
+          startTime={startTime}
+          endTime={endTime}
+          sunPercentage={sunPercentage}
+          temperatureCelsius={temperatureCelsius}
+          onStartTimeChange={setStartTime}
+          onEndTimeChange={setEndTime}
+          onSunPercentageChange={setSunPercentage}
+          onTemperatureCelsiusChange={setTemperatureCelsius}
+          showStartEndTime={showStartEndTime}
+          showSunPercentage={showSunPercentage}
+          showTemperature={showTemperature}
+          validationErrors={validationErrors}
+        />
+      ) : (
         <Paper
           sx={{
             p: 3,
@@ -943,7 +992,7 @@ export function NewSurveyPage() {
             showTemperature={showTemperature}
           />
         </Paper>
-      )}
+      ))}
 
       {/* Image Upload Section - Only for camera trap surveys */}
       {allowImageUpload && (
@@ -1033,7 +1082,7 @@ export function NewSurveyPage() {
       {selectedSurveyType && (
         <Paper
           sx={{
-            p: 3,
+            p: { xs: 2, md: 3 },
             boxShadow: 'none',
             border: '1px solid',
             borderColor: 'divider',
@@ -1055,6 +1104,17 @@ export function NewSurveyPage() {
             allowSightingDeviceSelection={allowSightingDeviceSelection}
             devices={devices}
             surveyLocationId={locationId}
+            mobileSaveSlot={
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={handleSave}
+                disabled={saveDisabled}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                {saving ? <CircularProgress size={20} /> : 'Save'}
+              </Button>
+            }
           />
         </Paper>
       )}
