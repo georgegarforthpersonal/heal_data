@@ -132,6 +132,10 @@ export function SurveyFormFields({
           getOptionLabel={locationDisplayName}
           value={locations.find((l) => l.id === locationId) || null}
           onChange={(_, newValue) => onLocationChange(newValue?.id || null)}
+          // A required single choice is a picker, not a text box: no clear ✕
+          // and no select-on-focus text highlight (see the survey type field).
+          disableClearable={locationId !== null}
+          selectOnFocus={false}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -144,6 +148,9 @@ export function SurveyFormFields({
               sx={{
                 '& .MuiInputBase-input': {
                   fontSize: { xs: '16px', sm: '1rem' },
+                  ...(isMobile
+                    ? { cursor: 'pointer', userSelect: 'none', caretColor: 'transparent' }
+                    : {}),
                 }
               }}
             />

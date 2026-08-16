@@ -890,6 +890,12 @@ export function NewSurveyPage() {
           value={selectedSurveyType}
           onChange={(_, newValue) => handleSurveyTypeChange(newValue)}
           loading={surveyTypesLoading}
+          // A required single choice is a picker, not a text box: no clear ✕
+          // (you change the value by picking another, never to empty) and no
+          // select-on-focus text highlight (that affordance exists to retype
+          // over a value, which a picker doesn't do).
+          disableClearable={selectedSurveyType !== null}
+          selectOnFocus={false}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -900,6 +906,11 @@ export function NewSurveyPage() {
               // A handful of options needs no typing: read-only on mobile so
               // tapping opens the list without summoning the keyboard.
               inputProps={{ ...params.inputProps, readOnly: isMobile }}
+              sx={{
+                '& .MuiInputBase-input': isMobile
+                  ? { cursor: 'pointer', userSelect: 'none', caretColor: 'transparent' }
+                  : {},
+              }}
             />
           )}
           isOptionEqualToValue={(option, value) => option.id === value.id}
