@@ -105,9 +105,8 @@ interface SightingsEditorProps {
   allowSightingDeviceSelection?: boolean; // When true, each sighting picks a device that supplies its location
   devices?: Device[]; // Available devices (already filtered by configured device type) when device selection is on
   surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
-  // The survey type's entry surface. On phones it is fixed (no list/map
-  // toggle — the field just gets the right surface for the method); on
-  // desktop it picks the default and the toggle stays for cleanup work.
+  // The survey type's default entry surface: surveys open in this view and
+  // the list/map toggle stays available everywhere.
   recordMode?: 'list' | 'map';
 }
 
@@ -372,9 +371,7 @@ export function SightingsEditor({
 
   const canShowMap = allowGeolocation || allowSightingDeviceSelection;
 
-  // On phones the mode is fixed by the survey type — the toggle was causing
-  // "which view has my data?" confusion in the field. Desktop keeps it.
-  const viewModeToggle = canShowMap && !(isMobile && recordMode) ? (
+  const viewModeToggle = canShowMap ? (
     <ViewModeToggle value={viewMode} onChange={setViewMode} />
   ) : null;
 

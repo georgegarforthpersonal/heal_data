@@ -1331,8 +1331,8 @@ export function AdminPage() {
               </FormControl>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                 {formRecordMode === 'map'
-                  ? 'Phones record straight onto the map; desktop defaults to the map but keeps the list toggle'
-                  : 'Phones record as a list; desktop defaults to the list but keeps the map toggle'}
+                  ? 'Surveys open on the map; surveyors can still switch to the list'
+                  : 'Surveys open as a list; surveyors can still switch to the map'}
               </Typography>
             </Box>
           </FormSection>
