@@ -1120,7 +1120,8 @@ export function SurveyDetailPage() {
               onSunPercentageChange={setEditSunPercentage}
               onTemperatureCelsiusChange={setEditTemperatureCelsius}
               validationErrors={validationErrors}
-              hideLocation={locationAtSightingLevel || locations.length === 0}
+              // A single possible location offers no choice — hide the field.
+              hideLocation={locationAtSightingLevel || locations.length <= 1}
               showStartEndTime={showStartEndTime}
               showSunPercentage={showSunPercentage}
               showTemperature={showTemperature}

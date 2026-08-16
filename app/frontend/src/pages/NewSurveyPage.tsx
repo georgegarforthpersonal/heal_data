@@ -953,7 +953,9 @@ export function NewSurveyPage() {
             onSunPercentageChange={setSunPercentage}
             onTemperatureCelsiusChange={setTemperatureCelsius}
             validationErrors={validationErrors}
-            hideLocation={locationAtSightingLevel || locations.length === 0}
+            // A single possible location is auto-selected, so a field offering
+            // no choice would only be noise — hide it.
+            hideLocation={locationAtSightingLevel || locations.length <= 1}
             showStartEndTime={showStartEndTime}
             showSunPercentage={showSunPercentage}
             showTemperature={showTemperature}
