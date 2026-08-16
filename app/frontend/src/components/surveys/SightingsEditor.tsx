@@ -105,10 +105,6 @@ interface SightingsEditorProps {
   allowSightingDeviceSelection?: boolean; // When true, each sighting picks a device that supplies its location
   devices?: Device[]; // Available devices (already filtered by configured device type) when device selection is on
   surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
-  // When set (mobile capture-first pages), the editor renders a fixed
-  // bottom thumb bar: its own Add-sighting button beside this Save slot.
-  // The inline header Add button is hidden in favour of the bar.
-  mobileSaveSlot?: React.ReactNode;
 }
 
 /**
@@ -133,7 +129,6 @@ export function SightingsEditor({
   allowSightingDeviceSelection = false,
   devices = [],
   surveyLocationId,
-  mobileSaveSlot,
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
@@ -365,48 +360,6 @@ export function SightingsEditor({
     <ViewModeToggle value={viewMode} onChange={setViewMode} />
   ) : null;
 
-  // Capture-first thumb bar (mobile): Add sighting is the biggest target on
-  // the screen and sits where the thumb rests; Save lives beside it. In map
-  // mode adding happens by tapping the map, so the bar carries Save alone.
-  const thumbBar =
-    isMobile && mobileSaveSlot ? (
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: (theme) => theme.zIndex.appBar,
-          bgcolor: 'background.paper',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          gap: 1,
-          p: 1.25,
-          pb: 'calc(10px + env(safe-area-inset-bottom))',
-        }}
-      >
-        {viewMode !== 'map' && (
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<Add />}
-            onClick={handleAddClick}
-            sx={{
-              flex: 1.6,
-              textTransform: 'none',
-              fontWeight: 700,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
-            }}
-          >
-            Add sighting
-          </Button>
-        )}
-        <Box sx={{ flex: 1, display: 'flex', '& > *': { flex: 1 } }}>{mobileSaveSlot}</Box>
-      </Box>
-    ) : null;
-
   // Map mode UI (shared between mobile and desktop)
   if (viewMode === 'map' && canShowMap) {
     return (
@@ -436,7 +389,6 @@ export function SightingsEditor({
           allowSightingPhotoUpload={allowSightingPhotoUpload}
           listToggle={viewModeToggle}
         />
-        {thumbBar}
       </>
     );
   }
@@ -450,23 +402,20 @@ export function SightingsEditor({
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Sightings
             </Typography>
-            {/* The thumb bar owns Add when present */}
-            {!thumbBar && (
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleAddClick}
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  boxShadow: 'none',
-                  '&:hover': { boxShadow: 'none' }
-                }}
-              >
-                Add
-              </Button>
-            )}
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleAddClick}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' }
+              }}
+            >
+              Add
+            </Button>
           </Stack>
           {viewModeToggle && (
             <Box sx={{ mb: 2 }}>
@@ -688,7 +637,6 @@ export function SightingsEditor({
           devices={devices}
           surveyLocationId={surveyLocationId}
         />
-        {thumbBar}
       </>
     );
   }
