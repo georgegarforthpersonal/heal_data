@@ -50,10 +50,13 @@ def main() -> None:
                 continue
             types = db.query(SurveyType).filter(SurveyType.organisation_id == org.id).order_by(SurveyType.id).all()
             for t in types:
-                if t.record_mode == mode:
+                # Loaded rows carry the raw string (the column is sa.String,
+                # not a DB enum); RecordMode is a str-enum so == still works.
+                current = str(t.record_mode.value if isinstance(t.record_mode, RecordMode) else t.record_mode)
+                if current == mode.value:
                     logger.info(f"{org.slug}: {t.name!r} (id={t.id}) — already {mode.value!r}")
                     continue
-                logger.info(f"{org.slug}: {t.name!r} (id={t.id}) — {t.record_mode.value!r} -> {mode.value!r}")
+                logger.info(f"{org.slug}: {t.name!r} (id={t.id}) — {current!r} -> {mode.value!r}")
                 t.record_mode = mode
                 changed += 1
 
