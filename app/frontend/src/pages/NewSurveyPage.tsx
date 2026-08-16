@@ -45,6 +45,7 @@ import { UnsavedChangesDialog } from '../components/UnsavedChangesDialog';
 import { ResumeDraftDialog } from '../components/surveys/ResumeDraftDialog';
 import { SyncStatusBanner } from '../components/surveys/SyncStatusBanner';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
+import { useResponsive } from '../hooks/useResponsive';
 import { scopeBoundariesToLocations } from '../utils/scopeBoundaries';
 import { useDraftAutosave, useOnlineStatus, useSyncRetry, useWakeLock } from '../hooks';
 import { downscalePhotos } from '../utils/downscalePhoto';
@@ -102,6 +103,7 @@ export function NewSurveyPage() {
   const returnTo = readReturnTo(location);
   const { isLoading: authLoading } = useAuth();
   const { canEditSurveys } = usePermissions();
+  const { isMobile } = useResponsive();
 
   // Group record flow: ?survey_type_id=N preselects the type (still
   // changeable). Media types never link here — their record CTAs go straight
@@ -895,6 +897,9 @@ export function NewSurveyPage() {
               required
               error={!!validationErrors.surveyType}
               helperText={validationErrors.surveyType}
+              // A handful of options needs no typing: read-only on mobile so
+              // tapping opens the list without summoning the keyboard.
+              inputProps={{ ...params.inputProps, readOnly: isMobile }}
             />
           )}
           isOptionEqualToValue={(option, value) => option.id === value.id}
