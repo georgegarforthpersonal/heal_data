@@ -1,0 +1,11 @@
+# Railway configuration for the marketing-site service.
+# Deployed with `railway up` from inside site/ (upload root = this directory).
+# If the service is later wired to the GitHub repo instead, set the service's
+# root directory to "site" and these relative paths keep working.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "nginx -g 'daemon off;'"

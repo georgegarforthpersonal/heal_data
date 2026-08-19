@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canopy — ecological monitoring for rewilding estates</title>
+<meta name="description" content="Canopy brings camera traps, acoustic surveys, GPS tracking and species records together in one place for rewilding estates and conservation projects. In the field at Cannwood and with Heal Rewilding.">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<meta property="og:title" content="Canopy — ecological monitoring for rewilding estates">
+<meta property="og:description" content="Camera traps, acoustic surveys, GPS tracking and species records in one place. In the field at Cannwood and with Heal Rewilding.">
+<meta property="og:image" content="https://canopydata.app/assets/og-canopy.png">
+<meta property="og:url" content="https://canopydata.app/">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --green: #51895A;
+    --green-dark: #3E6A45;
+    --green-deep: #2C4D32;
+    --green-light: #6CA477;
+    --green-hover: #5D9668;
+    --tint: #ECF3EC;
+    --paper: #FBFBF8;
+    --ink: #22301F;
+    --ink-soft: #4C5A49;
+    --rule: #E2E7DE;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  header { padding: 28px 0; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { width: 40px; height: 40px; }
+  .brand span {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--green-deep);
+  }
+
+  /* Hero */
+  .hero { padding: 56px 0 72px; }
+  .hero .eyebrow {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5.4vw, 3.4rem);
+    line-height: 1.14;
+    letter-spacing: -0.01em;
+    max-width: 17ch;
+    margin-bottom: 24px;
+  }
+  .hero p.lede {
+    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin-bottom: 36px;
+  }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .btn {
+    display: inline-block;
+    padding: 14px 26px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-primary:hover { background: var(--green-hover); }
+  .btn-ghost { color: var(--green-dark); border: 1.5px solid var(--rule); background: #fff; }
+  .btn-ghost:hover { border-color: var(--green-light); }
+  .hero .used-by {
+    margin-top: 40px;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+  .hero .used-by strong { color: var(--ink); font-weight: 600; }
+
+  /* Proof */
+  .proof { background: var(--tint); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 64px 0; }
+  .proof h2, .demos h2, .book h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+    line-height: 1.2;
+    margin-bottom: 18px;
+  }
+  .proof .cols { display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center; }
+  .proof p { color: var(--ink-soft); max-width: 58ch; }
+  .proof p + p { margin-top: 14px; }
+  .proof p strong { color: var(--ink); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .stat {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 22px 20px 18px;
+  }
+  .stat .num {
+    font-family: var(--serif);
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--green-dark);
+    line-height: 1.1;
+  }
+  .stat .lbl { font-size: 0.88rem; color: var(--ink-soft); margin-top: 6px; }
+
+  /* Demos */
+  .demos { padding: 80px 0 40px; }
+  .demos .intro { color: var(--ink-soft); max-width: 60ch; margin-bottom: 48px; }
+  .demo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 36px 0;
+  }
+  .demo + .demo { border-top: 1px solid var(--rule); }
+  .demo:nth-child(even) .demo-media { order: 2; }
+  .demo h3 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.45rem;
+    margin-bottom: 12px;
+  }
+  .demo p { color: var(--ink-soft); max-width: 46ch; }
+  .demo-media {
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(34, 48, 31, 0.06);
+  }
+  .demo-media img, .demo-media svg { display: block; width: 100%; height: auto; }
+
+  /* Field strip */
+  .field-strip {
+    margin: 48px 0 0;
+    padding: 26px 28px;
+    background: var(--tint);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    color: var(--ink-soft);
+    font-size: 1rem;
+  }
+  .field-strip strong { color: var(--ink); }
+
+  /* Booking */
+  .book { padding: 88px 0; text-align: center; }
+  .book p { color: var(--ink-soft); max-width: 54ch; margin: 0 auto 32px; }
+  .book .email-plain { margin-top: 18px; font-size: 0.95rem; color: var(--ink-soft); }
+  .book .email-plain a { color: var(--green-dark); font-weight: 600; text-decoration: none; }
+  .book .email-plain a:hover { text-decoration: underline; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--rule); padding: 36px 0 48px; }
+  footer .cols { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+  footer p { font-size: 0.92rem; color: var(--ink-soft); max-width: 62ch; }
+  footer .fineprint { font-size: 0.85rem; }
+
+  @media (max-width: 780px) {
+    .proof .cols, .demo { grid-template-columns: 1fr; gap: 28px; }
+    .demo:nth-child(even) .demo-media { order: 0; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .hero { padding-top: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="brand">
+    <img src="/assets/canopy-logo.svg" alt="">
+    <span>Canopy</span>
+  </div>
+</header>
+
+<section class="hero wrap">
+  <div class="eyebrow">Ecological monitoring</div>
+  <h1>See what's returning to your land.</h1>
+  <p class="lede">Canopy is ecological monitoring for rewilding estates and conservation projects — camera traps, acoustic surveys, GPS tracking and species records, together in one place.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="mailto:georgegarforth@googlemail.com?subject=Canopy%20demo">Email George to arrange a demo</a>
+    <a class="btn btn-ghost" href="#inside">See what it does</a>
+  </div>
+  <p class="used-by">In daily use at <strong>Cannwood</strong> and with <strong>Heal Rewilding</strong> in Somerset.</p>
+</section>
+
+<section class="proof">
+  <div class="wrap cols">
+    <div>
+      <h2>Already working on two Somerset rewilding sites.</h2>
+      <p>Canopy runs the day-to-day monitoring at <strong>Cannwood</strong>, a 400-acre rewilding estate in Somerset, and supports <strong>Heal Rewilding</strong>'s survey work. Ecologists and volunteers record butterflies, birds, dragonflies and more through structured seasonal surveys, on their phones, in the field.</p>
+      <p>Satellite-tagged <strong>turtle doves</strong> — one of Britain's fastest-declining birds — have been followed from Cannwood on migration, plotted on the same maps as every other record from the estate.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num">3,000+</div><div class="lbl">species sightings recorded</div></div>
+      <div class="stat"><div class="num">100+</div><div class="lbl">species logged and mapped</div></div>
+      <div class="stat"><div class="num">6</div><div class="lbl">survey programmes running</div></div>
+      <div class="stat"><div class="num">460</div><div class="lbl">acres under monitoring</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="demos wrap" id="inside">
+  <h2>A look inside</h2>
+  <p class="intro">Three of the things you'd see on a call — all running today with real field data, not mock-ups.</p>
+
+  <div class="demo">
+    <div class="demo-media" id="media-camera">
+      <svg viewBox="0 0 560 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of camera-trap species identification">
+        <rect width="560" height="350" fill="#ECF3EC"/>
+        <rect x="40" y="34" width="480" height="250" rx="10" fill="#fff" stroke="#E2E7DE"/>
+        <rect x="40" y="34" width="480" height="250" rx="10" fill="#3E6A45" opacity="0.08"/>
+        <path d="M40 240 Q160 200 280 226 T520 214 L520 274 Q520 284 510 284 L50 284 Q40 284 40 274 Z" fill="#6CA477" opacity="0.35"/>
+        <ellipse cx="300" cy="196" rx="52" ry="30" fill="#3E6A45"/>
+        <path d="M262 186 Q250 168 254 150 M270 182 Q262 166 268 150" stroke="#3E6A45" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M348 200 L366 246 M256 208 L246 248 M320 216 L330 250 M284 214 L278 250" stroke="#3E6A45" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="258" cy="172" r="12" fill="#3E6A45"/>
+        <rect x="216" y="132" width="176" height="128" rx="6" fill="none" stroke="#51895A" stroke-width="2.5" stroke-dasharray="7 5"/>
+        <rect x="216" y="104" width="132" height="26" rx="6" fill="#51895A"/>
+        <text x="228" y="122" font-family="-apple-system, Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#fff">Roe deer · 97%</text>
+        <rect x="56" y="298" width="120" height="10" rx="5" fill="#C9D8CA"/>
+        <rect x="188" y="298" width="72" height="10" rx="5" fill="#DEE8DE"/>
+      </svg>
+    </div>
+    <div>
+      <h3>Camera traps that know what they saw</h3>
+      <p>Camera-trap images are identified automatically by AI, then confirmed with a click. Every detection lands in the same record system as your surveys — no folders of unsorted photos.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-media" id="media-charts">
+      <svg viewBox="0 0 560 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of seasonal survey charts">
+        <rect width="560" height="350" fill="#fff"/>
+        <rect x="40" y="36" width="200" height="14" rx="7" fill="#C9D8CA"/>
+        <g stroke="#E2E7DE"><line x1="56" y1="96" x2="520" y2="96"/><line x1="56" y1="150" x2="520" y2="150"/><line x1="56" y1="204" x2="520" y2="204"/><line x1="56" y1="258" x2="520" y2="258"/></g>
+        <g fill="#6CA477">
+          <rect x="66" y="232" width="30" height="26" rx="3"/><rect x="122" y="206" width="30" height="52" rx="3"/><rect x="178" y="160" width="30" height="98" rx="3"/><rect x="234" y="118" width="30" height="140" rx="3"/><rect x="290" y="100" width="30" height="158" rx="3"/><rect x="346" y="132" width="30" height="126" rx="3"/><rect x="402" y="186" width="30" height="72" rx="3"/><rect x="458" y="222" width="30" height="36" rx="3"/>
+        </g>
+        <path d="M81 246 L137 224 L193 178 L249 138 L305 114 L361 148 L417 198 L473 234" fill="none" stroke="#3E6A45" stroke-width="3" stroke-linecap="round"/>
+        <g fill="#3E6A45"><circle cx="81" cy="246" r="4.5"/><circle cx="137" cy="224" r="4.5"/><circle cx="193" cy="178" r="4.5"/><circle cx="249" cy="138" r="4.5"/><circle cx="305" cy="114" r="4.5"/><circle cx="361" cy="148" r="4.5"/><circle cx="417" cy="198" r="4.5"/><circle cx="473" cy="234" r="4.5"/></g>
+        <g font-family="-apple-system, Segoe UI, sans-serif" font-size="12" fill="#4C5A49">
+          <text x="72" y="282">Apr</text><text x="128" y="282">May</text><text x="184" y="282">Jun</text><text x="240" y="282">Jul</text><text x="296" y="282">Aug</text><text x="356" y="282">Sep</text><text x="412" y="282">Oct</text><text x="466" y="282">Nov</text>
+        </g>
+        <rect x="40" y="306" width="150" height="10" rx="5" fill="#DEE8DE"/>
+      </svg>
+    </div>
+    <div>
+      <h3>Surveys that show change over time</h3>
+      <p>Structured butterfly, bird and dragonfly surveys with seasonal charts — comparable week by week and year on year, so the story of your site builds instead of sitting in spreadsheets.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-media" id="media-gps">
+      <svg viewBox="0 0 560 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of GPS tracking map">
+        <rect width="560" height="350" fill="#F2F6F0"/>
+        <path d="M0 90 Q120 60 220 96 T560 76 L560 0 L0 0 Z" fill="#ECF3EC"/>
+        <path d="M60 350 Q140 250 120 180 Q108 130 170 110" fill="none" stroke="#B9CFEA" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+        <path d="M330 140 Q400 150 430 210 Q450 252 420 300 Q396 336 330 330 Q260 322 250 260 Q242 200 278 168 Q300 148 330 140 Z" fill="#DCE9DA" stroke="#6CA477" stroke-width="2"/>
+        <path d="M96 300 L150 258 L212 234 L286 216 L352 202 L428 178 L500 128" fill="none" stroke="#3E6A45" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+        <g fill="#51895A" stroke="#fff" stroke-width="2"><circle cx="96" cy="300" r="7"/><circle cx="150" cy="258" r="7"/><circle cx="212" cy="234" r="7"/><circle cx="286" cy="216" r="7"/><circle cx="352" cy="202" r="7"/><circle cx="428" cy="178" r="7"/></g>
+        <circle cx="500" cy="128" r="10" fill="#3E6A45" stroke="#fff" stroke-width="3"/>
+        <rect x="404" y="76" width="132" height="28" rx="6" fill="#fff" stroke="#E2E7DE"/>
+        <circle cx="420" cy="90" r="5" fill="#51895A"/>
+        <text x="432" y="95" font-family="-apple-system, Segoe UI, sans-serif" font-size="13" font-weight="600" fill="#22301F">Turtle dove 04</text>
+      </svg>
+    </div>
+    <div>
+      <h3>GPS tracking on a live map</h3>
+      <p>Satellite tags plotted over your estate map — Cannwood's turtle doves have been followed from Somerset onwards, fix by fix, alongside GPS trackers on the ground.</p>
+    </div>
+  </div>
+
+  <div class="field-strip">
+    <strong>Built for the field, not just the office.</strong> Canopy works on a phone in a hedgerow — it tolerates patchy signal, keeps drafts safe offline, and takes an OS grid reference as easily as a pin on the map.
+  </div>
+</section>
+
+<section class="book" id="book">
+  <div class="wrap">
+    <h2>See it with your own eyes.</h2>
+    <p>If Ben pointed you here, you already know the gist. A half-hour call with a live walk-through of the real platform — real cameras, real surveys, real birds — is the quickest way to see whether it fits your site.</p>
+    <a class="btn btn-primary" href="mailto:georgegarforth@googlemail.com?subject=Canopy%20demo">Email George to arrange a demo</a>
+    <p class="email-plain">Or just write to <a href="mailto:georgegarforth@googlemail.com">georgegarforth@googlemail.com</a></p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap cols">
+    <p>Canopy is built by <strong>George Garforth</strong>, a data scientist working hands-on with the ecologists, land managers and volunteers who use it.</p>
+    <p class="fineprint">© 2026 Canopy</p>
+  </div>
+</footer>
+
+</body>
+</html>
