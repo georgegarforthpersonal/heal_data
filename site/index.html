@@ -11,271 +11,202 @@
 <meta property="og:image" content="https://canopydata.app/assets/og-canopy.png">
 <meta property="og:url" content="https://canopydata.app/">
 <meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --green: #51895A;
-    --green-dark: #3E6A45;
-    --green-deep: #2C4D32;
-    --green-light: #6CA477;
-    --green-hover: #5D9668;
-    --tint: #ECF3EC;
-    --paper: #FBFBF8;
-    --ink: #22301F;
-    --ink-soft: #4C5A49;
-    --rule: #E2E7DE;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  * { box-sizing: border-box; }
   body {
-    font-family: var(--sans);
-    background: var(--paper);
-    color: var(--ink);
-    line-height: 1.6;
+    margin: 0;
+    background: #fafafa;
+    color: #1a1a1a;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  a { color: #3E6A45; text-decoration: none; }
+  a:hover { color: #51895A; text-decoration: underline; }
 
-  /* Header */
-  header { padding: 28px 0; }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand img { width: 40px; height: 40px; }
-  .brand span {
-    font-family: var(--serif);
-    font-size: 1.35rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--green-deep);
-  }
+  .page { min-height: 100vh; display: flex; flex-direction: column; }
+  .shell { max-width: 1020px; width: 100%; margin: 0 auto; padding: 0 32px; }
 
-  /* Hero */
-  .hero { padding: 56px 0 72px; }
-  .hero .eyebrow {
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--green);
-    margin-bottom: 20px;
-  }
-  .hero h1 {
-    font-family: var(--serif);
-    font-weight: 600;
-    font-size: clamp(2.1rem, 5.4vw, 3.4rem);
-    line-height: 1.14;
-    letter-spacing: -0.01em;
-    max-width: 17ch;
-    margin-bottom: 24px;
-  }
-  .hero p.lede {
-    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
-    color: var(--ink-soft);
-    max-width: 56ch;
-    margin-bottom: 36px;
-  }
-  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
   .btn {
     display: inline-block;
-    padding: 14px 26px;
-    border-radius: 8px;
-    font-size: 1rem;
+    background: #51895A;
+    color: #ffffff;
+    border-radius: 6px;
     font-weight: 600;
     text-decoration: none;
-    transition: background 0.15s ease, color 0.15s ease;
   }
-  .btn-primary { background: var(--green); color: #fff; }
-  .btn-primary:hover { background: var(--green-hover); }
-  .btn-ghost { color: var(--green-dark); border: 1.5px solid var(--rule); background: #fff; }
-  .btn-ghost:hover { border-color: var(--green-light); }
-  .hero .used-by {
-    margin-top: 40px;
-    font-size: 0.92rem;
-    color: var(--ink-soft);
-  }
-  .hero .used-by strong { color: var(--ink); font-weight: 600; }
+  .btn:hover { background: #5D9668; color: #ffffff; text-decoration: none; }
 
-  /* Proof */
-  .proof { background: var(--tint); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 64px 0; }
-  .proof h2, .demos h2, .book h2 {
-    font-family: var(--serif);
-    font-weight: 600;
-    font-size: clamp(1.6rem, 3.4vw, 2.2rem);
-    line-height: 1.2;
-    margin-bottom: 18px;
-  }
-  .proof .cols { display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center; }
-  .proof p { color: var(--ink-soft); max-width: 58ch; }
-  .proof p + p { margin-top: 14px; }
-  .proof p strong { color: var(--ink); }
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .stat {
-    background: #fff;
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    padding: 22px 20px 18px;
-  }
-  .stat .num {
-    font-family: var(--serif);
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--green-dark);
-    line-height: 1.1;
-  }
-  .stat .lbl { font-size: 0.88rem; color: var(--ink-soft); margin-top: 6px; }
+  header.site { display: flex; align-items: center; justify-content: space-between; max-width: 1020px; width: 100%; margin: 0 auto; padding: 28px 32px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand img { width: 30px; height: 30px; }
+  .brand span { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: #1a1a1a; }
+  .btn-nav { padding: 10px 20px; font-size: 14px; }
 
-  /* Demos */
-  .demos { padding: 80px 0 40px; }
-  .demos .intro { color: var(--ink-soft); max-width: 60ch; margin-bottom: 48px; }
-  .demo {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 48px;
-    align-items: center;
-    padding: 36px 0;
-  }
-  .demo + .demo { border-top: 1px solid var(--rule); }
-  .demo:nth-child(even) .demo-media { order: 2; }
-  .demo h3 {
-    font-family: var(--serif);
-    font-weight: 600;
-    font-size: 1.45rem;
-    margin-bottom: 12px;
-  }
-  .demo p { color: var(--ink-soft); max-width: 46ch; }
-  .demo-media {
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(34, 48, 31, 0.06);
-  }
-  .demo-media img, .demo-media svg { display: block; width: 100%; height: auto; }
+  .hero { padding: 72px 32px 88px; }
+  .hero-row { display: flex; align-items: center; gap: 56px; flex-wrap: wrap; }
+  .hero-copy { flex: 1 1 480px; min-width: 320px; }
+  .hero h1 { margin: 0 0 20px; font-size: clamp(32px, 5vw, 44px); line-height: 1.15; font-weight: 700; letter-spacing: -0.025em; text-wrap: pretty; }
+  .hero .lede { margin: 0 0 32px; font-size: 19px; line-height: 1.55; color: #666666; max-width: 34em; text-wrap: pretty; }
+  .hero-ctas { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .btn-hero { padding: 14px 28px; font-size: 16px; }
+  .hero-email { font-size: 15px; font-weight: 500; }
+  .hero-art { flex: 0 1 300px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; min-width: 240px; }
+  .hero-art img { width: 100%; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.12); display: block; }
+  .hero-art img.down { margin-top: 24px; }
+  .hero-art img.up { margin-top: -24px; }
 
-  /* Field strip */
-  .field-strip {
-    margin: 48px 0 0;
-    padding: 26px 28px;
-    background: var(--tint);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    color: var(--ink-soft);
-    font-size: 1rem;
-  }
-  .field-strip strong { color: var(--ink); }
+  .field { background: #ECF3EC; }
+  .field-inner { padding-top: 64px; padding-bottom: 64px; }
+  .field .kicker { margin: 0 0 36px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 40px; }
+  .field-stat .num { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; color: #3E6A45; }
+  .field-stat .txt { margin-top: 6px; font-size: 15px; line-height: 1.5; color: #1a1a1a; }
 
-  /* Booking */
-  .book { padding: 88px 0; text-align: center; }
-  .book p { color: var(--ink-soft); max-width: 54ch; margin: 0 auto 32px; }
-  .book .email-plain { margin-top: 18px; font-size: 0.95rem; color: var(--ink-soft); }
-  .book .email-plain a { color: var(--green-dark); font-weight: 600; text-decoration: none; }
-  .book .email-plain a:hover { text-decoration: underline; }
+  .demos { padding-top: 80px; padding-bottom: 80px; }
+  .demos h2 { margin: 0 0 10px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .demos .sub { margin: 0 0 40px; font-size: 16px; color: #666666; }
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+  .demo-card { background: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: hidden; }
+  .demo-media { aspect-ratio: 16 / 9; background: #ECF3EC; display: flex; align-items: center; justify-content: center; }
+  .demo-media img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .demo-meta { padding: 18px 20px 22px; display: flex; gap: 14px; align-items: flex-start; }
+  .demo-meta img { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+  .demo-meta .title { font-size: 16px; font-weight: 600; }
+  .demo-meta .caption { margin-top: 4px; font-size: 14px; line-height: 1.5; color: #666666; }
 
-  /* Footer */
-  footer { border-top: 1px solid var(--rule); padding: 36px 0 48px; }
-  footer .cols { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: baseline; }
-  footer p { font-size: 0.92rem; color: var(--ink-soft); max-width: 62ch; }
-  footer .fineprint { font-size: 0.85rem; }
+  .closer { background: #3E6A45; }
+  .closer-inner { padding-top: 72px; padding-bottom: 72px; text-align: center; }
+  .closer h2 { margin: 0 0 12px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff; }
+  .closer p { margin: 0 auto 32px; font-size: 16px; line-height: 1.55; color: #cfe0d2; max-width: 34em; }
+  .closer-ctas { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
+  .btn-invert { background: #ffffff; color: #3E6A45; padding: 14px 28px; font-size: 16px; }
+  .btn-invert:hover { background: #ECF3EC; color: #3E6A45; }
+  .closer-email { color: #ffffff; font-size: 15px; font-weight: 500; }
+  .closer-email:hover { color: #ECF3EC; }
 
-  @media (max-width: 780px) {
-    .proof .cols, .demo { grid-template-columns: 1fr; gap: 28px; }
-    .demo:nth-child(even) .demo-media { order: 0; }
-    .stats { grid-template-columns: 1fr 1fr; }
-    .hero { padding-top: 32px; }
-  }
+  footer.site { max-width: 1020px; width: 100%; margin: 0 auto; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  footer.site .who { display: flex; align-items: center; gap: 8px; color: #666666; font-size: 13px; }
+  footer.site .who img { width: 18px; height: 18px; }
+  footer.site a { font-size: 13px; }
 </style>
 </head>
 <body>
+<div class="page">
 
-<header class="wrap">
-  <div class="brand">
-    <img src="/assets/canopy-logo.svg" alt="">
-    <span>Canopy</span>
-  </div>
-</header>
-
-<section class="hero wrap">
-  <div class="eyebrow">Ecological monitoring</div>
-  <h1>See what's returning to your land.</h1>
-  <p class="lede">Canopy is ecological monitoring for rewilding estates and conservation projects — camera traps, acoustic surveys, GPS tracking and species records, together in one place.</p>
-  <div class="cta-row">
-    <a class="btn btn-primary" href="mailto:georgegarforth@googlemail.com?subject=Canopy%20demo">Email George to arrange a demo</a>
-    <a class="btn btn-ghost" href="#inside">See what it does</a>
-  </div>
-  <p class="used-by">In daily use at <strong>Cannwood</strong> and with <strong>Heal Rewilding</strong> in Somerset.</p>
-</section>
-
-<section class="proof">
-  <div class="wrap cols">
-    <div>
-      <h2>Already working on two Somerset rewilding sites.</h2>
-      <p>Canopy runs the day-to-day monitoring at <strong>Cannwood</strong>, a 400-acre rewilding estate in Somerset, and supports <strong>Heal Rewilding</strong>'s survey work. Ecologists and volunteers record butterflies, birds, dragonflies and more through structured seasonal surveys, on their phones, in the field.</p>
-      <p>Satellite-tagged <strong>turtle doves</strong> — one of Britain's fastest-declining birds — have been followed from Cannwood on migration, plotted on the same maps as every other record from the estate.</p>
+  <header class="site">
+    <div class="brand">
+      <img src="/assets/favicon.png" alt="Canopy">
+      <span>Canopy</span>
     </div>
-    <div class="stats">
-      <div class="stat"><div class="num">2,500+</div><div class="lbl">individual animals recorded</div></div>
-      <div class="stat"><div class="num">120+</div><div class="lbl">species logged and mapped</div></div>
-      <div class="stat"><div class="num">6</div><div class="lbl">survey programmes running</div></div>
-      <div class="stat"><div class="num">400</div><div class="lbl">acres under monitoring</div></div>
+    <a class="btn btn-nav" href="mailto:georgegarforth@googlemail.com?subject=Canopy%20demo">Book a demo</a>
+  </header>
+
+  <main style="flex: 1;">
+    <section class="hero shell">
+      <div class="hero-row">
+        <div class="hero-copy">
+          <h1>Ecological monitoring for rewilding estates and conservation projects</h1>
+          <p class="lede">Camera traps, acoustic surveys, GPS tracking and species records — in one place, on one map.</p>
+          <div class="hero-ctas">
+            <a class="btn btn-hero" href="mailto:georgegarforth@googlemail.com?subject=Canopy%20demo">Book a demo</a>
+            <a class="hero-email" href="mailto:georgegarforth@googlemail.com">georgegarforth@googlemail.com</a>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <img src="/assets/turtle-dove.png" alt="Turtle dove">
+          <img src="/assets/marsh-fritillary.png" alt="Marsh fritillary" class="down">
+          <img src="/assets/camera-trap.png" alt="Camera trap" class="up">
+          <img src="/assets/wren.png" alt="Wren">
+        </div>
+      </div>
+    </section>
+
+    <section class="field">
+      <div class="shell field-inner">
+        <p class="kicker">In the field</p>
+        <div class="field-grid">
+          <div class="field-stat">
+            <div class="num">2,500+</div>
+            <div class="txt">individual animals recorded across 120+ species at Cannwood, a 400-acre rewilding estate in Somerset</div>
+          </div>
+          <div class="field-stat">
+            <div class="num">GPS-tracked</div>
+            <div class="txt">turtle doves followed through the season at Cannwood, alongside camera trap and acoustic surveys</div>
+          </div>
+          <div class="field-stat">
+            <div class="num">One record</div>
+            <div class="txt">every survey, sighting and device on a single map your whole team can use — in daily use at Cannwood and with Heal Rewilding</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="demos shell">
+      <h2>See it working</h2>
+      <p class="sub">Three views of the live platform, on real data.</p>
+      <div class="demo-grid">
+        <div class="demo-card">
+          <div class="demo-media">
+            <img src="/assets/demo-camera-trap.jpg" alt="Canopy screenshot: latest camera-trap photo for each species at Cannwood, including turtle dove, roe deer and badger" loading="lazy">
+          </div>
+          <div class="demo-meta">
+            <img src="/assets/camera-trap.png" alt="">
+            <div>
+              <div class="title">Camera trap AI</div>
+              <div class="caption">Upload a card of images; AI identifies the species and you review the calls.</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-card">
+          <div class="demo-media">
+            <img src="/assets/demo-species-charts.png" alt="Canopy screenshot: 79 bird species and 2,260 individuals recorded at Cannwood, with the species discovery curve over time" loading="lazy">
+          </div>
+          <div class="demo-meta">
+            <img src="/assets/butterfly.png" alt="">
+            <div>
+              <div class="title">Surveys &amp; trends</div>
+              <div class="caption">Species records and seasonal charts across every survey type.</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-card">
+          <div class="demo-media">
+            <img src="/assets/demo-gps-tracking.jpg" alt="Canopy screenshot: GPS track of a tagged turtle dove plotted on the map around Bruton, Somerset" loading="lazy">
+          </div>
+          <div class="demo-meta">
+            <img src="/assets/turtle-dove.png" alt="">
+            <div>
+              <div class="title">GPS tracking</div>
+              <div class="caption">Tagged birds on the map, live, alongside your survey locations.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="closer">
+      <div class="shell closer-inner">
+        <h2>See it on your land</h2>
+        <p>A 30-minute walkthrough of Canopy on real survey data — and what it would look like for your site.</p>
+        <div class="closer-ctas">
+          <a class="btn btn-invert" href="mailto:georgegarforth@googlemail.com?subject=Canopy%20demo">Book a demo</a>
+          <a class="closer-email" href="mailto:georgegarforth@googlemail.com">or email georgegarforth@googlemail.com</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="who">
+      <img src="/assets/favicon.png" alt="">
+      <span>Canopy — built by George Garforth</span>
     </div>
-  </div>
-</section>
+    <a href="mailto:georgegarforth@googlemail.com">georgegarforth@googlemail.com</a>
+  </footer>
 
-<section class="demos wrap" id="inside">
-  <h2>A look inside</h2>
-  <p class="intro">Three of the things you'd see on a call — all running today with real field data, not mock-ups.</p>
-
-  <div class="demo">
-    <div class="demo-media" id="media-camera">
-      <img src="/assets/demo-camera-trap.jpg" alt="Canopy screenshot: latest camera-trap photo for each species at Cannwood, including turtle dove, roe deer, wildcat and badger" loading="lazy">
-    </div>
-    <div>
-      <h3>Camera traps that know what they saw</h3>
-      <p>Camera-trap images are identified automatically by AI, then confirmed with a click. Every detection lands in the same record system as your surveys — no folders of unsorted photos.</p>
-    </div>
-  </div>
-
-  <div class="demo">
-    <div class="demo-media" id="media-charts">
-      <img src="/assets/demo-species-charts.png" alt="Canopy screenshot: 79 bird species and 2,260 individuals recorded at Cannwood, with the species discovery curve over time" loading="lazy">
-      <img src="/assets/demo-seasonal-turtledove.png" alt="Canopy screenshot: seasonal counts of turtle doves through the year" loading="lazy" style="border-top:1px solid var(--rule)">
-    </div>
-    <div>
-      <h3>Surveys that show change over time</h3>
-      <p>Structured butterfly, bird and dragonfly surveys with seasonal charts — comparable week by week and year on year, so the story of your site builds instead of sitting in spreadsheets.</p>
-    </div>
-  </div>
-
-  <div class="demo">
-    <div class="demo-media" id="media-gps">
-      <img src="/assets/demo-gps-tracking.jpg" alt="Canopy screenshot: GPS track of a tagged turtle dove plotted on the map around Bruton, Somerset" loading="lazy">
-    </div>
-    <div>
-      <h3>GPS tracking on a live map</h3>
-      <p>Satellite tags plotted over your estate map — Cannwood's turtle doves have been followed from Somerset onwards, fix by fix, alongside GPS trackers on the ground.</p>
-    </div>
-  </div>
-
-  <div class="field-strip">
-    <strong>Built for the field, not just the office.</strong> Canopy works on a phone in a hedgerow — it tolerates patchy signal, keeps drafts safe offline, and takes an OS grid reference as easily as a pin on the map.
-  </div>
-</section>
-
-<section class="book" id="book">
-  <div class="wrap">
-    <h2>See it with your own eyes.</h2>
-    <p>If Ben pointed you here, you already know the gist. A half-hour call with a live walk-through of the real platform — real cameras, real surveys, real birds — is the quickest way to see whether it fits your site.</p>
-    <a class="btn btn-primary" href="mailto:georgegarforth@googlemail.com?subject=Canopy%20demo">Email George to arrange a demo</a>
-    <p class="email-plain">Or just write to <a href="mailto:georgegarforth@googlemail.com">georgegarforth@googlemail.com</a></p>
-  </div>
-</section>
-
-<footer>
-  <div class="wrap cols">
-    <p>Canopy is built by <strong>George Garforth</strong>, a data scientist working hands-on with the ecologists, land managers and volunteers who use it.</p>
-    <p class="fineprint">© 2026 Canopy</p>
-  </div>
-</footer>
-
+</div>
 </body>
 </html>
