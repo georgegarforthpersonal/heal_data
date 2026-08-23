@@ -7,11 +7,16 @@
  * Every option row carries a checkbox. Options stay in the list after
  * selection (the dropdown stays open for multi-pick), so without a checkbox
  * the only cue that a name is already selected is a faint grey highlight —
- * and tapping it again silently REMOVES it. Surveyors in the field were
- * "adding" a name that was already on the survey and losing it. The checkbox
- * makes selected state unmistakable and a second tap read as a deliberate
- * untick. Options are keyed by id, not label: duplicate surveyor rows can
- * share a display name.
+ * and tapping it again silently REMOVES it. The checkbox makes selected
+ * state unmistakable and a second tap read as a deliberate untick. Options
+ * are keyed by id, not label: duplicate surveyor rows can share a display
+ * name.
+ *
+ * Backspace on an empty input is swallowed rather than deleting the last
+ * chip (MUI's default). Surveyors in the field type a name to filter, then
+ * backspace it away and overshoot — each extra press was silently removing
+ * someone already added ("adding one name deletes names you've previously
+ * added"). Chips are removed only by their explicit ✕.
  */
 import { Autocomplete, TextField, Chip, Checkbox } from '@mui/material';
 import { CheckBox, CheckBoxOutlineBlank } from '@mui/icons-material';
@@ -60,6 +65,11 @@ export default function SurveyorMultiSelect({
           error={error}
           helperText={helperText}
           autoFocus={autoFocus}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace' && (e.target as HTMLInputElement).value === '') {
+              e.stopPropagation();
+            }
+          }}
           sx={{ '& .MuiInputBase-input': { fontSize: { xs: '16px', sm: '1rem' } } }}
         />
       )}
