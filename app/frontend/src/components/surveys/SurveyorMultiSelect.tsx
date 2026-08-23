@@ -1,7 +1,8 @@
 /**
  * Surveyor multi-select: type-to-search Autocomplete with deletable chips for
- * the chosen surveyors. The one shared picker — used by the Groups surveyor
- * picker, the survey form (SurveyFormFields) and the wizard SetupStep.
+ * the chosen surveyors. The one shared picker — used by the survey form
+ * (SurveyFormFields) and the wizard SetupStep, so every surface picks
+ * surveyors the same way.
  *
  * Every option row carries a checkbox. Options stay in the list after
  * selection (the dropdown stays open for multi-pick), so without a checkbox
@@ -62,21 +63,17 @@ export default function SurveyorMultiSelect({
           sx={{ '& .MuiInputBase-input': { fontSize: { xs: '16px', sm: '1rem' } } }}
         />
       )}
-      renderOption={(props, option, { selected }) => {
-        const { key: _key, ...optionProps } = props as { key?: React.Key } &
-          React.HTMLAttributes<HTMLLIElement>;
-        return (
-          <li key={option.id} {...optionProps}>
-            <Checkbox
-              icon={<CheckBoxOutlineBlank fontSize="small" />}
-              checkedIcon={<CheckBox fontSize="small" />}
-              checked={selected}
-              sx={{ mr: 1, p: 0.25 }}
-            />
-            {surveyorLabel(option)}
-          </li>
-        );
-      }}
+      renderOption={(props, option, { selected }) => (
+        <li {...props} key={option.id}>
+          <Checkbox
+            icon={<CheckBoxOutlineBlank fontSize="small" />}
+            checkedIcon={<CheckBox fontSize="small" />}
+            checked={selected}
+            sx={{ mr: 1, p: 0.25 }}
+          />
+          {surveyorLabel(option)}
+        </li>
+      )}
       renderTags={(tags, getTagProps) =>
         tags.map((option, index) => (
           <Chip label={surveyorLabel(option)} size="small" {...getTagProps({ index })} key={option.id} />
