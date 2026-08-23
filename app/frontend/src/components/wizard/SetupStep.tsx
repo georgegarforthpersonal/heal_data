@@ -10,6 +10,7 @@ import { WizardNavigation } from './WizardNavigation';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import type { Dayjs } from 'dayjs';
 import type { SurveyType, Device, Surveyor } from '../../services/api';
+import SurveyorMultiSelect from '../surveys/SurveyorMultiSelect';
 
 export interface SetupStepWizard {
   surveyTypes: SurveyType[];
@@ -85,16 +86,11 @@ export function SetupStep({ wizard, noDevicesText = 'No devices found. Add one i
               onChange={setDate}
               slotProps={{ textField: { required: true, fullWidth: true } }}
             />
-            <Autocomplete
-              multiple
+            <SurveyorMultiSelect
               options={surveyors}
-              getOptionLabel={(option) => option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
               value={selectedSurveyors}
-              onChange={(_, value) => setSelectedSurveyors(value)}
-              disableCloseOnSelect
-              renderInput={(params) => (
-                <TextField {...params} label="Surveyors" required />
-              )}
+              onChange={setSelectedSurveyors}
+              required
             />
           </Stack>
           <WizardNavigation

@@ -399,8 +399,9 @@ def create_survey(
         db.add(db_survey)
         db.flush()  # Get the ID without committing
 
-        # Insert surveyor associations
-        for surveyor_id in survey.surveyor_ids:
+        # Insert surveyor associations. Dedupe: the table has no unique
+        # constraint, so a repeated id would otherwise create a double link.
+        for surveyor_id in dict.fromkeys(survey.surveyor_ids):
             db_association = SurveySurveyor(
                 survey_id=db_survey.id,
                 surveyor_id=surveyor_id
@@ -492,8 +493,9 @@ def update_survey(
             .filter(SurveySurveyor.survey_id == survey_id)\
             .delete()
 
-        # Insert new associations
-        for surveyor_id in survey.surveyor_ids:
+        # Insert new associations. Dedupe: the table has no unique
+        # constraint, so a repeated id would otherwise create a double link.
+        for surveyor_id in dict.fromkeys(survey.surveyor_ids):
             db_association = SurveySurveyor(
                 survey_id=survey_id,
                 surveyor_id=surveyor_id

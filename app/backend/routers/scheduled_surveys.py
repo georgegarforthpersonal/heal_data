@@ -167,7 +167,8 @@ def schedule_surveys(
             db.add(slot)
             db.flush()  # Get the ID without committing
 
-            for surveyor_id in schedule.surveyor_ids:
+            # Dedupe: the table has no unique constraint on the pair.
+            for surveyor_id in dict.fromkeys(schedule.surveyor_ids):
                 db.add(ScheduledSurveySurveyor(scheduled_survey_id=slot.id, surveyor_id=surveyor_id))
 
             created.append(slot)
@@ -222,7 +223,8 @@ def update_scheduled_survey(
         db.query(ScheduledSurveySurveyor).filter(
             ScheduledSurveySurveyor.scheduled_survey_id == scheduled_survey_id
         ).delete()
-        for surveyor_id in update.surveyor_ids:
+        # Dedupe: the table has no unique constraint on the pair.
+        for surveyor_id in dict.fromkeys(update.surveyor_ids):
             db.add(ScheduledSurveySurveyor(scheduled_survey_id=scheduled_survey_id, surveyor_id=surveyor_id))
 
     db.commit()
