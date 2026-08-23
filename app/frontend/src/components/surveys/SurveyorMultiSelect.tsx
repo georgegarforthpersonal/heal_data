@@ -16,7 +16,12 @@
  * chip (MUI's default). Surveyors in the field type a name to filter, then
  * backspace it away and overshoot — each extra press was silently removing
  * someone already added ("adding one name deletes names you've previously
- * added"). Chips are removed only by their explicit ✕.
+ * added"). Keyboard deletion of a chip focused via arrow keys still works —
+ * those keydowns originate from the chip, not the empty input.
+ *
+ * No clear-all ✕ either (disableClearable): it sat beside the dropdown
+ * caret, where a thumb mis-tap silently wiped every selected surveyor at
+ * once. Chips are removed only by their explicit per-chip ✕.
  */
 import { Autocomplete, TextField, Chip, Checkbox } from '@mui/material';
 import { CheckBox, CheckBoxOutlineBlank } from '@mui/icons-material';
@@ -58,6 +63,7 @@ export default function SurveyorMultiSelect({
       getOptionLabel={surveyorLabel}
       isOptionEqualToValue={(a, b) => a.id === b.id}
       disableCloseOnSelect
+      disableClearable
       renderInput={(params) => (
         <TextField
           {...params}
