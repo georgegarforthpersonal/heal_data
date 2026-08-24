@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Stack, TextField, Autocomplete, Chip, Box } from '@mui/material';
+import { Stack, TextField, Autocomplete, Box } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { Dayjs } from 'dayjs';
 import type { Location, Surveyor } from '../../services/api';
 import { locationDisplayName } from '../../services/api';
+import SurveyorMultiSelect from './SurveyorMultiSelect';
 
 interface SurveyFormFieldsProps {
   // Form values
@@ -86,8 +86,6 @@ export function SurveyFormFields({
   showSunPercentage = false,
   showTemperature = false,
 }: SurveyFormFieldsProps) {
-  const [surveyorsOpen, setSurveyorsOpen] = useState(false);
-
   // Time validation: end time must be after start time
   const timeError = hasTimeValidationError(startTime ?? null, endTime ?? null)
     ? 'End time must be after start time'
@@ -138,44 +136,13 @@ export function SurveyFormFields({
       )}
 
       {/* Surveyors Multi-Select */}
-      <Autocomplete
-        multiple
+      <SurveyorMultiSelect
         options={surveyors}
-        getOptionLabel={(option) => option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
         value={selectedSurveyors}
-        open={surveyorsOpen}
-        onOpen={() => setSurveyorsOpen(true)}
-        onClose={(_event, reason) => {
-          // Only close when clicking outside or pressing escape, not when selecting
-          if (reason !== 'selectOption') {
-            setSurveyorsOpen(false);
-          }
-        }}
-        onChange={(_, newValue) => onSurveyorsChange(newValue)}
-        disableCloseOnSelect
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Surveyors *"
-            error={!!validationErrors.surveyors}
-            helperText={validationErrors.surveyors}
-            sx={{
-              '& .MuiInputBase-input': {
-                fontSize: { xs: '16px', sm: '1rem' },
-              }
-            }}
-          />
-        )}
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => (
-            <Chip
-              label={option.last_name ? `${option.first_name} ${option.last_name}` : option.first_name}
-              {...getTagProps({ index })}
-              size="small"
-              key={option.id}
-            />
-          ))
-        }
+        onChange={onSurveyorsChange}
+        required
+        error={!!validationErrors.surveyors}
+        helperText={validationErrors.surveyors}
       />
 
       {/* Start/End Time Pickers */}

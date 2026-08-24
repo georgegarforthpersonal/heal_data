@@ -1,10 +1,30 @@
 /**
  * Surveyor multi-select: type-to-search Autocomplete with deletable chips for
- * the chosen surveyors. Currently used by the Groups surveyor picker; the
- * older inline Autocompletes (SurveyFormFields, the wizard SetupSteps) could
- * adopt it so every surface picks surveyors the same way.
+ * the chosen surveyors. The one shared picker — used by the survey form
+ * (SurveyFormFields) and the wizard SetupStep, so every surface picks
+ * surveyors the same way.
+ *
+ * Every option row carries a checkbox. Options stay in the list after
+ * selection (the dropdown stays open for multi-pick), so without a checkbox
+ * the only cue that a name is already selected is a faint grey highlight —
+ * and tapping it again silently REMOVES it. The checkbox makes selected
+ * state unmistakable and a second tap read as a deliberate untick. Options
+ * are keyed by id, not label: duplicate surveyor rows can share a display
+ * name.
+ *
+ * Backspace on an empty input is swallowed rather than deleting the last
+ * chip (MUI's default). Surveyors in the field type a name to filter, then
+ * backspace it away and overshoot — each extra press was silently removing
+ * someone already added ("adding one name deletes names you've previously
+ * added"). Keyboard deletion of a chip focused via arrow keys still works —
+ * those keydowns originate from the chip, not the empty input.
+ *
+ * No clear-all ✕ either (disableClearable): it sat beside the dropdown
+ * caret, where a thumb mis-tap silently wiped every selected surveyor at
+ * once. Chips are removed only by their explicit per-chip ✕.
  */
-import { Autocomplete, TextField, Chip } from '@mui/material';
+import { Autocomplete, TextField, Chip, Checkbox } from '@mui/material';
+import { CheckBox, CheckBoxOutlineBlank } from '@mui/icons-material';
 import type { Surveyor } from '../../services/api';
 
 const surveyorLabel = (s: Surveyor) =>
@@ -43,6 +63,7 @@ export default function SurveyorMultiSelect({
       getOptionLabel={surveyorLabel}
       isOptionEqualToValue={(a, b) => a.id === b.id}
       disableCloseOnSelect
+      disableClearable
       renderInput={(params) => (
         <TextField
           {...params}
@@ -50,8 +71,24 @@ export default function SurveyorMultiSelect({
           error={error}
           helperText={helperText}
           autoFocus={autoFocus}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace' && (e.target as HTMLInputElement).value === '') {
+              e.stopPropagation();
+            }
+          }}
           sx={{ '& .MuiInputBase-input': { fontSize: { xs: '16px', sm: '1rem' } } }}
         />
+      )}
+      renderOption={(props, option, { selected }) => (
+        <li {...props} key={option.id}>
+          <Checkbox
+            icon={<CheckBoxOutlineBlank fontSize="small" />}
+            checkedIcon={<CheckBox fontSize="small" />}
+            checked={selected}
+            sx={{ mr: 1, p: 0.25 }}
+          />
+          {surveyorLabel(option)}
+        </li>
       )}
       renderTags={(tags, getTagProps) =>
         tags.map((option, index) => (

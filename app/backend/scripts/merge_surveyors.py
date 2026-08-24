@@ -36,6 +36,7 @@ MERGES: list[tuple[int, int]] = [
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from sqlalchemy import delete as sa_delete, update as sa_update
 from sqlalchemy.orm import Session
 
 from database.connection import get_engine
@@ -119,16 +120,24 @@ def merge_surveyors(keep: bool, dry_run: bool) -> None:
 
             if dry_run:
                 continue
-            for row in move:
-                row.surveyor_id = target.id
-                db.add(row)
-            for row in drop:
-                db.delete(row)
+            # Core statements, not ORM mutations: Surveyor.surveys maps
+            # survey_surveyor as a link_model secondary table, so an ORM
+            # db.delete(source) emits its own secondary-table DELETE in the
+            # same flush as the row UPDATEs — the cascade wins the race and
+            # the UPDATE matches 0 rows (StaleDataError).
+            if move:
+                db.execute(sa_update(SurveySurveyor).where(
+                    SurveySurveyor.id.in_([r.id for r in move])
+                ).values(surveyor_id=target.id))
+            if drop:
+                db.execute(sa_delete(SurveySurveyor).where(
+                    SurveySurveyor.id.in_([r.id for r in drop])
+                ))
             if keep:
                 source.is_active = False
                 db.add(source)
             else:
-                db.delete(source)
+                db.execute(sa_delete(Surveyor).where(Surveyor.id == source.id))
 
         if dry_run:
             logger.info("DRY RUN complete. Use --no-dry-run to apply.")

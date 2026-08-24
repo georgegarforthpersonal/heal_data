@@ -171,6 +171,26 @@ class TestCreateSurvey:
         assert response.status_code == 201
         assert response.json()["location_id"] == location.id
 
+    def test_create_survey_dedupes_surveyor_ids(
+        self, client: TestClient, auth_headers: dict, create_surveyor
+    ):
+        """A repeated surveyor id creates a single association, not two."""
+        surveyor = create_surveyor()
+
+        response = client.post(
+            "/api/surveys",
+            json={
+                "date": "2024-07-01",
+                "surveyor_ids": [surveyor.id, surveyor.id],
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+
+        survey_id = response.json()["id"]
+        get_response = client.get(f"/api/surveys/{survey_id}", headers=auth_headers)
+        assert get_response.json()["surveyor_ids"] == [surveyor.id]
+
     def test_create_survey_unauthorized(self, client: TestClient):
         """Should return 401 without authentication."""
         response = client.post(
@@ -197,6 +217,22 @@ class TestUpdateSurvey:
         )
         assert response.status_code == 200
         assert response.json()["notes"] == "Updated notes"
+
+    def test_update_survey_dedupes_surveyor_ids(
+        self, client: TestClient, auth_headers: dict, create_survey, create_surveyor
+    ):
+        """A repeated surveyor id in an update creates a single association."""
+        surveyor = create_surveyor()
+        other = create_surveyor(first_name="Other")
+        survey = create_survey(surveyor_ids=[surveyor.id])
+
+        response = client.put(
+            f"/api/surveys/{survey.id}",
+            json={"surveyor_ids": [surveyor.id, other.id, surveyor.id]},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert sorted(response.json()["surveyor_ids"]) == sorted([surveyor.id, other.id])
 
     def test_update_survey_not_found(self, client: TestClient, auth_headers: dict):
         """Should return 404 for non-existent survey."""
