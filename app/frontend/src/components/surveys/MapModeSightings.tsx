@@ -335,7 +335,7 @@ export function MapModeSightings({
                     closeOnClick={false}
                     autoPan={true}
                     // Pan clear of the overlaid controls: zoom (top-left) and
-                    // the toggle/fullscreen/layers cluster (top-right) float
+                    // the fullscreen/layers cluster (top-right) float
                     // above popups, so without this padding a popup opened
                     // near the top of the map slides underneath them.
                     autoPanPaddingTopLeft={[56, 64]}
@@ -395,7 +395,7 @@ export function MapModeSightings({
                     closeOnClick={false}
                     autoPan={true}
                     // Pan clear of the overlaid controls: zoom (top-left) and
-                    // the toggle/fullscreen/layers cluster (top-right) float
+                    // the fullscreen/layers cluster (top-right) float
                     // above popups, so without this padding a popup opened
                     // near the top of the map slides underneath them.
                     autoPanPaddingTopLeft={[56, 64]}
@@ -454,12 +454,12 @@ export function MapModeSightings({
                 position={[addPopupPosition.lat, addPopupPosition.lng]}
                 closeOnClick={false}
                 autoPan={true}
-                    // Pan clear of the overlaid controls: zoom (top-left) and
-                    // the toggle/fullscreen/layers cluster (top-right) float
-                    // above popups, so without this padding a popup opened
-                    // near the top of the map slides underneath them.
-                    autoPanPaddingTopLeft={[56, 64]}
-                    autoPanPaddingBottomRight={[12, 12]}
+                // Pan clear of the overlaid controls: zoom (top-left) and
+                // the fullscreen/layers cluster (top-right) float above
+                // popups, so without this padding a popup opened near the
+                // top of the map slides underneath them.
+                autoPanPaddingTopLeft={[56, 64]}
+                autoPanPaddingBottomRight={[12, 12]}
                 minWidth={260}
                 maxWidth={320}
                 className="map-mode-popup"
