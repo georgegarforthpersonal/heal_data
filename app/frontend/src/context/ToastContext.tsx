@@ -1,11 +1,17 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { Snackbar, Alert, type AlertColor } from '@mui/material';
+import { Snackbar, Alert, Button, type AlertColor } from '@mui/material';
+
+/** Optional inline action rendered in the toast (e.g. Undo). */
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 
 interface ToastContextType {
-  success: (message: string) => void;
+  success: (message: string, action?: ToastAction) => void;
   /** Used for destructive/removed actions (red), matching the surveys pattern. */
-  error: (message: string) => void;
+  error: (message: string, action?: ToastAction) => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -14,15 +20,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState<AlertColor>('success');
+  const [action, setAction] = useState<ToastAction | null>(null);
 
-  const show = useCallback((msg: string, sev: AlertColor) => {
+  const show = useCallback((msg: string, sev: AlertColor, act?: ToastAction) => {
     setMessage(msg);
     setSeverity(sev);
+    setAction(act ?? null);
     setOpen(true);
   }, []);
 
-  const success = useCallback((msg: string) => show(msg, 'success'), [show]);
-  const error = useCallback((msg: string) => show(msg, 'error'), [show]);
+  const success = useCallback((msg: string, act?: ToastAction) => show(msg, 'success', act), [show]);
+  const error = useCallback((msg: string, act?: ToastAction) => show(msg, 'error', act), [show]);
 
   // Stable identity: consumers list `toast` in effect deps, so a fresh object
   // per render would retrigger their fetches on every toast open/close.
@@ -33,15 +41,34 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <Snackbar
         open={open}
-        autoHideDuration={4000}
+        // Toasts carrying an action (Undo) stay up longer so it can be hit.
+        autoHideDuration={action ? 6000 : 4000}
         onClose={() => setOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
+        {/* role="status" (polite live region) — success toasts confirm the
+            user's own action; role="alert" would interrupt screen readers. */}
         <Alert
           onClose={() => setOpen(false)}
           severity={severity}
           variant="filled"
-          sx={{ width: '100%' }}
+          role={severity === 'error' ? 'alert' : 'status'}
+          sx={{ width: '100%', alignItems: 'center' }}
+          action={
+            action ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => {
+                  setOpen(false);
+                  action.onClick();
+                }}
+                sx={{ fontWeight: 700, textTransform: 'none' }}
+              >
+                {action.label}
+              </Button>
+            ) : undefined
+          }
         >
           {message}
         </Alert>

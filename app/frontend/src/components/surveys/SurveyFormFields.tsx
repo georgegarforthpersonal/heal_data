@@ -48,6 +48,7 @@ interface SurveyFormFieldsProps {
   showStartEndTime?: boolean;
   showSunPercentage?: boolean;
   showTemperature?: boolean;
+
 }
 
 /**

@@ -4,6 +4,7 @@
  * Shared utility functions for formatting data across the application.
  */
 
+import dayjs from 'dayjs';
 import type { Surveyor } from '../services/api';
 
 /**
@@ -47,21 +48,19 @@ export const getInitials = (name: string): string => {
 };
 
 /**
- * Format a date string to a readable format.
+ * Format a date string to a readable format. UK ordering throughout the
+ * product — day before month, no comma ("15 Jan 2024").
  *
  * @param dateStr - Date string in ISO format (YYYY-MM-DD)
- * @returns Formatted date string (e.g., "Jan 15, 2024")
+ * @returns Formatted date string (e.g., "15 Jan 2024")
  *
  * @example
- * formatDate("2024-01-15") // "Jan 15, 2024"
+ * formatDate("2024-01-15") // "15 Jan 2024"
  */
 export const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  // dayjs parses the ISO date in LOCAL time — new Date() parses it as UTC
+  // midnight, which renders the previous day for users west of UTC.
+  return dayjs(dateStr).format('D MMM YYYY');
 };
 
 /**

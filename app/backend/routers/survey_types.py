@@ -179,6 +179,20 @@ def get_survey_type(
         else {}
     )
 
+    # Walk order: group each route's sectors together (keyed by parent name;
+    # top-level rows key by their own name and sort ahead of their sectors),
+    # sectors in ordinal order within the group. Alphabetical would mis-order
+    # a transect's sections and interleave two routes' sectors.
+    locations.sort(
+        key=lambda loc: (
+            parent_names.get(loc.parent_location_id, loc.name)
+            if loc.parent_location_id
+            else loc.name,
+            loc.ordinal if loc.ordinal is not None else -1,
+            loc.name,
+        )
+    )
+
     # Get associated species types (global data, no org filter)
     species_types = (
         db.query(SpeciesType)

@@ -1,16 +1,19 @@
 /**
  * "Species count" panel for a group: a headline count with a Chart/List
- * toggle (same control as the Locations & devices panel's Map/List). Chart is the shared all-time cumulative-species area chart;
- * List is every species identified with its occurrence count and the date
- * it was first observed, newest discovery first.
+ * toggle (same control as the Locations & devices panel's Map/List). Chart
+ * is the shared all-time cumulative-species area chart; List is every
+ * species identified with its occurrence count and the date it was first
+ * observed, newest discovery first (the caption says so — an unlabelled
+ * sort reads as random). A failed list fetch says it failed, with Retry —
+ * never "no species yet".
  */
-import { useEffect, useState } from 'react';
-import { Box, Paper, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { useCallback, useEffect, useState } from 'react';
+import { Box, Button, Paper, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { BarChart as ChartIcon, ViewList } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { dashboardAPI, type SpeciesWithCount } from '../../services/api';
 import CumulativeSpeciesChart, { type CumulativeSummary } from '../dashboard/CumulativeSpeciesChart';
-import { groupCardSx, groupColors } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, linkButtonSx, panelTitleSx, viewToggleSx } from '../../pages/groups/groupsTokens';
 
 interface SpeciesCountPanelProps {
   /** The survey type's linked species types; empty = count everything it recorded. */
@@ -27,24 +30,29 @@ const headerCellSx = {
   color: groupColors.textMuted,
 } as const;
 
+// Fixed number columns, fluid name column; tighter on phones so species
+// names keep the majority of a 320px row.
 const listGridSx = {
   display: 'grid',
-  gridTemplateColumns: '1fr 64px 96px',
+  gridTemplateColumns: { xs: 'minmax(0, 1fr) 52px 84px', sm: 'minmax(0, 1fr) 64px 96px' },
   gap: 1,
   px: 2.25,
 } as const;
 
 export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: SpeciesCountPanelProps) {
-  const [summary, setSummary] = useState<CumulativeSummary>({ total: 0, types: [] });
+  const [summary, setSummary] = useState<CumulativeSummary | null>(null);
   const [view, setView] = useState<'chart' | 'list'>('chart');
   const [species, setSpecies] = useState<SpeciesWithCount[] | null>(null);
+  const [listError, setListError] = useState(false);
+  const [listAttempt, setListAttempt] = useState(0);
 
   // Fetch the per-species breakdown the first time the list is shown — one
   // call per species type actually present in the data (the chart's summary
   // reports them), merged into a single newest-discovery-first list.
   useEffect(() => {
-    if (view !== 'list' || species !== null || summary.types.length === 0) return;
+    if (view !== 'list' || species !== null || !summary || summary.types.length === 0) return;
     let active = true;
+    setListError(false);
     Promise.all(summary.types.map((t) => dashboardAPI.getSpeciesByCount(t, surveyTypeId)))
       .then((perType) => {
         if (!active) return;
@@ -56,11 +64,16 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
             .sort((a, b) => (b.first_observed ?? '').localeCompare(a.first_observed ?? '')),
         );
       })
-      .catch(() => active && setSpecies([]));
+      .catch(() => active && setListError(true));
     return () => {
       active = false;
     };
-  }, [view, species, summary.types, surveyTypeId]);
+  }, [view, species, summary, surveyTypeId, listAttempt]);
+
+  const retryList = useCallback(() => {
+    setListError(false);
+    setListAttempt((n) => n + 1);
+  }, []);
 
   return (
     <Paper sx={groupCardSx}>
@@ -76,39 +89,21 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary }}>
+          <Typography component="h2" sx={panelTitleSx}>
             Species count
           </Typography>
           <Typography sx={{ fontSize: 20, fontWeight: 700, color: groupColors.textPrimary, lineHeight: 1 }}>
-            {summary.total}
+            {/* Never flash a fake 0 while the chart's fetch is in flight. */}
+            {summary === null ? '—' : summary.total}
           </Typography>
         </Box>
         <ToggleButtonGroup
           value={view}
           exclusive
           size="small"
+          aria-label="Species count view"
           onChange={(_, v) => v && setView(v)}
-          sx={{
-            bgcolor: '#f1f3f1',
-            borderRadius: '7px',
-            p: '3px',
-            flexShrink: 0,
-            '& .MuiToggleButton-root': {
-              border: 'none',
-              borderRadius: '5px !important',
-              px: 1.25,
-              py: 0.4,
-              color: '#8a8a8a',
-              textTransform: 'none',
-              fontSize: 12.5,
-              gap: 0.5,
-            },
-            '& .Mui-selected': {
-              bgcolor: '#fff !important',
-              color: `${groupColors.textPrimary} !important`,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-            },
-          }}
+          sx={viewToggleSx}
         >
           <ToggleButton value="chart">
             <ChartIcon sx={{ fontSize: 15 }} /> Chart
@@ -127,14 +122,23 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
           surveyTypeId={surveyTypeId}
           color={groupColors.brand}
           height={240}
-          emptyMessage="No data yet"
+          emptyMessage="No species recorded yet"
           onSummary={setSummary}
         />
       </Box>
 
       {view === 'list' && (
         <Box>
-          {species === null ? (
+          {listError ? (
+            <Box sx={{ px: 2.25, py: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
+                Couldn’t load the species list.
+              </Typography>
+              <Button size="small" onClick={retryList} sx={linkButtonSx}>
+                Retry
+              </Button>
+            </Box>
+          ) : species === null ? (
             <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted, px: 2.25, py: 3 }}>
               Loading…
             </Typography>
@@ -145,11 +149,13 @@ export default function SpeciesCountPanel({ speciesTypes, surveyTypeId }: Specie
           ) : (
             <>
               <Box sx={{ ...listGridSx, py: 1 }}>
-                <Typography sx={headerCellSx}>Species</Typography>
-                <Typography sx={{ ...headerCellSx, textAlign: 'right' }}>Count</Typography>
+                <Typography sx={headerCellSx}>Species · newest first</Typography>
+                <Typography sx={{ ...headerCellSx, textAlign: 'right' }}>Total</Typography>
                 <Typography sx={{ ...headerCellSx, textAlign: 'right' }}>First seen</Typography>
               </Box>
-              <Box sx={{ maxHeight: 320, overflowY: 'auto' }}>
+              {/* No inner scroll on phones — nested scroll regions trap the
+                  page's own scroll under a thumb. */}
+              <Box sx={{ maxHeight: { xs: 'none', sm: 320 }, overflowY: { xs: 'visible', sm: 'auto' } }}>
                 {species.map((s) => (
                   <Box
                     key={s.id}

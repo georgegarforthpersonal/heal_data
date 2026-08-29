@@ -3,13 +3,14 @@
  * avatars, chevron, click-through to the survey. The shared body of every
  * "Recent" section: RecordPanel leads with it for unscheduled groups, and
  * SurveysPanel falls back to it when a scheduled group's diary is empty.
- * Headers stay with the panels; this is just the rows.
+ * Headers stay with the panels; this is just the rows. Rows are real
+ * buttons, so keyboards reach them.
  *
  * Row grammar (shared with the Scheduled rows): line 1 is identity only
  * (date, location); line 2 is payload from the left (species chips) with
  * people + affordance (avatars, chevron) at the right edge.
  */
-import { Box, Typography } from '@mui/material';
+import { Box, ButtonBase, Typography } from '@mui/material';
 import { ChevronRight } from '@mui/icons-material';
 import type { Survey, Surveyor } from '../../services/api';
 import { groupColors } from '../../pages/groups/groupsTokens';
@@ -35,12 +36,14 @@ export default function RecentSurveyRows({
   return (
     <>
       {surveys.map((survey) => (
-        // Phones: rows stack uniformly — date + avatars + chevron line,
-        // chips wrapping from the left below (same rule as AllSurveysPage).
-        <Box
+        // Phones: rows stack uniformly — identity line, then chips from the
+        // left with avatars + chevron at the right edge.
+        <ButtonBase
           key={survey.id}
           onClick={() => onOpenSurvey(survey)}
+          aria-label={`Open the survey recorded ${formatRecordedDate(survey.date)}`}
           sx={{
+            width: '100%',
             display: 'flex',
             flexDirection: { xs: 'column', sm: 'row' },
             alignItems: { xs: 'stretch', sm: 'center' },
@@ -48,11 +51,11 @@ export default function RecentSurveyRows({
             px: 2.25,
             py: 1.6,
             borderTop: `1px solid ${groupColors.dividerInner}`,
-            cursor: 'pointer',
+            textAlign: 'left',
             '&:hover': { bgcolor: groupColors.page },
           }}
         >
-          <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Box sx={{ minWidth: 0, flex: 1, width: { xs: '100%', sm: 'auto' } }}>
             <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
               {formatRecordedDate(survey.date)}
             </Typography>
@@ -72,6 +75,7 @@ export default function RecentSurveyRows({
               alignItems: 'center',
               gap: 1.6,
               minWidth: 0,
+              width: { xs: '100%', sm: 'auto' },
               justifyContent: 'space-between',
               flexShrink: { xs: 1, sm: 0 },
             }}
@@ -86,7 +90,7 @@ export default function RecentSurveyRows({
               <ChevronRight sx={{ fontSize: 18, color: groupColors.textMuted }} />
             </Box>
           </Box>
-        </Box>
+        </ButtonBase>
       ))}
     </>
   );

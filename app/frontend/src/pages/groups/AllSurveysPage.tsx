@@ -13,7 +13,7 @@
  * they get the Past list alone, chipless.
  */
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Box, ButtonBase, Paper, Typography, Button, CircularProgress } from '@mui/material';
 import {
   ApiError,
@@ -26,10 +26,10 @@ import {
   type ScheduledSurvey,
   type Surveyor,
 } from '../../services/api';
-import { groupCardSx, groupColors } from './groupsTokens';
+import { groupCardSx, groupColors, linkButtonSx } from './groupsTokens';
 import { groupActivity, primarySpeciesType, resolveGroupTypeId } from './groupMeta';
 import { deriveSlotState, formatRecordedDate, formatSurveyDate, scheduleSlots, type SlotState } from './surveyState';
-import { useSignupSaved, useSurveyorLookup } from '../../hooks';
+import { useDocumentTitle, useSignupSaved, useSurveyorLookup } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
 import GroupBreadcrumb from '../../components/groups/GroupBreadcrumb';
 import SelfSignupButton from '../../components/groups/SelfSignupButton';
@@ -42,8 +42,8 @@ const STATUS_STYLES: Record<SlotState, { label: string; color: string; bg: strin
   recorded: { label: 'Recorded', color: '#2E6B42', bg: '#DBEDDB' },
   upcoming: { label: 'Upcoming', color: '#454648', bg: '#EBECED' },
   'due-this-week': { label: 'Due this week', color: '#2C5F8A', bg: '#DCE8F2' },
-  'needs-survey': { label: 'Overdue', color: groupColors.amberMonth, bg: '#FBF3DB' },
-  cancelled: { label: 'Cancelled', color: '#888888', bg: '#EBECED' },
+  'needs-survey': { label: 'Not recorded', color: groupColors.amberMonth, bg: '#FBF3DB' },
+  cancelled: { label: 'Cancelled', color: '#54585C', bg: '#EBECED' },
 };
 
 function StatusChip({ state }: { state: SlotState }) {
@@ -106,9 +106,15 @@ export default function AllSurveysPage() {
   const [error, setError] = useState(false);
   const [greenIds, setGreenIds] = useState<Set<number>>(new Set());
   // Past by default: this page's visitors come for previous results — the
-  // group page's worklist already shows the near-term schedule.
-  const [filter, setFilter] = useState<'past' | 'schedule'>('past');
+  // group page's worklist already shows the near-term schedule. The filter
+  // lives in the URL so back/refresh/share keep the view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter: 'past' | 'schedule' = searchParams.get('tab') === 'schedule' ? 'schedule' : 'past';
+  const setFilter = (next: 'past' | 'schedule') =>
+    setSearchParams(next === 'past' ? {} : { tab: 'schedule' }, { replace: true });
   const toast = useToast();
+
+  useDocumentTitle(surveyType ? `${surveyType.name} · All surveys` : undefined);
 
   useEffect(() => {
     if (!typeId) {
@@ -173,7 +179,7 @@ export default function AllSurveysPage() {
   if (error) {
     return (
       <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, sm: 4 }, py: 4 }}>
-        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/groups' }, { label: 'Error' }]} />
+        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/surveys' }, { label: 'Error' }]} />
         <Alert severity="error">Failed to load surveys. Please try again.</Alert>
       </Box>
     );
@@ -182,7 +188,7 @@ export default function AllSurveysPage() {
   if (notFound || !surveyType) {
     return (
       <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, sm: 4 }, py: 4 }}>
-        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/groups' }, { label: 'Not found' }]} />
+        <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/surveys' }, { label: 'Not found' }]} />
         <Typography sx={{ color: groupColors.textSecondary }}>
           This group could not be found.
         </Typography>
@@ -211,8 +217,10 @@ export default function AllSurveysPage() {
   const returnTo = {
     state: {
       returnTo: {
-        pathname: `/groups/${typeId}/all`,
-        label: surveyType.name,
+        pathname: `/surveys/${typeId}/all`,
+        // Restore the filter the user had when they come back.
+        search: filter === 'schedule' ? '?tab=schedule' : '',
+        label: `${surveyType.name} surveys`,
       },
     },
   };
@@ -235,16 +243,16 @@ export default function AllSurveysPage() {
       <Box sx={{ maxWidth: 900, mx: 'auto' }}>
         <GroupBreadcrumb
           crumbs={[
-            { label: 'Surveys', to: '/groups' },
-            { label: surveyType.name, to: `/groups/${typeId}` },
+            { label: 'Surveys', to: '/surveys' },
+            { label: surveyType.name, to: `/surveys/${typeId}` },
             { label: 'All surveys' },
           ]}
         />
 
-        <Typography sx={{ fontSize: 24, fontWeight: 600, color: groupColors.textPrimary }}>
+        <Typography component="h1" sx={{ fontSize: 24, fontWeight: 600, color: groupColors.textPrimary, m: 0 }}>
           All surveys
         </Typography>
-        <Typography sx={{ fontSize: 13.5, color: '#888', mb: 2 }}>
+        <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted, mb: 2 }}>
           {surveyType.name} ·{' '}
           {showPast ? `${total} recorded, most recent first` : `${schedule.length} scheduled, soonest first`}
         </Typography>
@@ -281,30 +289,43 @@ export default function AllSurveysPage() {
               // with avatars top right, actions line below. Recorded rows all
               // stack too, chips starting from the left — uniformly, so light
               // and chip-heavy rows read the same (mixed alignment looked odd).
-              const stacked = state === 'due-this-week' || state === 'upcoming' || row.kind === 'survey';
+              const stacked =
+                state === 'due-this-week' || state === 'upcoming' || state === 'needs-survey' || row.kind === 'survey';
+              // Recorded rows navigate, so they are real buttons (keyboard
+              // reachable); slot rows are static containers.
+              const RowComponent: React.ElementType = clickable ? ButtonBase : Box;
               return (
-                <Box
+                <RowComponent
                   key={`${row.kind}-${row.kind === 'survey' ? row.survey.id : row.slot.id}`}
+                  {...(clickable
+                    ? {
+                        onClick: () => openSurvey(row.survey.id),
+                        'aria-label': `Open the survey recorded ${formatRecordedDate(row.survey.date)}`,
+                      }
+                    : {})}
                   sx={{
+                    width: '100%',
                     display: 'flex',
+                    // A busy who-row wraps whole onto its own line rather
+                    // than squeezing the date (the row's identifier).
+                    flexWrap: 'wrap',
                     flexDirection: { xs: stacked ? 'column' : 'row', sm: 'row' },
                     alignItems: { xs: stacked ? 'stretch' : 'center', sm: 'center' },
                     gap: { xs: stacked ? 1 : 1.75, sm: 1.75 },
                     px: 2.25,
                     py: 1.6,
+                    textAlign: 'left',
                     borderTop: idx === 0 ? 'none' : `1px solid ${groupColors.dividerInner}`,
                     bgcolor: state === 'needs-survey' ? groupColors.amberRowBg : 'transparent',
-                    ...(clickable
-                      ? {
-                          cursor: 'pointer',
-                          '&:hover': { bgcolor: groupColors.page },
-                        }
-                      : {}),
+                    ...(clickable ? { '&:hover': { bgcolor: groupColors.page } } : {}),
                   }}
-                  onClick={clickable ? () => openSurvey(row.survey.id) : undefined}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                  {/* min-width fit-content = the date (and status chip); the
+                      location opts out of min-content below, so the cell can
+                      never be compressed past its identity — the row wraps
+                      instead. */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: { xs: 0, sm: 'fit-content' }, flex: '1 1 auto' }}>
+                    <Box sx={{ flex: 1, minWidth: { xs: 0, sm: 'fit-content' } }}>
                       <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: groupColors.textPrimary }} noWrap>
                         {row.kind === 'slot'
                           ? formatSurveyDate(row.slot)
@@ -315,7 +336,7 @@ export default function AllSurveysPage() {
                             need a status chip. */}
                         {row.kind === 'slot' && <StatusChip state={state} />}
                         {locationName && (
-                          <Typography sx={{ fontSize: 13, color: groupColors.textMuted }} noWrap>
+                          <Typography sx={{ fontSize: 13, color: groupColors.textMuted, minWidth: 0 }} noWrap>
                             {locationName}
                           </Typography>
                         )}
@@ -351,12 +372,11 @@ export default function AllSurveysPage() {
                   )}
 
                   {/* The who-row: avatars beside the one-click sign-up toggle
-                      (open to every role). On phones it is its own full-width
-                      line under the when-row, so sign-ups never crush the
-                      date. Recording happens only through the group page's
-                      header button; the survey's date decides which week it
-                      fulfils. */}
-                  {row.kind === 'slot' && (state === 'upcoming' || state === 'due-this-week') && (
+                      (open to every role) — on every open slot, including
+                      not-recorded past weeks, matching the group worklist.
+                      On phones it is its own full-width line under the
+                      when-row, so sign-ups never crush the date. */}
+                  {row.kind === 'slot' && state !== 'cancelled' && (
                     <Box
                       sx={{
                         display: 'flex',
@@ -367,13 +387,16 @@ export default function AllSurveysPage() {
                         flexWrap: 'wrap',
                         gap: 1.25,
                         flexShrink: 0,
+                        // Keeps the cluster on the right edge when it wraps
+                        // to its own line.
+                        ml: 'auto',
                       }}
                     >
                       <SurveyorAvatars surveyors={assigned} greenIds={greenIds} />
                       <SelfSignupButton slot={row.slot} assigned={assigned} onSaved={handleSignupSaved} />
                     </Box>
                   )}
-                </Box>
+                </RowComponent>
               );
             })
           )}
@@ -384,7 +407,7 @@ export default function AllSurveysPage() {
                 onClick={loadMore}
                 disabled={loadingMore}
                 startIcon={loadingMore ? <CircularProgress size={14} /> : undefined}
-                sx={{ textTransform: 'none', color: groupColors.brand }}
+                sx={linkButtonSx}
               >
                 Load more
               </Button>

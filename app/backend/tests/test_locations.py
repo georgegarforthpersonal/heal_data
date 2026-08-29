@@ -512,3 +512,103 @@ class TestRouteSectors:
             headers=auth_headers,
         )
         assert resp.status_code == 422
+
+
+class TestGetLocationsBySurveyType:
+    """Tests for GET /api/locations/by-survey-type/{id}"""
+
+    def _linked_sectors(self, client: TestClient, auth_headers: dict, db_session, create_survey_type):
+        """A route (coloured) with two sectors named so alphabetical order
+        would reverse their walk order, both linked to a survey type."""
+        from models import SurveyTypeLocationLink
+
+        resp = client.post(
+            "/api/locations",
+            json={
+                "name": "Transect",
+                "location_type": "route",
+                "color": "pink",
+                "geometry": LINESTRING_GEOMETRY,
+                "sectors": [
+                    {"name": "Zig first", "geometry": SECTOR_1_GEOMETRY},
+                    {"name": "Alpha second", "geometry": SECTOR_2_GEOMETRY},
+                ],
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        route_id = resp.json()["id"]
+        boundaries = client.get("/api/locations/with-boundaries", headers=auth_headers).json()
+        sectors = next(r for r in boundaries if r["id"] == route_id)["sectors"]
+
+        survey_type = create_survey_type(name="Butterfly")
+        for s in sectors:
+            db_session.add(SurveyTypeLocationLink(survey_type_id=survey_type.id, location_id=s["id"]))
+        db_session.commit()
+        return survey_type
+
+    def test_sectors_sort_by_walk_order_not_name(
+        self, client: TestClient, auth_headers: dict, db_session, create_survey_type
+    ):
+        """Sectors return in ordinal (walk) order — recorders think in
+        section numbers, so alphabetical would mis-order the transect."""
+        survey_type = self._linked_sectors(client, auth_headers, db_session, create_survey_type)
+
+        data = client.get(
+            f"/api/locations/by-survey-type/{survey_type.id}", headers=auth_headers
+        ).json()
+        assert [loc["name"] for loc in data] == ["Zig first", "Alpha second"]
+        assert [loc["ordinal"] for loc in data] == [1, 2]
+        # Without with_geometry the payload stays light.
+        assert all(loc["geometry"] is None for loc in data)
+
+    def test_with_geometry_returns_shapes_and_parent_fallbacks(
+        self, client: TestClient, auth_headers: dict, db_session, create_survey_type
+    ):
+        """with_geometry=true carries each sector's own GeoJSON, its parent
+        route's name, and the parent's colour when the sector has none."""
+        survey_type = self._linked_sectors(client, auth_headers, db_session, create_survey_type)
+
+        data = client.get(
+            f"/api/locations/by-survey-type/{survey_type.id}?with_geometry=true",
+            headers=auth_headers,
+        ).json()
+        assert [loc["name"] for loc in data] == ["Zig first", "Alpha second"]
+        for loc in data:
+            assert loc["geometry"]["type"] == "LineString"
+            assert loc["parent_name"] == "Transect"
+            assert loc["color"] == "pink"  # inherited from the route
+
+    def test_two_routes_sectors_never_interleave(
+        self, client: TestClient, auth_headers: dict, db_session, create_survey_type
+    ):
+        """Sectors group under their own route — ordinals from different
+        routes must not interleave the two transects."""
+        from models import SurveyTypeLocationLink
+
+        survey_type = create_survey_type(name="Butterfly")
+        for route_name, sector_names in [("B route", ["Z1", "A2"]), ("A route", ["Y1", "B2"])]:
+            resp = client.post(
+                "/api/locations",
+                json={
+                    "name": route_name,
+                    "location_type": "route",
+                    "geometry": LINESTRING_GEOMETRY,
+                    "sectors": [
+                        {"name": sector_names[0], "geometry": SECTOR_1_GEOMETRY},
+                        {"name": sector_names[1], "geometry": SECTOR_2_GEOMETRY},
+                    ],
+                },
+                headers=auth_headers,
+            )
+            assert resp.status_code == 201
+            route_id = resp.json()["id"]
+            boundaries = client.get("/api/locations/with-boundaries", headers=auth_headers).json()
+            for s in next(r for r in boundaries if r["id"] == route_id)["sectors"]:
+                db_session.add(SurveyTypeLocationLink(survey_type_id=survey_type.id, location_id=s["id"]))
+        db_session.commit()
+
+        data = client.get(
+            f"/api/locations/by-survey-type/{survey_type.id}", headers=auth_headers
+        ).json()
+        assert [loc["name"] for loc in data] == ["Y1", "B2", "Z1", "A2"]

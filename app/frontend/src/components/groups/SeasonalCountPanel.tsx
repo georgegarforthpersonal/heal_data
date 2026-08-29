@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import {
   Autocomplete,
   Box,
+  Button,
   CircularProgress,
   Paper,
   TextField,
@@ -21,7 +22,7 @@ import {
   type SpeciesOccurrenceDataPoint,
   type SpeciesWithCount,
 } from '../../services/api';
-import { groupCardSx, groupColors } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, linkButtonSx, panelTitleSx } from '../../pages/groups/groupsTokens';
 import SeasonalCountChart from '../dashboard/SeasonalCountChart';
 
 interface SeasonalCountPanelProps {
@@ -43,11 +44,23 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [data, setData] = useState<SpeciesOccurrenceDataPoint[] | null>(null);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   // The group's species, most-recorded first — one call per linked species
   // type (a group can record several, e.g. bird + mammal), merged by count so
   // the picker opens on the species with the most to show.
   const typesKey = speciesTypes.join(',');
+
+  // A different group (param-only navigation reuses this mounted panel) must
+  // not chart the previous group's species — reset the pick so the list
+  // effect below selects the new group's most-recorded species. Retries
+  // (attempt) deliberately keep the user's selection.
+  useEffect(() => {
+    setSelectedId(null);
+    setSpecies(null);
+    setData(null);
+  }, [typesKey, surveyTypeId]);
+
   useEffect(() => {
     let active = true;
     setError(false);
@@ -60,13 +73,13 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
         if (!active) return;
         const merged = perType.flat().sort((a, b) => b.total_count - a.total_count);
         setSpecies(merged);
-        setSelectedId(merged[0]?.id ?? null);
+        setSelectedId((prev) => prev ?? merged[0]?.id ?? null);
       })
       .catch(() => active && setError(true));
     return () => {
       active = false;
     };
-  }, [typesKey, surveyTypeId]);
+  }, [typesKey, surveyTypeId, attempt]);
 
   useEffect(() => {
     if (selectedId == null) return;
@@ -80,7 +93,7 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
     return () => {
       active = false;
     };
-  }, [selectedId, surveyTypeId]);
+  }, [selectedId, surveyTypeId, attempt]);
 
   const selected = species?.find((s) => s.id === selectedId) ?? null;
 
@@ -98,7 +111,7 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
           gap: 1.25,
         }}
       >
-        <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary }} noWrap>
+        <Typography component="h2" sx={{ ...panelTitleSx, whiteSpace: 'nowrap' }}>
           Seasonal counts
         </Typography>
         {/* A species is always selected — clearing to "none" only empties the
@@ -125,7 +138,15 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
             value={selected}
             onChange={(_event, newValue) => setSelectedId(newValue.id)}
             renderInput={(params) => (
-              <TextField {...params} label="Species" placeholder="Type to search..." size="small" />
+              <TextField
+                {...params}
+                label="Species"
+                placeholder="Type to search..."
+                size="small"
+                // 16px minimum on phones or iOS zooms the whole viewport on
+                // focus (config/responsive.ts rule).
+                sx={{ '& .MuiInputBase-input': { fontSize: { xs: 16, sm: 14 } } }}
+              />
             )}
             sx={{ width: { xs: '100%', sm: 220 }, flexShrink: 0 }}
             isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -141,7 +162,18 @@ export default function SeasonalCountPanel({ surveyTypeId, speciesTypes }: Seaso
 
       <Box sx={{ p: 2.25 }}>
         {error ? (
-          <CenteredMessage>Failed to load counts.</CenteredMessage>
+          <Box sx={{ height: CHART_HEIGHT, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
+              Couldn’t load the seasonal counts.
+            </Typography>
+            <Button
+              size="small"
+              onClick={() => setAttempt((n) => n + 1)}
+              sx={linkButtonSx}
+            >
+              Retry
+            </Button>
+          </Box>
         ) : species !== null && species.length === 0 ? (
           <CenteredMessage>No species recorded yet.</CenteredMessage>
         ) : data === null ? (

@@ -36,6 +36,7 @@ import type {
   Device,
 } from '../services/api';
 import { readReturnTo, returnToHref } from '../utils/returnTo';
+import { useDocumentTitle } from '../hooks';
 import { SurveyFormFields, hasTimeValidationError } from '../components/surveys/SurveyFormFields';
 import { SightingsEditor } from '../components/surveys/SightingsEditor';
 import type { DraftSighting } from '../components/surveys/SightingsEditor';
@@ -91,12 +92,14 @@ export function NewSurveyPage() {
   // save — a group page when the record CTA got us here, else the surveys list.
   const returnTo = readReturnTo(location);
   const { isLoading: authLoading } = useAuth();
-  const { canEditSurveys } = usePermissions();
+  const { canEditSurveys, user } = usePermissions();
 
   // Group record flow: ?survey_type_id=N preselects the type (still
   // changeable). Media types never link here — their record CTAs go straight
   // to the wizards — so they're ignored rather than re-dispatched.
   const presetTypeIdParam = searchParams.get('survey_type_id');
+
+  useDocumentTitle('New survey');
 
   // ============================================================================
   // Form State - Survey Type
@@ -182,6 +185,10 @@ export function NewSurveyPage() {
   // edit, so it alone must not make the unsaved-changes guard fire.
   const autoLocationIdRef = useRef<number | null>(null);
 
+  // Surveyor preselected because it's the signed-in user's own linked
+  // surveyor — a default, not an edit, so it too must not trip the guard.
+  const autoSurveyorIdRef = useRef<number | null>(null);
+
   // Dirty once the user has entered anything beyond the defaults, until the
   // survey is saved. Blocks Cancel, the back link, and browser back; the
   // confirmation dialog below lets the user proceed or stay.
@@ -191,7 +198,7 @@ export function NewSurveyPage() {
       (notes.trim() !== '' ||
         pendingImageFiles.length > 0 ||
         (locationId !== null && locationId !== autoLocationIdRef.current) ||
-        selectedSurveyors.length > 0 ||
+        selectedSurveyors.some((s) => s.id !== autoSurveyorIdRef.current) ||
         draftSightings.some((s) => s.species_id !== null)),
   );
 
@@ -234,7 +241,11 @@ export function NewSurveyPage() {
         setDate(null);
         setLocationId(null);
         autoLocationIdRef.current = null;
-        setSelectedSurveyors([]);
+        // Default the surveyor to the signed-in user's own linked surveyor —
+        // most surveys are recorded by someone who was there.
+        const self = user ? surveyorsData.find((s) => s.user_id === user.id) : undefined;
+        autoSurveyorIdRef.current = self?.id ?? null;
+        setSelectedSurveyors(self ? [self] : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load form data');
         console.error('Error fetching data:', err);
@@ -245,7 +256,9 @@ export function NewSurveyPage() {
     };
 
     fetchInitialData();
-  }, [presetTypeIdParam]);
+    // user: re-applying the surveyor default when auth resolves is correct
+    // (it settles before the user can have edited anything).
+  }, [presetTypeIdParam, user]);
 
   // ============================================================================
   // Data Fetching - When Survey Type Changes
@@ -619,7 +632,9 @@ export function NewSurveyPage() {
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
       {/* Page Header */}
       <PageHeader
-        backButton={{ href: '/surveys' }}
+        // Honour the origin (a group page when its record CTA got us here),
+        // exactly like Cancel and post-save navigation do.
+        backButton={{ href: returnToHref(returnTo), label: `Back to ${returnTo.label}` }}
         actions={
           <Stack direction="row" spacing={1}>
             <Button

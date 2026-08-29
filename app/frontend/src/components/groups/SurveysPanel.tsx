@@ -2,33 +2,35 @@
  * The Surveys worklist panel, two groups mirroring the All surveys page's
  * Past | Scheduled vocabulary:
  *
- * The needs-attention rows — overdue weeks (amber) and this week's survey
- * (blue "Due this week" chip) — sit on top with no section header: their
- * chips are their labels, and a header's "next N" wording would misdescribe
- * them. "Scheduled" below them counts only genuinely-upcoming weeks, so its
- * "showing next 3" is literally true. The header's Record survey button is
- * the only way to record: the survey's date decides which week it fulfils,
- * so rows carry sign-up only. "Recent" is the last 3 recorded surveys with
- * their species counts — past results are always visible on the page, never
- * only behind a door. A recorded this-week survey simply appears as the
- * newest Recent row, so the current week never vanishes from the panel. The
- * "Past surveys" door at the foot leads to the full history.
+ * The needs-attention rows — unrecorded past weeks (amber) and this week's
+ * survey (blue "Due this week" chip) — sit on top with no section header:
+ * their chips are their labels. A long amber backlog collapses to the two
+ * most recent weeks plus an expander, so a lapsed season doesn't open as a
+ * wall of amber. "Upcoming" below them shows the next 3 future weeks and
+ * expands in place. The header's Record survey button is the one way to
+ * record — the survey's date decides which week it fulfils, so scheduled
+ * and unscheduled visits share a single entry point. "Recent" is the last
+ * 3 recorded surveys with their species counts. The "All surveys" door at the foot leads to the history.
  */
-import { Box, Paper, Typography, Button } from '@mui/material';
+import { useState } from 'react';
+import { Box, Paper, Typography, Button, ButtonBase } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import type { ScheduledSurvey, Survey, Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
-import { groupCardSx, groupColors, recordButtonSx } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, panelTitleSx, recordButtonSx } from '../../pages/groups/groupsTokens';
 import { buildWorklist } from '../../pages/groups/surveyState';
 import SurveyWorklistRow from './SurveyWorklistRow';
 import RecentSurveyRows from './RecentSurveyRows';
 import AllSurveysDoor from './AllSurveysDoor';
 
+/** Older unrecorded weeks beyond this many collapse behind an expander. */
+const OVERDUE_SHOWN = 2;
+
 interface SurveysPanelProps {
   /** All of this group's scheduled slots (open, fulfilled and cancelled). */
   slots: ScheduledSurvey[];
   resolveSurveyors: (ids: number[]) => Surveyor[];
-  /** Recorded surveys total — shown on the Past surveys door. */
+  /** Recorded surveys total — shown on the All surveys door. */
   recordedCount: number;
   /** Most recent recorded surveys, newest first (already capped upstream). */
   recentSurveys: Survey[];
@@ -40,12 +42,12 @@ interface SurveysPanelProps {
   /** Open a recorded survey from the Recent rows. */
   onOpenRecorded: (survey: Survey) => void;
   onViewAll: () => void;
-  /** Record a survey outside the schedule (extra visits — the backend still
-   * auto-links it to an open slot when the date falls in its window). */
+  /** Record a survey — the one way in, scheduled or not: the survey's date
+   * decides which week it fulfils (the backend links by window). */
   onRecordNew: () => void;
 }
 
-function SectionHeader({ label, color, suffix }: { label: string; color: string; suffix?: string }) {
+function SectionHeader({ label, color, suffix }: { label: string; color: string; suffix?: React.ReactNode }) {
   return (
     <Box
       sx={{
@@ -58,13 +60,26 @@ function SectionHeader({ label, color, suffix }: { label: string; color: string;
         borderTop: `1px solid ${groupColors.dividerInner}`,
       }}
     >
-      <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color }}>
+      <Typography
+        component="h3"
+        sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color, m: 0 }}
+      >
         {label}
       </Typography>
-      {suffix && (
-        <Typography sx={{ fontSize: 11.5, color: groupColors.textMuted }}>{suffix}</Typography>
-      )}
+      {suffix}
     </Box>
+  );
+}
+
+/** The inline "show all / show fewer" expander used by both sections. */
+function ExpandLink({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <ButtonBase
+      onClick={onClick}
+      sx={{ fontSize: 11.5, color: groupColors.brandDark, fontWeight: 600, borderRadius: '4px', px: 0.5 }}
+    >
+      {label}
+    </ButtonBase>
   );
 }
 
@@ -81,11 +96,20 @@ export default function SurveysPanel({
   onRecordNew,
 }: SurveysPanelProps) {
   const { canEditSurveys } = usePermissions();
-  const { dueThisWeek, overdue, upcoming, upcomingTotal } = buildWorklist(slots);
-  // Chronological, soonest first: overdue windows precede this week's —
-  // concatenation IS the sort.
+  const [showAllOverdue, setShowAllOverdue] = useState(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const { dueThisWeek, overdue, upcoming, upcomingAll, upcomingTotal } = buildWorklist(slots);
+
+  // The amber backlog: most recent first would lie about chronology, so keep
+  // oldest-first but collapse all except the latest weeks behind an expander.
+  const overdueShown = showAllOverdue ? overdue : overdue.slice(-OVERDUE_SHOWN);
+  const overdueHidden = overdue.length - overdueShown.length;
+  const upcomingShown = showAllUpcoming ? upcomingAll : upcoming;
+
+  // Chronological, soonest first: unrecorded past windows precede this
+  // week's — concatenation IS the sort.
   const attention: { slot: ScheduledSurvey; state: 'needs-survey' | 'due-this-week' }[] = [
-    ...overdue.map((slot) => ({ slot, state: 'needs-survey' as const })),
+    ...overdueShown.map((slot) => ({ slot, state: 'needs-survey' as const })),
     ...dueThisWeek.map((slot) => ({ slot, state: 'due-this-week' as const })),
   ];
   const recent = recentSurveys.slice(0, 3);
@@ -103,7 +127,7 @@ export default function SurveysPanel({
           borderBottom: `1px solid ${groupColors.divider}`,
         }}
       >
-        <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary }}>
+        <Typography component="h2" sx={panelTitleSx}>
           Surveys
         </Typography>
         {canEditSurveys && (
@@ -118,8 +142,24 @@ export default function SurveysPanel({
         )}
       </Box>
 
-      {/* Needs attention: overdue weeks, then this week's survey. No header —
-          each row's chip is its label. */}
+      {/* The collapsed amber backlog announces itself above the rows so the
+          two shown weeks aren't mistaken for the whole story. */}
+      {overdueHidden > 0 && (
+        <Box sx={{ px: 2.25, py: 1, bgcolor: groupColors.amberRowBg, borderTop: `1px solid ${groupColors.dividerInner}` }}>
+          <ExpandLink
+            label={`${overdueHidden} earlier ${overdueHidden === 1 ? 'week' : 'weeks'} not recorded — show all`}
+            onClick={() => setShowAllOverdue(true)}
+          />
+        </Box>
+      )}
+      {showAllOverdue && overdue.length > OVERDUE_SHOWN && (
+        <Box sx={{ px: 2.25, py: 1, bgcolor: groupColors.amberRowBg, borderTop: `1px solid ${groupColors.dividerInner}` }}>
+          <ExpandLink label="Show fewer" onClick={() => setShowAllOverdue(false)} />
+        </Box>
+      )}
+
+      {/* Needs attention: unrecorded weeks, then this week's survey. No
+          header — each row's chip is its label. */}
       {attention.map(({ slot, state }) => (
         <SurveyWorklistRow
           key={slot.id}
@@ -132,22 +172,29 @@ export default function SurveysPanel({
       ))}
 
       {attention.length === 0 && upcomingTotal === 0 ? (
-        // Empty diary: say so — the Recent rows below still carry the panel
-        // between seasons.
+        // Empty diary: say who can fill it — the Recent rows below still
+        // carry the panel between seasons.
         <Box sx={{ px: 2.25, py: recent.length > 0 ? 2 : 3 }}>
           <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
-            No scheduled surveys.
+            No surveys scheduled yet. Admins plan the season on the Scheduled tab.
           </Typography>
         </Box>
       ) : (
         upcomingTotal > 0 && (
           <>
             <SectionHeader
-              label={`Scheduled (${upcomingTotal})`}
+              label={`Upcoming (${upcomingTotal})`}
               color={groupColors.brandDark}
-              suffix={upcomingTotal > upcoming.length ? `showing next ${upcoming.length}` : undefined}
+              suffix={
+                upcomingTotal > upcoming.length ? (
+                  <ExpandLink
+                    label={showAllUpcoming ? 'show fewer' : `show all ${upcomingTotal}`}
+                    onClick={() => setShowAllUpcoming((v) => !v)}
+                  />
+                ) : undefined
+              }
             />
-            {upcoming.map((slot) => (
+            {upcomingShown.map((slot) => (
               <SurveyWorklistRow
                 key={slot.id}
                 slot={slot}

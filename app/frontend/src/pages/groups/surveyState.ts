@@ -141,7 +141,13 @@ export function buildWorklist(slots: ScheduledSurvey[], today: string = todayIso
     .filter((s) => deriveSlotState(s, today) === 'upcoming')
     .sort(byWindowStart);
 
-  return { dueThisWeek, overdue, upcoming: allUpcoming.slice(0, 3), upcomingTotal: allUpcoming.length };
+  return {
+    dueThisWeek,
+    overdue,
+    upcoming: allUpcoming.slice(0, 3),
+    upcomingAll: allUpcoming,
+    upcomingTotal: allUpcoming.length,
+  };
 }
 
 /**

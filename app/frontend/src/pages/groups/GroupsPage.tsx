@@ -19,6 +19,7 @@ import { groupPath, betaGroupNames, compareGroups } from './groupMeta';
 import { totalUniqueSpecies } from '../../components/dashboard/cumulativeSeries';
 import GroupCard from '../../components/groups/GroupCard';
 import { PageTitle } from '../../components/layout/PageTitle';
+import { useDocumentTitle } from '../../hooks';
 
 interface CardData {
   surveyType: SurveyTypeWithDetails;
@@ -47,6 +48,7 @@ async function countStatFor(details: SurveyTypeWithDetails): Promise<CardData['c
 
 export default function GroupsPage() {
   const navigate = useNavigate();
+  useDocumentTitle('Surveys');
   const { canEditSurveys } = usePermissions();
   const [cards, setCards] = useState<CardData[]>([]);
   const [loading, setLoading] = useState(true);

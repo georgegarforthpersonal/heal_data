@@ -71,7 +71,7 @@ describe('getInitials', () => {
 
 describe('formatDate', () => {
   it('should format ISO date to readable format', () => {
-    // Note: This will use en-US locale
+    // en-GB locale: day before month ("15 Jan 2024")
     const result = formatDate('2024-01-15');
     expect(result).toContain('Jan');
     expect(result).toContain('15');

@@ -9,7 +9,7 @@ import { Box, Paper, Typography, Button } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import type { Survey, Surveyor } from '../../services/api';
 import { usePermissions } from '../../context/AuthContext';
-import { groupCardSx, groupColors, recordButtonSx } from '../../pages/groups/groupsTokens';
+import { groupCardSx, groupColors, panelTitleSx, recordButtonSx } from '../../pages/groups/groupsTokens';
 import RecentSurveyRows from './RecentSurveyRows';
 import AllSurveysDoor from './AllSurveysDoor';
 
@@ -53,7 +53,7 @@ export default function RecordPanel({
           borderBottom: `1px solid ${groupColors.divider}`,
         }}
       >
-        <Typography sx={{ fontSize: 15, fontWeight: 600, color: groupColors.textPrimary }}>
+        <Typography component="h2" sx={panelTitleSx}>
           Surveys
         </Typography>
         {canEditSurveys && (

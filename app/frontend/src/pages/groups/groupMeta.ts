@@ -1,7 +1,7 @@
 /**
  * Helpers mapping a survey type to its Groups presentation: the accent colour
  * for its icon tile, the species type that drives its wildlife icon/charts,
- * and the name-slug URLs that make groups addressable as /groups/butterfly.
+ * and the name-slug URLs that make groups addressable as /surveys/butterfly.
  */
 import { notionColors } from '../../theme';
 import { ORG_SLUG, surveyTypesAPI, type SurveyType, type SurveyTypeWithDetails } from '../../services/api';
@@ -141,14 +141,54 @@ export function groupSlug(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/** Canonical path for a group — the name slug, or the id if the name has no
- * sluggable characters. */
+/** Canonical path for a group's survey page — /surveys/<name-slug>. A name
+ * with no sluggable characters falls back to the legacy /groups/<id> URL
+ * (which redirects through the resolver): a bare numeric /surveys/<id>
+ * would collide with the survey detail page. */
 export function groupPath(surveyType: Pick<SurveyType, 'id' | 'name'>): string {
-  return `/groups/${groupSlug(surveyType.name) || surveyType.id}`;
+  const slug = groupSlug(surveyType.name);
+  return slug ? `/surveys/${slug}` : `/groups/${surveyType.id}`;
+}
+
+// The survey-type list changes rarely but gates the first paint of every
+// group page (the slug must resolve before anything can be fetched), so it
+// is cached for a few minutes. A failed fetch is never cached.
+const TYPES_CACHE_TTL_MS = 5 * 60 * 1000;
+let typesCache: { promise: Promise<SurveyType[]>; at: number } | null = null;
+
+function cachedSurveyTypes(): Promise<SurveyType[]> {
+  const now = Date.now();
+  if (!typesCache || now - typesCache.at > TYPES_CACHE_TTL_MS) {
+    const promise = surveyTypesAPI.getAll().catch((err) => {
+      typesCache = null; // never cache a failure
+      throw err;
+    });
+    typesCache = { promise, at: now };
+  }
+  return typesCache.promise;
+}
+
+/** Drop the cached survey-type list (tests, or after admin edits). */
+export function clearGroupTypeCache(): void {
+  typesCache = null;
 }
 
 /**
- * Resolve a /groups/:typeId route param — a name slug or a numeric id (old
+ * The canonical slug for a legacy /groups/:typeId param (a slug already, or
+ * a numeric group id from pre-slug bookmarks), or null when nothing
+ * resolves. Used by the /groups → /surveys redirect, which cannot forward a
+ * numeric id verbatim — /surveys/<number> is a survey detail URL.
+ */
+export async function legacyGroupSlug(param: string): Promise<string | null> {
+  if (!/^\d+$/.test(param)) return param.toLowerCase();
+  const beta = new Set(betaGroupNames());
+  const types = await cachedSurveyTypes();
+  const match = types.find((t) => t.id === Number(param) && beta.has(t.name.trim().toLowerCase()));
+  return match ? groupSlug(match.name) || null : null;
+}
+
+/**
+ * Resolve a /surveys/:typeId route param — a name slug or a numeric id (old
  * links keep working) — to the survey type id, or null when nothing matches.
  * Only beta group types resolve: a hand-typed /groups/moth (or any group URL
  * in a non-beta org) is a not-found, keeping the pages behind the same gate
@@ -158,7 +198,7 @@ export function groupPath(surveyType: Pick<SurveyType, 'id' | 'name'>): string {
 export async function resolveGroupTypeId(param: string): Promise<number | null> {
   const beta = new Set(betaGroupNames());
   const isBeta = (t: SurveyType) => beta.has(t.name.trim().toLowerCase());
-  const types = await surveyTypesAPI.getAll();
+  const types = await cachedSurveyTypes();
   if (/^\d+$/.test(param)) {
     const match = types.find((t) => t.id === Number(param));
     return match && isBeta(match) ? match.id : null;
