@@ -101,7 +101,9 @@ export function SurveyFormFields({
       {/* Date Picker. Tapping anywhere in the field opens the calendar (one
           tap, not a hunt for the small icon); on mobile the field is
           read-only so the tap opens the picker without also summoning the
-          keyboard, while desktop keeps the field typable. */}
+          keyboard, while desktop keeps the field typable. Always the desktop
+          popover variant: the mobile dialog needs an extra OK tap, and in the
+          field a date should be one tap to open, one tap to pick (GEO-37). */}
       <DatePicker
         label="Date *"
         value={date}
@@ -109,6 +111,7 @@ export function SurveyFormFields({
         open={dateOpen}
         onOpen={() => setDateOpen(true)}
         onClose={() => setDateOpen(false)}
+        desktopModeMediaQuery="@media all"
         slotProps={{
           field: isMobile ? { readOnly: true } : undefined,
           textField: {
