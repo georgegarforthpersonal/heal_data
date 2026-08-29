@@ -175,7 +175,7 @@ export default function GroupDetailPage() {
     return (
       <Box sx={{ maxWidth: GROUP_MAX_WIDTH, mx: 'auto', px: { xs: 2, sm: 4 }, py: 4 }}>
         <GroupBreadcrumb crumbs={[{ label: 'Surveys', to: '/groups' }, { label: 'Error' }]} />
-        <Alert severity="error">Failed to load this group. Please try again.</Alert>
+        <Alert severity="error">Failed to load this survey type. Please try again.</Alert>
       </Box>
     );
   }

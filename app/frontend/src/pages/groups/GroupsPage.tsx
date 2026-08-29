@@ -130,10 +130,10 @@ export default function GroupsPage() {
             <CircularProgress />
           </Box>
         ) : error ? (
-          <Alert severity="error">Failed to load groups. Please try again.</Alert>
+          <Alert severity="error">Failed to load surveys. Please try again.</Alert>
         ) : cards.length === 0 ? (
           <Typography sx={{ fontSize: 14, color: groupColors.textMuted }}>
-            No groups are available yet.
+            No survey types have been set up yet.
           </Typography>
         ) : (
           <Box
