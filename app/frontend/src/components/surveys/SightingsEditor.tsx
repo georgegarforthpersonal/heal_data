@@ -402,7 +402,6 @@ export function SightingsEditor({
           devices={devices}
           allowSightingDeviceSelection={allowSightingDeviceSelection}
           allowSightingPhotoUpload={allowSightingPhotoUpload}
-          listToggle={viewModeToggle}
         />
       </>
     );

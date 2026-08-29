@@ -54,6 +54,10 @@ const END_ICON = L.divIcon({
 interface FieldBoundaryOverlayProps {
   locations: LocationWithBoundary[];
   interactive?: boolean; // Whether geometry responds to hover/click
+  // Draw area polygons as outlines with no fill. Used on the sighting-entry
+  // maps, where a filled shape washes out the basemap the surveyor is trying
+  // to place points against.
+  outlineOnly?: boolean;
   // When provided, clicking a location's shape (or any of its sectors) opens a
   // popup with Edit/Delete — used to manage locations from a map view.
   onEditLocation?: (loc: LocationWithBoundary) => void;
@@ -200,6 +204,7 @@ function locationDetail(loc: LocationWithBoundary, geometry: GeoJsonGeometry): s
 export default function FieldBoundaryOverlay({
   locations,
   interactive = false,
+  outlineOnly = false,
   onEditLocation,
   onDeleteLocation,
 }: FieldBoundaryOverlayProps) {
@@ -306,7 +311,7 @@ export default function FieldBoundaryOverlay({
               positions={positions as LatLngExpression[][]}
               pathOptions={{
                 fillColor: style.fill,
-                fillOpacity: style.fillOpacity,
+                fillOpacity: outlineOnly ? 0 : style.fillOpacity,
                 color: style.stroke,
                 weight: style.weight,
                 // Only the outline is selectable, not the filled interior.

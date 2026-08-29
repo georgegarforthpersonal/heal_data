@@ -367,9 +367,11 @@ export default function MultiLocationMapPicker({
             <PanToPoint target={panTarget} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
-            {/* Field boundaries layer (rendered before markers so markers appear on top) */}
+            {/* Field boundaries layer (rendered before markers so markers appear
+                on top). Outline only: a filled shape washes out the basemap the
+                surveyor is placing points against (GEO-40). */}
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
-              <FieldBoundaryOverlay locations={locationsWithBoundaries} />
+              <FieldBoundaryOverlay locations={locationsWithBoundaries} outlineOnly />
             )}
 
             {/* The surveyor's own position, so they can place points where they stand */}

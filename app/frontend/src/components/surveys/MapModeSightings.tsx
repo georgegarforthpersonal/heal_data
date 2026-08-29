@@ -36,7 +36,6 @@ import { MarkerPopupContent, GroupedMarkerPopupContent } from './MarkerPopupCont
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
 import UserLocationMarker from './UserLocationMarker';
 import { getDeviceIcon } from '../../utils/deviceIcon';
-import type { ReactNode } from 'react';
 
 interface MapModeSightingsProps {
   sightings: DraftSighting[];
@@ -50,9 +49,6 @@ interface MapModeSightingsProps {
   allowSightingDeviceSelection?: boolean;
   /** Photos can be attached to sightings from the map popups. */
   allowSightingPhotoUpload?: boolean;
-  /** The list/map switch, re-rendered inside the fullscreen overlay so the
-   *  user can leave map mode without first finding the exit button. */
-  listToggle?: ReactNode;
 }
 
 function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
@@ -156,7 +152,6 @@ export function MapModeSightings({
   devices = [],
   allowSightingDeviceSelection = false,
   allowSightingPhotoUpload = false,
-  listToggle,
 }: MapModeSightingsProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
@@ -272,11 +267,6 @@ export function MapModeSightings({
               zIndex: 1000,
             }}
           >
-            {isFullscreen && listToggle && (
-              <Box sx={{ bgcolor: 'white', borderRadius: 1, boxShadow: 2, mr: 0.5 }}>
-                {listToggle}
-              </Box>
-            )}
             <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
               <IconButton
                 size="small"
@@ -322,8 +312,10 @@ export function MapModeSightings({
             <FitBoundsToPoints points={fitPoints} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
+            {/* Outline only: a filled shape washes out the basemap the
+                surveyor is placing sightings against (GEO-40). */}
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
-              <FieldBoundaryOverlay locations={locationsWithBoundaries} />
+              <FieldBoundaryOverlay locations={locationsWithBoundaries} outlineOnly />
             )}
 
             {/* The surveyor's own position, so they can orient in the field */}
