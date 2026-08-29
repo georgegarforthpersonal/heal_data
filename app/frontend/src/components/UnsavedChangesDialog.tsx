@@ -29,7 +29,9 @@ export function UnsavedChangesDialog({ open, onKeepWorking, onDiscard }: Unsaved
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onKeepWorking} variant="contained" autoFocus sx={{ textTransform: 'none' }}>
+        {/* No autoFocus: it paints the focus-visible ripple as a stray halo
+            around the button on touch screens (GEO-36). */}
+        <Button onClick={onKeepWorking} variant="contained" sx={{ textTransform: 'none' }}>
           Keep working
         </Button>
         <Button onClick={onDiscard} color="error" sx={{ textTransform: 'none' }}>

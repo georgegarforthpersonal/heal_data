@@ -43,7 +43,9 @@ export function ResumeDraftDialog({ open, savedAt, onResume, onDiscard }: Resume
         <Button onClick={onDiscard} color="error" sx={{ textTransform: 'none' }}>
           Discard
         </Button>
-        <Button onClick={onResume} variant="contained" autoFocus sx={{ textTransform: 'none' }}>
+        {/* No autoFocus: it paints the focus-visible ripple as a stray halo
+            around the button on touch screens (GEO-36). */}
+        <Button onClick={onResume} variant="contained" sx={{ textTransform: 'none' }}>
           Resume
         </Button>
       </DialogActions>
