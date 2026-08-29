@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Stack, TextField, Autocomplete, Box } from '@mui/material';
+import { Stack, TextField, Autocomplete, Box, Dialog, InputAdornment } from '@mui/material';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { Dayjs } from 'dayjs';
 import type { Location, Surveyor } from '../../services/api';
@@ -98,35 +100,71 @@ export function SurveyFormFields({
 
   return (
     <Stack spacing={{ xs: 2, md: 3 }}>
-      {/* Date Picker. Tapping anywhere in the field opens the calendar (one
-          tap, not a hunt for the small icon); on mobile the field is
-          read-only so the tap opens the picker without also summoning the
-          keyboard, while desktop keeps the field typable. Always the desktop
-          popover variant: the mobile dialog needs an extra OK tap, and in the
-          field a date should be one tap to open, one tap to pick (GEO-37). */}
-      <DatePicker
-        label="Date *"
-        value={date}
-        onChange={onDateChange}
-        open={dateOpen}
-        onOpen={() => setDateOpen(true)}
-        onClose={() => setDateOpen(false)}
-        desktopModeMediaQuery="@media all"
-        slotProps={{
-          field: isMobile ? { readOnly: true } : undefined,
-          textField: {
-            fullWidth: true,
-            onClick: () => setDateOpen(true),
-            error: !!validationErrors.date,
-            helperText: validationErrors.date,
-            sx: {
+      {/* Date entry (GEO-37). On mobile the segmented DD/MM/YYYY editor reads
+          as editable text (its day section highlights on tap and again after
+          picking), so the field there is a plain read-only tap target — the
+          date is only ever chosen on the calendar: one tap opens the dialog,
+          one tap on a day commits and closes it. Desktop keeps MUI's typable
+          field with the popover calendar. */}
+      {isMobile ? (
+        <>
+          <TextField
+            label="Date *"
+            value={date?.isValid() ? date.format('DD/MM/YYYY') : ''}
+            fullWidth
+            onClick={() => setDateOpen(true)}
+            // A pure tap target never takes focus — a lingering focus ring
+            // after picking would still suggest the text is editable.
+            onMouseDown={(e) => e.preventDefault()}
+            error={!!validationErrors.date}
+            helperText={validationErrors.date}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <CalendarTodayIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
               '& .MuiInputBase-input': {
-                fontSize: { xs: '16px', sm: '1rem' },
-              }
-            }
-          },
-        }}
-      />
+                fontSize: '16px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                caretColor: 'transparent',
+              },
+            }}
+          />
+          {/* disableRestoreFocus: closing must not hand focus back to the
+              field, which would repaint the focus ring the field avoids. */}
+          <Dialog open={dateOpen} onClose={() => setDateOpen(false)} disableRestoreFocus>
+            <DateCalendar
+              value={date}
+              onChange={(newDate) => {
+                onDateChange(newDate);
+                setDateOpen(false);
+              }}
+            />
+          </Dialog>
+        </>
+      ) : (
+        <DatePicker
+          label="Date *"
+          value={date}
+          onChange={onDateChange}
+          open={dateOpen}
+          onOpen={() => setDateOpen(true)}
+          onClose={() => setDateOpen(false)}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              onClick: () => setDateOpen(true),
+              error: !!validationErrors.date,
+              helperText: validationErrors.date,
+            },
+          }}
+        />
+      )}
 
       {/* Location Dropdown - hidden when location is at sighting level */}
       {!hideLocation && (
