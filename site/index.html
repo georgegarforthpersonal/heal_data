@@ -297,6 +297,44 @@
     var login = document.getElementById('login');
     if (login.open && !login.contains(e.target)) login.open = false;
   });
+
+  // iOS Safari can leave autoplay videos paused (Low Power Mode, autoplay
+  // settings). Nudge playback when a video enters the viewport and again on
+  // user gestures, which iOS always accepts for muted video.
+  (function () {
+    var videos = Array.prototype.slice.call(document.querySelectorAll('.demo-media video'));
+    if (!videos.length) return;
+
+    // Someone asking for less motion gets a still they can play themselves.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      videos.forEach(function (v) { v.autoplay = false; v.controls = true; v.pause(); });
+      return;
+    }
+
+    var GESTURES = ['touchstart', 'scroll', 'click'];
+    function play(v) { v.muted = true; var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+    function kick() { videos.forEach(play); }
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) { if (en.isIntersecting) play(en.target); });
+      }, { threshold: 0.25 });
+      videos.forEach(function (v) { io.observe(v); });
+    }
+
+    // Retry on every gesture until each video reports it is genuinely running:
+    // play() flips `paused` synchronously but iOS can reject long afterwards,
+    // so `paused` is not a reliable signal that playback took.
+    GESTURES.forEach(function (ev) { window.addEventListener(ev, kick, { passive: true }); });
+    var pending = videos.length;
+    videos.forEach(function (v) {
+      v.addEventListener('playing', function settled() {
+        v.removeEventListener('playing', settled);
+        if (--pending) return;
+        GESTURES.forEach(function (ev) { window.removeEventListener(ev, kick); });
+      });
+    });
+  })();
 </script>
 </body>
 </html>
