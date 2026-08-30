@@ -55,6 +55,16 @@ class ScheduleCadence(str, PyEnum):
     weekly = "weekly"
 
 
+class RecordMode(str, PyEnum):
+    """Which entry surface a survey type's sightings use.
+
+    - list: count-driven entry (tallies, steppers).
+    - map: spatial entry (tap the map where the sighting was).
+    """
+    list = "list"
+    map = "map"
+
+
 # ============================================================================
 # Organisation Models
 # ============================================================================
@@ -493,6 +503,10 @@ class SpeciesRead(SQLModel):
     scientific_name: Optional[str] = None
     nbn_atlas_guid: Optional[str] = None
     species_code: Optional[str] = None
+    sightings_count: int = Field(
+        default=0,
+        description="How often this species has been recorded in the queried context (0 outside by-survey-type)",
+    )
 
 
 # ============================================================================
@@ -733,6 +747,15 @@ class SurveyTypeBase(SQLModel):
         sa_column=sa.Column("schedule_cadence", sa.String(20), nullable=False, server_default="date"),
         description="Whether surveys of this type are scheduled for a specific day or a whole week",
     )
+    # The default entry surface for sightings — a transect is a map, a tally
+    # is a list — the survey opens in this view and the list/map toggle stays
+    # available. Only meaningful when the type allows geolocation or device
+    # selection; the frontend falls back to list otherwise.
+    record_mode: RecordMode = Field(
+        default=RecordMode.list,
+        sa_column=sa.Column("record_mode", sa.String(10), nullable=False, server_default="list"),
+        description="Default entry surface for sightings: 'list' or 'map'",
+    )
 
 
 class SurveyType(SurveyTypeBase, table=True):  # type: ignore[call-arg]
@@ -792,6 +815,7 @@ class SurveyTypeUpdate(SQLModel):
     allow_show_description: Optional[bool] = None
     allow_sighting_device_selection: Optional[bool] = None
     sighting_device_type: Optional[DeviceType] = None
+    record_mode: Optional[RecordMode] = None
     icon: Optional[str] = Field(None, max_length=50)
     color: Optional[str] = Field(None, max_length=20)
     schedule_cadence: Optional[ScheduleCadence] = None
@@ -974,11 +998,26 @@ class SurveyBase(SQLModel):
     location_id: Optional[int] = Field(None, foreign_key="location.id", description="Location ID (required when survey type uses survey-level location)")
     survey_type_id: Optional[int] = Field(None, foreign_key="survey_type.id", description="Survey type ID")
     device_id: Optional[int] = Field(None, foreign_key="device.id", description="Device ID (for camera trap surveys)")
+    # Client-minted idempotency id: offline-capable clients send a UUID with the
+    # create so a retried request (response lost on flaky signal) returns the
+    # already-created row instead of inserting a duplicate.
+    client_uuid: Optional[str] = Field(
+        None, max_length=36, description="Client-minted UUID making the create idempotent on retry"
+    )
 
 
 class Survey(SurveyBase, table=True):  # type: ignore[call-arg]
     """Survey database model"""
     __tablename__ = "survey"
+    __table_args__ = (
+        sa.Index(
+            "ux_survey_org_client_uuid",
+            "organisation_id",
+            "client_uuid",
+            unique=True,
+            postgresql_where=sa.text("client_uuid IS NOT NULL"),
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     organisation_id: int = Field(foreign_key="organisation.id", index=True, description="Organisation this survey belongs to")
@@ -1070,6 +1109,10 @@ class SightingBase(SQLModel):
     larvae: Optional[int] = Field(None, ge=0, description="Larvae")
     exuviae: Optional[int] = Field(None, ge=0, description="Exuviae (cast larval skins)")
     emerging_adults: Optional[int] = Field(None, ge=0, description="Emerging/teneral adults")
+    # See Survey.client_uuid — same idempotent-retry contract, scoped to the survey.
+    client_uuid: Optional[str] = Field(
+        None, max_length=36, description="Client-minted UUID making the create idempotent on retry"
+    )
 
 
 #: The BDS stage/behaviour count columns, in recording-form order. `count`
@@ -1086,6 +1129,15 @@ STAGE_COUNT_FIELDS = (
 class Sighting(SightingBase, table=True):  # type: ignore[call-arg]
     """Sighting database model"""
     __tablename__ = "sighting"
+    __table_args__ = (
+        sa.Index(
+            "ux_sighting_survey_client_uuid",
+            "survey_id",
+            "client_uuid",
+            unique=True,
+            postgresql_where=sa.text("client_uuid IS NOT NULL"),
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     survey_id: int = Field(foreign_key="survey.id")
@@ -1185,9 +1237,21 @@ class BreedingStatusCodeRead(SQLModel):
 class SightingIndividual(SQLModel, table=True):  # type: ignore[call-arg]
     """Individual location point within a sighting with optional breeding status"""
     __tablename__ = "sighting_individual"
+    __table_args__ = (
+        sa.Index(
+            "ux_sighting_individual_client_uuid",
+            "sighting_id",
+            "client_uuid",
+            unique=True,
+            postgresql_where=sa.text("client_uuid IS NOT NULL"),
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     sighting_id: int = Field(foreign_key="sighting.id", ondelete="CASCADE")
+    # See Survey.client_uuid — idempotent-retry contract, scoped to the sighting.
+    # Replayed adds must also not re-bump the parent sighting's count.
+    client_uuid: Optional[str] = Field(None, max_length=36)
     # PostGIS geometry column (not directly exposed in API - use latitude/longitude instead)
     coordinates: str = Field(
         sa_column=sa.Column(
@@ -1227,6 +1291,9 @@ class IndividualLocationBase(SQLModel):
     breeding_status_code: Optional[str] = Field(None, max_length=2, description="BTO breeding status code")
     notes: Optional[str] = Field(None, description="Optional notes for this individual")
     camera_trap_image_id: Optional[int] = Field(None)
+    client_uuid: Optional[str] = Field(
+        None, max_length=36, description="Client-minted UUID making the create idempotent on retry"
+    )
 
 
 class IndividualLocationCreate(IndividualLocationBase):

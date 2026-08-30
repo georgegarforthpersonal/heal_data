@@ -34,11 +34,14 @@ import { DEFAULT_MAP_CENTER } from '../../config';
 import { CATEGORY_COLORS, CATEGORY_LABELS, CATEGORY_TEXT_COLOR } from './breedingConstants';
 import { boundaryLatLngs } from './mapModeUtils';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
+import UserLocationMarker from './UserLocationMarker';
 
 // Extended individual location with temp ID for tracking unsaved points
 export interface DraftIndividualLocation {
   tempId: string;
   id?: number;
+  // Client-minted idempotency uuid (see DraftSighting.client_uuid)
+  client_uuid?: string;
   latitude: number;
   longitude: number;
   count: number;
@@ -364,10 +367,15 @@ export default function MultiLocationMapPicker({
             <PanToPoint target={panTarget} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
-            {/* Field boundaries layer (rendered before markers so markers appear on top) */}
+            {/* Field boundaries layer (rendered before markers so markers appear
+                on top). Outline only: a filled shape washes out the basemap the
+                surveyor is placing points against (GEO-40). */}
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
-              <FieldBoundaryOverlay locations={locationsWithBoundaries} />
+              <FieldBoundaryOverlay locations={locationsWithBoundaries} outlineOnly />
             )}
+
+            {/* The surveyor's own position, so they can place points where they stand */}
+            <UserLocationMarker />
 
             {locations.map((loc, index) => (
               <CircleMarker

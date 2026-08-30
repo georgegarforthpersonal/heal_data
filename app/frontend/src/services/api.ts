@@ -29,6 +29,18 @@ export class ApiError extends Error {
 const statusOf = (error: unknown): number | undefined =>
   error instanceof ApiError ? error.status : undefined;
 
+/**
+ * Whether a failed request is worth retrying automatically: network failures
+ * (fetch rejects with a TypeError when offline or the connection drops) and
+ * transient server statuses. 4xx responses are real answers — never retried.
+ */
+export const isRetryableError = (error: unknown): boolean => {
+  if (error instanceof ApiError) {
+    return error.status >= 500 || error.status === 408 || error.status === 429;
+  }
+  return error instanceof TypeError || !navigator.onLine;
+};
+
 // API base URL - uses environment variable if available, otherwise falls back to auto-detection
 const getApiBaseUrl = () => {
   // First check if environment variable is set (for production deployments)
@@ -332,6 +344,9 @@ export interface Species {
   species_type_id: number;
   type: string;  // Derived from species_type.name, for display purposes
   species_code: string | null;
+  // How often this species has been recorded for the queried survey type;
+  // feeds the likely-species-first ordering in entry UIs.
+  sightings_count?: number;
 }
 
 /** Spatial representation of a location. */
@@ -424,6 +439,9 @@ export interface Survey {
   // The scheduled slot this survey records, if any. Set automatically when
   // the date falls in an open slot's window, or explicitly by the record flow.
   scheduled_survey_id: number | null;
+  // Client-minted idempotency uuid; a retried create with the same uuid
+  // returns this survey instead of inserting a duplicate.
+  client_uuid?: string | null;
   start_time: string | null;
   end_time: string | null;
   sun_percentage: number | null;
@@ -545,6 +563,7 @@ export interface Sighting {
   larvae?: number | null;
   exuviae?: number | null;
   emerging_adults?: number | null;
+  client_uuid?: string | null; // Client-minted idempotency uuid (see Survey.client_uuid)
 }
 
 /**
@@ -570,6 +589,7 @@ export interface IndividualLocation {
   breeding_status_code?: string | null;
   notes?: string | null;
   camera_trap_image_id?: number | null;
+  client_uuid?: string | null; // Client-minted idempotency uuid (see Survey.client_uuid)
 }
 
 /**
@@ -606,6 +626,7 @@ export interface SightingCreateRequest {
   larvae?: number | null;
   exuviae?: number | null;
   emerging_adults?: number | null;
+  client_uuid?: string; // Client-minted idempotency uuid; retries return the existing sighting
 }
 
 /**
@@ -688,6 +709,13 @@ export interface SpeciesTypeRef {
 export type ScheduleCadence = 'date' | 'weekly';
 
 /**
+ * Which entry surface a survey type's sightings use: a map (tap where the
+ * sighting was) or a list (count-driven tallies). Fixed on phones, the
+ * default on desktop.
+ */
+export type RecordMode = 'list' | 'map';
+
+/**
  * Survey type configuration
  */
 export interface SurveyType {
@@ -695,6 +723,7 @@ export interface SurveyType {
   name: string;
   description: string | null;
   schedule_cadence: ScheduleCadence;
+  record_mode: RecordMode;
   location_at_sighting_level: boolean;
   allow_geolocation: boolean;
   allow_coordinate_entry: boolean;
@@ -786,6 +815,7 @@ export interface SurveyTypeCreate {
   icon?: string;
   color?: string;
   schedule_cadence?: ScheduleCadence;
+  record_mode?: RecordMode;
   location_ids: number[];
   species_type_ids: number[];
   /** Specific species to offer (empty/omitted = all species in the species types) */
@@ -816,6 +846,7 @@ export interface SurveyTypeUpdate {
   icon?: string;
   color?: string;
   schedule_cadence?: ScheduleCadence;
+  record_mode?: RecordMode;
   is_active?: boolean;
   location_ids?: number[];
   species_type_ids?: number[];
@@ -2188,6 +2219,74 @@ export const imagesAPI = {
       reportApiError(error, { endpoint, method: 'POST', status: statusOf(error) });
       throw error;
     });
+  },
+
+  /**
+   * Upload files, recovering from "File already exists" 400s.
+   *
+   * A previous save attempt may have uploaded some of these files and lost
+   * the response on flaky signal; the backend dedupes by filename within a
+   * survey and rejects the retry. Resolve by looking up the already-uploaded
+   * images and uploading only the genuinely missing files, so retried saves
+   * converge instead of failing forever.
+   */
+  uploadFilesRecoveringDuplicates: async (
+    surveyId: number,
+    files: File[],
+    timestamps?: Record<string, string>,
+    skipProcessing?: boolean
+  ): Promise<CameraTrapImage[]> => {
+    try {
+      return await imagesAPI.uploadFilesWithMetadata(surveyId, files, timestamps, skipProcessing);
+    } catch (err) {
+      if (!(err instanceof ApiError) || err.status !== 400 || !err.message.includes('already exists')) {
+        throw err;
+      }
+      const existing = await imagesAPI.getImages(surveyId);
+      const byName = new Map(existing.map((img) => [img.filename, img]));
+
+      // Phones reuse capture names (IMG_0001.jpg), so a same-name server
+      // image only counts as "this file, already uploaded" when the sizes
+      // agree — otherwise we'd silently attach someone else's photo and drop
+      // this one. A genuine collision is uploaded under a deterministic
+      // size-suffixed name, so retrying the retry stays idempotent.
+      const collisionName = (f: File): string => {
+        const dot = f.name.lastIndexOf('.');
+        return dot > 0
+          ? `${f.name.slice(0, dot)}-${f.size}${f.name.slice(dot)}`
+          : `${f.name}-${f.size}`;
+      };
+      const sizeMatches = (img: CameraTrapImage, f: File): boolean =>
+        img.file_size_bytes == null || img.file_size_bytes === f.size;
+      const alreadyUploaded = (f: File): CameraTrapImage | undefined => {
+        const sameName = byName.get(f.name);
+        if (sameName && sizeMatches(sameName, f)) return sameName;
+        const renamed = byName.get(collisionName(f));
+        if (renamed && sizeMatches(renamed, f)) return renamed;
+        return undefined;
+      };
+
+      const timestampsOut: Record<string, string> = { ...(timestamps ?? {}) };
+      const uploadNames = new Map<File, string>();
+      const missing = files.filter((f) => !alreadyUploaded(f));
+      const toUpload = missing.map((f) => {
+        if (!byName.has(f.name)) {
+          uploadNames.set(f, f.name);
+          return f;
+        }
+        const newName = collisionName(f);
+        uploadNames.set(f, newName);
+        if (timestampsOut[f.name]) timestampsOut[newName] = timestampsOut[f.name];
+        return new File([f], newName, { type: f.type, lastModified: f.lastModified });
+      });
+      const uploaded = toUpload.length
+        ? await imagesAPI.uploadFilesWithMetadata(surveyId, toUpload, timestampsOut, skipProcessing)
+        : [];
+      const uploadedByName = new Map(uploaded.map((img) => [img.filename, img]));
+      return files
+        .map((f) => alreadyUploaded(f) ?? uploadedByName.get(uploadNames.get(f) ?? f.name))
+        .filter((img): img is CameraTrapImage => img != null);
+    }
   },
 
   /**

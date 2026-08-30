@@ -34,6 +34,7 @@ import {
 import type { DeviceGroup } from './mapModeUtils';
 import { MarkerPopupContent, GroupedMarkerPopupContent } from './MarkerPopupContent';
 import FieldBoundaryOverlay from './FieldBoundaryOverlay';
+import UserLocationMarker from './UserLocationMarker';
 import { getDeviceIcon } from '../../utils/deviceIcon';
 
 interface MapModeSightingsProps {
@@ -46,6 +47,8 @@ interface MapModeSightingsProps {
   surveyLocationId?: number | null;
   devices?: Device[];
   allowSightingDeviceSelection?: boolean;
+  /** Photos can be attached to sightings from the map popups. */
+  allowSightingPhotoUpload?: boolean;
 }
 
 function MapClickHandler({ onClick }: { onClick?: (latlng: LatLng) => void }) {
@@ -148,6 +151,7 @@ export function MapModeSightings({
   surveyLocationId,
   devices = [],
   allowSightingDeviceSelection = false,
+  allowSightingPhotoUpload = false,
 }: MapModeSightingsProps) {
   const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
   const [mapCenter] = useState<LatLng>(new LatLng(DEFAULT_MAP_CENTER[0], DEFAULT_MAP_CENTER[1]));
@@ -192,7 +196,7 @@ export function MapModeSightings({
   }, []);
 
   const handleAddFromPopup = useCallback(
-    (speciesId: number, count: number, breedingStatusCode?: string | null) => {
+    (speciesId: number, count: number, breedingStatusCode?: string | null, photos?: File[]) => {
       if (!addPopupPosition) return;
       const updated = addSpeciesAtLocation(
         sightings,
@@ -200,12 +204,27 @@ export function MapModeSightings({
         addPopupPosition.lng,
         speciesId,
         count,
-        breedingStatusCode
+        breedingStatusCode,
+        photos
       );
       onSightingsChange?.(updated);
       setAddPopupPosition(null);
     },
     [addPopupPosition, sightings, onSightingsChange]
+  );
+
+  // Attach photos taken at the marker to the sighting it belongs to.
+  const handleAddPhotosToSighting = useCallback(
+    (sightingTempId: string, files: File[]) => {
+      onSightingsChange?.(
+        sightings.map((s) =>
+          s.tempId === sightingTempId
+            ? { ...s, pendingPhotos: [...(s.pendingPhotos || []), ...files] }
+            : s
+        )
+      );
+    },
+    [sightings, onSightingsChange]
   );
 
   const handleAddPopupClose = useCallback(() => {
@@ -293,9 +312,14 @@ export function MapModeSightings({
             <FitBoundsToPoints points={fitPoints} surveyLocationId={surveyLocationId} locationsWithBoundaries={locationsWithBoundaries} />
             <MapResizeHandler isFullscreen={isFullscreen} />
 
+            {/* Outline only: a filled shape washes out the basemap the
+                surveyor is placing sightings against (GEO-40). */}
             {locationsWithBoundaries && locationsWithBoundaries.length > 0 && (
-              <FieldBoundaryOverlay locations={locationsWithBoundaries} />
+              <FieldBoundaryOverlay locations={locationsWithBoundaries} outlineOnly />
             )}
+
+            {/* The surveyor's own position, so they can orient in the field */}
+            <UserLocationMarker />
 
             {/* Device-attach mode: one marker per device, popup lists species observed there */}
             {allowSightingDeviceSelection && deviceGrouping.groups.map((group) => {
@@ -310,6 +334,12 @@ export function MapModeSightings({
                   <Popup
                     closeOnClick={false}
                     autoPan={true}
+                    // Pan clear of the overlaid controls: zoom (top-left) and
+                    // the fullscreen/layers cluster (top-right) float
+                    // above popups, so without this padding a popup opened
+                    // near the top of the map slides underneath them.
+                    autoPanPaddingTopLeft={[56, 64]}
+                    autoPanPaddingBottomRight={[12, 12]}
                     minWidth={200}
                     maxWidth={320}
                     className="map-mode-popup"
@@ -364,6 +394,12 @@ export function MapModeSightings({
                   <Popup
                     closeOnClick={false}
                     autoPan={true}
+                    // Pan clear of the overlaid controls: zoom (top-left) and
+                    // the fullscreen/layers cluster (top-right) float
+                    // above popups, so without this padding a popup opened
+                    // near the top of the map slides underneath them.
+                    autoPanPaddingTopLeft={[56, 64]}
+                    autoPanPaddingBottomRight={[12, 12]}
                     minWidth={readOnly ? 200 : 260}
                     maxWidth={320}
                     className="map-mode-popup"
@@ -389,6 +425,11 @@ export function MapModeSightings({
                           onDelete={() =>
                             handleMarkerDelete(firstMarker.sightingTempId, firstMarker.individualTempId)
                           }
+                          allowPhotoUpload={allowSightingPhotoUpload}
+                          pendingPhotoCount={
+                            sightings.find((s) => s.tempId === firstMarker.sightingTempId)?.pendingPhotos?.length ?? 0
+                          }
+                          onAddPhotos={(files) => handleAddPhotosToSighting(firstMarker.sightingTempId, files)}
                         />
                       )
                     ) : (
@@ -413,6 +454,12 @@ export function MapModeSightings({
                 position={[addPopupPosition.lat, addPopupPosition.lng]}
                 closeOnClick={false}
                 autoPan={true}
+                // Pan clear of the overlaid controls: zoom (top-left) and
+                // the fullscreen/layers cluster (top-right) float above
+                // popups, so without this padding a popup opened near the
+                // top of the map slides underneath them.
+                autoPanPaddingTopLeft={[56, 64]}
+                autoPanPaddingBottomRight={[12, 12]}
                 minWidth={260}
                 maxWidth={320}
                 className="map-mode-popup"
@@ -426,6 +473,7 @@ export function MapModeSightings({
                   breedingCodes={breedingCodes}
                   onAdd={handleAddFromPopup}
                   onDiscard={handleAddPopupClose}
+                  allowPhotoUpload={allowSightingPhotoUpload}
                 />
               </Popup>
             )}

@@ -60,6 +60,7 @@ import {
   type Device,
   type DeviceType,
   type ScheduleCadence,
+  type RecordMode,
 } from '../services/api';
 import { orgHasGroups } from './groups/groupMeta';
 import LocationsDevicesManager from '../components/admin/LocationsDevicesManager';
@@ -180,6 +181,7 @@ export function AdminPage() {
   const [formAllowSightingDeviceSelection, setFormAllowSightingDeviceSelection] = useState(false);
   const [formSightingDeviceType, setFormSightingDeviceType] = useState<DeviceType | null>(null);
   const [formScheduleCadence, setFormScheduleCadence] = useState<ScheduleCadence>('date');
+  const [formRecordMode, setFormRecordMode] = useState<RecordMode>('list');
   const [formColor, setFormColor] = useState<string | null>(null);
   const [formSelectedLocations, setFormSelectedLocations] = useState<Location[]>([]);
   const [formSelectedDevices, setFormSelectedDevices] = useState<Device[]>([]);
@@ -368,6 +370,7 @@ export function AdminPage() {
       setFormAllowSightingDeviceSelection(details.allow_sighting_device_selection);
       setFormSightingDeviceType(details.sighting_device_type);
       setFormScheduleCadence(details.schedule_cadence);
+      setFormRecordMode(details.record_mode);
       setFormColor(details.color);
       setFormSelectedLocations(details.locations);
       setFormSelectedDevices(details.devices);
@@ -396,6 +399,7 @@ export function AdminPage() {
     setFormAllowSightingDeviceSelection(false);
     setFormSightingDeviceType(null);
     setFormScheduleCadence('date');
+    setFormRecordMode('list');
     setFormColor(null);
     setFormSelectedLocations([]);
     setFormSelectedDevices([]);
@@ -448,6 +452,7 @@ export function AdminPage() {
         allow_sighting_device_selection: formAllowSightingDeviceSelection,
         sighting_device_type: formAllowSightingDeviceSelection ? formSightingDeviceType : null,
         schedule_cadence: formScheduleCadence,
+        record_mode: formRecordMode,
         color: formColor || undefined,
         location_ids: formSelectedLocations.map((l) => l.id),
         device_ids: formSelectedDevices.map((d) => d.id),
@@ -1308,6 +1313,26 @@ export function AdminPage() {
                 {formScheduleCadence === 'weekly'
                   ? 'Surveys are scheduled for a whole week and can be carried out on any day within it'
                   : 'Surveys are scheduled for a specific day'}
+              </Typography>
+            </Box>
+            <Box sx={{ mt: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="record-mode-label">Recording view</InputLabel>
+                <Select
+                  labelId="record-mode-label"
+                  label="Recording view"
+                  value={formRecordMode}
+                  onChange={(e) => setFormRecordMode(e.target.value as RecordMode)}
+                  disabled={savingSurveyType}
+                >
+                  <MenuItem value="list">List — count-driven entry</MenuItem>
+                  <MenuItem value="map">Map — tap where each sighting was</MenuItem>
+                </Select>
+              </FormControl>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                {formRecordMode === 'map'
+                  ? 'Surveys open on the map; surveyors can still switch to the list'
+                  : 'Surveys open as a list; surveyors can still switch to the map'}
               </Typography>
             </Box>
           </FormSection>

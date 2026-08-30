@@ -246,3 +246,41 @@ class TestGetSpeciesBySurveyType:
         )
         assert response.status_code == 200
         assert [s["id"] for s in response.json()] == [target.id]
+
+    def test_sightings_count_reflects_recorded_frequency(
+        self, client: TestClient, auth_headers: dict, create_species, create_surveyor
+    ):
+        """Each species carries how often it's been recorded for this survey
+        type, so entry UIs can put likely species first."""
+        common = create_species(name="Peacock", species_type="butterfly")
+        rare = create_species(name="Marsh Fritillary", species_type="butterfly")
+
+        survey_type_id = self._create_survey_type(
+            client, auth_headers, [common.species_type_id]
+        )
+        surveyor = create_surveyor()
+        survey = client.post(
+            "/api/surveys",
+            json={
+                "date": "2026-08-01",
+                "surveyor_ids": [surveyor.id],
+                "survey_type_id": survey_type_id,
+            },
+            headers=auth_headers,
+        )
+        assert survey.status_code == 201
+        for _ in range(2):
+            created = client.post(
+                f"/api/surveys/{survey.json()['id']}/sightings",
+                json={"species_id": common.id, "count": 1},
+                headers=auth_headers,
+            )
+            assert created.status_code == 201
+
+        response = client.get(
+            f"/api/species/by-survey-type/{survey_type_id}", headers=auth_headers
+        )
+        assert response.status_code == 200
+        counts = {s["id"]: s["sightings_count"] for s in response.json()}
+        assert counts[common.id] == 2
+        assert counts[rare.id] == 0

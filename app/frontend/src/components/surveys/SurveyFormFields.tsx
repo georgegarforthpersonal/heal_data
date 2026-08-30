@@ -1,10 +1,14 @@
-import { Stack, TextField, Autocomplete, Box } from '@mui/material';
+import { useState } from 'react';
+import { Stack, TextField, Autocomplete, Box, Dialog, InputAdornment } from '@mui/material';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { Dayjs } from 'dayjs';
 import type { Location, Surveyor } from '../../services/api';
 import { locationDisplayName } from '../../services/api';
 import SurveyorMultiSelect from './SurveyorMultiSelect';
+import { useResponsive } from '../../hooks/useResponsive';
 
 interface SurveyFormFieldsProps {
   // Form values
@@ -86,6 +90,9 @@ export function SurveyFormFields({
   showSunPercentage = false,
   showTemperature = false,
 }: SurveyFormFieldsProps) {
+  const [dateOpen, setDateOpen] = useState(false);
+  const { isMobile } = useResponsive();
+
   // Time validation: end time must be after start time
   const timeError = hasTimeValidationError(startTime ?? null, endTime ?? null)
     ? 'End time must be after start time'
@@ -93,24 +100,71 @@ export function SurveyFormFields({
 
   return (
     <Stack spacing={{ xs: 2, md: 3 }}>
-      {/* Date Picker */}
-      <DatePicker
-        label="Date *"
-        value={date}
-        onChange={onDateChange}
-        slotProps={{
-          textField: {
-            fullWidth: true,
-            error: !!validationErrors.date,
-            helperText: validationErrors.date,
-            sx: {
+      {/* Date entry (GEO-37). On mobile the segmented DD/MM/YYYY editor reads
+          as editable text (its day section highlights on tap and again after
+          picking), so the field there is a plain read-only tap target — the
+          date is only ever chosen on the calendar: one tap opens the dialog,
+          one tap on a day commits and closes it. Desktop keeps MUI's typable
+          field with the popover calendar. */}
+      {isMobile ? (
+        <>
+          <TextField
+            label="Date *"
+            value={date?.isValid() ? date.format('DD/MM/YYYY') : ''}
+            fullWidth
+            onClick={() => setDateOpen(true)}
+            // A pure tap target never takes focus — a lingering focus ring
+            // after picking would still suggest the text is editable.
+            onMouseDown={(e) => e.preventDefault()}
+            error={!!validationErrors.date}
+            helperText={validationErrors.date}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <CalendarTodayIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
               '& .MuiInputBase-input': {
-                fontSize: { xs: '16px', sm: '1rem' },
-              }
-            }
-          },
-        }}
-      />
+                fontSize: '16px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                caretColor: 'transparent',
+              },
+            }}
+          />
+          {/* disableRestoreFocus: closing must not hand focus back to the
+              field, which would repaint the focus ring the field avoids. */}
+          <Dialog open={dateOpen} onClose={() => setDateOpen(false)} disableRestoreFocus>
+            <DateCalendar
+              value={date}
+              onChange={(newDate) => {
+                onDateChange(newDate);
+                setDateOpen(false);
+              }}
+            />
+          </Dialog>
+        </>
+      ) : (
+        <DatePicker
+          label="Date *"
+          value={date}
+          onChange={onDateChange}
+          open={dateOpen}
+          onOpen={() => setDateOpen(true)}
+          onClose={() => setDateOpen(false)}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              onClick: () => setDateOpen(true),
+              error: !!validationErrors.date,
+              helperText: validationErrors.date,
+            },
+          }}
+        />
+      )}
 
       {/* Location Dropdown - hidden when location is at sighting level */}
       {!hideLocation && (
@@ -119,15 +173,25 @@ export function SurveyFormFields({
           getOptionLabel={locationDisplayName}
           value={locations.find((l) => l.id === locationId) || null}
           onChange={(_, newValue) => onLocationChange(newValue?.id || null)}
+          // A required single choice is a picker, not a text box: no clear ✕
+          // and no select-on-focus text highlight (see the survey type field).
+          disableClearable={locationId !== null}
+          selectOnFocus={false}
           renderInput={(params) => (
             <TextField
               {...params}
               label="Location *"
               error={!!validationErrors.location}
               helperText={validationErrors.location}
+              // A handful of options needs no typing: read-only on mobile so
+              // tapping opens the list without summoning the keyboard.
+              inputProps={{ ...params.inputProps, readOnly: isMobile }}
               sx={{
                 '& .MuiInputBase-input': {
                   fontSize: { xs: '16px', sm: '1rem' },
+                  ...(isMobile
+                    ? { cursor: 'pointer', userSelect: 'none', caretColor: 'transparent' }
+                    : {}),
                 }
               }}
             />

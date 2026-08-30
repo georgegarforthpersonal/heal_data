@@ -46,6 +46,29 @@ export function useMapFullscreen() {
     };
   }, [isFullscreen]);
 
+  // iOS keyboard guard: mobile Safari ignores body overflow and scrolls the
+  // layout viewport to reveal a focused input (e.g. the species field in a
+  // map popup), dragging the fixed fullscreen container — and its exit
+  // button — off screen, sometimes leaving it there after the keyboard
+  // closes. Restore alignment once the keyboard has GONE (viewport back to
+  // ~full height). Never repin while it is open: fighting iOS's
+  // scroll-into-view mid-focus makes the screen visibly thrash.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    window.scrollTo(0, 0);
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const keyboardClosed = vv.height >= window.innerHeight * 0.9;
+      if (keyboardClosed && (window.scrollX !== 0 || window.scrollY !== 0)) {
+        window.scrollTo(0, 0);
+      }
+    };
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, [isFullscreen]);
+
   const fullscreenContainerSx: SxProps<Theme> = isFullscreen
     ? {
         position: 'fixed',
@@ -82,6 +105,25 @@ export function MapResizeHandler({ isFullscreen }: { isFullscreen: boolean }) {
       map.invalidateSize();
     }, 300);
     return () => clearTimeout(timer);
+  }, [isFullscreen, map]);
+
+  // While fullscreen, the soft keyboard resizes the visual viewport around
+  // the fixed container; without an invalidate Leaflet keeps stale tile
+  // maths and the map appears oddly zoomed/shifted once the keyboard goes.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onResize = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => map.invalidateSize(), 150);
+    };
+    vv.addEventListener('resize', onResize);
+    return () => {
+      if (timer) clearTimeout(timer);
+      vv.removeEventListener('resize', onResize);
+    };
   }, [isFullscreen, map]);
 
   return null;

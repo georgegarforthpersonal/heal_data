@@ -14,6 +14,7 @@ import StageCountsFields from './StageCountsFields';
 import StageCountsSummary from './StageCountsSummary';
 import { getSpeciesIcon } from '../../config';
 import { useResponsive } from '../../hooks/useResponsive';
+import { orderSpeciesForEntry, recentSpeciesIds } from '../../utils/speciesOrder';
 import type { DraftIndividualLocation } from './MultiLocationMapPicker';
 
 /** Small thumbnail that lazily loads a presigned URL for an existing image */
@@ -68,6 +69,9 @@ export interface DraftSighting extends StageCounts {
   species_id: number | null;
   count: number;
   id?: number;
+  // Client-minted idempotency uuid, set when a save first attempts to create
+  // this sighting; retries reuse it so the server never duplicates the row
+  client_uuid?: string;
   // Per-individual location points with breeding status
   individuals?: DraftIndividualLocation[];
   // Location ID when location is at sighting level
@@ -101,6 +105,9 @@ interface SightingsEditorProps {
   allowSightingDeviceSelection?: boolean; // When true, each sighting picks a device that supplies its location
   devices?: Device[]; // Available devices (already filtered by configured device type) when device selection is on
   surveyLocationId?: number | null; // Survey-level location ID for initial map zoom
+  // The survey type's default entry surface: surveys open in this view and
+  // the list/map toggle stays available everywhere.
+  recordMode?: 'list' | 'map';
 }
 
 /**
@@ -125,26 +132,34 @@ export function SightingsEditor({
   allowSightingDeviceSelection = false,
   devices = [],
   surveyLocationId,
+  recordMode,
 }: SightingsEditorProps) {
   const { isMobile } = useResponsive();
 
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  // 'map' is only honoured when the type can actually show a map.
+  const mapCapable = allowGeolocation || allowSightingDeviceSelection;
+  const effectiveRecordMode: 'list' | 'map' =
+    recordMode === 'map' && mapCapable ? 'map' : 'list';
+
+  const [viewMode, setViewMode] = useState<'list' | 'map'>(effectiveRecordMode);
+
+  // The survey type (and with it the mode) can change without a remount —
+  // e.g. picking a different type on the new-survey page.
+  useEffect(() => {
+    setViewMode(effectiveRecordMode);
+  }, [effectiveRecordMode]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTempId, setEditingTempId] = useState<string | null>(null);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [locationEditingTempId, setLocationEditingTempId] = useState<string | null>(null);
 
-  // Sort species by type first, then by name within each type
-  const sortedSpecies = useMemo(() => {
-    return [...species].sort((a, b) => {
-      if (a.type !== b.type) {
-        return a.type.localeCompare(b.type);
-      }
-      const nameA = a.name || a.scientific_name || '';
-      const nameB = b.name || b.scientific_name || '';
-      return nameA.localeCompare(nameB);
-    });
-  }, [species]);
+  // Order for entry: grouped by type, then recently-used this session, then
+  // most-recorded for this survey type, then alphabetical. This ordered list
+  // is what the modal, map popups and grid all present.
+  const sortedSpecies = useMemo(
+    () => orderSpeciesForEntry(species, recentSpeciesIds(sightings)),
+    [species, sightings]
+  );
 
   // Fixed-species survey types offer exactly one species: the selector is
   // hidden and every sighting is that species.
@@ -379,13 +394,14 @@ export function SightingsEditor({
 
         <MapModeSightings
           sightings={sightings}
-          species={species}
+          species={sortedSpecies}
           breedingCodes={breedingCodes}
           onSightingsChange={onSightingsChange}
           locationsWithBoundaries={locationsWithBoundaries}
           surveyLocationId={surveyLocationId}
           devices={devices}
           allowSightingDeviceSelection={allowSightingDeviceSelection}
+          allowSightingPhotoUpload={allowSightingPhotoUpload}
         />
       </>
     );
@@ -605,7 +621,7 @@ export function SightingsEditor({
           open={modalOpen}
           onClose={handleModalClose}
           onSave={handleModalSave}
-          species={species}
+          species={sortedSpecies}
           breedingCodes={breedingCodes}
           initialData={
             editingSighting
