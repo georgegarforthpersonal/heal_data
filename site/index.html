@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Canopy — ecological monitoring for rewilding estates</title>
-<meta name="description" content="Canopy brings camera traps, acoustic surveys, GPS tracking and species records together in one place for rewilding estates and conservation projects. In the field at Cannwood and with Heal Rewilding.">
+<title>Canopy — bespoke data tools for ecology and rewilding</title>
+<meta name="description" content="Canopy designs and builds bespoke data platforms and applications for rewilding estates, conservation charities and ecologists — camera traps, acoustic surveys, GPS tracking, species records and decades of spreadsheets, made useful.">
 <link rel="icon" type="image/png" href="/assets/favicon.png">
-<meta property="og:title" content="Canopy — ecological monitoring for rewilding estates">
-<meta property="og:description" content="Camera traps, acoustic surveys, GPS tracking and species records in one place. In the field at Cannwood and with Heal Rewilding.">
+<meta property="og:title" content="Canopy — bespoke data tools for ecology and rewilding">
+<meta property="og:description" content="We design and build data platforms and applications for rewilding estates, conservation charities and ecologists. In daily use at Cannwood and Heal Rewilding.">
 <meta property="og:image" content="https://canopydata.app/assets/og-canopy.png">
 <meta property="og:url" content="https://canopydata.app/">
 <meta property="og:type" content="website">
@@ -39,28 +39,67 @@
   }
   .btn:hover { background: #5D9668; color: #ffffff; text-decoration: none; }
 
-  header.site { display: flex; align-items: center; justify-content: space-between; max-width: 1020px; width: 100%; margin: 0 auto; padding: 28px 32px; }
+  header.site { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1020px; width: 100%; margin: 0 auto; padding: 28px 32px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand img { width: 30px; height: 30px; }
   .brand span { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: #1a1a1a; }
+  .nav-actions { display: flex; align-items: center; gap: 12px; }
   .btn-nav { padding: 10px 20px; font-size: 14px; }
 
-  .hero { padding: 72px 32px 88px; }
-  .hero-row { display: flex; align-items: center; gap: 56px; flex-wrap: wrap; }
-  .hero-copy { flex: 1 1 480px; min-width: 320px; }
-  .hero h1 { margin: 0 0 20px; font-size: clamp(32px, 5vw, 44px); line-height: 1.15; font-weight: 700; letter-spacing: -0.025em; text-wrap: pretty; }
-  .hero .lede { margin: 0 0 32px; font-size: 19px; line-height: 1.55; color: #666666; max-width: 34em; text-wrap: pretty; }
-  .hero-ctas { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .login { position: relative; }
+  .login summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #3E6A45;
+    border: 1px solid #c6d8c9;
+    border-radius: 6px;
+    background: #ffffff;
+    user-select: none;
+  }
+  .login summary::-webkit-details-marker { display: none; }
+  .login summary:hover { border-color: #51895A; }
+  .login[open] summary { border-color: #51895A; }
+  .login-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 240px;
+    background: #ffffff;
+    border: 1px solid #e3e8e3;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 6px;
+    z-index: 10;
+  }
+  .login-menu a { display: block; padding: 10px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; color: #1a1a1a; }
+  .login-menu a:hover { background: #ECF3EC; text-decoration: none; color: #1a1a1a; }
+  .login-menu a span { display: block; font-size: 12px; font-weight: 400; color: #666666; margin-top: 2px; }
+  .login-menu .yours { border-top: 1px solid #eeeeee; margin-top: 6px; padding-top: 8px; }
+  .login-menu .yours a { color: #3E6A45; font-weight: 600; }
+
+  .hero { padding: 88px 32px 72px; text-align: center; }
+  .hero .kicker { margin: 0 0 18px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
+  .hero h1 { margin: 0 auto 22px; font-size: clamp(34px, 5.5vw, 52px); line-height: 1.12; font-weight: 700; letter-spacing: -0.025em; max-width: 17em; text-wrap: balance; }
+  .hero .lede { margin: 0 auto 36px; font-size: 19px; line-height: 1.6; color: #555555; max-width: 36em; text-wrap: pretty; }
+  .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
   .btn-hero { padding: 14px 28px; font-size: 16px; }
   .hero-email { font-size: 15px; font-weight: 500; }
-  .hero-art { flex: 0 1 300px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; min-width: 240px; }
-  .hero-art img { width: 100%; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.12); display: block; }
-  .hero-art img.down { margin-top: 24px; }
-  .hero-art img.up { margin-top: -24px; }
+
+  .services { padding-top: 24px; padding-bottom: 88px; }
+  .services h2 { margin: 0 0 10px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .services .sub { margin: 0 0 40px; font-size: 16px; color: #666666; max-width: 40em; }
+  .svc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
+  .svc { background: #ffffff; border: 1px solid #ececec; border-radius: 8px; padding: 26px 26px 28px; }
+  .svc h3 { margin: 0 0 10px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .svc p { margin: 0; font-size: 15px; line-height: 1.6; color: #555555; }
 
   .field { background: #ECF3EC; }
   .field-inner { padding-top: 64px; padding-bottom: 64px; }
-  .field .kicker { margin: 0 0 36px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
+  .field .kicker { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
+  .field .intro { margin: 0 0 40px; font-size: 18px; line-height: 1.6; color: #1a1a1a; max-width: 42em; text-wrap: pretty; }
   .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 40px; }
   .field-stat .num { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; color: #3E6A45; }
   .field-stat .txt { margin-top: 6px; font-size: 15px; line-height: 1.5; color: #1a1a1a; }
@@ -80,7 +119,7 @@
   .closer { background: #3E6A45; }
   .closer-inner { padding-top: 72px; padding-bottom: 72px; text-align: center; }
   .closer h2 { margin: 0 0 12px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff; }
-  .closer p { margin: 0 auto 32px; font-size: 16px; line-height: 1.55; color: #cfe0d2; max-width: 34em; }
+  .closer p { margin: 0 auto 32px; font-size: 16px; line-height: 1.55; color: #cfe0d2; max-width: 36em; }
   .closer-ctas { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
   .btn-invert { background: #ffffff; color: #3E6A45; padding: 14px 28px; font-size: 16px; }
   .btn-invert:hover { background: #ECF3EC; color: #3E6A45; }
@@ -101,25 +140,53 @@
       <img src="/assets/favicon.png" alt="Canopy">
       <span>Canopy</span>
     </div>
-    <a class="btn btn-nav" href="mailto:info@canopydata.app?subject=Canopy%20demo">Book a demo</a>
+    <div class="nav-actions">
+      <details class="login" id="login">
+        <summary>Log in</summary>
+        <div class="login-menu">
+          <a href="https://cannwood.canopydata.app">Cannwood
+            <span>400-acre rewilding estate, Somerset</span></a>
+          <a href="https://heal.canopydata.app">Heal Rewilding
+            <span>Heal Somerset, rewilding charity</span></a>
+          <div class="yours">
+            <a href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Your project here &rarr;</a>
+          </div>
+        </div>
+      </details>
+      <a class="btn btn-nav" href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Get in touch</a>
+    </div>
   </header>
 
   <main style="flex: 1;">
     <section class="hero shell">
-      <div class="hero-row">
-        <div class="hero-copy">
-          <h1>Ecological monitoring for rewilding estates and conservation projects</h1>
-          <p class="lede">Camera traps, acoustic surveys, GPS tracking and species records — in one place, on one map.</p>
-          <div class="hero-ctas">
-            <a class="btn btn-hero" href="mailto:info@canopydata.app?subject=Canopy%20demo">Book a demo</a>
-            <a class="hero-email" href="mailto:info@canopydata.app">info@canopydata.app</a>
-          </div>
+      <p class="kicker">Ecological data, made useful</p>
+      <h1>Bespoke data tools for ecology and rewilding</h1>
+      <p class="lede">Camera traps, acoustic surveys, GPS tags, decades of spreadsheets — most projects are sitting on more data than they can use. Canopy designs and builds the software that pulls it all together and puts it to work.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-hero" href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Tell us about your project</a>
+        <a class="hero-email" href="mailto:info@canopydata.app">info@canopydata.app</a>
+      </div>
+    </section>
+
+    <section class="services shell">
+      <h2>What we do</h2>
+      <p class="sub">From a shoebox of SD cards to a live platform your whole team logs into — we take on the whole journey, or any one part of it.</p>
+      <div class="svc-grid">
+        <div class="svc">
+          <h3>One living record of your land</h3>
+          <p>We consolidate survey spreadsheets, consultant reports and historic records into a single database and map — so every sighting, survey and device is in one place your whole team can use.</p>
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <img src="/assets/turtle-dove.png" alt="Turtle dove">
-          <img src="/assets/marsh-fritillary.png" alt="Marsh fritillary" class="down">
-          <img src="/assets/camera-trap.png" alt="Camera trap" class="up">
-          <img src="/assets/wren.png" alt="Wren">
+        <div class="svc">
+          <h3>Bespoke applications</h3>
+          <p>Custom tools shaped around how you actually work: volunteer survey entry, camera-trap review, tracking dashboards. Built quickly, then refined in the field alongside you.</p>
+        </div>
+        <div class="svc">
+          <h3>Device pipelines &amp; AI</h3>
+          <p>Camera traps, acoustic recorders and GPS tags feeding your record automatically — with AI species identification you review, rather than data entry you dread.</p>
+        </div>
+        <div class="svc">
+          <h3>Analysis &amp; reporting</h3>
+          <p>Seasonal trends, species discovery curves and the evidence funders, partners and regulators ask for — generated from live data, not compiled by hand each year.</p>
         </div>
       </div>
     </section>
@@ -127,6 +194,7 @@
     <section class="field">
       <div class="shell field-inner">
         <p class="kicker">In the field</p>
+        <p class="intro">We don't just advise — we build, deploy and run. The Canopy platform began as a bespoke build for one rewilding estate and is now in daily use at two.</p>
         <div class="field-grid">
           <div class="field-stat">
             <div class="num">2,500+</div>
@@ -138,7 +206,7 @@
           </div>
           <div class="field-stat">
             <div class="num">One record</div>
-            <div class="txt">every survey, sighting and device on a single map your whole team can use — in daily use at Cannwood and with Heal Rewilding</div>
+            <div class="txt">every survey, sighting and device on a single map — in daily use at Cannwood and with Heal Rewilding</div>
           </div>
         </div>
       </div>
@@ -146,7 +214,7 @@
 
     <section class="demos shell">
       <h2>See it working</h2>
-      <p class="sub">Three views of the live platform, on real data.</p>
+      <p class="sub">Three views of the platform we built — live, on real data.</p>
       <div class="demo-grid">
         <div class="demo-card">
           <div class="demo-media">
@@ -189,10 +257,10 @@
 
     <section class="closer">
       <div class="shell closer-inner">
-        <h2>See it on your land</h2>
-        <p>A 30-minute walkthrough of Canopy on real survey data — and what it would look like for your site.</p>
+        <h2>Tell us about your data</h2>
+        <p>A 30-minute conversation about what you're collecting, what's stuck in spreadsheets, and what it could become. No pitch deck — you'll leave with a clear picture of what we'd build and why.</p>
         <div class="closer-ctas">
-          <a class="btn btn-invert" href="mailto:info@canopydata.app?subject=Canopy%20demo">Book a demo</a>
+          <a class="btn btn-invert" href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Get in touch</a>
           <a class="closer-email" href="mailto:info@canopydata.app">or email info@canopydata.app</a>
         </div>
       </div>
@@ -202,11 +270,18 @@
   <footer class="site">
     <div class="who">
       <img src="/assets/favicon.png" alt="">
-      <span>Canopy — ecological monitoring, built in the field</span>
+      <span>Canopy — data tools for ecology, built in the field</span>
     </div>
     <a href="mailto:info@canopydata.app">info@canopydata.app</a>
   </footer>
 
 </div>
+<script>
+  // Close the login dropdown when clicking anywhere outside it.
+  document.addEventListener('click', function (e) {
+    var login = document.getElementById('login');
+    if (login.open && !login.contains(e.target)) login.open = false;
+  });
+</script>
 </body>
 </html>
