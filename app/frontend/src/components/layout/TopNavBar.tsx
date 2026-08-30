@@ -1,5 +1,5 @@
 import { AppBar, Toolbar, Box, IconButton, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { Assignment, BarChart, Sensors, Settings, Menu as MenuIcon, Close, Logout } from '@mui/icons-material';
+import { Assignment, BarChart, Landscape, Sensors, Settings, Menu as MenuIcon, Close, Logout } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth, usePermissions } from '../../context/AuthContext';
@@ -7,7 +7,7 @@ import { UserMenu } from './UserMenu';
 import { PoweredByCanopy } from './PoweredByCanopy';
 import canopyLogo from '../../assets/canopy-logo.svg';
 import { orgLogoUrl } from '../../config/orgBranding';
-import { getOrgSlug } from '../../services/api';
+import { ORG_SLUG } from '../../services/api';
 import { orgHasGroups } from '../../pages/groups/groupMeta';
 
 /**
@@ -38,8 +38,11 @@ export function TopNavBar() {
   // flat list is retired); orgs without groups keep the flat list.
   const showGroups = orgHasGroups();
   const surveysHome = showGroups ? '/groups' : '/surveys';
-  // Only Cannwood runs GPS trackers today.
-  const hasTrackers = getOrgSlug() === 'cannwood';
+  // GPS tracking and Land are Cannwood-specific today. ORG_SLUG (captured at
+  // page load) rather than getOrgSlug(): client-side navigation drops the
+  // local ?org= override, so re-parsing the URL mis-gates these tabs in
+  // local testing.
+  const isCannwood = ORG_SLUG === 'cannwood';
 
   const navItems = [
     {
@@ -53,12 +56,22 @@ export function TopNavBar() {
       path: '/species',
     },
     // Tracker positions — only orgs with trackers (Cannwood) see this.
-    ...(hasTrackers
+    ...(isCannwood
       ? [
           {
             icon: Sensors,
             label: 'GPS tracking',
             path: '/tracking',
+          },
+        ]
+      : []),
+    // Land-cover change over time — Cannwood only for now.
+    ...(isCannwood
+      ? [
+          {
+            icon: Landscape,
+            label: 'Land',
+            path: '/land',
           },
         ]
       : []),
