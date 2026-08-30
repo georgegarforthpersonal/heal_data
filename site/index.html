@@ -254,7 +254,7 @@
         </div>
         <div class="demo-card">
           <div class="demo-media">
-            <video autoplay muted loop playsinline preload="auto" aria-label="Canopy screen recording: sliding between aerial imagery of Cannwood from 2000 and 2024, showing fields returning to woodland">
+            <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy screen recording: sliding between aerial imagery of Cannwood from 2000 and 2024, showing fields returning to woodland">
               <source src="/assets/demo-land-management.mp4" type="video/mp4">
               <source src="/assets/demo-land-management.webm" type="video/webm">
             </video>
@@ -300,22 +300,39 @@
 
   // iOS Safari can leave autoplay videos paused (Low Power Mode, autoplay
   // settings). Nudge playback when a video enters the viewport and again on
-  // the first touch or scroll.
+  // user gestures, which iOS always accepts for muted video.
   (function () {
     var videos = Array.prototype.slice.call(document.querySelectorAll('.demo-media video'));
     if (!videos.length) return;
-    function play(v) {
-      if (v.paused) { v.muted = true; var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+
+    // Someone asking for less motion gets a still they can play themselves.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      videos.forEach(function (v) { v.autoplay = false; v.controls = true; v.pause(); });
+      return;
     }
+
+    var GESTURES = ['touchstart', 'scroll', 'click'];
+    function play(v) { v.muted = true; var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+    function kick() { videos.forEach(play); }
+
     if ('IntersectionObserver' in window) {
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (en) { if (en.isIntersecting) play(en.target); });
       }, { threshold: 0.25 });
       videos.forEach(function (v) { io.observe(v); });
     }
-    function kick() { videos.forEach(play); }
-    ['touchstart', 'scroll', 'click'].forEach(function (ev) {
-      window.addEventListener(ev, kick, { once: true, passive: true });
+
+    // Retry on every gesture until each video reports it is genuinely running:
+    // play() flips `paused` synchronously but iOS can reject long afterwards,
+    // so `paused` is not a reliable signal that playback took.
+    GESTURES.forEach(function (ev) { window.addEventListener(ev, kick, { passive: true }); });
+    var pending = videos.length;
+    videos.forEach(function (v) {
+      v.addEventListener('playing', function settled() {
+        v.removeEventListener('playing', settled);
+        if (--pending) return;
+        GESTURES.forEach(function (ev) { window.removeEventListener(ev, kick); });
+      });
     });
   })();
 </script>
