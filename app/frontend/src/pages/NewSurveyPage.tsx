@@ -25,6 +25,7 @@ import {
   imagesAPI,
   devicesAPI,
   isRetryableError,
+  isMissingFilesError,
 } from '../services/api';
 import type {
   Survey,
@@ -49,6 +50,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { scopeBoundariesToLocations } from '../utils/scopeBoundaries';
 import { useDraftAutosave, useOnlineStatus, useSyncRetry, useWakeLock } from '../hooks';
 import { downscalePhotos } from '../utils/downscalePhoto';
+import { findUnreadableFiles, unreadablePhotosMessage } from '../utils/fileHealth';
 import {
   loadSurveyDraft,
   deleteSurveyDraft,
@@ -575,6 +577,21 @@ export function NewSurveyPage() {
     setSaving(true);
     setError(null);
 
+    // Photos restored from the local draft can be dead references: iOS may
+    // have evicted the blob data behind a stored File while its metadata
+    // survived. A dead File is silently dropped from the multipart body, so
+    // the upload fails identically on every retry — probe for that here,
+    // before anything is created server-side, and make the user re-attach.
+    const unreadable = await findUnreadableFiles([
+      ...draftSightings.flatMap((s) => s.pendingPhotos ?? []),
+      ...pendingImageFiles,
+    ]);
+    if (unreadable.length > 0) {
+      setError(unreadablePhotosMessage(unreadable));
+      setSaving(false);
+      return;
+    }
+
     // Idempotency uuids for everything this save will create, minted once and
     // persisted to the local draft BEFORE any request: a retry — even after a
     // reload — re-sends the same uuids, so the server never duplicates the
@@ -710,6 +727,16 @@ export function NewSurveyPage() {
         setPendingSync(true);
         setSyncErrorDetail(err instanceof Error ? err.message : String(err));
         setError(null);
+      } else if (isMissingFilesError(err)) {
+        // The photo's data never made it into the request body (dead File
+        // reference) — retrying re-sends the same dead reference, so don't
+        // promise that retrying will work.
+        setPendingSync(false);
+        setError(
+          'A photo could not be sent — its image data is no longer readable on ' +
+            'this device. Remove the photo from its sighting or re-attach it ' +
+            'from your photo library, then save again.'
+        );
       } else {
         setPendingSync(false);
         const message = err instanceof Error ? err.message : 'Failed to create survey';
