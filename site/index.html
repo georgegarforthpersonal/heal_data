@@ -111,6 +111,8 @@
   .demo-card { background: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: hidden; }
   .demo-media { aspect-ratio: 16 / 9; background: #ECF3EC; display: flex; align-items: center; justify-content: center; }
   .demo-media img, .demo-media video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .demo-media.wide { aspect-ratio: 2.63; }
+  .demo-media.wide img, .demo-media.wide video { object-fit: cover; }
   .demo-meta { padding: 18px 20px 22px; display: flex; gap: 14px; align-items: flex-start; }
   .demo-meta img { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
   .demo-meta .title { font-size: 16px; font-weight: 600; }
@@ -230,6 +232,21 @@
         </div>
         <div class="demo-card">
           <div class="demo-media">
+            <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy land management view: an aerial imagery slider sweeping between 2000 and 2024 at Cannwood, showing fields returning to woodland">
+              <source src="/assets/demo-land-management-v2.mp4" type="video/mp4">
+              <source src="/assets/demo-land-management-v2.webm" type="video/webm">
+            </video>
+          </div>
+          <div class="demo-meta">
+            <img src="/assets/wren.png" alt="">
+            <div>
+              <div class="title">Land management</div>
+              <div class="caption">See how land changes over time: drone, lidar and satellite imagery on one timeline.</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-card">
+          <div class="demo-media wide">
             <img src="/assets/demo-species-charts.png" alt="Canopy screenshot: 79 bird species and 2,260 individuals recorded at Cannwood, with the species discovery curve over time" loading="lazy">
           </div>
           <div class="demo-meta">
@@ -241,7 +258,7 @@
           </div>
         </div>
         <div class="demo-card">
-          <div class="demo-media">
+          <div class="demo-media wide">
             <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy GPS tracking view: two tagged turtle doves on the map across Somerset and Dorset, zooming in to one bird's three-day track over farmland on satellite imagery">
               <source src="/assets/demo-gps-tracking.mp4" type="video/mp4">
               <source src="/assets/demo-gps-tracking.webm" type="video/webm">
@@ -252,21 +269,6 @@
             <div>
               <div class="title">GPS tracking</div>
               <div class="caption">Tagged birds on the map, live, alongside your survey locations.</div>
-            </div>
-          </div>
-        </div>
-        <div class="demo-card">
-          <div class="demo-media">
-            <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy land management view: an aerial imagery slider sweeping between 2000 and 2024 at Cannwood, showing fields returning to woodland">
-              <source src="/assets/demo-land-management-v2.mp4" type="video/mp4">
-              <source src="/assets/demo-land-management-v2.webm" type="video/webm">
-            </video>
-          </div>
-          <div class="demo-meta">
-            <img src="/assets/wren.png" alt="">
-            <div>
-              <div class="title">Land management</div>
-              <div class="caption">See how land changes over time: drone, lidar and satellite imagery on one timeline.</div>
             </div>
           </div>
         </div>
