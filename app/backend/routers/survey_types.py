@@ -39,6 +39,10 @@ from services.r2_storage import (
 
 router = APIRouter()
 
+# Cap for the sighting-photo feed served by recent-media: unlike the
+# per-species gallery it isn't bounded by the species count.
+RECENT_PHOTO_FEED_CAP = 24
+
 # Maximum reference file size: 25 MB
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 
@@ -274,9 +278,12 @@ def get_survey_type_recent_media(
     org: Organisation = Depends(get_current_organisation),
     db: Session = Depends(get_db)
 ) -> SurveyTypeRecentMedia:
-    """The most recent camera trap photo and audio detection clip per species
-    across ALL of the type's surveys, most recent first — the group page's
-    species gallery. Bounded by the species count, so no pagination."""
+    """The group page's media gallery. For camera trap types: the most recent
+    photo per species across ALL of the type's surveys (bounded by the species
+    count, so no pagination), plus the same per species for audio clips. For
+    sighting-photo types a per-species gallery would collapse to a tile or two
+    (they're often single-species), so photos become a feed of the latest
+    uploads instead, capped at RECENT_PHOTO_FEED_CAP."""
     survey_type = db.query(SurveyType).filter(
         SurveyType.id == survey_type_id,
         SurveyType.organisation_id == org.id
@@ -284,25 +291,46 @@ def get_survey_type_recent_media(
     if not survey_type:
         raise HTTPException(status_code=404, detail=f"Survey type {survey_type_id} not found")
 
-    # DISTINCT ON keeps the first row per species under the ORDER BY — i.e.
-    # its latest photo (newest survey wins, then the newest image within it).
-    photo_rows = db.execute(
-        text("""
-            SELECT DISTINCT ON (s.species_id)
-                s.species_id,
-                COALESCE(sp.name, sp.scientific_name) AS species_name,
-                si.camera_trap_image_id,
-                sv.id AS survey_id,
-                sv.date
-            FROM sighting s
-            JOIN survey sv ON sv.id = s.survey_id
-            JOIN species sp ON sp.id = s.species_id
-            JOIN sighting_image si ON si.sighting_id = s.id
-            WHERE sv.survey_type_id = :survey_type_id AND sv.organisation_id = :org_id
-            ORDER BY s.species_id, sv.date DESC, sv.id DESC, si.camera_trap_image_id DESC
-        """),
-        {"survey_type_id": survey_type_id, "org_id": org.id},
-    ).fetchall()
+    photo_feed = survey_type.allow_sighting_photo_upload and not survey_type.allow_image_upload
+    if photo_feed:
+        photo_rows = db.execute(
+            text("""
+                SELECT
+                    s.species_id,
+                    COALESCE(sp.name, sp.scientific_name) AS species_name,
+                    si.camera_trap_image_id,
+                    sv.id AS survey_id,
+                    sv.date
+                FROM sighting s
+                JOIN survey sv ON sv.id = s.survey_id
+                JOIN species sp ON sp.id = s.species_id
+                JOIN sighting_image si ON si.sighting_id = s.id
+                WHERE sv.survey_type_id = :survey_type_id AND sv.organisation_id = :org_id
+                ORDER BY sv.date DESC, sv.id DESC, si.camera_trap_image_id DESC
+                LIMIT :cap
+            """),
+            {"survey_type_id": survey_type_id, "org_id": org.id, "cap": RECENT_PHOTO_FEED_CAP},
+        ).fetchall()
+    else:
+        # DISTINCT ON keeps the first row per species under the ORDER BY — i.e.
+        # its latest photo (newest survey wins, then the newest image within it).
+        photo_rows = db.execute(
+            text("""
+                SELECT DISTINCT ON (s.species_id)
+                    s.species_id,
+                    COALESCE(sp.name, sp.scientific_name) AS species_name,
+                    si.camera_trap_image_id,
+                    sv.id AS survey_id,
+                    sv.date
+                FROM sighting s
+                JOIN survey sv ON sv.id = s.survey_id
+                JOIN species sp ON sp.id = s.species_id
+                JOIN sighting_image si ON si.sighting_id = s.id
+                WHERE sv.survey_type_id = :survey_type_id AND sv.organisation_id = :org_id
+                ORDER BY s.species_id, sv.date DESC, sv.id DESC, si.camera_trap_image_id DESC
+            """),
+            {"survey_type_id": survey_type_id, "org_id": org.id},
+        ).fetchall()
 
     clip_rows = db.execute(
         text("""
