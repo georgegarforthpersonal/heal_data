@@ -418,6 +418,42 @@ class TestRecentMedia:
         # The later detection wins.
         assert clips[0]["start_time"] == "06:00:00"
 
+    def test_sighting_photo_type_returns_recent_feed(
+        self, client: TestClient, auth_headers: dict, db_session,
+        create_survey_type, create_survey, create_species,
+    ):
+        """Sighting-photo types get every recent photo, newest first — not one
+        per species, which would collapse a single-species type to one tile."""
+        survey_type = create_survey_type(name="Turtle Dove")
+        survey_type.allow_sighting_photo_upload = True
+        db_session.commit()
+        dove = create_species(name="Turtle Dove", scientific_name="Streptopelia turtur", species_type="bird")
+        old = create_survey(survey_date=date(2026, 8, 15), survey_type_id=survey_type.id)
+        new = create_survey(survey_date=date(2026, 8, 31), survey_type_id=survey_type.id)
+
+        def add_photo(survey, species, r2_key):
+            image = CameraTrapImage(survey_id=survey.id, filename=f"{r2_key}.jpg", r2_key=r2_key)
+            db_session.add(image)
+            sighting = Sighting(survey_id=survey.id, species_id=species.id, count=1)
+            db_session.add(sighting)
+            db_session.commit()
+            db_session.refresh(image)
+            db_session.refresh(sighting)
+            db_session.add(SightingImage(sighting_id=sighting.id, camera_trap_image_id=image.id))
+            db_session.commit()
+            return image
+
+        old_photo = add_photo(old, dove, "media/dove-old.jpg")
+        new_a = add_photo(new, dove, "media/dove-new-a.jpg")
+        new_b = add_photo(new, dove, "media/dove-new-b.jpg")
+
+        response = client.get(f"/api/survey-types/{survey_type.id}/recent-media", headers=auth_headers)
+        assert response.status_code == 200
+        photos = response.json()["photos"]
+        # All three photos of the one species, newest survey first.
+        assert [p["camera_trap_image_id"] for p in photos] == [new_b.id, new_a.id, old_photo.id]
+        assert all(p["species_name"] == "Turtle Dove" for p in photos)
+
     def test_recent_media_unknown_type_404(self, client: TestClient, auth_headers: dict):
         response = client.get("/api/survey-types/99999/recent-media", headers=auth_headers)
         assert response.status_code == 404

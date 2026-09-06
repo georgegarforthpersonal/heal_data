@@ -867,7 +867,9 @@ class RecentSpeciesClip(SQLModel):
 
 
 class SurveyTypeRecentMedia(SQLModel):
-    """Latest media per species for a survey type, most recent first."""
+    """Latest media for a survey type, most recent first. Photos are one per
+    species for camera trap types, or a capped feed of the latest sighting
+    photos for sighting-photo types (which may repeat a species)."""
     photos: List[RecentSpeciesPhoto] = Field(default_factory=list)
     clips: List[RecentSpeciesClip] = Field(default_factory=list)
 

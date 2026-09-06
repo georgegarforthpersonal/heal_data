@@ -1,10 +1,12 @@
 /**
- * Species gallery panel for media groups: each species' MOST RECENT camera
- * trap photo ('photos') or audio detection clip ('clips'), ordered by how
- * recently the species was last seen — one look at what's around, without
- * one busy badger monopolising the strip. Capped, with an "All species" door
- * to the full gallery page. Photos open in the shared image viewer; clips
- * play in place via AudioClipPlayer.
+ * Media gallery panel for groups. For camera trap types (perSpecies): each
+ * species' MOST RECENT photo, ordered by how recently the species was last
+ * seen — one look at what's around, without one busy badger monopolising the
+ * strip. For sighting-photo types (!perSpecies): a feed of the latest photos
+ * added to sightings, which may repeat a species. 'clips' lists each
+ * species' latest audio detection. Capped, with a door to the full gallery
+ * page. Photos open in the shared image viewer; clips play in place via
+ * AudioClipPlayer.
  */
 import { useEffect, useState } from 'react';
 import { Box, Paper, Typography, CircularProgress, ButtonBase } from '@mui/material';
@@ -26,13 +28,16 @@ const CLIP_PANEL_CAP = 6;
 
 interface RecentMediaPanelProps {
   kind: 'photos' | 'clips';
+  /** One latest photo per species (camera trap) vs a feed of recent
+      sighting photos. Only meaningful for kind 'photos'. */
+  perSpecies?: boolean;
   surveyTypeId: number;
   onViewAll: () => void;
 }
 
 type LoadedPhoto = RecentSpeciesPhoto & { url: string | null };
 
-export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: RecentMediaPanelProps) {
+export default function RecentMediaPanel({ kind, perSpecies = true, surveyTypeId, onViewAll }: RecentMediaPanelProps) {
   const [photos, setPhotos] = useState<LoadedPhoto[]>([]);
   const [clips, setClips] = useState<RecentSpeciesClip[]>([]);
   const [total, setTotal] = useState(0);
@@ -81,7 +86,10 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
     };
   }, [kind, surveyTypeId]);
 
-  const title = kind === 'photos' ? 'Latest by species' : 'Latest detections by species';
+  const title =
+    kind === 'clips' ? 'Latest detections by species'
+    : perSpecies ? 'Latest by species'
+    : 'Recent photos';
   const empty = kind === 'photos' ? photos.length === 0 : clips.length === 0;
   // The viewer skips tiles whose preview URL failed, so map each photo to its
   // viewer slot by position.
@@ -90,7 +98,7 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
     if (!p.url) return null;
     viewerImages.push({
       src: p.url,
-      alt: p.species_name ?? 'Camera trap photo',
+      alt: p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo'),
       caption: `${p.species_name ?? 'Unidentified'} · ${formatRecordedDateShort(p.date)}`,
     });
     return viewerImages.length - 1;
@@ -111,9 +119,11 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
       ) : empty ? (
         <Box sx={{ px: 2.25, py: 3 }}>
           <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
-            {kind === 'photos'
-              ? 'No photos yet — each species appears here with its latest photo.'
-              : 'No detections yet — each species appears here with its latest clip.'}
+            {kind === 'clips'
+              ? 'No detections yet — each species appears here with its latest clip.'
+              : perSpecies
+                ? 'No photos yet — each species appears here with its latest photo.'
+                : 'No photos yet — photos added to sightings appear here.'}
           </Typography>
         </Box>
       ) : kind === 'photos' ? (
@@ -128,7 +138,7 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
         >
           {photos.map((p, i) => (
             <ButtonBase
-              key={p.species_id}
+              key={p.camera_trap_image_id}
               onClick={() => viewerIndexOf[i] != null && setViewerIndex(viewerIndexOf[i])}
               sx={{ display: 'block', textAlign: 'left', borderRadius: '8px' }}
             >
@@ -136,7 +146,7 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
                 <Box
                   component="img"
                   src={p.url}
-                  alt={p.species_name ?? 'Camera trap photo'}
+                  alt={p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo')}
                   sx={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
                 />
               ) : (
@@ -200,10 +210,14 @@ export default function RecentMediaPanel({ kind, surveyTypeId, onViewAll }: Rece
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: groupColors.textPrimary }}>
-              All species
+              {kind === 'photos' && !perSpecies ? 'All photos' : 'All species'}
             </Typography>
             <Typography sx={{ fontSize: 12, color: groupColors.textMuted }}>
-              {total} species {kind === 'photos' ? 'photographed' : 'detected'}
+              {kind === 'clips'
+                ? `${total} species detected`
+                : perSpecies
+                  ? `${total} species photographed`
+                  : `${total} recent photo${total === 1 ? '' : 's'}`}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: groupColors.brand, flexShrink: 0 }}>

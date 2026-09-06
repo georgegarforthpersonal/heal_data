@@ -1,7 +1,9 @@
 /**
- * All species gallery for a media group: every species ever recorded by the
- * survey type, each with its most recent camera trap photo (grid) or audio
- * detection clip (rows), most recently seen first.
+ * Full media gallery for a group. Camera trap types: every species ever
+ * recorded, each with its most recent photo (grid), most recently seen
+ * first. Audio types: the same per species for detection clips (rows).
+ * Sighting-photo types: the latest photos added to sightings, newest first,
+ * which may repeat a species.
  */
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -112,18 +114,22 @@ export default function GroupMediaPage() {
 
   // The type's config decides the mode — inferring it from whichever list
   // happens to be non-empty would call an empty audio group a photo gallery.
-  const isPhotos = surveyType.allow_image_upload;
+  const isPhotos = surveyType.allow_image_upload || surveyType.allow_sighting_photo_upload;
+  // Camera trap galleries show one latest photo per species; sighting-photo
+  // galleries are a feed of the latest uploads (may repeat a species).
+  const perSpecies = surveyType.allow_image_upload;
   const total = isPhotos ? photos.length : clips.length;
   const viewerImages: ImageViewerItem[] = [];
   const viewerIndexOf = photos.map((p) => {
     if (!p.url) return null;
     viewerImages.push({
       src: p.url,
-      alt: p.species_name ?? 'Camera trap photo',
+      alt: p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo'),
       caption: `${p.species_name ?? 'Unidentified'} · ${formatRecordedDate(p.date)}`,
     });
     return viewerImages.length - 1;
   });
+  const galleryTitle = isPhotos && !perSpecies ? 'All photos' : 'All species';
 
   return (
     <Box sx={{ bgcolor: groupColors.page, minHeight: '100%', px: { xs: 2, sm: 4 }, py: { xs: 2, sm: 3 } }}>
@@ -132,16 +138,17 @@ export default function GroupMediaPage() {
           crumbs={[
             { label: 'Surveys', to: '/groups' },
             { label: surveyType.name, to: `/groups/${typeId}` },
-            { label: 'All species' },
+            { label: galleryTitle },
           ]}
         />
 
         <Typography sx={{ fontSize: 24, fontWeight: 600, color: groupColors.textPrimary }}>
-          All species
+          {galleryTitle}
         </Typography>
         <Typography sx={{ fontSize: 13.5, color: '#888', mb: 2 }}>
-          {surveyType.name} · {total} species, each with its latest{' '}
-          {isPhotos ? 'photo' : 'detection'}, most recently seen first
+          {isPhotos && !perSpecies
+            ? `${surveyType.name} · ${total} photo${total === 1 ? '' : 's'} from sightings, most recent first`
+            : `${surveyType.name} · ${total} species, each with its latest ${isPhotos ? 'photo' : 'detection'}, most recently seen first`}
         </Typography>
 
         <Paper sx={{ ...groupCardSx, p: total === 0 ? 0 : undefined }}>
@@ -162,7 +169,7 @@ export default function GroupMediaPage() {
             >
               {photos.map((p, i) => (
                 <ButtonBase
-                  key={p.species_id}
+                  key={p.camera_trap_image_id}
                   onClick={() => viewerIndexOf[i] != null && setViewerIndex(viewerIndexOf[i])}
                   sx={{ display: 'block', textAlign: 'left', borderRadius: '8px' }}
                 >
@@ -170,7 +177,7 @@ export default function GroupMediaPage() {
                     <Box
                       component="img"
                       src={p.url}
-                      alt={p.species_name ?? 'Camera trap photo'}
+                      alt={p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo')}
                       sx={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
                     />
                   ) : (
