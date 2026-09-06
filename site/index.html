@@ -16,7 +16,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
   body {
     margin: 0;
     background: #fafafa;
@@ -89,7 +91,7 @@
   .btn-hero { padding: 14px 28px; font-size: 16px; }
   .hero-email { font-size: 15px; font-weight: 500; }
   .hero-media { margin-top: 60px; }
-  .hero-media video { display: block; width: 100%; border-radius: 10px; box-shadow: 0 2px 14px rgba(0,0,0,0.14); }
+  .hero-media video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #ECF3EC; border-radius: 10px; box-shadow: 0 2px 14px rgba(0,0,0,0.14); }
   .hero-media .caption { margin: 12px auto 0; font-size: 13px; color: #666666; max-width: 42em; }
 
   .services { padding-top: 24px; padding-bottom: 88px; }
@@ -102,15 +104,17 @@
 
   .field { background: #ECF3EC; }
   .field-inner { padding-top: 64px; padding-bottom: 64px; }
-  .field .kicker { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
+  .field .kicker, .case .kicker { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
   .field .intro { margin: 0 0 40px; font-size: 18px; line-height: 1.6; color: #1a1a1a; max-width: 42em; text-wrap: pretty; }
   .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 32px; }
   .field-stat .num { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; color: #3E6A45; }
   .field-stat .txt { margin-top: 6px; font-size: 15px; line-height: 1.5; color: #1a1a1a; }
 
   .case { padding-top: 80px; }
-  .case:last-of-type { padding-bottom: 80px; }
-  .case .kicker { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
+  /* :last-of-type matches by tag, so `.case:last-of-type` would never match
+     (the closer section is the last <section> sibling); put the gap between
+     the final case study and the closer band here instead. */
+  .case + .closer { margin-top: 80px; }
   .case h2 { margin: 0 0 6px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
   .case .where { margin: 0 0 20px; font-size: 15px; color: #666666; }
   .case .story { margin: 0 0 36px; font-size: 17px; line-height: 1.65; color: #333333; max-width: 46em; text-wrap: pretty; }
@@ -144,7 +148,7 @@
   }
   .contact-card input:focus, .contact-card textarea:focus { outline: 2px solid #51895A; outline-offset: 0; border-color: #51895A; }
   .contact-card textarea { min-height: 120px; resize: vertical; }
-  .contact-card button { width: 100%; border: 0; cursor: pointer; padding: 13px; font-size: 16px; }
+  .contact-card button { width: 100%; border: 0; cursor: pointer; padding: 13px; font-family: inherit; font-size: 16px; }
   .closer-email { color: #ffffff; font-size: 15px; font-weight: 500; }
   .closer-email:hover { color: #ECF3EC; }
 
@@ -189,7 +193,7 @@
         <a class="hero-email" href="mailto:info@canopydata.app">info@canopydata.app</a>
       </div>
       <div class="hero-media">
-        <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy land management view: an aerial imagery slider sweeping between 2000 and 2024 at Cannwood, showing fields returning to woodland">
+        <video autoplay muted loop playsinline preload="metadata" poster="/assets/demo-land-management-poster.jpg" aria-label="Canopy land management view: an aerial imagery slider sweeping between 2000 and 2024 at Cannwood, showing fields returning to woodland">
           <source src="/assets/demo-land-management-v2.mp4" type="video/mp4">
           <source src="/assets/demo-land-management-v2.webm" type="video/webm">
         </video>
@@ -331,10 +335,14 @@
 
 </div>
 <script>
-  // Close the login dropdown when clicking anywhere outside it.
+  // Close the login dropdown when clicking anywhere outside it, or when
+  // following one of its links (the in-page #contact link scrolls without
+  // leaving the page, so the menu would otherwise stay open).
   document.addEventListener('click', function (e) {
     var login = document.getElementById('login');
-    if (login.open && !login.contains(e.target)) login.open = false;
+    if (!login.open) return;
+    var menuLink = e.target.closest && e.target.closest('.login-menu a');
+    if (menuLink || !login.contains(e.target)) login.open = false;
   });
 
   // iOS Safari can leave autoplay videos paused (Low Power Mode, autoplay
