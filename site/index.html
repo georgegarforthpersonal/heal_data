@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Canopy | Bespoke data tools for ecology and rewilding</title>
+<title>Canopy | Bespoke data platforms for ecology and rewilding</title>
 <meta name="description" content="Canopy designs and builds bespoke data platforms and applications for rewilding estates, conservation charities and ecologists. Camera traps, acoustic surveys, GPS tracking, species records and decades of spreadsheets, made useful.">
 <link rel="icon" type="image/png" href="/assets/favicon.png">
-<meta property="og:title" content="Canopy | Bespoke data tools for ecology and rewilding">
+<meta property="og:title" content="Canopy | Bespoke data platforms for ecology and rewilding">
 <meta property="og:description" content="We design and build data platforms and applications for rewilding estates, conservation charities and ecologists. In daily use at Cannwood and Heal Rewilding.">
 <meta property="og:image" content="https://canopydata.app/assets/og-canopy.png">
 <meta property="og:url" content="https://canopydata.app/">
@@ -16,6 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     background: #fafafa;
@@ -80,18 +81,21 @@
   .login-menu .yours { border-top: 1px solid #eeeeee; margin-top: 6px; padding-top: 8px; }
   .login-menu .yours a { color: #3E6A45; font-weight: 600; }
 
-  .hero { padding: 88px 32px 72px; text-align: center; }
+  .hero { padding: 72px 32px 80px; text-align: center; }
   .hero .kicker { margin: 0 0 18px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
   .hero h1 { margin: 0 auto 22px; font-size: clamp(34px, 5.5vw, 52px); line-height: 1.12; font-weight: 700; letter-spacing: -0.025em; max-width: 17em; text-wrap: balance; }
   .hero .lede { margin: 0 auto 36px; font-size: 19px; line-height: 1.6; color: #555555; max-width: 36em; text-wrap: pretty; }
   .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
   .btn-hero { padding: 14px 28px; font-size: 16px; }
   .hero-email { font-size: 15px; font-weight: 500; }
+  .hero-media { margin-top: 60px; }
+  .hero-media video { display: block; width: 100%; border-radius: 10px; box-shadow: 0 2px 14px rgba(0,0,0,0.14); }
+  .hero-media .caption { margin: 12px auto 0; font-size: 13px; color: #666666; max-width: 42em; }
 
   .services { padding-top: 24px; padding-bottom: 88px; }
   .services h2 { margin: 0 0 10px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
   .services .sub { margin: 0 0 40px; font-size: 16px; color: #666666; max-width: 40em; }
-  .svc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
+  .svc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 24px; }
   .svc { background: #ffffff; border: 1px solid #ececec; border-radius: 8px; padding: 26px 26px 28px; }
   .svc h3 { margin: 0 0 10px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
   .svc p { margin: 0; font-size: 15px; line-height: 1.6; color: #555555; }
@@ -100,14 +104,19 @@
   .field-inner { padding-top: 64px; padding-bottom: 64px; }
   .field .kicker { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
   .field .intro { margin: 0 0 40px; font-size: 18px; line-height: 1.6; color: #1a1a1a; max-width: 42em; text-wrap: pretty; }
-  .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 40px; }
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 32px; }
   .field-stat .num { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; color: #3E6A45; }
   .field-stat .txt { margin-top: 6px; font-size: 15px; line-height: 1.5; color: #1a1a1a; }
 
-  .demos { padding-top: 80px; padding-bottom: 80px; }
-  .demos h2 { margin: 0 0 10px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-  .demos .sub { margin: 0 0 40px; font-size: 16px; color: #666666; }
-  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; }
+  .case { padding-top: 80px; }
+  .case:last-of-type { padding-bottom: 80px; }
+  .case .kicker { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3E6A45; }
+  .case h2 { margin: 0 0 6px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .case .where { margin: 0 0 20px; font-size: 15px; color: #666666; }
+  .case .story { margin: 0 0 36px; font-size: 17px; line-height: 1.65; color: #333333; max-width: 46em; text-wrap: pretty; }
+  .case .next { margin: 28px 0 0; font-size: 15px; font-weight: 500; }
+
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 28px; }
   .demo-card { background: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: hidden; }
   .demo-media { aspect-ratio: 16 / 9; background: #ECF3EC; display: flex; align-items: center; justify-content: center; }
   .demo-media img, .demo-media video { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -119,10 +128,23 @@
   .closer { background: #3E6A45; }
   .closer-inner { padding-top: 72px; padding-bottom: 72px; text-align: center; }
   .closer h2 { margin: 0 0 12px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff; }
-  .closer p { margin: 0 auto 32px; font-size: 16px; line-height: 1.55; color: #cfe0d2; max-width: 36em; }
-  .closer-ctas { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
-  .btn-invert { background: #ffffff; color: #3E6A45; padding: 14px 28px; font-size: 16px; }
-  .btn-invert:hover { background: #ECF3EC; color: #3E6A45; }
+  .closer p { margin: 0 auto 36px; font-size: 16px; line-height: 1.55; color: #cfe0d2; max-width: 36em; }
+  .contact-card { background: #ffffff; border-radius: 10px; padding: 28px; max-width: 520px; margin: 0 auto 22px; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,0.18); }
+  .contact-card label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #333333; }
+  .contact-card input, .contact-card textarea {
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid #d9ded9;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #1a1a1a;
+    font: inherit;
+    font-size: 15px;
+  }
+  .contact-card input:focus, .contact-card textarea:focus { outline: 2px solid #51895A; outline-offset: 0; border-color: #51895A; }
+  .contact-card textarea { min-height: 120px; resize: vertical; }
+  .contact-card button { width: 100%; border: 0; cursor: pointer; padding: 13px; font-size: 16px; }
   .closer-email { color: #ffffff; font-size: 15px; font-weight: 500; }
   .closer-email:hover { color: #ECF3EC; }
 
@@ -149,22 +171,29 @@
           <a href="https://heal.canopydata.app">Heal Rewilding
             <span>Heal Somerset, rewilding charity</span></a>
           <div class="yours">
-            <a href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Your project here &rarr;</a>
+            <a href="#contact">Your project here &rarr;</a>
           </div>
         </div>
       </details>
-      <a class="btn btn-nav" href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Get in touch</a>
+      <a class="btn btn-nav" href="#contact">Get in touch</a>
     </div>
   </header>
 
   <main style="flex: 1;">
     <section class="hero shell">
-      <p class="kicker">Ecological data, made useful</p>
-      <h1>Bespoke data tools for ecology and rewilding</h1>
+      <p class="kicker">Bespoke data platforms for ecology and rewilding</p>
+      <h1>Ecological data, made useful</h1>
       <p class="lede">Camera traps, acoustic surveys, GPS tags, decades of spreadsheets. Most projects are sitting on more data than they can use. Canopy designs and builds the software that pulls it all together and puts it to work.</p>
       <div class="hero-ctas">
-        <a class="btn btn-hero" href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Tell us about your project</a>
+        <a class="btn btn-hero" href="#contact">Tell us about your project</a>
         <a class="hero-email" href="mailto:info@canopydata.app">info@canopydata.app</a>
+      </div>
+      <div class="hero-media">
+        <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy land management view: an aerial imagery slider sweeping between 2000 and 2024 at Cannwood, showing fields returning to woodland">
+          <source src="/assets/demo-land-management-v2.mp4" type="video/mp4">
+          <source src="/assets/demo-land-management-v2.webm" type="video/webm">
+        </video>
+        <p class="caption">The Canopy land-management view at Cannwood: aerial imagery from 2000 to 2024, fields returning to woodland.</p>
       </div>
     </section>
 
@@ -178,7 +207,7 @@
         </div>
         <div class="svc">
           <h3>Bespoke applications</h3>
-          <p>Custom tools shaped around how you actually work: volunteer survey entry, camera-trap review, tracking dashboards. Built quickly, then refined in the field alongside you.</p>
+          <p>Software shaped around how you actually work: volunteer survey entry, camera-trap review, tracking dashboards. Built quickly, then refined in the field alongside you.</p>
         </div>
         <div class="svc">
           <h3>Device pipelines &amp; AI</h3>
@@ -197,24 +226,30 @@
         <p class="intro">We don't just advise. We build, deploy and run. The Canopy platform began as a bespoke build for one rewilding estate and is now in daily use at two.</p>
         <div class="field-grid">
           <div class="field-stat">
-            <div class="num">2,500+</div>
-            <div class="txt">individual animals recorded across 120+ species at Cannwood, a 400-acre rewilding estate in Somerset</div>
+            <div class="num">713</div>
+            <div class="txt">species recorded, identified by surveyors and AI</div>
           </div>
           <div class="field-stat">
-            <div class="num">GPS-tracked</div>
-            <div class="txt">turtle doves followed through the season at Cannwood, alongside camera trap and acoustic surveys</div>
+            <div class="num">23,909</div>
+            <div class="txt">individuals recorded, every one mapped with who, where and when</div>
           </div>
           <div class="field-stat">
-            <div class="num">One record</div>
-            <div class="txt">every survey, sighting and device on a single map, in daily use at Cannwood and with Heal Rewilding</div>
+            <div class="num">400</div>
+            <div class="txt">surveys completed, from butterfly walks to camera-trap cards</div>
+          </div>
+          <div class="field-stat">
+            <div class="num">28</div>
+            <div class="txt">staff, ecologists and volunteers signed up and recording</div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="demos shell">
-      <h2>See it working</h2>
-      <p class="sub">Live views of the platform we built, on real data.</p>
+    <section class="case shell">
+      <p class="kicker">Case study</p>
+      <h2>Cannwood</h2>
+      <p class="where">A 400-acre rewilding estate in Somerset</p>
+      <p class="story">Cannwood is where Canopy began: one estate's camera traps, bird surveys and historic records pulled into a single living map. Today the platform runs the estate's day-to-day ecological record. Satellite-tagged turtle doves are followed through the season, camera-trap cards are identified by AI and reviewed by eye, and decades of aerial imagery show the land changing on one timeline.</p>
       <div class="demo-grid">
         <div class="demo-card">
           <div class="demo-media">
@@ -230,54 +265,59 @@
         </div>
         <div class="demo-card">
           <div class="demo-media">
+            <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy GPS tracking view: two tagged turtle doves on the map across Somerset and Dorset, zooming in to one bird's three-day track over farmland on satellite imagery">
+              <source src="/assets/demo-gps-tracking.mp4" type="video/mp4">
+              <source src="/assets/demo-gps-tracking.webm" type="video/webm">
+            </video>
+          </div>
+          <div class="demo-meta">
+            <img src="/assets/turtle-dove.png" alt="">
+            <div>
+              <div class="title">GPS tracking</div>
+              <div class="caption">Tagged birds on the map, alongside your survey locations.</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-card">
+          <div class="demo-media">
             <img src="/assets/demo-species-charts.png" alt="Canopy screenshot: 79 bird species and 2,260 individuals recorded at Cannwood, with the species discovery curve over time" loading="lazy">
           </div>
           <div class="demo-meta">
-            <img src="/assets/butterfly.png" alt="">
+            <img src="/assets/wren.png" alt="">
             <div>
               <div class="title">Surveys &amp; trends</div>
               <div class="caption">Species records and seasonal charts across every survey type.</div>
             </div>
           </div>
         </div>
-        <div class="demo-card">
-          <div class="demo-media">
-            <img src="/assets/demo-gps-tracking.jpg" alt="Canopy screenshot: GPS track of a tagged turtle dove plotted on the map around Bruton, Somerset" loading="lazy">
-          </div>
-          <div class="demo-meta">
-            <img src="/assets/turtle-dove.png" alt="">
-            <div>
-              <div class="title">GPS tracking</div>
-              <div class="caption">Tagged birds on the map, live, alongside your survey locations.</div>
-            </div>
-          </div>
-        </div>
-        <div class="demo-card">
-          <div class="demo-media">
-            <video autoplay muted loop playsinline preload="metadata" aria-label="Canopy land management view: an aerial imagery slider sweeping between 2000 and 2024 at Cannwood, showing fields returning to woodland">
-              <source src="/assets/demo-land-management-v2.mp4" type="video/mp4">
-              <source src="/assets/demo-land-management-v2.webm" type="video/webm">
-            </video>
-          </div>
-          <div class="demo-meta">
-            <img src="/assets/wren.png" alt="">
-            <div>
-              <div class="title">Land management</div>
-              <div class="caption">See how land changes over time: drone, lidar and satellite imagery on one timeline.</div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
-    <section class="closer">
+    <section class="case shell">
+      <p class="kicker">Case study</p>
+      <h2>Heal Rewilding</h2>
+      <p class="where">Heal Somerset, a rewilding charity</p>
+      <p class="story">Heal runs on volunteers, so their Canopy is shaped around them. Survey groups for butterflies and dragonflies plan their season, recorders enter counts from a phone in the field, and every walk feeds the same living record the staff team works from. It's the same platform as Cannwood underneath, with a different application on top. That's what bespoke means.</p>
+      <p class="next">Your project could be next. <a href="#contact">Tell us about it &rarr;</a></p>
+    </section>
+
+    <section class="closer" id="contact">
       <div class="shell closer-inner">
         <h2>Tell us about your data</h2>
         <p>A 30-minute conversation about what you're collecting, what's stuck in spreadsheets, and what it could become. No pitch deck, just a clear picture of what we'd build and why.</p>
-        <div class="closer-ctas">
-          <a class="btn btn-invert" href="mailto:info@canopydata.app?subject=Canopy%20%E2%80%94%20project%20enquiry">Get in touch</a>
-          <a class="closer-email" href="mailto:info@canopydata.app">or email info@canopydata.app</a>
-        </div>
+        <!-- TODO: replace YOUR_FORM_ID with the real Formspree form id before merging. -->
+        <form class="contact-card" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+          <input type="hidden" name="_subject" value="Canopy project enquiry">
+          <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <label for="contact-name">Name</label>
+          <input id="contact-name" type="text" name="name" autocomplete="name" required>
+          <label for="contact-email">Email</label>
+          <input id="contact-email" type="email" name="email" autocomplete="email" required>
+          <label for="contact-message">Your project, in a sentence or two</label>
+          <textarea id="contact-message" name="message" required></textarea>
+          <button class="btn" type="submit">Send</button>
+        </form>
+        <a class="closer-email" href="mailto:info@canopydata.app">or email info@canopydata.app</a>
       </div>
     </section>
   </main>
@@ -285,7 +325,7 @@
   <footer class="site">
     <div class="who">
       <img src="/assets/favicon.png" alt="">
-      <span>Canopy: data tools for ecology, built in the field</span>
+      <span>Canopy: bespoke software for ecology, built in the field</span>
     </div>
     <a href="mailto:info@canopydata.app">info@canopydata.app</a>
   </footer>
@@ -302,7 +342,7 @@
   // settings). Nudge playback when a video enters the viewport and again on
   // user gestures, which iOS always accepts for muted video.
   (function () {
-    var videos = Array.prototype.slice.call(document.querySelectorAll('.demo-media video'));
+    var videos = Array.prototype.slice.call(document.querySelectorAll('video'));
     if (!videos.length) return;
 
     // Someone asking for less motion gets a still they can play themselves.
