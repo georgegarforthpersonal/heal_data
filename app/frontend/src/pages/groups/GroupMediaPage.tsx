@@ -117,19 +117,20 @@ export default function GroupMediaPage() {
   const isPhotos = surveyType.allow_image_upload || surveyType.allow_sighting_photo_upload;
   // Camera trap galleries show one latest photo per species; sighting-photo
   // galleries are a feed of the latest uploads (may repeat a species).
-  const perSpecies = surveyType.allow_image_upload;
+  const feed = surveyType.allow_sighting_photo_upload && !surveyType.allow_image_upload;
+  const photoAlt = feed ? 'Sighting photo' : 'Camera trap photo';
   const total = isPhotos ? photos.length : clips.length;
   const viewerImages: ImageViewerItem[] = [];
   const viewerIndexOf = photos.map((p) => {
     if (!p.url) return null;
     viewerImages.push({
       src: p.url,
-      alt: p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo'),
+      alt: p.species_name ?? photoAlt,
       caption: `${p.species_name ?? 'Unidentified'} · ${formatRecordedDate(p.date)}`,
     });
     return viewerImages.length - 1;
   });
-  const galleryTitle = isPhotos && !perSpecies ? 'All photos' : 'All species';
+  const galleryTitle = feed ? 'All photos' : 'All species';
 
   return (
     <Box sx={{ bgcolor: groupColors.page, minHeight: '100%', px: { xs: 2, sm: 4 }, py: { xs: 2, sm: 3 } }}>
@@ -146,8 +147,8 @@ export default function GroupMediaPage() {
           {galleryTitle}
         </Typography>
         <Typography sx={{ fontSize: 13.5, color: '#888', mb: 2 }}>
-          {isPhotos && !perSpecies
-            ? `${surveyType.name} · ${total} photo${total === 1 ? '' : 's'} from sightings, most recent first`
+          {feed
+            ? `${surveyType.name} · ${total} recent photo${total === 1 ? '' : 's'} from sightings, newest first`
             : `${surveyType.name} · ${total} species, each with its latest ${isPhotos ? 'photo' : 'detection'}, most recently seen first`}
         </Typography>
 
@@ -177,7 +178,7 @@ export default function GroupMediaPage() {
                     <Box
                       component="img"
                       src={p.url}
-                      alt={p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo')}
+                      alt={p.species_name ?? photoAlt}
                       sx={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
                     />
                   ) : (

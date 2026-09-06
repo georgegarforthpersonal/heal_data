@@ -86,10 +86,14 @@ export default function RecentMediaPanel({ kind, perSpecies = true, surveyTypeId
     };
   }, [kind, surveyTypeId]);
 
+  // Three copy flavours: audio clips, the camera trap per-species gallery,
+  // and the sighting-photo feed.
+  const feed = kind === 'photos' && !perSpecies;
   const title =
     kind === 'clips' ? 'Latest detections by species'
-    : perSpecies ? 'Latest by species'
-    : 'Recent photos';
+    : feed ? 'Recent photos'
+    : 'Latest by species';
+  const photoAlt = feed ? 'Sighting photo' : 'Camera trap photo';
   const empty = kind === 'photos' ? photos.length === 0 : clips.length === 0;
   // The viewer skips tiles whose preview URL failed, so map each photo to its
   // viewer slot by position.
@@ -98,7 +102,7 @@ export default function RecentMediaPanel({ kind, perSpecies = true, surveyTypeId
     if (!p.url) return null;
     viewerImages.push({
       src: p.url,
-      alt: p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo'),
+      alt: p.species_name ?? photoAlt,
       caption: `${p.species_name ?? 'Unidentified'} · ${formatRecordedDateShort(p.date)}`,
     });
     return viewerImages.length - 1;
@@ -121,9 +125,9 @@ export default function RecentMediaPanel({ kind, perSpecies = true, surveyTypeId
           <Typography sx={{ fontSize: 13.5, color: groupColors.textMuted }}>
             {kind === 'clips'
               ? 'No detections yet — each species appears here with its latest clip.'
-              : perSpecies
-                ? 'No photos yet — each species appears here with its latest photo.'
-                : 'No photos yet — photos added to sightings appear here.'}
+              : feed
+                ? 'No photos yet — photos added to sightings appear here.'
+                : 'No photos yet — each species appears here with its latest photo.'}
           </Typography>
         </Box>
       ) : kind === 'photos' ? (
@@ -146,7 +150,7 @@ export default function RecentMediaPanel({ kind, perSpecies = true, surveyTypeId
                 <Box
                   component="img"
                   src={p.url}
-                  alt={p.species_name ?? (perSpecies ? 'Camera trap photo' : 'Sighting photo')}
+                  alt={p.species_name ?? photoAlt}
                   sx={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
                 />
               ) : (
@@ -210,14 +214,14 @@ export default function RecentMediaPanel({ kind, perSpecies = true, surveyTypeId
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: groupColors.textPrimary }}>
-              {kind === 'photos' && !perSpecies ? 'All photos' : 'All species'}
+              {feed ? 'All photos' : 'All species'}
             </Typography>
             <Typography sx={{ fontSize: 12, color: groupColors.textMuted }}>
               {kind === 'clips'
                 ? `${total} species detected`
-                : perSpecies
-                  ? `${total} species photographed`
-                  : `${total} recent photo${total === 1 ? '' : 's'}`}
+                : feed
+                  ? `${total} recent photo${total === 1 ? '' : 's'}`
+                  : `${total} species photographed`}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: groupColors.brand, flexShrink: 0 }}>
